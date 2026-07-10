@@ -1,0 +1,36 @@
+{
+  "name": "sd0x-dev-flow-codex",
+  "version": "0.1.0",
+  "description": "Codex-native engineering loop with dual review, deterministic verification, and fingerprinted completion gates.",
+  "author": {
+    "name": "sd0xdev"
+  },
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "code-review",
+    "development-workflow",
+    "testing",
+    "hooks",
+    "security"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "sd0x Dev Flow for Codex",
+    "shortDescription": "Fingerprint-gated review and verification loop",
+    "longDescription": "A Codex-native engineering harness that combines a Claude MCP primary review with independent Codex implementation and test perspectives, all tied to the exact current worktree.",
+    "developerName": "sd0xdev",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Implement this change and close the review loop.",
+      "Review my current worktree and fix actionable findings.",
+      "Verify this repository and report the evidence."
+    ],
+    "brandColor": "#C4552D"
+  }
+}

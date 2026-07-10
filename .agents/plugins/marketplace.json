@@ -1,0 +1,20 @@
+{
+  "name": "sd0x-dev-flow-local",
+  "interface": {
+    "displayName": "sd0x Dev Flow Local"
+  },
+  "plugins": [
+    {
+      "name": "sd0x-dev-flow-codex",
+      "source": {
+        "source": "local",
+        "path": "./plugin/sd0x-dev-flow-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

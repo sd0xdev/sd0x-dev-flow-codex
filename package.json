@@ -1,0 +1,23 @@
+{
+  "name": "sd0x-dev-flow-codex",
+  "version": "0.1.0",
+  "description": "Codex-native engineering loop with fingerprinted review and verification gates.",
+  "license": "MIT",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node scripts/check-syntax.js && node --test test/*.test.js",
+    "dev:link": "node scripts/dev-plugin.js link",
+    "dev:status": "node scripts/dev-plugin.js status",
+    "dev:unlink": "node scripts/dev-plugin.js unlink",
+    "dev:local:link": "node scripts/dev-plugin.js link --local-home",
+    "dev:local:status": "node scripts/dev-plugin.js status --local-home",
+    "dev:local:unlink": "node scripts/dev-plugin.js unlink --local-home",
+    "doctor": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js doctor",
+    "snapshot": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js snapshot"
+  }
+}
