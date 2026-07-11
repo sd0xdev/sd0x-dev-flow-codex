@@ -3,20 +3,21 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { isProjectEnabled } = require('./config');
+const { readProjectConfig } = require('./config');
 const {
   claimSetupDeferral,
   clearSetupDeferral,
   clearSessionActivationFailure,
   consumeSetupDeferral,
+  discardExternalReviewStart,
   hasSessionActivationFailure,
   nextAction,
   readState,
   isSessionActive,
   markSessionActivationFailure,
   recordExternalReview,
+  recordExternalReviewStart,
   recordSubagent,
-  recordContinuation,
   refreshState,
   summarize
 } = require('./state');
@@ -48,8 +49,14 @@ function contextOutput(eventName, context) {
 function pendingMessage(state, sessionId) {
   const action = nextAction(state, { sessionId });
   if (action.action === 'review') {
+    if (action.reason === 'review-in-progress') {
+      return 'Independent reviewers are still running for the current worktree. Wait for their terminal results; if the reviewer ledger is stale, ask the user before running `$sd0x-dev-flow-codex:reset`.';
+    }
+    if (action.reason === 'reviewer-unavailable') {
+      return 'Review remains failed because reviewer infrastructure is unavailable. For the same fingerprint, ask the user before running `$sd0x-dev-flow-codex:reset`; only that user-authorized reset clears the failed gate and stale ledger. Restoring reviewer identities may also require a new Codex task, but restarting alone does not clear this evidence.';
+    }
     if (action.reason === 'review-findings-remain') {
-      return 'The current worktree has unresolved review findings. Fix the recorded findings, then run `$sd0x-dev-flow-codex:review` again.';
+      return 'Review is blocked for the current worktree. Inspect the recorded reviewer results: fix actionable findings and rerun `$sd0x-dev-flow-codex:review`; if a reviewer failed or its ledger is stale, ask the user before running `$sd0x-dev-flow-codex:reset`.';
     }
     return 'The current worktree needs independent review. Run `$sd0x-dev-flow-codex:review` before finishing.';
   }
@@ -58,9 +65,6 @@ function pendingMessage(state, sessionId) {
       return 'Deterministic verification failed for the current worktree. Fix the recorded failure, then run `$sd0x-dev-flow-codex:verify` again.';
     }
     return 'Review passed for this fingerprint. Run `$sd0x-dev-flow-codex:verify` before finishing.';
-  }
-  if (action.action === 'escalate') {
-    return `The sd0x loop reached its ${action.reason} safety limit. Stop automatic iteration and explain the remaining blocker to the user.`;
   }
   return 'All required sd0x gates pass for the current worktree fingerprint.';
 }
@@ -146,33 +150,56 @@ function setupClaimFromToolResult(input, cwd) {
 }
 
 function handleClaudeReviewResult(input, cwd) {
+  const identity = {
+    session_id: input.session_id || input.sessionId || null,
+    tool_use_id: input.tool_use_id
+  };
   const result = structuredMcpResult(input.tool_response);
   if (!result) {
+    discardExternalReviewStart(cwd, identity);
     emit(contextOutput('PostToolUse',
       'Claude MCP did not return a successful structured review. No review evidence was recorded.'));
     return;
   }
-  recordExternalReview(cwd, {
-    input_fingerprint: input.tool_input?.fingerprint,
-    input_root: input.tool_input?.cwd,
-    tool_use_id: input.tool_use_id,
-    result
-  });
+  try {
+    recordExternalReview(cwd, {
+      input_fingerprint: input.tool_input?.fingerprint,
+      input_root: input.tool_input?.cwd,
+      ...identity,
+      result
+    });
+  } catch (error) {
+    discardExternalReviewStart(cwd, identity);
+    throw error;
+  }
   emit(contextOutput('PostToolUse',
     `Recorded Claude MCP ${result.outcome} evidence for fingerprint ${result.fingerprint}.`));
 }
 
 function handle(eventName, input) {
   const cwd = input.cwd || process.cwd();
+  const projectConfig = readProjectConfig(cwd);
 
-  if (!isProjectEnabled(cwd)) {
+  if (!projectConfig.enabled) {
     if (eventName === 'Stop' || eventName === 'SubagentStop') {
       emit({ continue: true });
     }
     return;
   }
 
-  if (eventName === 'PreToolUse') {
+  if (eventName === 'PreToolUse' && input.tool_name === CLAUDE_REVIEW_TOOL &&
+      projectConfig.review.provider !== 'claude') {
+    emit({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'deny',
+        permissionDecisionReason: 'Claude review is disabled. Set review.provider to "claude" and start a new task before using the Claude reviewer.'
+      }
+    });
+    return;
+  }
+
+  if (eventName === 'PreToolUse' && input.tool_name !== CLAUDE_REVIEW_TOOL) {
     handlePreToolUse(input, cwd);
     return;
   }
@@ -187,7 +214,10 @@ function handle(eventName, input) {
     emit(contextOutput(eventName, [
       'sd0x Dev Flow is active.',
       'Completion gates are tied to the exact worktree fingerprint.',
-      'Use the Claude MCP primary reviewer plus two independent Codex reviewer subagents; use the deterministic verify runner for tests.',
+      projectConfig.review.provider === 'claude'
+        ? 'Use the Claude-wrapper primary subagent plus two independent Codex reviewer subagents; the Claude MCP call must happen inside its wrapper.'
+        : 'Use the gpt-5.6-sol xhigh Codex primary subagent plus two independent gpt-5.6-sol xhigh Codex reviewer subagents; do not call Claude.',
+      'Use the deterministic verify runner for tests.',
       pendingMessage(state, sessionId)
     ].join(' ')));
     return;
@@ -226,11 +256,28 @@ function handle(eventName, input) {
 
   if (eventName === 'SubagentStart') {
     recordSubagent(cwd, 'start', input);
-    const focus = input.agent_type === 'sd0x_test_reviewer'
-      ? 'Focus on missing tests, acceptance coverage, flaky assumptions, and verification gaps.'
-      : 'Focus on correctness, security, behavior regressions, race conditions, and error handling.';
+    let focus = 'Focus on correctness, security, behavior regressions, race conditions, and error handling.';
+    if (input.agent_type === 'sd0x_test_reviewer') {
+      focus = 'Focus on missing tests, acceptance coverage, flaky assumptions, and verification gaps.';
+    } else if (input.agent_type === 'sd0x_codex_primary_reviewer') {
+      focus = 'Perform the full primary implementation and test review with gpt-5.6-sol xhigh.';
+    } else if (input.agent_type === 'sd0x_claude_primary_reviewer') {
+      focus = 'Call the Claude MCP exactly once for the supplied root and fingerprint, then validate and relay its structured result.';
+    }
     emit(contextOutput(eventName,
       `Stay read-only and review only the current worktree changes. ${focus} Return concrete actionable findings with file and line references; say explicitly when no findings remain.`));
+    return;
+  }
+
+  if (eventName === 'PreToolUse' && input.tool_name === CLAUDE_REVIEW_TOOL) {
+    recordExternalReviewStart(cwd, {
+      input_fingerprint: input.tool_input?.fingerprint,
+      input_root: input.tool_input?.cwd,
+      session_id: sessionId,
+      tool_use_id: input.tool_use_id
+    });
+    emit(contextOutput(eventName,
+      `Bound Claude review start to the current runtime epoch for fingerprint ${input.tool_input?.fingerprint}.`));
     return;
   }
 
@@ -273,11 +320,10 @@ function handle(eventName, input) {
   if (eventName === 'Stop') {
     const state = refreshState(cwd, { sessionId });
     const action = nextAction(state, { sessionId });
-    if (action.action === 'review' || action.action === 'verify') {
-      recordContinuation(cwd, sessionId);
+    if (action.reason === 'reviewer-unavailable') {
+      emit({ continue: true, systemMessage: pendingMessage(state, sessionId) });
+    } else if (action.action === 'review' || action.action === 'verify') {
       emit({ decision: 'block', reason: pendingMessage(state, sessionId) });
-    } else if (action.action === 'escalate') {
-      emit({ systemMessage: pendingMessage(state, sessionId) });
     } else {
       emit({ continue: true });
     }

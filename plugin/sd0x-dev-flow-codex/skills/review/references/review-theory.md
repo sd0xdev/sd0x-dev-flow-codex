@@ -4,6 +4,35 @@ This rubric adapts the reviewer model from `sd0x-dev-flow` to a Codex-hosted,
 fingerprint-bound workflow. Review quality comes from independent research and
 orthogonal perspectives, not from reviewer count alone.
 
+## Source Alignment
+
+The provider switch changes execution, not the review contract. These principles
+are preserved from `sd0x-dev-flow`'s `codex-invocation`, `auto-loop`,
+`fix-all-issues`, code-review, and test-review workflows:
+
+- Give reviewers change metadata and an independent-research mandate, never the
+  implementer's conclusions or another reviewer's verdict. Reviewers must read
+  the actual diff, full changed files, related code, tests, guidance, and specs.
+- Dispatch orthogonal perspectives in parallel on the first review and every
+  re-review. An edit resets the review cycle for every perspective.
+- Treat fixing and verifying as separate actions: fix the root cause, add
+  recurrence protection, then re-observe the new change set.
+- Deliberate over evidence, surrounding context, false positives, impact-based
+  severity, and adjacent gaps before reporting a finding.
+- Normalize and deduplicate findings by canonical issue while retaining the
+  strongest severity and source attribution.
+- Trace implementation and tests back to acceptance criteria when request or
+  specification documents exist.
+- Persist the loop through review and deterministic verification; saying that a
+  review should run is not evidence that it ran.
+
+Codex-native intentional differences are stricter and explicit: all three
+perspectives are blocking, P0/P1/P2 all block, Nits are excluded, provider and
+worktree fingerprint changes invalidate evidence, and no degraded pass exists.
+Instead of the source workflow's fixed round cap and stateful-primary shortcut,
+every new fingerprint gets a fresh full scan; a user-operated reset is the only
+escape hatch for stale runtime evidence and never bypasses a gate.
+
 ## Invariants
 
 1. **Independent research, not anchoring.** Give each reviewer the changed-file
@@ -13,9 +42,10 @@ orthogonal perspectives, not from reviewer count alone.
 2. **Change causality plus full context.** Report only defects caused or exposed
    by this worktree, but follow dependencies far enough to prove the runtime
    effect. Evidence may live in unchanged surrounding code.
-3. **Orthogonal perspectives.** Claude covers both implementation and tests;
-   native Codex reviewers independently emphasize implementation risk and
-   test/acceptance adequacy. Their union is the useful result.
+3. **Orthogonal perspectives.** The configured Codex or Claude primary covers
+   both implementation and tests; native Codex reviewers independently
+   emphasize implementation risk and test/acceptance adequacy. Their union is
+   the useful result.
 4. **Impact-based severity.** Severity describes credible user or engineering
    impact, not reviewer confidence. Unverified suspicions are omitted rather
    than downgraded.

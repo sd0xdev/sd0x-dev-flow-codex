@@ -5,6 +5,8 @@
   "author": {
     "name": "sd0xdev"
   },
+  "homepage": "https://github.com/sd0xdev/sd0x-dev-flow-codex",
+  "repository": "https://github.com/sd0xdev/sd0x-dev-flow-codex",
   "license": "MIT",
   "keywords": [
     "codex",
@@ -19,8 +21,9 @@
   "interface": {
     "displayName": "sd0x Dev Flow for Codex",
     "shortDescription": "Fingerprint-gated review and verification loop",
-    "longDescription": "A Codex-native engineering harness that combines a Claude MCP primary review with independent Codex implementation and test perspectives, all tied to the exact current worktree.",
+    "longDescription": "A Codex-native engineering harness with Codex-first review, an optional Claude MCP primary, and independent Codex implementation and test perspectives, all tied to the exact current worktree.",
     "developerName": "sd0xdev",
+    "websiteURL": "https://github.com/sd0xdev/sd0x-dev-flow-codex",
     "category": "Developer Tools",
     "capabilities": [
       "Interactive",

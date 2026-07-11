@@ -26,6 +26,7 @@ const {
 } = require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server');
 const {
   claudeCliStatus,
+  doctor,
   mcpServerStatus
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/cli');
 const { snapshot } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/worktree');
@@ -184,7 +185,7 @@ test('Claude CLI invocation is non-persistent and exposes only read tools', () =
   assert.equal(args[args.indexOf('--model') + 1], 'sonnet');
   assert.equal(args[args.indexOf('--fallback-model') + 1], 'claude-opus-4-8');
   assert.equal(args[args.indexOf('--max-budget-usd') + 1], '2.50');
-  assert.equal(buildClaudeEnv({}).CLAUDE_CODE_MAX_TURNS, '12');
+  assert.equal(buildClaudeEnv({}).CLAUDE_CODE_MAX_TURNS, '20');
   assert.equal(buildClaudeEnv({
     SD0X_CLAUDE_REVIEW_MAX_TURNS: '7'
   }).CLAUDE_CODE_MAX_TURNS, '7');
@@ -199,10 +200,10 @@ test('Claude preflight flags are derived from the actual invocation contract', (
   }).includes('--max-budget-usd'));
 });
 
-test('Claude review defaults to Fable 5 with Opus 4.8 fallback', () => {
+test('Claude review defaults to Opus 4.8 without an automatic fallback', () => {
   const args = buildClaudeArgs({});
-  assert.equal(args[args.indexOf('--model') + 1], 'claude-fable-5');
-  assert.equal(args[args.indexOf('--fallback-model') + 1], 'claude-opus-4-8');
+  assert.equal(args[args.indexOf('--model') + 1], 'claude-opus-4-8');
+  assert.equal(args.includes('--fallback-model'), false);
 });
 
 test('Claude prompt preserves the sd0x independent-review theory', () => {
@@ -222,38 +223,36 @@ test('Claude prompt preserves the sd0x independent-review theory', () => {
   assert.match(REVIEW_SYSTEM_PROMPT, /Use P0.*Use P1.*Use P2/s);
 });
 
-test('Claude retries once with Opus 4.8 after a failed Fable attempt', async () => {
+test('Claude retries with an explicitly configured Fable fallback', async () => {
   const attempts = [];
   const output = await executeClaude('/repo', 'review', {
-    env: {},
+    env: { SD0X_CLAUDE_REVIEW_FALLBACK_MODEL: 'claude-fable-5' },
     runAttempt: async (_root, _prompt, options) => {
       attempts.push([options.model, options.fallbackModel]);
-      if (attempts.length === 1) throw new Error('Fable timed out');
+      if (attempts.length === 1) throw new Error('Opus timed out');
       return { outcome: 'clean', summary: 'Clean.', findings: [] };
     }
   });
   assert.equal(output.outcome, 'clean');
   assert.deepEqual(attempts, [
-    ['claude-fable-5', 'claude-opus-4-8'],
-    ['claude-opus-4-8', 'claude-opus-4-8']
+    ['claude-opus-4-8', 'claude-fable-5'],
+    ['claude-fable-5', 'claude-fable-5']
   ]);
 });
 
-test('Claude cancellation does not start the Opus fallback', async () => {
+test('Claude failure has no second attempt unless fallback is configured', async () => {
   const attempts = [];
   await assert.rejects(
     executeClaude('/repo', 'review', {
       env: {},
       runAttempt: async (_root, _prompt, options) => {
         attempts.push(options.model);
-        const error = new Error('cancelled');
-        error.code = 'ABORT_ERR';
-        throw error;
+        throw new Error('review failed');
       }
     }),
-    /cancelled/
+    /review failed/
   );
-  assert.deepEqual(attempts, ['claude-fable-5']);
+  assert.deepEqual(attempts, ['claude-opus-4-8']);
 });
 
 test('MCP timeout accommodates two 15-minute model attempts', () => {
@@ -430,12 +429,20 @@ test('Claude preflight reports readiness without exposing account identity', () 
 });
 
 test('Claude preflight rejects a CLI missing required review flags', () => {
+  const env = { SD0X_CLAUDE_REVIEW_FALLBACK_MODEL: 'claude-fable-5' };
+  const required = claudeRequiredFlags(env);
   const execute = (_binary, args) => {
     if (args[0] === '--version') return { status: 0, stdout: 'old\n', stderr: '' };
-    if (args[0] === '--help') return { status: 0, stdout: '--tools\n', stderr: '' };
+    if (args[0] === '--help') {
+      return {
+        status: 0,
+        stdout: required.filter((flag) => flag !== '--fallback-model').join('\n'),
+        stderr: ''
+      };
+    }
     return { status: 0, stdout: '{"loggedIn":true}', stderr: '' };
   };
-  const status = claudeCliStatus({}, execute);
+  const status = claudeCliStatus(env, execute);
   assert.equal(status.installed, true);
   assert.equal(status.compatible, false);
   assert.ok(status.missing_flags.includes('--fallback-model'));
@@ -486,6 +493,103 @@ test('doctor MCP smoke test verifies initialize and review tool discovery', () =
   assert.equal(status.ready, true);
   assert.equal(status.server_name, 'sd0x-claude-review');
   assert.equal(status.tool, 'review_worktree');
+});
+
+test('doctor skips Claude checks for the default Codex provider', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const status = doctor(root, {
+    claudeStatus: () => {
+      throw new Error('Claude status must not run in Codex mode');
+    },
+    mcpStatus: () => {
+      throw new Error('Claude MCP status must not run in Codex mode');
+    }
+  });
+  assert.equal(status.review_provider, 'codex');
+  assert.equal(status.claude.checked, false);
+  assert.equal(status.mcp.checked, false);
+  assert.equal(status.checks.some((check) => check.check === 'claude-cli'), false);
+});
+
+test('doctor requires Claude readiness only when the project opts in', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, '.codex', 'sd0x-dev-flow.json'),
+    JSON.stringify({
+      schema_version: 1,
+      enabled: true,
+      review: { provider: 'claude' }
+    })
+  );
+  const status = doctor(root, {
+    claudeStatus: () => ({
+      installed: false,
+      compatible: false,
+      authenticated: false
+    }),
+    mcpStatus: () => ({ ready: false })
+  });
+  assert.equal(status.review_provider, 'claude');
+  assert.equal(status.ok, false);
+  assert.equal(status.checks.find((check) => check.check === 'claude-cli').ok, false);
+  assert.equal(
+    status.checks.find((check) => check.check === 'claude-review-mcp-handshake').ok,
+    false
+  );
+});
+
+test('doctor fails when any shipped skill artifact is missing', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const source = path.resolve(__dirname, '..', 'plugin', 'sd0x-dev-flow-codex');
+  const pluginRoot = path.join(root, 'plugin-fixture');
+  fs.cpSync(source, pluginRoot, { recursive: true });
+  const options = {
+    pluginRoot,
+    claudeStatus: () => ({ installed: true, compatible: true, authenticated: true }),
+    mcpStatus: () => ({ ready: true })
+  };
+
+  const skillArtifacts = [
+    'skills/bug-fix/SKILL.md',
+    'skills/doctor/SKILL.md',
+    'skills/doctor/scripts/doctor.js',
+    'skills/feature-dev/SKILL.md',
+    'skills/remind/SKILL.md',
+    'skills/remind/scripts/status.js',
+    'skills/reset/SKILL.md',
+    'skills/reset/scripts/reset.js',
+    'skills/review/SKILL.md',
+    'skills/review/references/review-theory.md',
+    'skills/review/scripts/gate.js',
+    'skills/review/scripts/provider.js',
+    'skills/review/scripts/snapshot.js',
+    'skills/setup/SKILL.md',
+    'skills/setup/scripts/setup.js',
+    'skills/verify/SKILL.md',
+    'skills/verify/scripts/verify.js',
+    'templates/agents/sd0x-claude-primary-reviewer.toml',
+    'templates/agents/sd0x-codex-primary-reviewer.toml',
+    'templates/agents/sd0x-reviewer.toml',
+    'templates/agents/sd0x-test-reviewer.toml'
+  ];
+
+  for (const relative of skillArtifacts) {
+    const artifact = path.join(pluginRoot, relative);
+    const contents = fs.readFileSync(artifact);
+    fs.rmSync(artifact);
+    const status = doctor(root, options);
+    assert.equal(status.ok, false);
+    assert.deepEqual(
+      status.checks.find((check) => check.check === relative),
+      { check: relative, ok: false }
+    );
+    fs.mkdirSync(path.dirname(artifact), { recursive: true });
+    fs.writeFileSync(artifact, contents);
+  }
 });
 
 test('MCP cancellation aborts the active Claude review request', async (t) => {

@@ -1,7 +1,7 @@
 {
-  "name": "sd0x-dev-flow-local",
+  "name": "sd0xdev-marketplace",
   "interface": {
-    "displayName": "sd0x Dev Flow Local"
+    "displayName": "sd0x Dev Flow"
   },
   "plugins": [
     {

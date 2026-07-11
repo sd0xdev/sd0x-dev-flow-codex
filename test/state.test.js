@@ -16,10 +16,11 @@ const {
   markSessionActivationFailure,
   nextAction,
   readState,
-  recordContinuation,
   recordExternalReview,
+  recordExternalReviewStart,
   recordSubagent,
   refreshState,
+  resetState,
   resolveStatePath,
   setupDeferralPath
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
@@ -33,40 +34,43 @@ const {
 
 isolateGitEnvironment();
 
-function createChangedRepo(options = {}) {
+function setReviewProvider(root, provider) {
+  fs.appendFileSync(path.join(root, '.git', 'info', 'exclude'), '\n.codex/\n');
+  fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, '.codex', 'sd0x-dev-flow.json'),
+    JSON.stringify({ schema_version: 1, enabled: true, review: { provider } })
+  );
+}
+
+function createChangedRepo(provider = 'claude') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-state-'));
   initRepository(root);
+  setReviewProvider(root, provider);
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 1;\n');
-  if (options.maxRounds || options.maxContinuations) {
-    fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
-    fs.writeFileSync(
-      path.join(root, '.codex', 'sd0x-dev-flow.json'),
-      JSON.stringify({
-        schema_version: 1,
-        enabled: true,
-        limits: {
-          max_rounds: options.maxRounds || 8,
-          max_continuations: options.maxContinuations || 8
-        }
-      })
-    );
-  }
   git(root, ['add', '.']);
   commit(root, 'baseline');
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 2;\n');
   return root;
 }
 
-function reviewEvidence() {
+function reviewEvidence(provider = 'claude') {
+  const primary = provider === 'claude'
+    ? 'sd0x_claude_primary_reviewer'
+    : 'sd0x_codex_primary_reviewer';
+  const agents = [primary, 'sd0x_reviewer', 'sd0x_test_reviewer'];
+  if (provider === 'claude') agents.push('claude_mcp_primary');
   return {
+    provider,
     reviewers: 3,
-    agents: ['claude_mcp_primary', 'sd0x_reviewer', 'sd0x_test_reviewer'],
+    agents,
     findings: 0
   };
 }
 
 function recordClaude(root, outcome = 'clean') {
-  const fingerprint = refreshState(root).worktree.fingerprint;
+  const current = refreshState(root);
+  const fingerprint = current.worktree.fingerprint;
   const findings = outcome === 'clean' ? [] : [{
     severity: 'P1',
     category: 'implementation',
@@ -78,9 +82,16 @@ function recordClaude(root, outcome = 'clean') {
     recommendation: 'Restore the expected behavior.',
     regression_protection: 'Add a focused regression assertion.'
   }];
+  recordExternalReviewStart(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'state-test-session',
+    tool_use_id: 'tool-1'
+  });
   return recordExternalReview(root, {
     input_fingerprint: fingerprint,
     input_root: root,
+    session_id: 'state-test-session',
     tool_use_id: 'tool-1',
     result: {
       schema_version: 1,
@@ -97,7 +108,12 @@ function recordClaude(root, outcome = 'clean') {
 }
 
 function recordCleanCodexReviewers(root, suffix = 'clean') {
-  for (const agentType of ['sd0x_reviewer', 'sd0x_test_reviewer']) {
+  const provider = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/config')
+    .reviewProvider(root);
+  const primary = provider === 'claude'
+    ? 'sd0x_claude_primary_reviewer'
+    : 'sd0x_codex_primary_reviewer';
+  for (const agentType of [primary, 'sd0x_reviewer', 'sd0x_test_reviewer']) {
     const agentId = `${agentType}-${suffix}`;
     recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
     recordSubagent(root, 'stop', {
@@ -108,6 +124,161 @@ function recordCleanCodexReviewers(root, suffix = 'clean') {
     });
   }
 }
+
+test('Codex is the default primary provider and does not require Claude evidence', (t) => {
+  const root = createChangedRepo('codex');
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let state = refreshState(root);
+  assert.equal(state.review_provider, 'codex');
+  recordCleanCodexReviewers(root, 'codex-default');
+  state = markGate(root, 'review', 'pass', reviewEvidence('codex'));
+  assert.equal(state.gates.review.status, 'pass');
+  assert.equal(state.external_review.completed.length, 0);
+  assert.throws(
+    () => recordExternalReviewStart(root, {
+      input_fingerprint: state.worktree.fingerprint,
+      input_root: root,
+      session_id: 'unexpected-claude',
+      tool_use_id: 'unexpected-claude'
+    }),
+    /review\.provider="claude"/
+  );
+});
+
+test('changing review provider invalidates gates and reviewer evidence', (t) => {
+  const root = createChangedRepo('claude');
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root);
+  recordCleanCodexReviewers(root, 'before-provider-change');
+  recordClaude(root);
+  let state = markGate(root, 'review', 'pass', reviewEvidence());
+  assert.equal(state.gates.review.status, 'pass');
+
+  setReviewProvider(root, 'codex');
+  state = refreshState(root);
+  assert.equal(state.review_provider, 'codex');
+  assert.equal(state.gates.review.status, 'pending');
+  assert.equal(state.gates.verify.status, 'pending');
+  assert.deepEqual(state.review_agents.completed, []);
+  assert.deepEqual(state.external_review.completed, []);
+});
+
+test('similarly named agents cannot contribute authoritative review evidence', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root);
+  recordCleanCodexReviewers(root);
+  recordClaude(root);
+  const passed = markGate(root, 'review', 'pass', reviewEvidence());
+  const reviewerEvidence = structuredClone(passed.review_agents);
+  const gates = structuredClone(passed.gates);
+
+  recordSubagent(root, 'start', {
+    agent_id: 'lookalike-reviewer',
+    agent_type: 'sd0x_reviewer_helper'
+  });
+  recordSubagent(root, 'stop', {
+    agent_id: 'lookalike-reviewer',
+    agent_type: 'sd0x_reviewer_helper',
+    last_assistant_message: '[P1] app.js:1 Untrusted result.'
+  });
+
+  const state = readState(root);
+  assert.deepEqual(state.review_agents, reviewerEvidence);
+  assert.deepEqual(state.gates, gates);
+});
+
+test('inactive primary reviewers cannot alter provider-scoped gate evidence', (t) => {
+  for (const provider of ['codex', 'claude']) {
+    const root = createChangedRepo(provider);
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    refreshState(root);
+    recordCleanCodexReviewers(root, `${provider}-active`);
+    if (provider === 'claude') recordClaude(root);
+    let state = markGate(root, 'review', 'pass', reviewEvidence(provider));
+    state = runVerification(root).state;
+    const reviewerEvidence = structuredClone(state.review_agents);
+    const gates = structuredClone(state.gates);
+    const inactivePrimary = provider === 'codex'
+      ? 'sd0x_claude_primary_reviewer'
+      : 'sd0x_codex_primary_reviewer';
+
+    recordSubagent(root, 'start', {
+      agent_id: `${provider}-inactive-primary`,
+      agent_type: inactivePrimary
+    });
+    recordSubagent(root, 'stop', {
+      agent_id: `${provider}-inactive-primary`,
+      agent_type: inactivePrimary,
+      last_assistant_message: '[P1] app.js:1 Inactive reviewer finding.'
+    });
+
+    state = readState(root);
+    assert.deepEqual(state.review_agents, reviewerEvidence);
+    assert.deepEqual(state.gates, gates);
+    assert.deepEqual(nextAction(state), {
+      action: 'complete',
+      reason: 'all-required-gates-pass'
+    });
+  }
+});
+
+test('non-clean reviewer output remains blocking on the same fingerprint', (t) => {
+  for (const [index, message] of [
+    '[P1] app.js:1 Bracketed finding.',
+    'P1 app.js:1 Unbracketed finding.',
+    '- P1 — app.js:1 List finding.',
+    '## P1\n\napp.js:1 Heading finding.',
+    'Reviewer process failed before producing a verdict.'
+  ].entries()) {
+    const root = createChangedRepo('codex');
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    refreshState(root);
+    const firstId = `primary-non-clean-${index}`;
+    recordSubagent(root, 'start', {
+      agent_id: firstId,
+      agent_type: 'sd0x_codex_primary_reviewer'
+    });
+    let state = recordSubagent(root, 'stop', {
+      agent_id: firstId,
+      agent_type: 'sd0x_codex_primary_reviewer',
+      last_assistant_message: message
+    });
+    assert.equal(state.review_agents.completed.at(-1).outcome, 'findings');
+
+    recordCleanCodexReviewers(root, `retry-${index}`);
+    assert.throws(
+      () => markGate(root, 'review', 'pass', reviewEvidence('codex')),
+      /unresolved findings/
+    );
+  }
+});
+
+test('overlapping same-type reviewers remain independently blocking', (t) => {
+  const root = createChangedRepo('codex');
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root);
+  recordSubagent(root, 'start', {
+    agent_id: 'primary-slow',
+    agent_type: 'sd0x_codex_primary_reviewer'
+  });
+  recordCleanCodexReviewers(root, 'replacement');
+  assert.throws(
+    () => markGate(root, 'review', 'pass', reviewEvidence('codex')),
+    /still running/
+  );
+
+  const state = recordSubagent(root, 'stop', {
+    agent_id: 'primary-slow',
+    agent_type: 'sd0x_codex_primary_reviewer',
+    last_assistant_message: 'P1 app.js:1 Late overlapping finding.'
+  });
+  assert.equal(state.gates.review.status, 'fail');
+  assert.throws(
+    () => markGate(root, 'review', 'pass', reviewEvidence('codex')),
+    /unresolved findings/
+  );
+});
 
 test('gates require Claude plus dual Codex review and bind to one fingerprint', (t) => {
   const root = createChangedRepo();
@@ -128,7 +299,11 @@ test('gates require Claude plus dual Codex review and bind to one fingerprint', 
   });
   assert.equal(refreshState(root).review_agents.completed.length, 0);
 
-  for (const agentType of ['sd0x_reviewer', 'sd0x_test_reviewer']) {
+  for (const agentType of [
+    'sd0x_claude_primary_reviewer',
+    'sd0x_reviewer',
+    'sd0x_test_reviewer'
+  ]) {
     recordSubagent(root, 'start', { agent_id: `${agentType}-1`, agent_type: agentType });
     recordSubagent(root, 'stop', {
       agent_id: `${agentType}-1`,
@@ -143,6 +318,49 @@ test('gates require Claude plus dual Codex review and bind to one fingerprint', 
     /Claude MCP primary/
   );
   recordClaude(root);
+
+  recordSubagent(root, 'start', {
+    agent_id: 'still-running-reviewer',
+    agent_type: 'sd0x_reviewer'
+  });
+  assert.throws(
+    () => markGate(root, 'review', 'pass', reviewEvidence()),
+    /still running/
+  );
+  recordSubagent(root, 'stop', {
+    agent_id: 'still-running-reviewer',
+    agent_type: 'sd0x_reviewer',
+    last_assistant_message: 'No actionable findings remain.'
+  });
+
+  const fingerprint = refreshState(root).worktree.fingerprint;
+  recordExternalReviewStart(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'session-1',
+    tool_use_id: 'still-running-claude'
+  });
+  assert.throws(
+    () => markGate(root, 'review', 'pass', reviewEvidence()),
+    /still running/
+  );
+  recordExternalReview(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'session-1',
+    tool_use_id: 'still-running-claude',
+    result: {
+      schema_version: 1,
+      reviewer: 'claude_mcp',
+      perspective: 'primary',
+      repository_root: root,
+      fingerprint,
+      outcome: 'clean',
+      summary: 'No findings.',
+      findings: [],
+      duration_ms: 1
+    }
+  });
 
   state = markGate(root, 'review', 'pass', reviewEvidence());
   assert.deepEqual(nextAction(state), {
@@ -162,23 +380,149 @@ test('gates require Claude plus dual Codex review and bind to one fingerprint', 
     reason: 'all-required-gates-pass'
   });
 
+  recordSubagent(root, 'start', {
+    agent_id: 'post-pass-codex-reviewer',
+    agent_type: 'sd0x_reviewer'
+  });
+  recordExternalReviewStart(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'session-1',
+    tool_use_id: 'post-pass-claude-reviewer'
+  });
+  state = readState(root);
+  assert.deepEqual(nextAction(state), {
+    action: 'review',
+    reason: 'review-in-progress'
+  });
+  recordSubagent(root, 'stop', {
+    agent_id: 'post-pass-codex-reviewer',
+    agent_type: 'sd0x_reviewer',
+    last_assistant_message: 'No actionable findings remain.'
+  });
+  assert.equal(nextAction(readState(root)).reason, 'review-in-progress');
+  state = recordExternalReview(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'session-1',
+    tool_use_id: 'post-pass-claude-reviewer',
+    result: {
+      schema_version: 1,
+      reviewer: 'claude_mcp',
+      perspective: 'primary',
+      repository_root: root,
+      fingerprint,
+      outcome: 'clean',
+      summary: 'No findings.',
+      findings: [],
+      duration_ms: 1
+    }
+  });
+  assert.deepEqual(nextAction(state), {
+    action: 'complete',
+    reason: 'all-required-gates-pass'
+  });
+
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 3;\n');
   state = refreshState(root);
   assert.equal(state.gates.review.status, 'pending');
   assert.equal(state.gates.verify.status, 'pending');
   assert.equal(state.review_agents.completed.length, 0);
   assert.equal(state.external_review.completed.length, 0);
-  assert.equal(state.iteration.round, 1);
   assert.equal(nextAction(state).action, 'review');
 });
 
-test('ordinary edits before a gate do not consume loop rounds', (t) => {
+test('late Claude findings revoke passed review and verification gates', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'late-claude-session' });
+  recordCleanCodexReviewers(root, 'late-claude');
+  recordClaude(root);
+  markGate(root, 'review', 'pass', reviewEvidence());
+  let state = runVerification(root).state;
+  assert.equal(state.gates.verify.status, 'pass');
+  const fingerprint = state.worktree.fingerprint;
+  recordExternalReviewStart(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'late-claude-session',
+    tool_use_id: 'late-claude-finding'
+  });
+  state = recordExternalReview(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'late-claude-session',
+    tool_use_id: 'late-claude-finding',
+    result: {
+      schema_version: 1,
+      reviewer: 'claude_mcp',
+      perspective: 'primary',
+      repository_root: root,
+      fingerprint,
+      outcome: 'findings',
+      summary: 'A late finding remains.',
+      findings: [{
+        severity: 'P1',
+        category: 'implementation',
+        file: 'app.js',
+        line: 1,
+        title: 'Late regression',
+        evidence: 'The current fingerprint still contains a regression.',
+        root_cause: 'A concurrent reviewer completed after the gate passed.',
+        recommendation: 'Fix the regression and rerun all reviewers.',
+        regression_protection: 'Keep the late-finding revocation test.'
+      }],
+      duration_ms: 1
+    }
+  });
+
+  assert.equal(state.gates.review.status, 'fail');
+  assert.equal(state.gates.verify.status, 'pending');
+  assert.deepEqual(nextAction(state), {
+    action: 'review',
+    reason: 'review-findings-remain'
+  });
+});
+
+test('late Codex findings revoke passed review and verification gates', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'late-codex-session' });
+  recordCleanCodexReviewers(root, 'late-codex');
+  recordClaude(root);
+  markGate(root, 'review', 'pass', reviewEvidence());
+  let state = runVerification(root).state;
+  assert.equal(state.gates.verify.status, 'pass');
+
+  recordSubagent(root, 'start', {
+    agent_id: 'late-codex-finding',
+    agent_type: 'sd0x_test_reviewer'
+  });
+  state = recordSubagent(root, 'stop', {
+    agent_id: 'late-codex-finding',
+    agent_type: 'sd0x_test_reviewer',
+    last_assistant_message: '[P1] app.js:1 A late regression remains.'
+  });
+
+  assert.equal(state.gates.review.status, 'fail');
+  assert.equal(state.gates.verify.status, 'pending');
+  assert.deepEqual(state.review_agents.started, []);
+  assert.deepEqual(nextAction(state), {
+    action: 'review',
+    reason: 'review-findings-remain'
+  });
+});
+
+test('ordinary edits before a gate remain reviewable', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   refreshState(root);
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 4;\n');
   const state = refreshState(root);
-  assert.equal(state.iteration.round, 0);
+  assert.deepEqual(nextAction(state), {
+    action: 'review',
+    reason: 'review-required'
+  });
 });
 
 test('an invalid setup nonce is rejected before the marker is renamed', (t) => {
@@ -226,26 +570,145 @@ test('docs-only work completes after review without a verification gate', (t) =>
   });
 });
 
-test('clean work resets the round limit for later tasks', (t) => {
-  const root = createChangedRepo({ maxRounds: 1 });
+test('review loop remains active across arbitrarily many failed fingerprints', (t) => {
+  const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   refreshState(root);
-  markGate(root, 'review', 'fail', { findings: 1 });
+  for (let index = 0; index < 20; index += 1) {
+    let state = markGate(root, 'review', 'fail', { findings: 1 });
+    assert.deepEqual(nextAction(state), {
+      action: 'review',
+      reason: 'review-findings-remain'
+    });
+    fs.writeFileSync(
+      path.join(root, 'app.js'),
+      `module.exports = ${index + 3};\n`
+    );
+    state = refreshState(root);
+    assert.deepEqual(nextAction(state), {
+      action: 'review',
+      reason: 'review-required'
+    });
+  }
+});
 
-  fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 3;\n');
-  let state = refreshState(root);
-  assert.equal(state.iteration.round, 1);
-  assert.equal(nextAction(state).reason, 'max-rounds-reached');
+test('reviewer infrastructure failures require user action without completing', (t) => {
+  const root = createChangedRepo('codex');
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root);
+  recordSubagent(root, 'start', {
+    agent_id: 'stale-primary',
+    agent_type: 'sd0x_codex_primary_reviewer'
+  });
 
-  fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 1;\n');
-  state = refreshState(root);
-  assert.equal(state.worktree.fingerprint, 'clean');
-  assert.equal(state.iteration.round, 0);
+  const state = markGate(root, 'review', 'fail', {
+    provider: 'codex',
+    reviewers: 3,
+    agents: [
+      'sd0x_codex_primary_reviewer',
+      'sd0x_reviewer',
+      'sd0x_test_reviewer'
+    ],
+    findings: 0,
+    reviewer_failure: true,
+    summary: 'custom reviewer identities were unavailable'
+  });
 
-  fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 4;\n');
-  state = refreshState(root);
-  assert.equal(state.iteration.round, 0);
-  assert.equal(nextAction(state).action, 'review');
+  assert.deepEqual(nextAction(state), {
+    action: 'review',
+    reason: 'reviewer-unavailable'
+  });
+  assert.equal(state.gates.review.status, 'fail');
+  assert.equal(state.review_agents.started.length, 1);
+});
+
+test('new sessions preserve reviewer-failure gates and stale ledgers', (t) => {
+  const nativeRoot = createChangedRepo('codex');
+  t.after(() => fs.rmSync(nativeRoot, { recursive: true, force: true }));
+  refreshState(nativeRoot, { sessionId: 'native-before-restart' });
+  recordSubagent(nativeRoot, 'start', {
+    agent_id: 'native-stale',
+    agent_type: 'sd0x_codex_primary_reviewer'
+  });
+  markGate(nativeRoot, 'review', 'fail', {
+    ...reviewEvidence('codex'),
+    reviewer_failure: true,
+    summary: 'native reviewer unavailable'
+  });
+  let state = refreshState(nativeRoot, { sessionId: 'native-after-restart' });
+  assert.equal(nextAction(state).reason, 'reviewer-unavailable');
+  assert.equal(state.gates.review.status, 'fail');
+  assert.equal(state.review_agents.started.length, 1);
+
+  const externalRoot = createChangedRepo('claude');
+  t.after(() => fs.rmSync(externalRoot, { recursive: true, force: true }));
+  const current = refreshState(externalRoot, {
+    sessionId: 'external-before-restart'
+  });
+  recordExternalReviewStart(externalRoot, {
+    input_fingerprint: current.worktree.fingerprint,
+    input_root: externalRoot,
+    session_id: 'external-before-restart',
+    tool_use_id: 'external-stale'
+  });
+  markGate(externalRoot, 'review', 'fail', {
+    ...reviewEvidence('claude'),
+    reviewer_failure: true,
+    summary: 'external reviewer unavailable'
+  });
+  state = refreshState(externalRoot, { sessionId: 'external-after-restart' });
+  assert.equal(nextAction(state).reason, 'reviewer-unavailable');
+  assert.equal(state.gates.review.status, 'fail');
+  assert.equal(state.external_review.started.length, 1);
+});
+
+test('reset clears gate evidence, preserves sessions, and requires review again', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'reset-session' });
+  recordCleanCodexReviewers(root, 'before-reset');
+  recordClaude(root);
+  markGate(root, 'review', 'pass', reviewEvidence());
+  const beforeReset = runVerification(root).state;
+  assert.equal(beforeReset.gates.review.status, 'pass');
+  assert.equal(beforeReset.gates.verify.status, 'pass');
+  assert.ok(beforeReset.gates.verify.evidence.commands.length > 0);
+  recordSubagent(root, 'start', {
+    agent_id: 'reviewer-in-flight-at-reset',
+    agent_type: 'sd0x_reviewer'
+  });
+
+  const state = resetState(root);
+
+  assert.equal(state.worktree.fingerprint, refreshState(root).worktree.fingerprint);
+  assert.equal(state.worktree.requires_review, true);
+  assert.equal(state.gates.review.status, 'pending');
+  assert.equal(state.gates.verify.status, 'pending');
+  assert.equal(state.gates.review.fingerprint, null);
+  assert.equal(state.gates.verify.fingerprint, null);
+  assert.equal(state.gates.review.evidence, null);
+  assert.equal(state.gates.verify.evidence, null);
+  assert.deepEqual(state.review_agents.completed, []);
+  assert.deepEqual(state.review_agents.started, []);
+  assert.deepEqual(state.external_review.completed, []);
+  assert.deepEqual(state.external_review.started, []);
+  assert.deepEqual(state.sessions.map((entry) => entry.session_id), [
+    'reset-session'
+  ]);
+  assert.deepEqual(nextAction(state, { sessionId: 'reset-session' }), {
+    action: 'review',
+    reason: 'review-required'
+  });
+  recordSubagent(root, 'stop', {
+    agent_id: 'reviewer-in-flight-at-reset',
+    agent_type: 'sd0x_reviewer',
+    last_assistant_message: 'No actionable findings remain.'
+  });
+  assert.deepEqual(readState(root).review_agents.completed, []);
+  assert.throws(
+    () => markGate(root, 'review', 'pass', reviewEvidence()),
+    /clean terminal results/
+  );
 });
 
 test('reviewer stops without terminal output do not satisfy review', (t) => {
@@ -261,6 +724,122 @@ test('reviewer stops without terminal output do not satisfy review', (t) => {
     agent_type: 'sd0x_reviewer'
   });
   assert.equal(refreshState(root).review_agents.completed.length, 0);
+});
+
+test('abandoned external review starts remain bounded', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const fingerprint = refreshState(root).worktree.fingerprint;
+  for (let index = 0; index < 70; index += 1) {
+    recordExternalReviewStart(root, {
+      input_fingerprint: fingerprint,
+      input_root: root,
+      session_id: 'bounded-ledger-session',
+      tool_use_id: `abandoned-${index}`
+    });
+  }
+  const started = readState(root).external_review.started;
+  assert.equal(started.length, 64);
+  assert.equal(started[0].tool_use_id, 'abandoned-6');
+  assert.equal(started.at(-1).tool_use_id, 'abandoned-69');
+});
+
+test('aged Codex reviewer starts block until their exact terminal result', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'aged-codex-session' });
+  recordCleanCodexReviewers(root, 'before-aged-start');
+  recordClaude(root);
+  markGate(root, 'review', 'pass', reviewEvidence());
+  let state = runVerification(root).state;
+  assert.equal(nextAction(state).action, 'complete');
+  recordSubagent(root, 'start', {
+    agent_id: 'aged-codex-reviewer',
+    agent_type: 'sd0x_reviewer'
+  });
+  assert.equal(nextAction(readState(root)).reason, 'review-in-progress');
+  const statePath = resolveStatePath(root);
+  const persisted = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  persisted.review_agents.started[0].recorded_at = '2000-01-01T00:00:00.000Z';
+  fs.writeFileSync(statePath, JSON.stringify(persisted));
+
+  state = readState(root);
+  assert.equal(state.review_agents.started.length, 1);
+  assert.equal(nextAction(state).reason, 'review-in-progress');
+  state = recordSubagent(root, 'stop', {
+    agent_id: 'aged-codex-reviewer',
+    agent_type: 'sd0x_reviewer',
+    last_assistant_message: '[P1] app.js:1 An aged reviewer found a regression.'
+  });
+  assert.equal(state.gates.review.status, 'fail');
+  assert.equal(state.gates.verify.status, 'pending');
+  assert.equal(nextAction(state).reason, 'review-findings-remain');
+});
+
+test('expired external review starts cannot record late evidence', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const current = refreshState(root);
+  const fingerprint = current.worktree.fingerprint;
+  recordExternalReviewStart(root, {
+    input_fingerprint: fingerprint,
+    input_root: root,
+    session_id: 'expired-ledger-session',
+    tool_use_id: 'expired-tool'
+  });
+  const statePath = resolveStatePath(root);
+  const persisted = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  persisted.external_review.started[0].recorded_at = '2000-01-01T00:00:00.000Z';
+  fs.writeFileSync(statePath, JSON.stringify(persisted));
+
+  assert.throws(
+    () => recordExternalReview(root, {
+      input_fingerprint: fingerprint,
+      input_root: root,
+      session_id: 'expired-ledger-session',
+      tool_use_id: 'expired-tool',
+      result: {
+        schema_version: 1,
+        reviewer: 'claude_mcp',
+        perspective: 'primary',
+        repository_root: root,
+        fingerprint,
+        outcome: 'clean',
+        summary: 'No findings.',
+        findings: [],
+        duration_ms: 1
+      }
+    }),
+    /no matching start/
+  );
+  const state = readState(root);
+  assert.deepEqual(state.external_review.started, []);
+  assert.deepEqual(state.external_review.completed, []);
+});
+
+test('external review starts reject stale fingerprints and repository roots', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const fingerprint = refreshState(root).worktree.fingerprint;
+  assert.throws(
+    () => recordExternalReviewStart(root, {
+      input_fingerprint: '0'.repeat(64),
+      input_root: root,
+      session_id: 'invalid-start-session',
+      tool_use_id: 'stale-start'
+    }),
+    /fingerprint is stale/
+  );
+  assert.throws(
+    () => recordExternalReviewStart(root, {
+      input_fingerprint: fingerprint,
+      input_root: `${root}-different-clone`,
+      session_id: 'invalid-start-session',
+      tool_use_id: 'wrong-root-start'
+    }),
+    /repository root mismatch/
+  );
+  assert.deepEqual(readState(root).external_review.started, []);
 });
 
 test('reviewer result is discarded when the fingerprint changes after start', (t) => {
@@ -285,41 +864,20 @@ test('reviewer result is discarded when the fingerprint changes after start', (t
   assert.deepEqual(state.review_agents.completed, []);
 });
 
-test('session activation preserves other sessions and resume limits', (t) => {
+test('session activation preserves other active sessions', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   refreshState(root, { sessionId: 'session-1' });
-  recordContinuation(root, 'session-1');
   refreshState(root, { sessionId: 'session-2' });
   const state = refreshState(root, { sessionId: 'session-1' });
 
-  assert.deepEqual(
-    state.sessions.map((entry) => [entry.session_id, entry.continuations]),
-    [['session-1', 1], ['session-2', 0]]
-  );
+  assert.deepEqual(state.sessions.map((entry) => entry.session_id), [
+    'session-1',
+    'session-2'
+  ]);
 });
 
-test('session continuation limit escalates the current session', (t) => {
-  const root = createChangedRepo({ maxContinuations: 2 });
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  let state = refreshState(root, { sessionId: 'limited-session' });
-
-  recordContinuation(root, 'limited-session');
-  state = readState(root);
-  assert.deepEqual(nextAction(state, { sessionId: 'limited-session' }), {
-    action: 'review',
-    reason: 'review-required'
-  });
-
-  recordContinuation(root, 'limited-session');
-  state = readState(root);
-  assert.deepEqual(nextAction(state, { sessionId: 'limited-session' }), {
-    action: 'escalate',
-    reason: 'max-continuations-reached'
-  });
-});
-
-test('completed gates take precedence over exhausted retry limits', () => {
+test('completed gates remain complete when obsolete retry counters are present', () => {
   const state = defaultState();
   state.worktree = {
     ...state.worktree,
@@ -342,7 +900,7 @@ test('completed gates take precedence over exhausted retry limits', () => {
     evidence: {},
     updated_at: new Date().toISOString()
   };
-  state.iteration = { round: 1, max_rounds: 1, max_continuations: 1 };
+  state.iteration = { round: 999, max_rounds: 1, max_continuations: 1 };
   state.sessions = [{
     session_id: 'limited',
     continuations: 1,
@@ -355,7 +913,7 @@ test('completed gates take precedence over exhausted retry limits', () => {
   });
 });
 
-test('legacy state invalidates old gates and exhausted rounds', (t) => {
+test('legacy state invalidates old gates and discards retry counters', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const statePath = resolveStatePath(root);
@@ -377,13 +935,65 @@ test('legacy state invalidates old gates and exhausted rounds', (t) => {
   }));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 4);
+  assert.equal(state.schema_version, 6);
   assert.equal(state.gates.review.status, 'pending');
   assert.equal(state.gates.verify.status, 'pending');
-  assert.equal(state.iteration.round, 0);
-  assert.deepEqual(
-    state.sessions.map((entry) => [entry.session_id, entry.continuations]),
-    [['legacy-session', 7]]
+  assert.equal('iteration' in state, false);
+  assert.deepEqual(state.sessions.map((entry) => entry.session_id), [
+    'legacy-session'
+  ]);
+});
+
+test('schema v4 migration invalidates pre-provider evidence and removes exhausted limits', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'v4-session' });
+  markGate(root, 'review', 'fail', { findings: 1 });
+  const statePath = resolveStatePath(root);
+  const legacy = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  legacy.schema_version = 4;
+  legacy.iteration = {
+    round: 100,
+    max_rounds: 8,
+    max_continuations: 8
+  };
+  legacy.sessions[0].continuations = 100;
+  fs.writeFileSync(statePath, JSON.stringify(legacy));
+
+  const state = readState(root);
+  assert.equal(state.schema_version, 6);
+  assert.equal('iteration' in state, false);
+  assert.equal('continuations' in state.sessions[0], false);
+  assert.equal(state.gates.review.status, 'pending');
+  assert.deepEqual(nextAction(state, { sessionId: 'v4-session' }), {
+    action: 'review',
+    reason: 'review-required'
+  });
+});
+
+test('schema v4 migration clears all pre-provider reviewer evidence', (t) => {
+  const root = createChangedRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'v4-evidence-session' });
+  recordCleanCodexReviewers(root, 'v4-evidence');
+  recordClaude(root);
+  const statePath = resolveStatePath(root);
+  const legacy = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  legacy.schema_version = 4;
+  legacy.review_agents.started = legacy.review_agents.completed.map((entry) => ({
+    agent_id: entry.agent_id,
+    agent_type: entry.agent_type,
+    recorded_at: entry.started_at
+  }));
+  fs.writeFileSync(statePath, JSON.stringify(legacy));
+
+  let state = readState(root);
+  assert.deepEqual(state.review_agents.started, []);
+  assert.equal(state.review_agents.completed.length, 0);
+  assert.equal(state.external_review.completed.length, 0);
+  assert.throws(
+    () => markGate(root, 'review', 'pass', reviewEvidence()),
+    /clean terminal results/
   );
 });
 
@@ -422,16 +1032,15 @@ test('schema v3 migration clears gate evidence and preserves sessions', (t) => {
   }));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 4);
-  assert.deepEqual(
-    state.sessions.map((entry) => [entry.session_id, entry.continuations]),
-    [['v3-session', 4]]
-  );
+  assert.equal(state.schema_version, 6);
+  assert.deepEqual(state.sessions.map((entry) => entry.session_id), [
+    'v3-session'
+  ]);
   assert.equal(state.gates.review.status, 'pending');
   assert.equal(state.gates.verify.status, 'pending');
   assert.deepEqual(state.review_agents.completed, []);
   assert.deepEqual(state.external_review.completed, []);
-  assert.equal(state.iteration.round, 0);
+  assert.equal('iteration' in state, false);
 });
 
 test('state lock immediately reclaims a dead owner', (t) => {
@@ -442,7 +1051,7 @@ test('state lock immediately reclaims a dead owner', (t) => {
   fs.writeFileSync(path.join(lockPath, 'owner'), '99999999');
 
   const state = refreshState(root, { sessionId: 'session-after-crash' });
-  assert.equal(state.schema_version, 4);
+  assert.equal(state.schema_version, 6);
   assert.equal(state.sessions[0].session_id, 'session-after-crash');
   assert.equal(fs.existsSync(lockPath), false);
 });
@@ -510,7 +1119,11 @@ test('Claude MCP findings and stale fingerprints cannot satisfy review', (t) => 
     ['findings', 'clean']
   );
 
-  for (const agentType of ['sd0x_reviewer', 'sd0x_test_reviewer']) {
+  for (const agentType of [
+    'sd0x_claude_primary_reviewer',
+    'sd0x_reviewer',
+    'sd0x_test_reviewer'
+  ]) {
     const agentId = `${agentType}-clean`;
     recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
     recordSubagent(root, 'stop', {
@@ -524,12 +1137,15 @@ test('Claude MCP findings and stale fingerprints cannot satisfy review', (t) => 
     /unresolved findings/
   );
 
-  const stale = refreshState(root).worktree.fingerprint;
+  const staleState = refreshState(root);
+  const stale = staleState.worktree.fingerprint;
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 9;\n');
   assert.throws(
     () => recordExternalReview(root, {
       input_fingerprint: stale,
       input_root: root,
+      session_id: 'state-test-session',
+      tool_use_id: 'stale-tool',
       result: {
         schema_version: 1,
         reviewer: 'claude_mcp',
@@ -549,11 +1165,14 @@ test('Claude MCP findings and stale fingerprints cannot satisfy review', (t) => 
 test('external review evidence is bound to the repository root', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const fingerprint = refreshState(root).worktree.fingerprint;
+  const current = refreshState(root);
+  const fingerprint = current.worktree.fingerprint;
   assert.throws(
     () => recordExternalReview(root, {
       input_fingerprint: fingerprint,
       input_root: `${root}-different-clone`,
+      session_id: 'state-test-session',
+      tool_use_id: 'wrong-root-tool',
       result: {
         schema_version: 1,
         reviewer: 'claude_mcp',
@@ -576,17 +1195,15 @@ test('stale sessions are pruned and can be reactivated', (t) => {
   const statePath = resolveStatePath(root);
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
   fs.writeFileSync(statePath, JSON.stringify({
-    schema_version: 4,
+    schema_version: 5,
     sessions: [
       {
         session_id: 'stale',
-        continuations: 3,
         started_at: '2000-01-01T00:00:00.000Z',
         updated_at: '2000-01-01T00:00:00.000Z'
       },
       {
         session_id: 'recent',
-        continuations: 1,
         started_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }
@@ -596,8 +1213,8 @@ test('stale sessions are pruned and can be reactivated', (t) => {
   let state = readState(root);
   assert.deepEqual(state.sessions.map((entry) => entry.session_id), ['recent']);
   state = refreshState(root, { sessionId: 'stale' });
-  assert.deepEqual(
-    state.sessions.map((entry) => [entry.session_id, entry.continuations]),
-    [['recent', 1], ['stale', 0]]
-  );
+  assert.deepEqual(state.sessions.map((entry) => entry.session_id), [
+    'recent',
+    'stale'
+  ]);
 });

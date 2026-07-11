@@ -9,7 +9,6 @@ const test = require('node:test');
 const {
   markGate,
   nextAction,
-  recordExternalReview,
   recordSubagent,
   refreshState
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
@@ -55,25 +54,22 @@ function createRepo(options = {}) {
   return root;
 }
 
+function setReviewProvider(root, provider) {
+  fs.appendFileSync(path.join(root, '.git', 'info', 'exclude'), '\n.codex/\n');
+  fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, '.codex', 'sd0x-dev-flow.json'),
+    JSON.stringify({ schema_version: 1, enabled: true, review: { provider } })
+  );
+}
+
 function passReview(root) {
-  const fingerprint = refreshState(root).worktree.fingerprint;
-  recordExternalReview(root, {
-    input_fingerprint: fingerprint,
-    input_root: root,
-    tool_use_id: 'claude-tool',
-    result: {
-      schema_version: 1,
-      reviewer: 'claude_mcp',
-      perspective: 'primary',
-      repository_root: root,
-      fingerprint,
-      outcome: 'clean',
-      summary: 'No findings.',
-      findings: [],
-      duration_ms: 1
-    }
-  });
-  for (const agentType of ['sd0x_reviewer', 'sd0x_test_reviewer']) {
+  refreshState(root);
+  for (const agentType of [
+    'sd0x_codex_primary_reviewer',
+    'sd0x_reviewer',
+    'sd0x_test_reviewer'
+  ]) {
     const agentId = `${agentType}-1`;
     recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
     recordSubagent(root, 'stop', {
@@ -84,8 +80,13 @@ function passReview(root) {
     });
   }
   return markGate(root, 'review', 'pass', {
+    provider: 'codex',
     reviewers: 3,
-    agents: ['claude_mcp_primary', 'sd0x_reviewer', 'sd0x_test_reviewer'],
+    agents: [
+      'sd0x_codex_primary_reviewer',
+      'sd0x_reviewer',
+      'sd0x_test_reviewer'
+    ],
     findings: 0
   });
 }
@@ -239,6 +240,35 @@ test('verification fails when a check mutates the reviewed fingerprint', (t) => 
   assert.equal(result.evidence.fingerprint_changed, true);
   assert.equal(result.state.gates.review.status, 'pending');
   assert.equal(nextAction(result.state).action, 'review');
+});
+
+test('verification fails when the review provider changes during checks', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  passReview(root);
+  const startingFingerprint = refreshState(root).worktree.fingerprint;
+  let changed = false;
+
+  const result = runVerification(root, {
+    onResult() {
+      if (changed) return;
+      changed = true;
+      setReviewProvider(root, 'claude');
+    }
+  });
+
+  assert.equal(result.status, 'fail');
+  assert.equal(result.state.worktree.fingerprint, startingFingerprint);
+  assert.equal(result.state.review_provider, 'claude');
+  assert.equal(result.state.gates.review.status, 'pending');
+  assert.equal(result.state.gates.verify.status, 'fail');
+  assert.equal(result.evidence.provider_changed, true);
+  assert.equal(result.evidence.expected_provider, 'codex');
+  assert.equal(result.evidence.observed_provider, 'claude');
+  assert.deepEqual(nextAction(result.state), {
+    action: 'review',
+    reason: 'review-required'
+  });
 });
 
 test('generic CLI cannot fabricate a passing verification gate', (t) => {

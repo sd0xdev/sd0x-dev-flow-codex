@@ -4,20 +4,32 @@ const fs = require('node:fs');
 const crypto = require('node:crypto');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
-const { readProjectConfig } = require('./config');
+const {
+  DEFAULT_REVIEW_PROVIDER,
+  reviewProvider
+} = require('./config');
 const { findRepoRoot, snapshot } = require('./worktree');
 
-const SCHEMA_VERSION = 4;
-const DEFAULT_MAX_CONTINUATIONS = 8;
-const DEFAULT_MAX_ROUNDS = 8;
+const SCHEMA_VERSION = 6;
 const LOCK_WAIT_MS = 5_000;
 const LOCK_RETRY_MS = 20;
 const LOCK_OWNER_GRACE_MS = 1_000;
 const LOCK_STALE_MS = 30_000;
 const SESSION_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+const EXTERNAL_REVIEW_START_RETENTION_MS = 35 * 60 * 1000;
+const MAX_EXTERNAL_REVIEW_STARTS = 64;
 
 function now() {
   return new Date().toISOString();
+}
+
+function pruneExternalReviewStarts(values, referenceTime = Date.now()) {
+  if (!Array.isArray(values)) return [];
+  const cutoff = referenceTime - EXTERNAL_REVIEW_START_RETENTION_MS;
+  return values.filter((entry) =>
+    entry && Number.isFinite(Date.parse(entry.recorded_at)) &&
+    Date.parse(entry.recorded_at) >= cutoff
+  ).slice(-MAX_EXTERNAL_REVIEW_STARTS);
 }
 
 function sameRealPath(left, right) {
@@ -41,6 +53,8 @@ function defaultGate() {
 function defaultState() {
   return {
     schema_version: SCHEMA_VERSION,
+    runtime_epoch: crypto.randomUUID(),
+    review_provider: DEFAULT_REVIEW_PROVIDER,
     sessions: [],
     updated_at: now(),
     worktree: {
@@ -64,12 +78,8 @@ function defaultState() {
     },
     external_review: {
       fingerprint: null,
+      started: [],
       completed: []
-    },
-    iteration: {
-      round: 0,
-      max_rounds: DEFAULT_MAX_ROUNDS,
-      max_continuations: DEFAULT_MAX_CONTINUATIONS
     }
   };
 }
@@ -282,8 +292,11 @@ function consumeSetupDeferral(cwd, sessionId) {
 
 function normalizeState(value) {
   const base = defaultState();
-  if (!value || ![1, 2, 3, SCHEMA_VERSION].includes(value.schema_version)) return base;
-  const migratingLegacyState = value.schema_version !== SCHEMA_VERSION;
+  if (!value || ![1, 2, 3, 4, 5, SCHEMA_VERSION].includes(value.schema_version)) {
+    return base;
+  }
+  const invalidatesLegacyEvidence = value.schema_version <= 5;
+  const migratingV4State = value.schema_version === 4;
   const normalizedAt = now();
   const normalizeTimestamp = (candidate) =>
     typeof candidate === 'string' && Number.isFinite(Date.parse(candidate))
@@ -293,9 +306,6 @@ function normalizeState(value) {
   const legacySession = typeof value.session_id === 'string' && value.session_id
     ? [{
         session_id: value.session_id,
-        continuations: Number.isInteger(value.iteration?.continuations)
-          ? value.iteration.continuations
-          : 0,
         started_at: normalizeTimestamp(value.updated_at),
         updated_at: normalizeTimestamp(value.updated_at)
       }]
@@ -305,9 +315,6 @@ function normalizeState(value) {
         entry && typeof entry.session_id === 'string' && entry.session_id
       ).map((entry) => ({
         session_id: entry.session_id,
-        continuations: Number.isInteger(entry.continuations)
-          ? Math.max(0, entry.continuations)
-          : 0,
         started_at: normalizeTimestamp(entry.started_at || value.updated_at),
         updated_at: normalizeTimestamp(entry.updated_at || value.updated_at)
       })).filter((entry) =>
@@ -318,46 +325,45 @@ function normalizeState(value) {
     ...base,
     ...value,
     schema_version: SCHEMA_VERSION,
+    runtime_epoch: typeof value.runtime_epoch === 'string' &&
+        /^[0-9a-f-]{36}$/i.test(value.runtime_epoch)
+      ? value.runtime_epoch
+      : base.runtime_epoch,
+    review_provider: ['codex', 'claude'].includes(value.review_provider)
+      ? value.review_provider
+      : base.review_provider,
     sessions,
     worktree: { ...base.worktree, ...(value.worktree || {}) },
     gates: {
-      review: migratingLegacyState
+      review: invalidatesLegacyEvidence
         ? base.gates.review
         : { ...base.gates.review, ...(value.gates?.review || {}) },
-      verify: migratingLegacyState
+      verify: invalidatesLegacyEvidence
         ? base.gates.verify
         : { ...base.gates.verify, ...(value.gates?.verify || {}) }
     },
-    review_agents: migratingLegacyState ? base.review_agents : {
+    review_agents: invalidatesLegacyEvidence ? base.review_agents : {
       ...base.review_agents,
       ...(value.review_agents || {}),
-      started: Array.isArray(value.review_agents?.started)
+      started: !migratingV4State && Array.isArray(value.review_agents?.started)
         ? value.review_agents.started
         : [],
       completed: Array.isArray(value.review_agents?.completed)
         ? value.review_agents.completed
         : []
     },
-    external_review: migratingLegacyState ? base.external_review : {
+    external_review: invalidatesLegacyEvidence ? base.external_review : {
       ...base.external_review,
       ...(value.external_review || {}),
+      started: pruneExternalReviewStarts(value.external_review?.started),
       completed: Array.isArray(value.external_review?.completed)
         ? value.external_review.completed
         : []
-    },
-    iteration: {
-      round: !migratingLegacyState && Number.isInteger(value.iteration?.round)
-        ? Math.max(0, value.iteration.round)
-        : base.iteration.round,
-      max_rounds: Number.isInteger(value.iteration?.max_rounds)
-        ? value.iteration.max_rounds
-        : base.iteration.max_rounds,
-      max_continuations: Number.isInteger(value.iteration?.max_continuations)
-        ? value.iteration.max_continuations
-        : base.iteration.max_continuations
     }
   };
   delete normalized.session_id;
+  delete normalized.iteration;
+  delete normalized.runtime_epoch_started_at;
   return normalized;
 }
 
@@ -475,31 +481,37 @@ function invalidateGates(state) {
   };
   state.external_review = {
     fingerprint: null,
+    started: [],
     completed: []
   };
 }
 
-function resetSessionContinuations(state) {
-  state.sessions = state.sessions.map((entry) => ({
-    ...entry,
-    continuations: 0
-  }));
+function applyReviewProvider(state, provider) {
+  if (state.review_provider !== provider) {
+    invalidateGates(state);
+    state.review_provider = provider;
+  }
+  return state;
+}
+
+function blockGatesForFinding(state, worktree, source) {
+  state.gates.review = {
+    status: 'fail',
+    fingerprint: worktree.fingerprint,
+    evidence: {
+      findings: 1,
+      source,
+      summary: 'reviewer findings remain for the current fingerprint'
+    },
+    updated_at: now()
+  };
+  state.gates.verify = defaultGate();
 }
 
 function applySnapshot(state, worktree) {
   const previousFingerprint = state.worktree?.fingerprint || 'clean';
   if (previousFingerprint !== worktree.fingerprint) {
-    const hadGateEvidence = ['review', 'verify'].some((gate) =>
-      state.gates[gate].status !== 'pending'
-    );
     invalidateGates(state);
-    if (worktree.fingerprint === 'clean') {
-      state.iteration.round = 0;
-      resetSessionContinuations(state);
-    } else if (hadGateEvidence && previousFingerprint !== 'clean' &&
-        worktree.fingerprint !== 'clean') {
-      state.iteration.round += 1;
-    }
   }
   state.worktree = worktree;
   return state;
@@ -507,7 +519,7 @@ function applySnapshot(state, worktree) {
 
 function refreshState(cwd = process.cwd(), options = {}) {
   const worktree = snapshot(cwd);
-  const projectConfig = readProjectConfig(cwd);
+  const provider = reviewProvider(cwd);
   return withStateLock(cwd, (state) => {
     if (options.sessionId) {
       const recordedAt = now();
@@ -516,9 +528,6 @@ function refreshState(cwd = process.cwd(), options = {}) {
       );
       const session = {
         session_id: options.sessionId,
-        continuations: existing >= 0
-          ? state.sessions[existing].continuations
-          : 0,
         started_at: existing >= 0
           ? state.sessions[existing].started_at
           : recordedAt,
@@ -527,13 +536,19 @@ function refreshState(cwd = process.cwd(), options = {}) {
       if (existing >= 0) state.sessions[existing] = session;
       else state.sessions.push(session);
     }
-    state.iteration.max_rounds = projectConfig.limits.max_rounds;
-    state.iteration.max_continuations = projectConfig.limits.max_continuations;
-    return applySnapshot(state, worktree);
+    applySnapshot(state, worktree);
+    return applyReviewProvider(state, provider);
   });
 }
 
-function validateEvidence(gate, status, evidence) {
+function requiredReviewers(provider) {
+  const primary = provider === 'claude'
+    ? 'sd0x_claude_primary_reviewer'
+    : 'sd0x_codex_primary_reviewer';
+  return [primary, 'sd0x_reviewer', 'sd0x_test_reviewer'];
+}
+
+function validateEvidence(gate, status, evidence, provider = DEFAULT_REVIEW_PROVIDER) {
   if (!['pass', 'fail'].includes(status)) {
     throw new Error('Gate status must be pass or fail');
   }
@@ -547,15 +562,15 @@ function validateEvidence(gate, status, evidence) {
     if (evidence.findings !== 0) {
       throw new Error('A passing review gate requires evidence.findings === 0');
     }
-    const requiredReviewers = [
-      'claude_mcp_primary',
-      'sd0x_reviewer',
-      'sd0x_test_reviewer'
-    ];
+    if (evidence.provider !== provider) {
+      throw new Error(`A passing review gate requires provider ${provider}`);
+    }
+    const required = requiredReviewers(provider);
+    if (provider === 'claude') required.push('claude_mcp_primary');
     if (!Array.isArray(evidence.agents) ||
-        !requiredReviewers.every((reviewer) => evidence.agents.includes(reviewer))) {
+        !required.every((reviewer) => evidence.agents.includes(reviewer))) {
       throw new Error(
-        'A passing review gate requires Claude MCP, implementation, and test reviewer evidence'
+        `A passing review gate requires ${provider} primary, implementation, and test reviewer evidence`
       );
     }
   }
@@ -578,12 +593,20 @@ function markGate(cwd, gate, status, evidence) {
       'Verification pass can only be recorded by the deterministic verify runner'
     );
   }
-  validateEvidence(gate, status, evidence);
+  const provider = reviewProvider(cwd);
+  validateEvidence(gate, status, evidence, provider);
   const worktree = snapshot(cwd);
 
   return withStateLock(cwd, (state) => {
     applySnapshot(state, worktree);
+    applyReviewProvider(state, provider);
     if (gate === 'review' && status === 'pass') {
+      if (state.review_agents.started.length > 0 ||
+          state.external_review.started.length > 0) {
+        throw new Error(
+          'Review pass is blocked while current-fingerprint reviewers are still running'
+        );
+      }
       const currentAgentResults = state.review_agents.fingerprint === worktree.fingerprint
         ? state.review_agents.completed
         : [];
@@ -604,10 +627,10 @@ function markGate(cwd, gate, status, evidence) {
           )
           .map((entry) => entry.agent_type)
       );
-      const requiredTypes = ['sd0x_reviewer', 'sd0x_test_reviewer'];
+      const requiredTypes = requiredReviewers(provider);
       if (!requiredTypes.every((type) => cleanTypes.has(type))) {
         throw new Error(
-          'Review pass requires observed clean terminal results from sd0x_reviewer and sd0x_test_reviewer'
+          `Review pass requires observed clean terminal results from ${requiredTypes.join(', ')}`
         );
       }
       const hasCleanClaudeReview =
@@ -619,7 +642,7 @@ function markGate(cwd, gate, status, evidence) {
           entry.findings === 0 &&
           typeof entry.result_sha256 === 'string'
         );
-      if (!hasCleanClaudeReview) {
+      if (provider === 'claude' && !hasCleanClaudeReview) {
         throw new Error(
           'Review pass requires an observed clean Claude MCP primary result'
         );
@@ -635,10 +658,19 @@ function markGate(cwd, gate, status, evidence) {
   });
 }
 
-function recordVerification(cwd, status, evidence, expectedFingerprint) {
+function recordVerification(
+  cwd,
+  status,
+  evidence,
+  expectedFingerprint,
+  expectedProvider
+) {
   validateEvidence('verify', status, evidence);
   if (evidence.runner !== 'sd0x-deterministic-v1') {
     throw new Error('Verification evidence must come from the deterministic runner');
+  }
+  if (!['codex', 'claude'].includes(expectedProvider)) {
+    throw new Error('Verification evidence requires the starting review provider');
   }
   const worktree = snapshot(cwd);
   let recordedStatus = status;
@@ -654,7 +686,16 @@ function recordVerification(cwd, status, evidence, expectedFingerprint) {
   }
 
   return withStateLock(cwd, (state) => {
+    const provider = reviewProvider(cwd);
+    recordedEvidence = {
+      ...recordedEvidence,
+      provider_changed: provider !== expectedProvider,
+      expected_provider: expectedProvider,
+      observed_provider: provider
+    };
+    if (provider !== expectedProvider) recordedStatus = 'fail';
     applySnapshot(state, worktree);
+    applyReviewProvider(state, provider);
     if (recordedStatus === 'pass' && !isCurrentPass(state, 'review')) {
       throw new Error(
         'Verification pass requires a current review pass for the same fingerprint'
@@ -675,8 +716,11 @@ function recordSubagent(cwd, phase, details) {
     throw new Error(`Unknown subagent phase: ${phase}`);
   }
   const worktree = snapshot(cwd);
+  const provider = reviewProvider(cwd);
   return withStateLock(cwd, (state) => {
     applySnapshot(state, worktree);
+    applyReviewProvider(state, provider);
+    if (!requiredReviewers(provider).includes(details?.agent_type)) return state;
     if (state.review_agents.fingerprint !== worktree.fingerprint) {
       state.review_agents = {
         fingerprint: worktree.fingerprint,
@@ -691,14 +735,16 @@ function recordSubagent(cwd, phase, details) {
       recorded_at: now()
     };
     if (phase === 'stop') {
-      const started = state.review_agents.started.find((item) =>
+      const startedIndex = state.review_agents.started.findIndex((item) =>
         item.agent_id === entry.agent_id && item.agent_type === entry.agent_type
       );
-      if (!started) return state;
+      if (startedIndex < 0) return state;
+      const started = state.review_agents.started[startedIndex];
       const result = typeof details.last_assistant_message === 'string'
         ? details.last_assistant_message.trim()
         : '';
       if (!result) return state;
+      state.review_agents.started.splice(startedIndex, 1);
       entry.started_at = started.recorded_at;
       entry.result_sha256 = crypto.createHash('sha256').update(result).digest('hex');
       entry.outcome = /^no actionable findings(?: remain)?\.?$/i.test(result)
@@ -717,6 +763,9 @@ function recordSubagent(cwd, phase, details) {
     );
     if (existing >= 0) collection[existing] = entry;
     else collection.push(entry);
+    if (phase === 'stop' && entry.outcome === 'findings') {
+      blockGatesForFinding(state, worktree, entry.agent_type);
+    }
     return state;
   });
 }
@@ -740,11 +789,22 @@ function recordExternalReview(cwd, details) {
   if ((result.outcome === 'clean') !== (result.findings.length === 0)) {
     throw new Error('External review outcome does not match its finding count');
   }
+  if (!Number.isInteger(result.duration_ms) || result.duration_ms < 0) {
+    throw new Error('External review duration is required');
+  }
   if (typeof details.input_fingerprint !== 'string' ||
       details.input_fingerprint !== result.fingerprint) {
     throw new Error('External review input/output fingerprint mismatch');
   }
+  if (typeof details.session_id !== 'string' || !details.session_id ||
+      typeof details.tool_use_id !== 'string' || !details.tool_use_id) {
+    throw new Error('External review session and tool-use identity are required');
+  }
 
+  const provider = reviewProvider(cwd);
+  if (provider !== 'claude') {
+    throw new Error('Claude review evidence requires review.provider="claude"');
+  }
   const worktree = snapshot(cwd);
   if (!sameRealPath(details.input_root, worktree.root) ||
       !sameRealPath(result.repository_root, worktree.root)) {
@@ -755,14 +815,32 @@ function recordExternalReview(cwd, details) {
   }
   const canonicalResult = JSON.stringify(result);
 
-  return withStateLock(cwd, (state) => {
+  let rejection = null;
+  const recorded = withStateLock(cwd, (state) => {
     applySnapshot(state, worktree);
+    applyReviewProvider(state, provider);
     if (state.external_review.fingerprint !== worktree.fingerprint) {
       state.external_review = {
         fingerprint: worktree.fingerprint,
+        started: [],
         completed: []
       };
     }
+    state.external_review.started = pruneExternalReviewStarts(
+      state.external_review.started
+    );
+    const startedIndex = state.external_review.started.findIndex((entry) =>
+      entry.session_id === details.session_id &&
+      entry.runtime_epoch === state.runtime_epoch &&
+      entry.tool_use_id === details.tool_use_id
+    );
+    if (startedIndex < 0) {
+      rejection = new Error(
+        'External review result has no matching start in the current runtime epoch'
+      );
+      return state;
+    }
+    state.external_review.started.splice(startedIndex, 1);
     const entry = {
       reviewer: result.reviewer,
       perspective: result.perspective,
@@ -781,6 +859,83 @@ function recordExternalReview(cwd, details) {
     );
     if (existing >= 0) state.external_review.completed[existing] = entry;
     else state.external_review.completed.push(entry);
+    if (entry.outcome === 'findings') {
+      blockGatesForFinding(state, worktree, 'claude_mcp_primary');
+    }
+    return state;
+  });
+  if (rejection) throw rejection;
+  return recorded;
+}
+
+function recordExternalReviewStart(cwd, details) {
+  if (!details || typeof details !== 'object') {
+    throw new Error('External review start details are required');
+  }
+  const provider = reviewProvider(cwd);
+  if (provider !== 'claude') {
+    throw new Error('Claude review requires review.provider="claude"');
+  }
+  const worktree = snapshot(cwd);
+  if (!sameRealPath(details.input_root, worktree.root)) {
+    throw new Error('External review start repository root mismatch');
+  }
+  if (details.input_fingerprint !== worktree.fingerprint) {
+    throw new Error('External review start fingerprint is stale');
+  }
+  if (typeof details.session_id !== 'string' || !details.session_id ||
+      typeof details.tool_use_id !== 'string' || !details.tool_use_id) {
+    throw new Error('External review start requires session and tool-use identity');
+  }
+
+  return withStateLock(cwd, (state) => {
+    applySnapshot(state, worktree);
+    applyReviewProvider(state, provider);
+    if (state.external_review.fingerprint !== worktree.fingerprint) {
+      state.external_review = {
+        fingerprint: worktree.fingerprint,
+        started: [],
+        completed: []
+      };
+    }
+    state.external_review.started = pruneExternalReviewStarts(
+      state.external_review.started
+    );
+    const entry = {
+      session_id: details.session_id,
+      tool_use_id: details.tool_use_id,
+      runtime_epoch: state.runtime_epoch,
+      recorded_at: now()
+    };
+    const existing = state.external_review.started.findIndex((item) =>
+      item.session_id === entry.session_id &&
+      item.tool_use_id === entry.tool_use_id
+    );
+    if (existing >= 0) state.external_review.started[existing] = entry;
+    else state.external_review.started.push(entry);
+    state.external_review.started = pruneExternalReviewStarts(
+      state.external_review.started
+    );
+    return state;
+  });
+}
+
+function discardExternalReviewStart(cwd, details) {
+  if (!details || typeof details !== 'object' ||
+      typeof details.session_id !== 'string' || !details.session_id ||
+      typeof details.tool_use_id !== 'string' || !details.tool_use_id) {
+    return readState(cwd);
+  }
+  const worktree = snapshot(cwd);
+  return withStateLock(cwd, (state) => {
+    applySnapshot(state, worktree);
+    if (state.external_review.fingerprint !== worktree.fingerprint) return state;
+    state.external_review.started = pruneExternalReviewStarts(
+      state.external_review.started
+    ).filter((entry) =>
+      entry.session_id !== details.session_id ||
+      entry.tool_use_id !== details.tool_use_id
+    );
     return state;
   });
 }
@@ -797,16 +952,17 @@ function isCurrentFail(state, gate) {
     value.fingerprint === state.worktree.fingerprint;
 }
 
-function sessionContinuations(state, sessionId) {
-  if (!sessionId) return 0;
-  return state.sessions.find((entry) => entry.session_id === sessionId)
-    ?.continuations || 0;
-}
-
 function isSessionActive(state, sessionId) {
   return Boolean(sessionId) && state.sessions.some((entry) =>
     entry.session_id === sessionId
   );
+}
+
+function hasOutstandingReviewers(state) {
+  return (state.review_agents.fingerprint === state.worktree.fingerprint &&
+      state.review_agents.started.length > 0) ||
+    (state.external_review.fingerprint === state.worktree.fingerprint &&
+      state.external_review.started.length > 0);
 }
 
 function nextAction(state, options = {}) {
@@ -814,17 +970,19 @@ function nextAction(state, options = {}) {
     return { action: 'complete', reason: 'worktree-clean' };
   }
 
+  if (isCurrentFail(state, 'review') &&
+      (state.gates.review.evidence?.reviewer_failure === true ||
+       state.gates.review.evidence?.findings === 0)) {
+    return { action: 'review', reason: 'reviewer-unavailable' };
+  }
+
+  if (hasOutstandingReviewers(state)) {
+    return { action: 'review', reason: 'review-in-progress' };
+  }
+
   if (isCurrentPass(state, 'review') &&
       (!state.worktree.requires_verify || isCurrentPass(state, 'verify'))) {
     return { action: 'complete', reason: 'all-required-gates-pass' };
-  }
-
-  if (state.iteration.round >= state.iteration.max_rounds) {
-    return { action: 'escalate', reason: 'max-rounds-reached' };
-  }
-  if (sessionContinuations(state, options.sessionId) >=
-      state.iteration.max_continuations) {
-    return { action: 'escalate', reason: 'max-continuations-reached' };
   }
 
   if (isCurrentFail(state, 'review')) {
@@ -846,20 +1004,16 @@ function nextAction(state, options = {}) {
   return { action: 'complete', reason: 'all-required-gates-pass' };
 }
 
-function recordContinuation(cwd = process.cwd(), sessionId) {
-  return withStateLock(cwd, (state) => {
-    const session = state.sessions.find((entry) => entry.session_id === sessionId);
-    if (!session) {
-      throw new Error('Cannot record a continuation for an inactive session');
-    }
-    session.continuations += 1;
-    session.updated_at = now();
-    return state;
-  });
-}
-
 function resetState(cwd = process.cwd()) {
-  return withStateLock(cwd, () => defaultState());
+  const worktree = snapshot(cwd);
+  const provider = reviewProvider(cwd);
+  return withStateLock(cwd, (state) => {
+    const reset = defaultState();
+    reset.sessions = state.sessions;
+    reset.worktree = worktree;
+    reset.review_provider = provider;
+    return reset;
+  });
 }
 
 function summarize(state, options = {}) {
@@ -869,13 +1023,12 @@ function summarize(state, options = {}) {
     files: state.worktree.files,
     requires_review: state.worktree.requires_review,
     requires_verify: state.worktree.requires_verify,
+    review_provider: state.review_provider,
     review: state.gates.review.status,
     verify: state.gates.verify.status,
     review_agents_completed: state.review_agents.completed.length,
     external_reviews_completed: state.external_review.completed.length,
-    round: state.iteration.round,
     active_sessions: state.sessions.length,
-    continuations: sessionContinuations(state, options.sessionId),
     next_action: action.action,
     reason: action.reason
   };
@@ -889,6 +1042,7 @@ module.exports = {
   clearSessionActivationFailure,
   consumeSetupDeferral,
   defaultState,
+  discardExternalReviewStart,
   hasSetupDeferral,
   hasSessionActivationFailure,
   isCurrentPass,
@@ -899,8 +1053,8 @@ module.exports = {
   nextAction,
   readState,
   recordExternalReview,
+  recordExternalReviewStart,
   recordSubagent,
-  recordContinuation,
   recordVerification,
   refreshState,
   resetState,

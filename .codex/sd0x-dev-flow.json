@@ -1,8 +1,7 @@
 {
   "schema_version": 1,
   "enabled": true,
-  "limits": {
-    "max_rounds": 8,
-    "max_continuations": 8
+  "review": {
+    "provider": "codex"
   }
 }

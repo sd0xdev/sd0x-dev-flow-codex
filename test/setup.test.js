@@ -15,6 +15,9 @@ const {
   setupDeferralPath
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
+  reviewPlan
+} = require('../plugin/sd0x-dev-flow-codex/skills/review/scripts/provider');
+const {
   initRepository,
   isolateGitEnvironment
 } = require('./helpers/git');
@@ -63,13 +66,68 @@ test('setup preserves user guidance and is idempotent', (t) => {
     path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
     'utf8'
   );
+  const codexPrimaryAgent = fs.readFileSync(
+    path.join(root, '.codex', 'agents', 'sd0x-codex-primary-reviewer.toml'),
+    'utf8'
+  );
+  const claudePrimaryAgent = fs.readFileSync(
+    path.join(root, '.codex', 'agents', 'sd0x-claude-primary-reviewer.toml'),
+    'utf8'
+  );
+  assert.match(codexPrimaryAgent, /model = "gpt-5\.6-sol"/);
+  assert.match(codexPrimaryAgent, /model_reasoning_effort = "xhigh"/);
+  assert.match(claudePrimaryAgent, /mcp__sd0x_claude_review__review_worktree/);
   assert.match(implementationAgent, /performance, resource growth/);
+  assert.match(implementationAgent, /model = "gpt-5\.6-sol"/);
+  assert.match(implementationAgent, /model_reasoning_effort = "xhigh"/);
   assert.match(implementationAgent, /intentional design/);
   assert.match(testAgent, /acceptance traceability/);
+  assert.match(testAgent, /model = "gpt-5\.6-sol"/);
+  assert.match(testAgent, /model_reasoning_effort = "xhigh"/);
   assert.match(testAgent, /mock reasonableness/);
-  assert.equal(JSON.parse(
+  const projectConfig = JSON.parse(
     fs.readFileSync(path.join(root, '.codex', 'sd0x-dev-flow.json'), 'utf8')
-  ).enabled, true);
+  );
+  assert.equal(projectConfig.enabled, true);
+  assert.equal(projectConfig.review.provider, 'codex');
+  assert.deepEqual(reviewPlan(root), {
+    provider: 'codex',
+    primary_agent: 'sd0x_codex_primary_reviewer',
+    reviewers: 3,
+    agents: [
+      'sd0x_codex_primary_reviewer',
+      'sd0x_reviewer',
+      'sd0x_test_reviewer'
+    ],
+    codex: { model: 'gpt-5.6-sol', reasoning_effort: 'xhigh' },
+    claude: { model: 'claude-opus-4-8', enabled: false }
+  });
+  assert.equal(
+    'limits' in JSON.parse(
+      fs.readFileSync(path.join(root, '.codex', 'sd0x-dev-flow.json'), 'utf8')
+    ),
+    false
+  );
+});
+
+test('setup removes obsolete loop limits while preserving custom config', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const configPath = path.join(root, '.codex', 'sd0x-dev-flow.json');
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, JSON.stringify({
+    schema_version: 1,
+    enabled: true,
+    limits: { max_rounds: 1, max_continuations: 1 },
+    custom_setting: 'preserved'
+  }));
+
+  setup(root);
+
+  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  assert.equal(config.enabled, true);
+  assert.equal(config.custom_setting, 'preserved');
+  assert.equal('limits' in config, false);
 });
 
 test('setup refuses to replace an unowned agent file', (t) => {
@@ -91,4 +149,185 @@ test('setup preflights invalid config before writing guidance', (t) => {
   fs.writeFileSync(configPath, '{not json');
   assert.throws(() => setup(root), /invalid/);
   assert.equal(fs.existsSync(path.join(root, 'AGENTS.md')), false);
+});
+
+test('setup rejects non-object config without modifying project files', (t) => {
+  for (const value of [[], 'abc', 42, null]) {
+    const root = createRepo();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agentsPath = path.join(root, 'AGENTS.md');
+    const configPath = path.join(root, '.codex', 'sd0x-dev-flow.json');
+    const agentsContent = '# Existing guidance\n';
+    const configContent = JSON.stringify(value);
+    fs.writeFileSync(agentsPath, agentsContent);
+    fs.mkdirSync(path.dirname(configPath), { recursive: true });
+    fs.writeFileSync(configPath, configContent);
+
+    assert.throws(
+      () => setup(root),
+      /must contain a JSON object/
+    );
+    assert.equal(fs.readFileSync(agentsPath, 'utf8'), agentsContent);
+    assert.equal(fs.readFileSync(configPath, 'utf8'), configContent);
+  }
+});
+
+test('setup rejects a zero-byte config without modifying guidance', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const agentsPath = path.join(root, 'AGENTS.md');
+  const configPath = path.join(root, '.codex', 'sd0x-dev-flow.json');
+  const agentsContent = '# Existing guidance\n';
+  fs.writeFileSync(agentsPath, agentsContent);
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, '');
+
+  assert.throws(() => setup(root), /invalid/);
+  assert.equal(fs.readFileSync(agentsPath, 'utf8'), agentsContent);
+  assert.equal(fs.readFileSync(configPath, 'utf8'), '');
+});
+
+test('setup preserves an explicit Claude review provider and rejects unknown providers', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const configPath = path.join(root, '.codex', 'sd0x-dev-flow.json');
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, JSON.stringify({
+    schema_version: 1,
+    enabled: true,
+    review: { provider: 'claude' }
+  }));
+  setup(root);
+  assert.equal(
+    JSON.parse(fs.readFileSync(configPath, 'utf8')).review.provider,
+    'claude'
+  );
+  assert.equal(reviewPlan(root).primary_agent, 'sd0x_claude_primary_reviewer');
+  assert.equal(reviewPlan(root).claude.enabled, true);
+  assert.ok(reviewPlan(root).agents.includes('claude_mcp_primary'));
+
+  fs.writeFileSync(configPath, JSON.stringify({
+    schema_version: 1,
+    enabled: true,
+    review: { provider: 'unknown' }
+  }));
+  assert.throws(() => setup(root), /review\.provider/);
+});
+
+test('public documentation matches the shipped no-ceiling skill inventory', () => {
+  const repositoryRoot = path.resolve(__dirname, '..');
+  const skillsRoot = path.join(
+    repositoryRoot,
+    'plugin',
+    'sd0x-dev-flow-codex',
+    'skills'
+  );
+  const skillCount = fs.readdirSync(skillsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && fs.existsSync(
+      path.join(skillsRoot, entry.name, 'SKILL.md')
+    )).length;
+  const guide = fs.readFileSync(
+    path.join(repositoryRoot, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
+    'utf8'
+  );
+  const readme = fs.readFileSync(path.join(repositoryRoot, 'README.md'), 'utf8');
+  const toolkitSpec = fs.readFileSync(path.join(
+    repositoryRoot,
+    'docs',
+    'features',
+    'skill-toolkit-migration',
+    '2-tech-spec.md'
+  ), 'utf8');
+
+  assert.equal(skillCount, 8);
+  assert.match(guide, new RegExp(`- ${skillCount} 個 skills：`));
+  assert.match(guide, /Auto-loop 沒有固定 round 或 continuation 上限/);
+  assert.match(guide, /reason: reviewer-unavailable/);
+  assert.match(guide, /continue: true/);
+  assert.match(guide, /failed gate[^\n]+stale ledger[^\n]+保留/);
+  assert.doesNotMatch(guide, /Auto-loop 必須有上限|超限時 escalation|round／continuation semantics/);
+  assert.match(toolkitSpec, new RegExp(`目標 repository 只有 ${skillCount} 個核心 skills`));
+  assert.match(toolkitSpec, new RegExp(`\\| Skills \\| 100 \\| ${skillCount} \\|`));
+  assert.match(toolkitSpec, /Current Codex skills are[^\n]+`reset`/);
+  assert.match(readme, /\.codex\/agents\/sd0x-codex-primary-reviewer\.toml/);
+  assert.match(readme, /sd0x-claude-primary-reviewer\.toml/);
+  assert.match(readme, /sd0x-reviewer\.toml/);
+  assert.match(readme, /sd0x-test-reviewer\.toml/);
+  assert.doesNotMatch(readme, /\.codex\/agents\/sd0x_reviewer\.toml|sd0x_test_reviewer\.toml/);
+});
+
+test('review theory preserves the sd0x independent review and convergence contract', () => {
+  const theory = fs.readFileSync(path.resolve(
+    __dirname,
+    '..',
+    'plugin',
+    'sd0x-dev-flow-codex',
+    'skills',
+    'review',
+    'references',
+    'review-theory.md'
+  ), 'utf8');
+  for (const pattern of [
+    /independent research/i,
+    /never the\s+implementer's conclusions/i,
+    /actual diff, full changed files/i,
+    /orthogonal perspectives in parallel/i,
+    /edit resets the review cycle/i,
+    /fixing and verifying as separate actions/i,
+    /root cause/i,
+    /acceptance criteria/i,
+    /normalize and deduplicate/i,
+    /provider and[\s\S]*worktree fingerprint changes invalidate evidence/i,
+    /no degraded pass/i,
+    /fresh full scan/i
+  ]) {
+    assert.match(theory, pattern);
+  }
+});
+
+test('review skill requires user-authorized reset for stale native reviewers', () => {
+  const skill = fs.readFileSync(path.resolve(
+    __dirname,
+    '..',
+    'plugin',
+    'sd0x-dev-flow-codex',
+    'skills',
+    'review',
+    'SKILL.md'
+  ), 'utf8');
+  assert.match(skill, /do not replace or retry that reviewer type on the same fingerprint/i);
+  assert.match(skill, /Ask the user before running[^\n]+reset/i);
+  assert.doesNotMatch(skill, /reset or process restart/i);
+  assert.match(skill, /process restart alone does not clear/i);
+  assert.match(skill, /genuine fingerprint change/i);
+
+  const guide = fs.readFileSync(path.resolve(
+    __dirname,
+    '..',
+    'docs',
+    'PROJECT-MIGRATION-GUIDE.md'
+  ), 'utf8');
+  assert.match(guide, /reviewer_failure[^\n]+true/);
+  assert.match(guide, /process restart[^\n]+不會清除/);
+  assert.match(guide, /使用者授權[^\n]+reset/);
+});
+
+test('remind routes every review reason without unsafe retries', () => {
+  const skill = fs.readFileSync(path.resolve(
+    __dirname,
+    '..',
+    'plugin',
+    'sd0x-dev-flow-codex',
+    'skills',
+    'remind',
+    'SKILL.md'
+  ), 'utf8');
+  assert.match(skill, /reason[^\n]+reviewer-unavailable/i);
+  assert.match(skill, /do not run[^\n]+review/i);
+  assert.match(skill, /user-authorized reset|ask the user[^\n]+reset/i);
+  assert.match(skill, /reason[^\n]+review-in-progress/i);
+  assert.match(skill, /reason[^\n]+review-findings-remain/i);
+  assert.match(skill, /reason[^\n]+review-required/i);
+  assert.match(skill, /wait for[^\n]+terminal/i);
+  assert.match(skill, /fix[^\n]+findings/i);
 });

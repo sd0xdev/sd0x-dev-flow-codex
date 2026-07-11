@@ -180,18 +180,35 @@ function mcpServerStatus(pluginRoot, execute = spawnSync) {
   };
 }
 
-function doctor(cwd) {
-  const pluginRoot = path.resolve(__dirname, '..', '..');
+function doctor(cwd, options = {}) {
+  const pluginRoot = options.pluginRoot || path.resolve(__dirname, '..', '..');
   const projectConfig = readProjectConfig(cwd);
   const required = [
     '.codex-plugin/plugin.json',
     '.mcp.json',
     'hooks/hooks.json',
     'scripts/mcp/server.js',
+    'skills/bug-fix/SKILL.md',
+    'skills/doctor/SKILL.md',
+    'skills/doctor/scripts/doctor.js',
+    'skills/feature-dev/SKILL.md',
+    'skills/remind/SKILL.md',
+    'skills/remind/scripts/status.js',
+    'skills/reset/SKILL.md',
+    'skills/reset/scripts/reset.js',
     'skills/review/SKILL.md',
     'skills/review/references/review-theory.md',
+    'skills/review/scripts/gate.js',
+    'skills/review/scripts/provider.js',
+    'skills/review/scripts/snapshot.js',
     'skills/verify/SKILL.md',
-    'skills/setup/SKILL.md'
+    'skills/verify/scripts/verify.js',
+    'skills/setup/SKILL.md',
+    'skills/setup/scripts/setup.js',
+    'templates/agents/sd0x-claude-primary-reviewer.toml',
+    'templates/agents/sd0x-codex-primary-reviewer.toml',
+    'templates/agents/sd0x-reviewer.toml',
+    'templates/agents/sd0x-test-reviewer.toml'
   ];
   const checks = required.map((relative) => ({
     check: relative,
@@ -199,17 +216,25 @@ function doctor(cwd) {
   }));
   checks.push({ check: 'node>=18', ok: Number(process.versions.node.split('.')[0]) >= 18 });
   checks.push({ check: 'state-path', ok: Boolean(resolveStatePath(cwd)) });
-  const claude = claudeCliStatus();
-  const mcp = mcpServerStatus(pluginRoot);
-  checks.push({ check: 'claude-cli', ok: claude.installed });
-  checks.push({ check: 'claude-capabilities', ok: claude.compatible === true });
-  checks.push({ check: 'claude-auth', ok: claude.authenticated });
-  checks.push({ check: 'claude-review-mcp-handshake', ok: mcp.ready });
+  const claudeRequired = projectConfig.review.provider === 'claude';
+  const claude = claudeRequired
+    ? (options.claudeStatus || claudeCliStatus)()
+    : { required: false, checked: false };
+  const mcp = claudeRequired
+    ? (options.mcpStatus || mcpServerStatus)(pluginRoot)
+    : { required: false, checked: false };
+  if (claudeRequired) {
+    checks.push({ check: 'claude-cli', ok: claude.installed });
+    checks.push({ check: 'claude-capabilities', ok: claude.compatible === true });
+    checks.push({ check: 'claude-auth', ok: claude.authenticated });
+    checks.push({ check: 'claude-review-mcp-handshake', ok: mcp.ready });
+  }
   return {
     ok: checks.every((check) => check.ok),
     plugin_root: pluginRoot,
     project_enabled: projectConfig.enabled,
     project_config: projectConfig.path,
+    review_provider: projectConfig.review.provider,
     state_path: resolveStatePath(cwd),
     claude,
     mcp,

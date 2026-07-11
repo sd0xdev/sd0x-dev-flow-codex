@@ -9,6 +9,6 @@ description: Implement a non-trivial feature end to end with scoped exploration,
 2. State scope, acceptance criteria, risks, and the smallest coherent implementation plan.
 3. Implement incrementally, preserving existing conventions and unrelated user changes.
 4. Add or update tests that prove behavior rather than implementation details.
-5. Run `$sd0x-dev-flow-codex:review` until the Claude primary and both independent Codex perspectives are clean.
+5. Run `$sd0x-dev-flow-codex:review` until the configured primary subagent and both independent Codex perspectives are clean.
 6. Run `$sd0x-dev-flow-codex:verify`. If verification causes fixes, repeat review first.
 7. Finish with changed behavior, evidence, and any genuine residual risk.

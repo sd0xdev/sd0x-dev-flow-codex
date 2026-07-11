@@ -11,6 +11,8 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "check": "node scripts/check-syntax.js && node --test test/*.test.js",
+    "release:check": "node scripts/release.js check",
+    "version:set": "node scripts/release.js set-version",
     "dev:link": "node scripts/dev-plugin.js link",
     "dev:status": "node scripts/dev-plugin.js status",
     "dev:unlink": "node scripts/dev-plugin.js unlink",

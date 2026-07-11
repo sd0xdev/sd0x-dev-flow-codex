@@ -3,7 +3,10 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { boundedInteger } = require('../../../scripts/runtime/config');
+const {
+  DEFAULT_REVIEW_PROVIDER,
+  normalizeReviewProvider
+} = require('../../../scripts/runtime/config');
 const { markSetupDeferral } = require('../../../scripts/runtime/state');
 const { findRepoRoot } = require('../../../scripts/runtime/worktree');
 
@@ -17,7 +20,7 @@ const BLOCK = `${START}
 - Before completing code or configuration changes, run \`$sd0x-dev-flow-codex:review\`, then \`$sd0x-dev-flow-codex:verify\`.
 - For documentation-only changes, review is required but deterministic verification is optional.
 - After any fix, rerun review because the previous gate belongs to the previous fingerprint.
-- Run the Claude MCP primary reviewer and the installed \`sd0x_reviewer\` and \`sd0x_test_reviewer\` agents in parallel; keep every perspective independent and read-only.
+- Run the configured \`sd0x_codex_primary_reviewer\` or \`sd0x_claude_primary_reviewer\` plus \`sd0x_reviewer\` and \`sd0x_test_reviewer\` in parallel; keep every perspective independent and read-only.
 - Never claim a gate passed without recording evidence through the plugin runtime.
 ${END}`;
 
@@ -57,20 +60,29 @@ function assertAgentOwnership(destination, desiredContent) {
 
 function projectConfig(existing) {
   let current = {};
-  if (existing) {
+  if (existing !== null && existing !== undefined) {
     try {
       current = JSON.parse(existing);
     } catch {
       throw new Error('Refusing to replace invalid .codex/sd0x-dev-flow.json');
     }
+    if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      throw new Error(
+        '.codex/sd0x-dev-flow.json must contain a JSON object'
+      );
+    }
   }
+  const provider = normalizeReviewProvider(current);
+  const { limits: _obsoleteLimits, ...preserved } = current;
   return `${JSON.stringify({
-    ...current,
+    ...preserved,
     schema_version: 1,
     enabled: true,
-    limits: {
-      max_rounds: boundedInteger(current.limits?.max_rounds, 8),
-      max_continuations: boundedInteger(current.limits?.max_continuations, 8)
+    review: {
+      ...(current.review && typeof current.review === 'object'
+        ? current.review
+        : {}),
+      provider: provider || DEFAULT_REVIEW_PROVIDER
     }
   }, null, 2)}\n`;
 }
@@ -87,9 +99,14 @@ function setup(cwd = process.cwd()) {
   const configPath = path.join(root, '.codex', 'sd0x-dev-flow.json');
   const existingConfig = fs.existsSync(configPath)
     ? fs.readFileSync(configPath, 'utf8')
-    : '';
+    : null;
   const desiredConfig = projectConfig(existingConfig);
-  const agentPlans = ['sd0x-reviewer.toml', 'sd0x-test-reviewer.toml'].map((name) => ({
+  const agentPlans = [
+    'sd0x-codex-primary-reviewer.toml',
+    'sd0x-claude-primary-reviewer.toml',
+    'sd0x-reviewer.toml',
+    'sd0x-test-reviewer.toml'
+  ].map((name) => ({
     source: path.join(pluginRoot, 'templates', 'agents', name),
     destination: path.join(root, '.codex', 'agents', name)
   }));

@@ -20,8 +20,9 @@ const DEFAULT_MAX_BUNDLE_BYTES = 4 * 1024 * 1024;
 const DEFAULT_MAX_UNTRACKED_FILE_BYTES = 256 * 1024;
 const MAX_PROCESS_OUTPUT_BYTES = 16 * 1024 * 1024;
 const CLEAN_SENTINEL = 'No actionable findings remain.';
-const DEFAULT_REVIEW_MODEL = 'claude-fable-5';
-const DEFAULT_FALLBACK_MODEL = 'claude-opus-4-8';
+const DEFAULT_REVIEW_MODEL = 'claude-opus-4-8';
+const DEFAULT_FALLBACK_MODEL = null;
+const DEFAULT_MAX_TURNS = 20;
 
 const FINDING_SCHEMA = {
   type: 'object',
@@ -311,8 +312,9 @@ function buildReviewPrompt(bundle) {
 function buildClaudeArgs(env = process.env, overrides = {}) {
   const model = overrides.model || env.SD0X_CLAUDE_REVIEW_MODEL ||
     DEFAULT_REVIEW_MODEL;
-  const fallbackModel = overrides.fallbackModel ||
-    env.SD0X_CLAUDE_REVIEW_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL;
+  const fallbackModel = overrides.fallbackModel !== undefined
+    ? overrides.fallbackModel
+    : (env.SD0X_CLAUDE_REVIEW_FALLBACK_MODEL || DEFAULT_FALLBACK_MODEL);
   const args = [
     '--print',
     '--safe-mode',
@@ -322,11 +324,13 @@ function buildClaudeArgs(env = process.env, overrides = {}) {
     '--tools', 'Read,Glob,Grep',
     '--disallowedTools', 'Bash,Edit,Write,NotebookEdit,WebFetch,WebSearch',
     '--model', model,
-    '--fallback-model', fallbackModel,
     '--output-format', 'json',
     '--json-schema', JSON.stringify(CLAUDE_OUTPUT_SCHEMA),
     '--system-prompt', REVIEW_SYSTEM_PROMPT
   ];
+  if (fallbackModel) {
+    args.splice(args.indexOf('--output-format'), 0, '--fallback-model', fallbackModel);
+  }
   if (env.SD0X_CLAUDE_REVIEW_MAX_BUDGET_USD) {
     args.push('--max-budget-usd', env.SD0X_CLAUDE_REVIEW_MAX_BUDGET_USD);
   }
@@ -345,7 +349,9 @@ const CLAUDE_REQUIRED_FLAGS = Object.freeze(claudeRequiredFlags({}));
 
 function buildClaudeEnv(env = process.env) {
   const configured = Number.parseInt(env.SD0X_CLAUDE_REVIEW_MAX_TURNS || '', 10);
-  const maxTurns = Number.isInteger(configured) && configured > 0 ? configured : 12;
+  const maxTurns = Number.isInteger(configured) && configured > 0
+    ? configured
+    : DEFAULT_MAX_TURNS;
   return {
     ...env,
     CLAUDE_CODE_MAX_TURNS: String(maxTurns)
@@ -542,7 +548,8 @@ async function executeClaude(root, prompt, options = {}) {
       fallbackModel
     });
   } catch (primaryError) {
-    if (primaryError?.code === 'ABORT_ERR' || primaryModel === fallbackModel) {
+    if (primaryError?.code === 'ABORT_ERR' || !fallbackModel ||
+        primaryModel === fallbackModel) {
       throw primaryError;
     }
     try {
@@ -555,7 +562,7 @@ async function executeClaude(root, prompt, options = {}) {
       if (fallbackError?.code === 'ABORT_ERR') throw fallbackError;
       throw new Error(
         `Claude primary review failed (${primaryError.message}); ` +
-        `Opus fallback failed (${fallbackError.message})`
+        `${fallbackModel} fallback failed (${fallbackError.message})`
       );
     }
   }
@@ -887,6 +894,7 @@ module.exports = {
   CLAUDE_REQUIRED_FLAGS,
   CLAUDE_OUTPUT_SCHEMA,
   DEFAULT_FALLBACK_MODEL,
+  DEFAULT_MAX_TURNS,
   DEFAULT_REVIEW_MODEL,
   DEFAULT_TIMEOUT_MS,
   MAX_PROCESS_OUTPUT_BYTES,

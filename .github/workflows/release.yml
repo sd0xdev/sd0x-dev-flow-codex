@@ -1,0 +1,184 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - package.json
+      - .agents/plugins/marketplace.json
+      - plugin/sd0x-dev-flow-codex/**
+      - scripts/release.js
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Check code and release contract
+        run: |
+          npm run check
+          npm run release:check
+
+      - name: Resolve release version
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v${VERSION}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+          TAG_EXISTS=false
+          PAYLOAD_CHANGED=false
+          RELEASE_EXISTS=false
+          RELEASE_DRAFT=false
+          ASSETS_JSON='[]'
+          BUILD_REVISION="$GITHUB_SHA"
+          if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
+            TAG_EXISTS=true
+            BUILD_REVISION="$TAG"
+            if ! git diff --quiet "${TAG}" HEAD -- \
+              package.json \
+              .agents/plugins/marketplace.json \
+              plugin/sd0x-dev-flow-codex; then
+              PAYLOAD_CHANGED=true
+            fi
+
+            if RELEASE_JSON="$(gh release view "$TAG" --json assets,isDraft 2>/dev/null)"; then
+              RELEASE_EXISTS=true
+              RELEASE_DRAFT="$(printf '%s' "$RELEASE_JSON" | node -e \
+                "const fs=require('node:fs'); process.stdout.write(String(JSON.parse(fs.readFileSync(0, 'utf8')).isDraft));"
+              )"
+              ASSETS_JSON="$(printf '%s' "$RELEASE_JSON" | node -e \
+                "const fs=require('node:fs'); const value=JSON.parse(fs.readFileSync(0, 'utf8')); process.stdout.write(JSON.stringify(value.assets.map((asset) => asset.name)));"
+              )"
+            fi
+          fi
+
+          PLAN="$(
+            SD0X_RELEASE_TAG_EXISTS="$TAG_EXISTS" \
+            SD0X_RELEASE_PAYLOAD_CHANGED="$PAYLOAD_CHANGED" \
+            SD0X_RELEASE_EXISTS="$RELEASE_EXISTS" \
+            SD0X_RELEASE_DRAFT="$RELEASE_DRAFT" \
+            SD0X_RELEASE_ASSETS_JSON="$ASSETS_JSON" \
+            node scripts/release.js plan
+          )"
+          action="$(printf '%s' "$PLAN" | node -e \
+            "const fs=require('node:fs'); process.stdout.write(JSON.parse(fs.readFileSync(0, 'utf8')).action);"
+          )"
+          prerelease="$(printf '%s' "$PLAN" | node -e \
+            "const fs=require('node:fs'); process.stdout.write(String(JSON.parse(fs.readFileSync(0, 'utf8')).prerelease));"
+          )"
+          missing_assets="$(printf '%s' "$PLAN" | node -e \
+            "const fs=require('node:fs'); process.stdout.write(JSON.parse(fs.readFileSync(0, 'utf8')).missingAssets.join(' '));"
+          )"
+          present_assets="$(printf '%s' "$PLAN" | node -e \
+            "const fs=require('node:fs'); process.stdout.write(JSON.parse(fs.readFileSync(0, 'utf8')).presentAssets.join(' '));"
+          )"
+          present_assets_json="$(printf '%s' "$PLAN" | node -e \
+            "const fs=require('node:fs'); process.stdout.write(JSON.stringify(JSON.parse(fs.readFileSync(0, 'utf8')).presentAssets));"
+          )"
+          echo "action=${action}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+          echo "missing_assets=${missing_assets}" >> "$GITHUB_OUTPUT"
+          echo "present_assets=${present_assets}" >> "$GITHUB_OUTPUT"
+          echo "present_assets_json=${present_assets_json}" >> "$GITHUB_OUTPUT"
+          echo "build_revision=${BUILD_REVISION}" >> "$GITHUB_OUTPUT"
+          echo "Release plan: ${action} (${TAG})"
+
+      - name: Build release archives
+        run: |
+          node scripts/release.js build dist "${{ steps.release.outputs.build_revision }}"
+
+      - name: Verify existing release assets
+        if: steps.release.outputs.action == 'verify' || steps.release.outputs.action == 'upload' || steps.release.outputs.action == 'upload-publish' || steps.release.outputs.action == 'publish'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          PRESENT_ASSETS: ${{ steps.release.outputs.present_assets }}
+          PRESENT_ASSETS_JSON: ${{ steps.release.outputs.present_assets_json }}
+        shell: bash
+        run: |
+          mkdir -p existing-assets
+          for asset in $PRESENT_ASSETS; do
+            gh release download "$TAG" --pattern "$asset" --dir existing-assets
+          done
+          SD0X_RELEASE_ASSETS_JSON="$PRESENT_ASSETS_JSON" \
+            node scripts/release.js verify-assets dist existing-assets
+
+      - name: Publish GitHub release
+        if: steps.release.outputs.action == 'create' || steps.release.outputs.action == 'create-existing-tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          ACTION: ${{ steps.release.outputs.action }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        run: |
+          if [ "$ACTION" = 'create' ]; then
+            git tag "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/${TAG}"
+          fi
+          FLAGS=(--title "$TAG" --generate-notes --verify-tag)
+          if [ "$PRERELEASE" = 'true' ]; then
+            FLAGS+=(--prerelease --latest=false)
+          else
+            FLAGS+=(--latest)
+          fi
+          gh release create "$TAG" \
+            dist/*.tar.gz \
+            dist/*.zip \
+            dist/SHA256SUMS \
+            "${FLAGS[@]}"
+
+      - name: Upload missing release assets
+        if: steps.release.outputs.action == 'upload' || steps.release.outputs.action == 'upload-publish'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          MISSING_ASSETS: ${{ steps.release.outputs.missing_assets }}
+        shell: bash
+        run: |
+          FILES=()
+          for asset in $MISSING_ASSETS; do
+            FILES+=("dist/${asset}")
+          done
+          gh release upload "$TAG" "${FILES[@]}"
+
+      - name: Publish repaired draft release
+        if: steps.release.outputs.action == 'publish' || steps.release.outputs.action == 'upload-publish'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          PRERELEASE: ${{ steps.release.outputs.prerelease }}
+        shell: bash
+        run: |
+          FLAGS=(--draft=false)
+          if [ "$PRERELEASE" = 'true' ]; then
+            FLAGS+=(--prerelease --latest=false)
+          else
+            FLAGS+=(--prerelease=false --latest)
+          fi
+          gh release edit "$TAG" "${FLAGS[@]}"

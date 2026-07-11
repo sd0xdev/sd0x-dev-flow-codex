@@ -33,6 +33,6 @@ This repository is the Codex-native implementation of sd0x Dev Flow. Do not port
 - Before completing code or configuration changes, run `$sd0x-dev-flow-codex:review`, then `$sd0x-dev-flow-codex:verify`.
 - For documentation-only changes, review is required but deterministic verification is optional.
 - After any fix, rerun review because the previous gate belongs to the previous fingerprint.
-- Run the Claude MCP primary reviewer and the installed `sd0x_reviewer` and `sd0x_test_reviewer` agents in parallel; keep every perspective independent and read-only.
+- Run the configured `sd0x_codex_primary_reviewer` or `sd0x_claude_primary_reviewer` plus `sd0x_reviewer` and `sd0x_test_reviewer` in parallel; keep every perspective independent and read-only.
 - Never claim a gate passed without recording evidence through the plugin runtime.
 <!-- sd0x-dev-flow-codex:end -->

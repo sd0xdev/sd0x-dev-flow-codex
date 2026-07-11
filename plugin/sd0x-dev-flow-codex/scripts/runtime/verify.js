@@ -182,6 +182,7 @@ function runVerification(cwd = process.cwd(), options = {}) {
     );
   }
   const startingFingerprint = startingState.worktree.fingerprint;
+  const startingProvider = startingState.review_provider;
   const results = [];
   const divergentFiles = stagedWorktreeDivergence(root);
 
@@ -222,7 +223,8 @@ function runVerification(cwd = process.cwd(), options = {}) {
     root,
     status,
     evidence,
-    startingFingerprint
+    startingFingerprint,
+    startingProvider
   );
   return {
     status: state.gates.verify.status,
