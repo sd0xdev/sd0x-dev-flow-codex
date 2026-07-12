@@ -60,8 +60,18 @@ function fixture() {
 
 test('current repository satisfies the public release contract', () => {
   const result = checkRelease();
+  const migrationGuide = fs.readFileSync(path.resolve(
+    __dirname,
+    '..',
+    'docs',
+    'PROJECT-MIGRATION-GUIDE.md'
+  ), 'utf8');
+  const documentedVersion = /> Codex 版本：`sd0x-dev-flow-codex` `([^`]+)`/.exec(
+    migrationGuide
+  )?.[1];
   assert.equal(result.selector, `${PLUGIN_NAME}@${MARKETPLACE_NAME}`);
   assert.match(result.version, /^\d+\.\d+\.\d+/);
+  assert.equal(documentedVersion, result.version);
 });
 
 test('Node.js runtime requirements stay aligned across CI and the shipped plugin', () => {
