@@ -13,7 +13,7 @@ This repository is the Codex-native implementation of sd0x Dev Flow. Do not port
 
 ## Changes
 
-- Use Node.js 18-compatible CommonJS and built-in modules unless a dependency is justified.
+- Use Node.js 24-compatible CommonJS and built-in modules unless a dependency is justified.
 - Preserve user-authored `AGENTS.md` content and custom agents outside setup-managed files.
 - Add tests for state transitions, hook wire formats, or project detection when changing those areas.
 - Run `npm run check` before finishing.

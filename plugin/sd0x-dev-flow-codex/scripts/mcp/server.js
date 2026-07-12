@@ -463,11 +463,15 @@ function executeClaudeAttempt(root, prompt, options = {}) {
     let stdoutBytes = 0;
     let stderrBytes = 0;
     let settled = false;
+    let terminationStarted = false;
     let timer;
+    const terminationGraceMs = options.terminationGraceMs ?? 1000;
 
     function terminate() {
+      if (terminationStarted) return;
+      terminationStarted = true;
       child.kill('SIGTERM');
-      setTimeout(() => child.kill('SIGKILL'), 1000).unref();
+      setTimeout(() => child.kill('SIGKILL'), terminationGraceMs).unref();
     }
 
     function finish(error, value) {
@@ -528,10 +532,18 @@ function executeClaudeAttempt(root, prompt, options = {}) {
       }
     });
 
-    child.stdin.once('error', (error) => finish(
-      new Error(`Unable to send the review prompt to Claude: ${error.message}`)
-    ));
-    child.stdin.end(prompt);
+    function failPrompt(error) {
+      if (settled) return;
+      terminate();
+      finish(new Error(`Unable to send the review prompt to Claude: ${error.message}`));
+    }
+
+    child.stdin.once('error', failPrompt);
+    try {
+      child.stdin.end(prompt);
+    } catch (error) {
+      failPrompt(error);
+    }
   });
 }
 

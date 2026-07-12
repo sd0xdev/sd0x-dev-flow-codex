@@ -20,7 +20,7 @@
 前置條件：
 
 - Git checkout；runtime state 依賴 Git metadata path，不支援把 payload 當一般資料夾直接開發。
-- Node.js `>=18` 與 npm；目前沒有第三方 package dependency，不需要先 `npm install`。
+- Node.js `>=24` 與 npm；目前沒有第三方 package dependency，不需要先 `npm install`。
 - 具 `codex plugin` 指令的 Codex CLI。本文最後以 Codex CLI `0.144.1` 校準；若版本不同，先檢查第 14 節的版本邊界。
 - `../sd0x-dev-flow` Claude 來源 repo 只在做能力比較或新遷移時需要，不是執行 Codex plugin 的必要條件。
 

@@ -64,6 +64,32 @@ test('current repository satisfies the public release contract', () => {
   assert.match(result.version, /^\d+\.\d+\.\d+/);
 });
 
+test('Node.js runtime requirements stay aligned across CI and the shipped plugin', () => {
+  const root = path.resolve(__dirname, '..');
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const workflow = fs.readFileSync(path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8');
+  const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8');
+  const agents = fs.readFileSync(path.join(root, 'AGENTS.md'), 'utf8');
+  const migrationGuide = fs.readFileSync(
+    path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
+    'utf8'
+  );
+  const doctorSource = fs.readFileSync(
+    path.join(root, 'plugin', PLUGIN_NAME, 'scripts', 'runtime', 'cli.js'),
+    'utf8'
+  );
+
+  assert.equal(packageJson.engines.node, '>=24.0.0');
+  assert.equal(fs.readFileSync(path.join(root, '.nvmrc'), 'utf8').trim(), '24');
+  assert.match(workflow, /node-version-file: \.nvmrc/);
+  assert.doesNotMatch(workflow, /matrix\.node|node:\s*\[/);
+  assert.equal(readme.match(/Node\.js 24 或更新版本/g)?.length, 2);
+  assert.doesNotMatch(readme, /Node\.js (?:18|22)(?:\s|`|或)/);
+  assert.match(agents, /Use Node\.js 24-compatible CommonJS/);
+  assert.match(migrationGuide, /Node\.js `>=24` 與 npm/);
+  assert.match(doctorSource, /check: 'node>=24'.*nodeMajor >= 24/);
+});
+
 test('version setter updates package and plugin manifest together', (t) => {
   const values = fixture();
   t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));

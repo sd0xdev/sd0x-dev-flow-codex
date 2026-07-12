@@ -35,7 +35,7 @@ flowchart LR
 ### 需求
 
 - 已安裝支援 plugins 的 Codex CLI。
-- Node.js 18 或更新版本。
+- Node.js 24 或更新版本。
 - 只有將 `review.provider` 切換為 `claude` 時，才需要安裝並登入 Claude Code CLI。
 
 選用 Claude provider 時的一次性設定：
@@ -184,7 +184,7 @@ npm run release:check
 
 ## 開發
 
-需要 Node.js 18 或更新版本；`.nvmrc` 使用 Node 22 作為主要開發版本。
+需要 Node.js 24 或更新版本；`.nvmrc` 與 CI 使用 Node 24 LTS。
 
 ```bash
 npm run check

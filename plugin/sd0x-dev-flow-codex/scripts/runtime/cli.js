@@ -228,7 +228,8 @@ function doctor(cwd, options = {}) {
     check: relative,
     ok: fs.existsSync(path.join(pluginRoot, relative))
   }));
-  checks.push({ check: 'node>=18', ok: Number(process.versions.node.split('.')[0]) >= 18 });
+  const nodeMajor = options.nodeMajor ?? Number(process.versions.node.split('.')[0]);
+  checks.push({ check: 'node>=24', ok: nodeMajor >= 24 });
   checks.push({ check: 'state-path', ok: Boolean(resolveStatePath(cwd)) });
   const claudeRequired = projectConfig.review.provider === 'claude';
   const claude = claudeRequired

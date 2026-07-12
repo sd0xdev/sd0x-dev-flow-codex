@@ -61,8 +61,14 @@ function fakeClaudeChild(onStart) {
   child.stdout = new PassThrough();
   child.stderr = new PassThrough();
   child.kills = [];
+  const processHandle = setInterval(() => {}, 60_000);
+  const releaseProcessHandle = () => clearInterval(processHandle);
+  child.cleanup = releaseProcessHandle;
+  child.once('close', releaseProcessHandle);
+  child.once('error', releaseProcessHandle);
   child.kill = (signal) => {
     child.kills.push(signal);
+    if (signal === 'SIGKILL') releaseProcessHandle();
     return true;
   };
   if (onStart) setImmediate(() => onStart(child));
@@ -271,32 +277,73 @@ test('MCP timeout accommodates two 15-minute model attempts', () => {
   }), 2500);
 });
 
-test('Claude attempt enforces timeout and abort by terminating the child', async () => {
+test('Claude attempt enforces timeout and abort by terminating the child', async (t) => {
   const timedOutChild = fakeClaudeChild();
+  t.after(() => timedOutChild.cleanup());
   await assert.rejects(
     executeClaudeAttempt('/repo', 'review', {
       env: {},
       timeoutMs: 5,
+      terminationGraceMs: 5,
       spawnProcess: () => timedOutChild
     }),
     /timed out after 5ms/
   );
-  assert.equal(timedOutChild.kills[0], 'SIGTERM');
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  assert.deepEqual(timedOutChild.kills, ['SIGTERM', 'SIGKILL']);
 
   const controller = new AbortController();
   const abortedChild = fakeClaudeChild();
+  t.after(() => abortedChild.cleanup());
   const aborted = executeClaudeAttempt('/repo', 'review', {
     env: {},
     timeoutMs: 1000,
+    terminationGraceMs: 5,
     signal: controller.signal,
     spawnProcess: () => abortedChild
   });
   controller.abort();
   await assert.rejects(aborted, (error) => error.code === 'ABORT_ERR');
-  assert.equal(abortedChild.kills[0], 'SIGTERM');
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  assert.deepEqual(abortedChild.kills, ['SIGTERM', 'SIGKILL']);
 });
 
-test('Claude attempt validates process output limits and structured envelopes', async () => {
+test('Claude attempt terminates the child when prompt delivery fails', async (t) => {
+  const asynchronousChild = fakeClaudeChild((child) => {
+    child.stdin.emit('error', new Error('broken pipe'));
+  });
+  t.after(() => asynchronousChild.cleanup());
+  await assert.rejects(
+    executeClaudeAttempt('/repo', 'review', {
+      env: {},
+      timeoutMs: 1000,
+      terminationGraceMs: 5,
+      spawnProcess: () => asynchronousChild
+    }),
+    /Unable to send the review prompt to Claude: broken pipe/
+  );
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  assert.deepEqual(asynchronousChild.kills, ['SIGTERM', 'SIGKILL']);
+
+  const synchronousChild = fakeClaudeChild();
+  t.after(() => synchronousChild.cleanup());
+  synchronousChild.stdin.end = () => {
+    throw new Error('write failed');
+  };
+  await assert.rejects(
+    executeClaudeAttempt('/repo', 'review', {
+      env: {},
+      timeoutMs: 1000,
+      terminationGraceMs: 5,
+      spawnProcess: () => synchronousChild
+    }),
+    /Unable to send the review prompt to Claude: write failed/
+  );
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  assert.deepEqual(synchronousChild.kills, ['SIGTERM', 'SIGKILL']);
+});
+
+test('Claude attempt validates process output limits and structured envelopes', async (t) => {
   const structured = { outcome: 'clean', summary: 'Clean.', findings: [] };
   const success = await executeClaudeAttempt('/repo', 'review', {
     env: {},
@@ -322,16 +369,20 @@ test('Claude attempt validates process output limits and structured envelopes', 
 
   const oversizedChild = fakeClaudeChild((child) => {
     child.stdout.write(Buffer.alloc(MAX_PROCESS_OUTPUT_BYTES + 1, 97));
+    child.stdout.write('still running');
   });
+  t.after(() => oversizedChild.cleanup());
   await assert.rejects(
     executeClaudeAttempt('/repo', 'review', {
       env: {},
       timeoutMs: 1000,
+      terminationGraceMs: 5,
       spawnProcess: () => oversizedChild
     }),
     /output exceeded the safety limit/
   );
-  assert.equal(oversizedChild.kills[0], 'SIGTERM');
+  await new Promise((resolve) => setTimeout(resolve, 15));
+  assert.deepEqual(oversizedChild.kills, ['SIGTERM', 'SIGKILL']);
 
   await assert.rejects(
     executeClaudeAttempt('/repo', 'review', {
@@ -514,6 +565,24 @@ test('doctor skips Claude checks for the default Codex provider', (t) => {
   assert.equal(status.claude.checked, false);
   assert.equal(status.mcp.checked, false);
   assert.equal(status.checks.some((check) => check.check === 'claude-cli'), false);
+});
+
+test('doctor requires Node.js 24 or newer', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+
+  const unsupported = doctor(root, { nodeMajor: 23 });
+  assert.equal(unsupported.ok, false);
+  assert.deepEqual(
+    unsupported.checks.find((check) => check.check === 'node>=24'),
+    { check: 'node>=24', ok: false }
+  );
+
+  const supported = doctor(root, { nodeMajor: 24 });
+  assert.deepEqual(
+    supported.checks.find((check) => check.check === 'node>=24'),
+    { check: 'node>=24', ok: true }
+  );
 });
 
 test('doctor reports corrupt runtime state without crashing', (t) => {
