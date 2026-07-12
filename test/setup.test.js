@@ -239,13 +239,23 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
     '2-tech-spec.md'
   ), 'utf8');
 
-  assert.equal(skillCount, 8);
+  assert.equal(skillCount, 9);
   assert.match(guide, new RegExp(`- ${skillCount} 個 skills：`));
   assert.match(guide, /Auto-loop 沒有固定 round 或 continuation 上限/);
   assert.match(guide, /reason: reviewer-unavailable/);
   assert.match(guide, /continue: true/);
   assert.match(guide, /failed gate[^\n]+stale ledger[^\n]+保留/);
   assert.doesNotMatch(guide, /Auto-loop 必須有上限|超限時 escalation|round／continuation semantics/);
+  assert.match(readme, /Stop hook 提供 non-blocking advisory/);
+  assert.match(readme, /模型[^\n]+判斷是否繼續 review 或 verification/);
+  assert.doesNotMatch(readme, /只有同一 fingerprint 的 gates 全數通過才會完成/);
+  const migration = fs.readFileSync(
+    path.join(repositoryRoot, 'docs', 'MIGRATION.md'),
+    'utf8'
+  );
+  assert.match(migration, /non-blocking Stop advisory/);
+  assert.match(migration, /model decides whether to continue/i);
+  assert.doesNotMatch(migration, /Automation must persist until/);
   assert.match(toolkitSpec, new RegExp(`目標 repository 只有 ${skillCount} 個核心 skills`));
   assert.match(toolkitSpec, new RegExp(`\\| Skills \\| 100 \\| ${skillCount} \\|`));
   assert.match(toolkitSpec, /Current Codex skills are[^\n]+`reset`/);
@@ -310,6 +320,22 @@ test('review skill requires user-authorized reset for stale native reviewers', (
   assert.match(guide, /reviewer_failure[^\n]+true/);
   assert.match(guide, /process restart[^\n]+不會清除/);
   assert.match(guide, /使用者授權[^\n]+reset/);
+});
+
+test('reset skill documents trusted-session and corrupt-state recovery semantics', () => {
+  const skill = fs.readFileSync(path.resolve(
+    __dirname,
+    '..',
+    'plugin',
+    'sd0x-dev-flow-codex',
+    'skills',
+    'reset',
+    'SKILL.md'
+  ), 'utf8');
+  assert.match(skill, /trusted sessions are preserved/i);
+  assert.match(skill, /corrupt state is quarantined/i);
+  assert.match(skill, /requires a new SessionStart/i);
+  assert.match(skill, /Report the quarantine path and new-session[\s\S]+reset_recovery/i);
 });
 
 test('remind routes every review reason without unsafe retries', () => {

@@ -1,5 +1,7 @@
 # Claude Plugin to Codex Plugin Migration
 
+<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
+
 This document records the high-level migration boundary. For current architecture, development setup, reload rules, troubleshooting, and the continuation checklist, read [PROJECT-MIGRATION-GUIDE.md](PROJECT-MIGRATION-GUIDE.md).
 
 ## Migration Goal
@@ -9,7 +11,7 @@ Preserve the original engineering invariants, not the original command inventory
 1. Implementation must not certify itself.
 2. Review and verification must apply to the exact current change set.
 3. Fixes invalidate prior evidence and re-enter the loop.
-4. Automation must persist until the fingerprint-bound gates pass, with an explicit user-operated reset for stale runtime evidence.
+4. Automation must preserve fingerprint-bound gate state and surface a non-blocking Stop advisory; the model decides whether to continue, and an explicit user-operated reset clears stale runtime evidence.
 5. Safety checks should fail closed only where Codex can reliably intercept the action.
 
 ## Capability Map
@@ -17,12 +19,12 @@ Preserve the original engineering invariants, not the original command inventory
 | Claude implementation | Codex-native replacement | Decision |
 | --- | --- | --- |
 | `.claude-plugin/plugin.json` | `.codex-plugin/plugin.json` | Rebuilt with Codex manifest and install metadata. |
-| Slash commands | Curated plugin skills | Consolidated into eight intent-driven workflows to protect context budget. |
+| Slash commands | Curated plugin skills | Consolidated into nine intent-driven workflows to protect context budget. |
 | `allowed-tools` skill metadata | Runtime permissions plus narrow skill instructions | Removed because it is not the Codex skill contract. |
 | Codex MCP primary review | Configured primary subagent | Defaults to `gpt-5.6-sol`/`xhigh`; an explicit project setting selects the Claude wrapper and bundled read-only adapter. |
 | `Task` secondary reviewer | Native parallel subagents | Uses project-scoped primary, implementation, and test agents as independent Codex-orchestrated perspectives. |
 | Claude Edit/Write payload fields | Canonical Codex `apply_patch` adapter | Parses `tool_input.command` patch headers. |
-| Claude Stop loop | Codex Stop `decision: block` continuation | Reimplemented without a fixed retry ceiling; explicit reset clears stale runtime evidence without bypassing gates. |
+| Claude Stop loop | Codex Stop non-blocking completion advisory | The model decides whether more review/verification is warranted; exact-fingerprint gate state remains visible and cannot be claimed as passed without runtime evidence. |
 | Session state in project files | Git metadata runtime state | Keeps loop state out of the worktree. |
 | Review flags | SHA-256 worktree fingerprint gates | Review and verify evidence expires after any edit. |
 | Broad global activation | Project opt-in config | Hooks stay inert until setup creates `.codex/sd0x-dev-flow.json`. |
@@ -30,12 +32,14 @@ Preserve the original engineering invariants, not the original command inventory
 
 ## What Migrated
 
-- Auto-loop completion enforcement through SessionStart, edit, prompt, subagent, and Stop hooks.
+- Completion guidance through SessionStart, edit, prompt, subagent, and a non-blocking Stop advisory；protected paths、activation failures and unreadable runtime state remain hard failures.
 - A Codex-first configurable primary subagent plus independent implementation and test review using observed read-only Codex subagents.
 - Deterministic verification with project-aware commands and recorded exit-code evidence.
 - Protected-path checks for Codex `apply_patch` operations.
 - Idempotent repository setup that preserves user-authored `AGENTS.md` content.
-- Persistent retry behavior plus an explicit user-operated runtime reset.
+- Model-directed continuation guidance plus an explicit user-operated runtime reset.
+- Codex-native request-ticket create/update/batch/status orchestration with a deterministic, query-only feature resolver and conservative completion boundary.
+- A pinned 100-skill shadow inventory plus repository-only source/candidate/distribution audit; staging and pack candidates never enter core discovery.
 
 ## What Did Not Migrate
 

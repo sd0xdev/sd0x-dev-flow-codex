@@ -16,6 +16,7 @@ const {
   markSessionActivationFailure,
   nextAction,
   readState,
+  recoverSessionActivation,
   recordExternalReview,
   recordExternalReviewStart,
   recordSubagent,
@@ -711,6 +712,34 @@ test('reset clears gate evidence, preserves sessions, and requires review again'
   );
 });
 
+test('reset quarantines corrupt runtime state and requires a new session', (t) => {
+  const root = createChangedRepo('codex');
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'untrusted-session' });
+  const statePath = resolveStatePath(root);
+  const corruptBytes = '{not valid json\n';
+  fs.writeFileSync(statePath, corruptBytes);
+
+  const state = resetState(root);
+
+  assert.deepEqual(state.sessions, []);
+  assert.equal(state.gates.review.status, 'pending');
+  assert.equal(state.worktree.requires_review, true);
+  assert.equal(state.reset_recovery.requires_new_session, true);
+  assert.match(state.reset_recovery.corrupt_state_quarantined_at, /\.corrupt\./);
+  assert.equal(
+    fs.readFileSync(state.reset_recovery.corrupt_state_quarantined_at, 'utf8'),
+    corruptBytes
+  );
+  assert.deepEqual(readState(root).reset_recovery, state.reset_recovery);
+
+  const activated = refreshState(root, { sessionId: 'recovered-session' });
+  assert.equal(activated.reset_recovery, undefined);
+  assert.deepEqual(activated.sessions.map((entry) => entry.session_id), [
+    'recovered-session'
+  ]);
+});
+
 test('reviewer stops without terminal output do not satisfy review', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -1070,6 +1099,22 @@ test('session activation failure markers stay in runtime metadata', (t) => {
   assert.equal(hasSessionActivationFailure(root, 'failed-session'), true);
   assert.equal(clearSessionActivationFailure(root, 'failed-session'), true);
   assert.equal(hasSessionActivationFailure(root, 'failed-session'), false);
+});
+
+test('activation recovery rejects a marker from a pre-reset generation', (t) => {
+  const root = createChangedRepo('codex');
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'trusted-session' });
+  const generation = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state')
+    .runtimeStateGeneration(root);
+  resetState(root);
+  markSessionActivationFailure(root, 'late-old-session', generation);
+
+  assert.equal(recoverSessionActivation(root, 'late-old-session'), false);
+  assert.equal(
+    readState(root).sessions.some((entry) => entry.session_id === 'late-old-session'),
+    false
+  );
 });
 
 test('review pass rejects terminal reviewer findings', (t) => {

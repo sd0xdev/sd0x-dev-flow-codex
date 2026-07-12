@@ -10,13 +10,14 @@
 
 ## 為什麼需要它
 
-一般的 agent 工作流很容易把「之前跑過 review」誤當成「目前這份程式已通過 review」。sd0x Dev Flow 將完成條件變成可驗證的狀態：
+一般的 agent 工作流很容易把「之前跑過 review」誤當成「目前這份程式已通過 review」。sd0x Dev Flow 將品質證據變成可驗證的狀態，同時讓模型依任務與風險判斷是否繼續：
 
-- dirty worktree 必須取得設定檔指定的 primary subagent，以及兩個互相獨立的 Codex implementation/test perspectives；預設 primary 是 Codex。
-- code 或 configuration 變更接著必須通過 deterministic repository checks。
+- 對要宣稱已通過 review 的 dirty worktree，必須有設定檔指定的 primary subagent，以及兩個互相獨立的 Codex implementation/test perspectives；預設 primary 是 Codex。
+- 對要宣稱已通過 verification 的 code 或 configuration 變更，必須有 deterministic repository checks 的通過證據。
 - review、verification 與 reviewer evidence 全部綁定同一個 worktree fingerprint。
-- 修正任何檔案後，舊 gate 自動失效，必須重新 review。
-- auto-loop 沒有固定重試上限；只有同一 fingerprint 的 gates 全數通過才會完成。
+- 修正任何檔案後，舊 gate 自動失效；若要再次宣稱 gate 通過，必須重新取得證據。
+- Stop hook 提供 non-blocking advisory，沒有固定重試上限；模型依使用者要求、任務完成度、變更風險與證據可靠度判斷是否繼續 review 或 verification。
+- 未通過同一 fingerprint 的 gate 時，不得宣稱該 sd0x gate 已通過。
 - 若 runtime evidence 需要人工清除，可執行 `$sd0x-dev-flow-codex:reset`，明確重啟目前 worktree 的 gate 流程。
 
 ```mermaid
@@ -109,6 +110,7 @@ codex plugin remove sd0x-dev-flow-codex@sd0xdev-marketplace
 
 主要 skills：
 
+- `create-request`：建立、更新、批次同步或掃描單一任務 request tickets；以安全 resolver 與 `Candidate Complete` 邊界避免猜測 feature 或偽造 closure。
 - `feature-dev`：從範圍確認、實作、獨立 review 到 deterministic verification 的完整功能流程。
 - `bug-fix`：先重現與追查 root cause，再做最小修復與 regression coverage。
 - `review`：平行執行設定的 Codex/Claude-wrapper primary、`sd0x_reviewer` 與 `sd0x_test_reviewer`，記錄 provider- and fingerprint-bound gate。

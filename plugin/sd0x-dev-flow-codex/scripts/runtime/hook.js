@@ -10,7 +10,6 @@ const {
   clearSessionActivationFailure,
   consumeSetupDeferral,
   discardExternalReviewStart,
-  hasSessionActivationFailure,
   nextAction,
   readState,
   isSessionActive,
@@ -18,7 +17,9 @@ const {
   recordExternalReview,
   recordExternalReviewStart,
   recordSubagent,
+  recoverSessionActivation,
   refreshState,
+  runtimeStateGeneration,
   summarize
 } = require('./state');
 const { extractToolPaths, findRepoRoot, isProtectedPath } = require('./worktree');
@@ -53,18 +54,18 @@ function pendingMessage(state, sessionId) {
       return 'Independent reviewers are still running for the current worktree. Wait for their terminal results; if the reviewer ledger is stale, ask the user before running `$sd0x-dev-flow-codex:reset`.';
     }
     if (action.reason === 'reviewer-unavailable') {
-      return 'Review remains failed because reviewer infrastructure is unavailable. For the same fingerprint, ask the user before running `$sd0x-dev-flow-codex:reset`; only that user-authorized reset clears the failed gate and stale ledger. Restoring reviewer identities may also require a new Codex task, but restarting alone does not clear this evidence.';
+      return 'Review remains failed because reviewer infrastructure is unavailable. The model should account for this incomplete evidence when deciding whether more review is useful. For the same fingerprint, only a user-authorized `$sd0x-dev-flow-codex:reset` clears the failed gate and stale ledger.';
     }
     if (action.reason === 'review-findings-remain') {
       return 'Review is blocked for the current worktree. Inspect the recorded reviewer results: fix actionable findings and rerun `$sd0x-dev-flow-codex:review`; if a reviewer failed or its ledger is stale, ask the user before running `$sd0x-dev-flow-codex:reset`.';
     }
-    return 'The current worktree needs independent review. Run `$sd0x-dev-flow-codex:review` before finishing.';
+    return 'No independent review pass is recorded for the current worktree fingerprint.';
   }
   if (action.action === 'verify') {
     if (action.reason === 'verification-failed') {
-      return 'Deterministic verification failed for the current worktree. Fix the recorded failure, then run `$sd0x-dev-flow-codex:verify` again.';
+      return 'Deterministic verification is recorded as failed for the current worktree.';
     }
-    return 'Review passed for this fingerprint. Run `$sd0x-dev-flow-codex:verify` before finishing.';
+    return 'Review passed for this fingerprint, but deterministic verification is not recorded.';
   }
   return 'All required sd0x gates pass for the current worktree fingerprint.';
 }
@@ -206,6 +207,11 @@ function handle(eventName, input) {
 
   if (eventName === 'SessionStart') {
     const sessionId = input.session_id || input.sessionId || null;
+    try {
+      input.sd0x_activation_runtime_generation = runtimeStateGeneration(cwd);
+    } catch {
+      input.sd0x_activation_runtime_generation = null;
+    }
     clearSetupDeferral(cwd);
     const state = refreshState(cwd, {
       sessionId
@@ -225,12 +231,18 @@ function handle(eventName, input) {
 
   const sessionId = input.session_id || input.sessionId || null;
   const stateBeforeEvent = readState(cwd);
+  if (stateBeforeEvent.reset_recovery?.requires_new_session === true) {
+    if (eventName === 'Stop' || eventName === 'SubagentStop') {
+      emit({
+        decision: 'block',
+        reason: 'sd0x quarantined corrupt runtime state. This session cannot be recovered from prior activation markers; start a new Codex task so SessionStart can establish trusted state.'
+      });
+    }
+    return;
+  }
   if (isSessionActive(stateBeforeEvent, sessionId)) {
     clearSessionActivationFailure(cwd, sessionId);
-  } else if (hasSessionActivationFailure(cwd, sessionId)) {
-    if (!isSessionActive(stateBeforeEvent, sessionId)) {
-      refreshState(cwd, { sessionId });
-    }
+  } else if (recoverSessionActivation(cwd, sessionId)) {
     clearSessionActivationFailure(cwd, sessionId);
   } else if (!isSessionActive(stateBeforeEvent, sessionId)) {
     const setupClaim = eventName === 'PostToolUse' && input.tool_name === 'exec_command'
@@ -320,10 +332,16 @@ function handle(eventName, input) {
   if (eventName === 'Stop') {
     const state = refreshState(cwd, { sessionId });
     const action = nextAction(state, { sessionId });
-    if (action.reason === 'reviewer-unavailable') {
-      emit({ continue: true, systemMessage: pendingMessage(state, sessionId) });
-    } else if (action.action === 'review' || action.action === 'verify') {
-      emit({ decision: 'block', reason: pendingMessage(state, sessionId) });
+    if (action.action === 'review' || action.action === 'verify') {
+      emit({
+        continue: true,
+        systemMessage: [
+          'sd0x completion advisory (non-blocking).',
+          pendingMessage(state, sessionId),
+          'Use the user request, actual task completeness, change risk, and evidence reliability to decide whether to continue reviewing or verifying.',
+          'Do not claim an sd0x gate passed unless the runtime recorded it for this exact fingerprint.'
+        ].join(' ')
+      });
     } else {
       emit({ continue: true });
     }
@@ -344,7 +362,11 @@ if (require.main === module) {
       const cwd = input.cwd || process.cwd();
       const sessionId = input.session_id || input.sessionId || null;
       try {
-        markSessionActivationFailure(cwd, sessionId);
+        markSessionActivationFailure(
+          cwd,
+          sessionId,
+          input.sd0x_activation_runtime_generation ?? null
+        );
       } catch (markerError) {
         process.stderr.write(
           `sd0x activation marker warning: ${markerError.message}\n`
@@ -362,7 +384,7 @@ if (require.main === module) {
     } else if (eventName === 'Stop') {
       emit({
         decision: 'block',
-        reason: 'sd0x could not validate the current completion gates. Run `$sd0x-dev-flow-codex:doctor`, fix the runtime-state error, and try again.'
+        reason: 'sd0x could not validate the current completion gates. Run `$sd0x-dev-flow-codex:doctor`; if runtime state is corrupt, ask the user before running `$sd0x-dev-flow-codex:reset`, which quarantines the corrupt bytes and requires a new SessionStart.'
       });
     } else if (eventName === 'SubagentStop') {
       emit({

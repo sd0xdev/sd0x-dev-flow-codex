@@ -7,6 +7,9 @@ const { spawnSync } = require('node:child_process');
 const { readProjectConfig } = require('./config');
 const {
   markGate,
+  finalizeRequestClosure,
+  prepareRequestClosure,
+  recordPromotionEvidence,
   readState,
   refreshState,
   resetState,
@@ -37,6 +40,14 @@ function parseEvidence(args) {
     return JSON.parse(fs.readFileSync(path.resolve(evidenceFile), 'utf8'));
   }
   throw new Error('Provide --evidence JSON or --evidence-file PATH');
+}
+
+function parseInput(args) {
+  const inline = valueAfter(args, '--input');
+  const inputFile = valueAfter(args, '--input-file');
+  if (inline) return JSON.parse(inline);
+  if (inputFile) return JSON.parse(fs.readFileSync(path.resolve(inputFile), 'utf8'));
+  throw new Error('Provide --input JSON or --input-file PATH');
 }
 
 function claudeCliStatus(
@@ -189,6 +200,9 @@ function doctor(cwd, options = {}) {
     'hooks/hooks.json',
     'scripts/mcp/server.js',
     'skills/bug-fix/SKILL.md',
+    'skills/create-request/SKILL.md',
+    'skills/create-request/references/request-format.md',
+    'skills/create-request/scripts/request-tool.js',
     'skills/doctor/SKILL.md',
     'skills/doctor/scripts/doctor.js',
     'skills/feature-dev/SKILL.md',
@@ -229,6 +243,14 @@ function doctor(cwd, options = {}) {
     checks.push({ check: 'claude-auth', ok: claude.authenticated });
     checks.push({ check: 'claude-review-mcp-handshake', ok: mcp.ready });
   }
+  let status = null;
+  let stateError = null;
+  try {
+    status = summarize(refreshState(cwd));
+  } catch (error) {
+    stateError = error.message;
+    checks.push({ check: 'runtime-state-readable', ok: false });
+  }
   return {
     ok: checks.every((check) => check.ok),
     plugin_root: pluginRoot,
@@ -239,7 +261,8 @@ function doctor(cwd, options = {}) {
     claude,
     mcp,
     checks,
-    status: summarize(refreshState(cwd))
+    state_error: stateError,
+    status
   };
 }
 
@@ -252,6 +275,9 @@ function usage() {
     '  cli.js doctor',
     '  cli.js verify',
     '  cli.js gate review <pass|fail> --evidence JSON',
+    '  cli.js closure prepare --input-file PATH',
+    '  cli.js closure finalize --input-file PATH',
+    '  cli.js evidence record --input-file PATH',
     ''
   ].join('\n'));
 }
@@ -286,6 +312,18 @@ function main(argv = process.argv.slice(2), cwd = process.cwd()) {
     process.stdout.write(`\nVerification gate: ${result.status}\n`);
     return result.status === 'pass' ? 0 : 1;
   }
+  if (command === 'closure' && gate === 'prepare') {
+    print(prepareRequestClosure(cwd, parseInput(argv)));
+    return 0;
+  }
+  if (command === 'closure' && gate === 'finalize') {
+    print(finalizeRequestClosure(cwd, parseInput(argv)));
+    return 0;
+  }
+  if (command === 'evidence' && gate === 'record') {
+    print(recordPromotionEvidence(cwd, parseInput(argv)));
+    return 0;
+  }
   if (command === 'gate' && gate && status) {
     if (gate !== 'review') {
       throw new Error(
@@ -319,5 +357,6 @@ module.exports = {
   doctor,
   main,
   mcpServerStatus,
+  parseInput,
   parseEvidence
 };

@@ -147,8 +147,13 @@ function updateHashForPath(hash, root, relativePath) {
   }
 }
 
-function snapshot(cwd = process.cwd()) {
+function snapshot(cwd = process.cwd(), options = {}) {
   const root = findRepoRoot(cwd);
+  const excluded = new Set((options.excludedPaths || [])
+    .map((file) => normalizeRelative(root, file)));
+  const pathspec = excluded.size > 0
+    ? ['--', '.', ...[...excluded].map((file) => `:(exclude)${file}`)]
+    : ['--'];
   let tracked = [];
   let untracked = [];
   let indexDiff = Buffer.alloc(0);
@@ -157,22 +162,22 @@ function snapshot(cwd = process.cwd()) {
   try {
     untracked = splitNull(runGit(root, [
       'ls-files', '--others', '--exclude-standard', '-z'
-    ]));
+    ])).filter((file) => !excluded.has(normalizeRelative(root, file)));
     const staged = splitNull(runGit(root, [
       'diff', '--cached', '--ignore-submodules=none', '--no-renames',
-      '--name-only', '-z', '--'
+      '--name-only', '-z', ...pathspec
     ]));
     const unstaged = splitNull(runGit(root, [
-      'diff', '--ignore-submodules=none', '--no-renames', '--name-only', '-z', '--'
+      'diff', '--ignore-submodules=none', '--no-renames', '--name-only', '-z', ...pathspec
     ]));
     tracked = [...new Set([...staged, ...unstaged])];
     indexDiff = runGit(root, [
       'diff', '--cached', '--ignore-submodules=none', '--raw', '-z',
-      '--no-ext-diff', '--no-renames', '--'
+      '--no-ext-diff', '--no-renames', ...pathspec
     ], { encoding: null });
     worktreeDiff = runGit(root, [
       'diff', '--ignore-submodules=none', '--raw', '-z', '--no-ext-diff',
-      '--no-renames', '--'
+      '--no-renames', ...pathspec
     ], { encoding: null });
   } catch {
     untracked = walkFiles(root);
@@ -220,6 +225,10 @@ function snapshot(cwd = process.cwd()) {
     requires_review: true,
     requires_verify: classified.code.length > 0 || classified.other.length > 0
   };
+}
+
+function snapshotProjection(cwd, excludedPaths) {
+  return snapshot(cwd, { excludedPaths });
 }
 
 function walkFiles(root, directory = root) {
@@ -280,5 +289,6 @@ module.exports = {
   findRepoRoot,
   isProtectedPath,
   normalizeRelative,
-  snapshot
+  snapshot,
+  snapshotProjection
 };

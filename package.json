@@ -10,7 +10,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.js",
-    "check": "node scripts/check-syntax.js && node --test test/*.test.js",
+    "check": "node scripts/check-syntax.js && node scripts/skill-migration-audit.js audit-source && node --test test/*.test.js",
     "release:check": "node scripts/release.js check",
     "version:set": "node scripts/release.js set-version",
     "dev:link": "node scripts/dev-plugin.js link",
@@ -19,6 +19,11 @@
     "dev:local:link": "node scripts/dev-plugin.js link --local-home",
     "dev:local:status": "node scripts/dev-plugin.js status --local-home",
     "dev:local:unlink": "node scripts/dev-plugin.js unlink --local-home",
+    "migration:manifest": "node scripts/generate-skill-manifest.js",
+    "migration:manifest:check": "node scripts/generate-skill-manifest.js --check-tracked",
+    "migration:manifest:source-check": "node scripts/generate-skill-manifest.js --check",
+    "migration:disposition:init": "node scripts/initialize-skill-disposition.js",
+    "migration:audit": "node scripts/skill-migration-audit.js audit-source",
     "doctor": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js doctor",
     "snapshot": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js snapshot"
   }

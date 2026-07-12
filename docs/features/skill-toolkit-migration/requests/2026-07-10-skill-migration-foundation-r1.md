@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-10
 > **Implementation Base SHA**: `0b24525489ee3be9413ebf0d81e140eeadcc3fe7`
-> **Status**: Pending
+> **Status**: In Progress
 > **Priority**: P0
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
 
@@ -33,18 +33,20 @@
 | `migration/staging/` | New | Pinned source `skills/` mirror；never distributed/discovered |
 | `migration/staging/LICENSE.upstream` | New | Raw-byte upstream MIT attribution |
 | `scripts/generate-skill-manifest.js` | New | Deterministic manifest generator |
+| `scripts/initialize-skill-disposition.js` | New | One-time, no-overwrite planning seed initializer |
 | `test/skill-manifest.test.js` | New | Counts、hash、schema、stable ordering |
+| `package.json` | Update | Repository-local generation/check commands |
 | `docs/features/skill-toolkit-migration/2-tech-spec.md` | Update | Record decisions and actual counts |
 
 ## Acceptance Criteria
 
-- [ ] Git-object enumeration reproduces primary 98/263/138/25 without working-tree files；the three whitelisted overlay paths match 2/3/1/0 and raw hashes，and the local source record preserves origin repo、relative acquisition path、observed HEAD/date；missing/mismatch blocks rather than silently repinning.
-- [ ] Inventory and disposition overlay each have exactly the same 100 unique source names；compose is lossless by `source_name`.
-- [ ] Every overlay row has closed disposition、derived target package、target/mode、alias policy、wave、routing owner/unit、rationale/license；sorted mode catalog is complete，while capabilities/operations may remain empty only before delivery.
-- [ ] Composed inventory proves exactly 100 skills、266 files、139 references、25 scripts；external dependencies have closed kind、raw-byte hash and stable unique consumers without changing totals.
-- [ ] `LICENSE.upstream` and any upstream NOTICE are copied raw-byte and their hashes bind every approved MIT status.
-- [ ] Generator output is byte-for-byte stable for the same tracked composite staging and never reads/overwrites the mutable disposition overlay.
-- [ ] Shadow staging is outside plugin manifest/local discovery paths; no live skill payload changes are made.
+- [x] Git-object enumeration reproduces primary 98/263/138/25 without working-tree files；the three whitelisted overlay paths match 2/3/1/0 and raw hashes，and the local source record preserves origin repo、relative acquisition path、observed HEAD/date；missing/mismatch blocks rather than silently repinning.
+- [x] Inventory and disposition overlay each have exactly the same 100 unique source names；compose is lossless by `source_name`.
+- [x] Every overlay row has closed disposition、derived target package、target/mode、alias policy、wave、routing owner/unit、rationale/license；sorted mode catalog is complete，while capabilities/operations may remain empty only before delivery.
+- [x] Composed inventory proves exactly 100 skills、266 files、139 references、25 scripts；external dependencies have closed kind、raw-byte hash and stable unique consumers without changing totals.
+- [x] `LICENSE.upstream` and any upstream NOTICE are copied raw-byte and their hashes bind every approved MIT status.
+- [x] Generator output is byte-for-byte stable for the same tracked composite staging and never reads/overwrites the mutable disposition overlay.
+- [x] Shadow staging is outside plugin manifest/local discovery paths; no live skill payload changes are made.
 - [ ] Clean Git-tree + local-overlay fixtures, inventory/compose tests and fingerprint-bound review/verify gates pass.
 
 ## Progress
@@ -52,9 +54,9 @@
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Done | Baseline: primary 98/263/138/25 + overlay 2/3/1/0 = 100/266/139/25 |
-| Development | Pending | |
-| Testing | Pending | |
-| Acceptance | Pending | |
+| Development | Done | Pinned snapshot、inventory、disposition seed、attribution and commands implemented |
+| Testing | Done | 13 focused tests pass；tracked/source manifest checks are byte-stable |
+| Acceptance | In Progress | Independent review and fingerprint-bound verification remain |
 
 ## References
 

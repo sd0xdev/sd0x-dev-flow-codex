@@ -1,0 +1,2516 @@
+{
+  "schema_version": 1,
+  "generator_version": 1,
+  "sources": [
+    {
+      "id": "upstream-git",
+      "kind": "git",
+      "repository": "https://github.com/sd0xdev/sd0x-dev-flow.git",
+      "commit": "f4187c53eb746b6f84eb1f413e7210bd506e6db9",
+      "totals": {
+        "skills": 98,
+        "skill_files": 263,
+        "references": 138,
+        "scripts": 25
+      },
+      "license": {
+        "path": "LICENSE",
+        "staged_path": "migration/staging/LICENSE.upstream",
+        "size": 1064,
+        "sha256": "c4fe0757bdfa3af1a4d1578b35bffa8b7b42199bdfd3c746b3f43efa391dae62"
+      },
+      "notices": []
+    },
+    {
+      "id": "local-skill-overlay-2026-07-10",
+      "kind": "local-overlay",
+      "base_commit": "f4187c53eb746b6f84eb1f413e7210bd506e6db9",
+      "acquisition": {
+        "origin": "sibling-repository-working-tree",
+        "repository": "https://github.com/sd0xdev/sd0x-dev-flow.git",
+        "relative_path_from_target": "../sd0x-dev-flow",
+        "observed_head": "f4187c53eb746b6f84eb1f413e7210bd506e6db9",
+        "observed_on": "2026-07-10"
+      },
+      "totals": {
+        "skills": 2,
+        "skill_files": 3,
+        "references": 1,
+        "scripts": 0
+      },
+      "license_source_id": "upstream-git",
+      "files": [
+        {
+          "path": "skills/readme-i18n-sync/SKILL.md",
+          "size": 5890,
+          "sha256": "6de25877ad11f4da564261485849394018dda7637875e03b2911ec7eb28a5f0a"
+        },
+        {
+          "path": "skills/readme-i18n-sync/references/glossary.md",
+          "size": 2781,
+          "sha256": "a7151b3130ee0ddaf7382b05e5809f07469879db8401545b5b181d664946130c"
+        },
+        {
+          "path": "skills/update-readme/SKILL.md",
+          "size": 3413,
+          "sha256": "c2cea3d903e872ffb535c396764a47690cb8b112ce67fdcfe26fce4fac7fff95"
+        }
+      ]
+    }
+  ],
+  "hash_algorithm": "sha256",
+  "totals": {
+    "skills": 100,
+    "skill_files": 266,
+    "references": 139,
+    "scripts": 25
+  },
+  "external_dependencies": [
+    {
+      "path": "rules/auto-loop-project.md",
+      "kind": "rule",
+      "size": 2812,
+      "sha256": "55588f7ba452e879b88a1beb732270b3b604e0d17143439f9be71c35868ad92e",
+      "consumers": [
+        "claude-health",
+        "project-setup"
+      ]
+    },
+    {
+      "path": "rules/auto-loop.md",
+      "kind": "rule",
+      "size": 13733,
+      "sha256": "53e6fcfb1a0163ddb0574eed2b55cb5ae3da1fb04d05975ab0d080c32f99af0d",
+      "consumers": [
+        "architecture",
+        "ask",
+        "bug-fix",
+        "claude-health",
+        "codex-code-review",
+        "debug",
+        "feature-dev",
+        "plan-review",
+        "post-dev-recap",
+        "project-setup",
+        "recap-ask",
+        "refactor",
+        "remind",
+        "req-analyze",
+        "runbook",
+        "sharingan",
+        "smart-commit",
+        "update-docs"
+      ]
+    },
+    {
+      "path": "rules/codex-invocation.md",
+      "kind": "rule",
+      "size": 3357,
+      "sha256": "64d757032a1177b0bd7115aa7fc1fc152a000ef94c15caf251c75c18aa8dd734",
+      "consumers": [
+        "architecture",
+        "orchestrate",
+        "plan-review",
+        "recap-ask",
+        "recap-doc",
+        "test-review"
+      ]
+    },
+    {
+      "path": "rules/docs-numbering.md",
+      "kind": "rule",
+      "size": 4122,
+      "sha256": "cf8b958ece813aae16a7291f70b57bc6911c71a36c3ea5412a04371377126c16",
+      "consumers": [
+        "create-request",
+        "req-analyze"
+      ]
+    },
+    {
+      "path": "rules/docs-writing.md",
+      "kind": "rule",
+      "size": 1656,
+      "sha256": "112fa5634f00a015a6e3396b4caccdaa8d45b33aed4ab2eef37f1e353dc929f7",
+      "consumers": [
+        "architecture",
+        "deep-explore",
+        "deep-research",
+        "doc-review",
+        "test-deep"
+      ]
+    },
+    {
+      "path": "rules/git-workflow.md",
+      "kind": "rule",
+      "size": 1165,
+      "sha256": "7f2643c9f8f1a432932effa6eb111f84a888041519457bb9ac0cd99af61bd24c",
+      "consumers": [
+        "bug-fix",
+        "debug",
+        "deep-research",
+        "epic-merge",
+        "feature-dev",
+        "jira",
+        "post-dev-recap",
+        "pre-pr-audit",
+        "refactor",
+        "remind",
+        "sharingan",
+        "smart-commit",
+        "test-deep"
+      ]
+    },
+    {
+      "path": "rules/logging.md",
+      "kind": "rule",
+      "size": 301,
+      "sha256": "4c89363db310933207ceee9998680735c1d8ee3aa1be422cf8feadb42ea0e6f6",
+      "consumers": [
+        "deep-explore",
+        "deep-research",
+        "load-pr-review",
+        "necessity-audit",
+        "seek-verdict",
+        "test-deep"
+      ]
+    },
+    {
+      "path": "rules/security.md",
+      "kind": "rule",
+      "size": 1063,
+      "sha256": "4948dacf17e8a145a7afad388a8af0c0112ec2f64dfa181fc93d5f09e4ec8694",
+      "consumers": [
+        "architecture",
+        "codex-code-review",
+        "debug",
+        "runbook",
+        "security-review"
+      ]
+    },
+    {
+      "path": "rules/testing-project.md",
+      "kind": "rule",
+      "size": 1093,
+      "sha256": "643439527f317c1e55d8ae7e877d63e359cb5739d261d98883591247afedc777",
+      "consumers": [
+        "bug-fix",
+        "feature-dev",
+        "pre-pr-audit"
+      ]
+    },
+    {
+      "path": "rules/testing.md",
+      "kind": "rule",
+      "size": 2679,
+      "sha256": "2929573b7f1bc7830a43feb1b004994ef31dc01333c98a92c9812f051d358baa",
+      "consumers": [
+        "bug-fix",
+        "debug",
+        "feature-dev",
+        "pre-pr-audit",
+        "test-review"
+      ]
+    },
+    {
+      "path": "scripts/build-codex-artifacts.js",
+      "kind": "root-script",
+      "size": 4950,
+      "sha256": "541ef228f1c663213ae4dc29a00d6685fb06ee72a85790d3ea933e52bf5c9cea",
+      "consumers": [
+        "codex-setup"
+      ]
+    },
+    {
+      "path": "scripts/commit-msg-guard.sh",
+      "kind": "root-script",
+      "size": 1795,
+      "sha256": "06dddb139114d45e0001c1ff4188f4f62289ce6254f012e21eb70eae10e05901",
+      "consumers": [
+        "create-pr",
+        "smart-commit"
+      ]
+    },
+    {
+      "path": "scripts/config/doc-taxonomy.json",
+      "kind": "root-script",
+      "size": 3363,
+      "sha256": "0dd5b71f2608d6b38639b88cdb5be4d63ea4e1256ce117775452de99509ac324",
+      "consumers": [
+        "recap-doc"
+      ]
+    },
+    {
+      "path": "scripts/config/file-classification.json",
+      "kind": "root-script",
+      "size": 1067,
+      "sha256": "a1c4966c52618b015e039b6fa95b1d12a91ffd7fca161fb09fb2133c9b79b699",
+      "consumers": [
+        "repo-intake"
+      ]
+    },
+    {
+      "path": "scripts/config/repo-intake.json",
+      "kind": "root-script",
+      "size": 1881,
+      "sha256": "3cadd1891c681221b4a0269e505d870240d39bb50e4793841f24c765e8721e87",
+      "consumers": [
+        "repo-intake"
+      ]
+    },
+    {
+      "path": "scripts/dep-audit.sh",
+      "kind": "root-script",
+      "size": 5633,
+      "sha256": "0df9290ea55204e0f68b54e963c3d4f79d6c2d5a9fee5c3edbb5dcd3dc5fb8af",
+      "consumers": [
+        "dep-audit"
+      ]
+    },
+    {
+      "path": "scripts/detect-scope.js",
+      "kind": "root-script",
+      "size": 14319,
+      "sha256": "a3c3e1fb156849860f911dc2fcefa96b8e9d194fdd1ad4144c14e6b0ff477ea1",
+      "consumers": [
+        "post-dev-recap",
+        "recap-ask",
+        "recap-doc"
+      ]
+    },
+    {
+      "path": "scripts/emit-plan-gate.sh",
+      "kind": "root-script",
+      "size": 1829,
+      "sha256": "8e4dc75401b74fc3f02cbcdb0ff8609106db00a94375b6d9003561e51d639a3c",
+      "consumers": [
+        "plan-review"
+      ]
+    },
+    {
+      "path": "scripts/emit-review-gate.sh",
+      "kind": "root-script",
+      "size": 568,
+      "sha256": "5aa09da00111ff2e5517437d317148215244607d5d74cc2be22b8ef83822ec20",
+      "consumers": [
+        "codex-code-review"
+      ]
+    },
+    {
+      "path": "scripts/generate-readme-catalog.js",
+      "kind": "root-script",
+      "size": 14416,
+      "sha256": "e33196925d2bd2cf1b3f6d2d98e8075e43d49b9351cbaef81fa989e9afe03271",
+      "consumers": [
+        "update-readme"
+      ]
+    },
+    {
+      "path": "scripts/lib/feature-resolver.js",
+      "kind": "root-script",
+      "size": 5062,
+      "sha256": "21631670e4000f9b5d0c87bfcdcc573f4d56c767f7b5182a35555812f34a38b9",
+      "consumers": [
+        "ask",
+        "create-request",
+        "tech-spec"
+      ]
+    },
+    {
+      "path": "scripts/lib/utils.js",
+      "kind": "root-script",
+      "size": 11306,
+      "sha256": "9d8fedf22755fce7adf727a61fb7baaa428f6d10e6692b6dfb5b4ab2238de555",
+      "consumers": [
+        "codex-setup",
+        "test-deep",
+        "test-health"
+      ]
+    },
+    {
+      "path": "scripts/precommit-runner.js",
+      "kind": "root-script",
+      "size": 10711,
+      "sha256": "a8eb1252dbf45dee8270dfd596c1b156428daa432f1208ab0f371f3dc4c1022e",
+      "consumers": [
+        "codex-setup",
+        "generate-runner",
+        "precommit",
+        "precommit-fast",
+        "project-setup"
+      ]
+    },
+    {
+      "path": "scripts/resolve-feature-cli.js",
+      "kind": "root-script",
+      "size": 1002,
+      "sha256": "c470b28c6088acae2ad9238e318a7a0305b914acb319680af82084fe370803ed",
+      "consumers": [
+        "architecture",
+        "ask",
+        "create-request",
+        "req-analyze",
+        "runbook",
+        "tech-brief",
+        "tech-spec"
+      ]
+    },
+    {
+      "path": "scripts/resolve-feature.sh",
+      "kind": "root-script",
+      "size": 451,
+      "sha256": "852e49b804d73a4b8ddee5f4a872d77fa28f5964cce31b7a3542102cd0df74da",
+      "consumers": [
+        "codex-code-review",
+        "test-health"
+      ]
+    },
+    {
+      "path": "scripts/run-skill.sh",
+      "kind": "root-script",
+      "size": 754,
+      "sha256": "0c44e9999d7e9ccc5e55ba31733aa254592e6898b30a4ea70e8715eabc57664b",
+      "consumers": [
+        "git-profile",
+        "load-pr-review",
+        "next-step",
+        "obsidian-cli",
+        "pr-comment",
+        "project-audit",
+        "repo-intake",
+        "risk-assess",
+        "sharingan",
+        "smart-commit"
+      ]
+    },
+    {
+      "path": "scripts/security-redact.js",
+      "kind": "root-script",
+      "size": 4226,
+      "sha256": "bf34bece667d6a84714b3b412e0617b9860f049674709aef7ef4f90216605130",
+      "consumers": [
+        "necessity-audit",
+        "orchestrate",
+        "plan-review",
+        "post-dev-recap",
+        "recap-ask",
+        "recap-doc",
+        "ui-first-principles"
+      ]
+    },
+    {
+      "path": "scripts/skills/necessity-audit/consolidate.js",
+      "kind": "root-script",
+      "size": 9828,
+      "sha256": "6974751286280827142f756c7f5653a605346e62923ec9ffe2426641650ef678",
+      "consumers": [
+        "necessity-audit"
+      ]
+    },
+    {
+      "path": "scripts/skills/necessity-audit/debate-topic.js",
+      "kind": "root-script",
+      "size": 7569,
+      "sha256": "5c749181473abe6601637c2bedbda7223cbfb2ee7b43504e6bf3933fc1023314",
+      "consumers": [
+        "necessity-audit"
+      ]
+    },
+    {
+      "path": "scripts/skills/necessity-audit/preflight.js",
+      "kind": "root-script",
+      "size": 9786,
+      "sha256": "aaa622bb52f6d3560d10d6b523107435ae5ca3b8e2b8b82a17797574648e4633",
+      "consumers": [
+        "necessity-audit"
+      ]
+    },
+    {
+      "path": "scripts/skills/necessity-audit/redact.js",
+      "kind": "root-script",
+      "size": 2336,
+      "sha256": "ea8c6017f2aa8fe1d7532cd6849f7f86952d1ddf7916ab12f1849503cd414549",
+      "consumers": [
+        "necessity-audit"
+      ]
+    },
+    {
+      "path": "scripts/skills/necessity-audit/report.js",
+      "kind": "root-script",
+      "size": 5839,
+      "sha256": "5cac5c762cb08ecaf7872af2b9b8cd1914602b486277c236d3c7ad537e1e2395",
+      "consumers": [
+        "necessity-audit"
+      ]
+    },
+    {
+      "path": "scripts/skills/ui-first-principles/normalize-input.js",
+      "kind": "root-script",
+      "size": 11785,
+      "sha256": "28ca56711d129d890270fd7a2fc2e97c32dce7fade642e8089e21bdf037f9508",
+      "consumers": [
+        "ui-first-principles"
+      ]
+    },
+    {
+      "path": "scripts/skills/ui-first-principles/redact.js",
+      "kind": "root-script",
+      "size": 18851,
+      "sha256": "e76203d2e64170a0994d6b4e5b14318756f0a399ae88484fec3abfb8eb86006f",
+      "consumers": [
+        "ui-first-principles"
+      ]
+    },
+    {
+      "path": "scripts/skills/ui-first-principles/validate-report.js",
+      "kind": "root-script",
+      "size": 28390,
+      "sha256": "9b2136837a57fc9263662511beb8573ac68f735929bdc9cfbfe3b682c54bfe8b",
+      "consumers": [
+        "ui-first-principles"
+      ]
+    },
+    {
+      "path": "scripts/verify-runner.js",
+      "kind": "root-script",
+      "size": 9521,
+      "sha256": "1373747909fd9e89277d6e3fa4b55b04e3b84701712813c423ba1fdced48a94b",
+      "consumers": [
+        "codex-setup",
+        "test-health",
+        "verify"
+      ]
+    }
+  ],
+  "skills": [
+    {
+      "source_id": "upstream-git",
+      "source_name": "architecture",
+      "source_dir": "skills/architecture",
+      "source_files": [
+        {
+          "path": "skills/architecture/SKILL.md",
+          "size": 7839,
+          "sha256": "f75583e2c136ec98170cae038c1b8efb8040ff7344ef57c966fac746224d01ad"
+        },
+        {
+          "path": "skills/architecture/references/codex-prompt.md",
+          "size": 2182,
+          "sha256": "7d467f2cf0ba2ba06cd561d35a7e69db6587be8fc67fc7185e3488c1cf22e638"
+        },
+        {
+          "path": "skills/architecture/references/template.md",
+          "size": 2998,
+          "sha256": "2f143adf48a76ba59e12634e34b304e9b80f858e58dc95db26fb17904ab6d445"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "ask",
+      "source_dir": "skills/ask",
+      "source_files": [
+        {
+          "path": "skills/ask/SKILL.md",
+          "size": 7360,
+          "sha256": "9dee567898a8f262c71063658258937754f55ed68e179a7f63718913e87074d8"
+        },
+        {
+          "path": "skills/ask/references/intent-patterns.md",
+          "size": 2691,
+          "sha256": "fb0a42a01f6ed8ea3b056d265a633d581a8ee95ff27187876018b33c7f1d44d7"
+        },
+        {
+          "path": "skills/ask/references/routing-table.md",
+          "size": 1543,
+          "sha256": "d381174d5c4e535d64f20bce7bb7e41920d8befb1ddb1a2c987deb4ced072e89"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "best-practices",
+      "source_dir": "skills/best-practices",
+      "source_files": [
+        {
+          "path": "skills/best-practices/SKILL.md",
+          "size": 9690,
+          "sha256": "3d10ad321962b8f2415f0ea4917d0ad24a32dea4d61ad3045ff28aa02ff28309"
+        },
+        {
+          "path": "skills/best-practices/references/debate-guide.md",
+          "size": 1539,
+          "sha256": "4fcc327780f850578ef0b5af7b406528fbea52ad116caff522ad9bc39fe1fea6"
+        },
+        {
+          "path": "skills/best-practices/references/output-templates.md",
+          "size": 3519,
+          "sha256": "e6d6a20304c412ebf9dc933b00864c01967249ea0d66406221b9ad42914fa9fb"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "bug-fix",
+      "source_dir": "skills/bug-fix",
+      "source_files": [
+        {
+          "path": "skills/bug-fix/SKILL.md",
+          "size": 4479,
+          "sha256": "cce31f2c12bf62f1b0cff63a57fd14aa86a7e478f6cb51c2e0005668eeed7189"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "bump-version",
+      "source_dir": "skills/bump-version",
+      "source_files": [
+        {
+          "path": "skills/bump-version/SKILL.md",
+          "size": 1990,
+          "sha256": "4619af4ef0ca87c4f9502b2deffcfa2b3aa8301db63cc57c7a5b67d4fd3bd009"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "check-coverage",
+      "source_dir": "skills/check-coverage",
+      "source_files": [
+        {
+          "path": "skills/check-coverage/SKILL.md",
+          "size": 2577,
+          "sha256": "697803fa61969ee7ec4184f68bbba3bdc76d43fc9e73b6096fe196eac9883af4"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "claude-health",
+      "source_dir": "skills/claude-health",
+      "source_files": [
+        {
+          "path": "skills/claude-health/SKILL.md",
+          "size": 13736,
+          "sha256": "6909428aa3015aa2791dcbbdc68bd5ded6d22935ce52fc0adce0f32fd13780a8"
+        },
+        {
+          "path": "skills/claude-health/references/best-practices.md",
+          "size": 2226,
+          "sha256": "a7349d5c4cb0be987cda3341f445946ffd9168d531f5418b72512a211f7039ba"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "code-explore",
+      "source_dir": "skills/code-explore",
+      "source_files": [
+        {
+          "path": "skills/code-explore/SKILL.md",
+          "size": 7333,
+          "sha256": "609ec947ef29c9ec3b0a176a90d554d191d9d7784488c8a99fcc40a4b97ee1c1"
+        },
+        {
+          "path": "skills/code-explore/references/search-patterns.md",
+          "size": 2373,
+          "sha256": "b6e8e375d2f019a2e3f06e7e58e87578dde5c3a604f252bf0ced8c73f0086293"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "code-investigate",
+      "source_dir": "skills/code-investigate",
+      "source_files": [
+        {
+          "path": "skills/code-investigate/SKILL.md",
+          "size": 6049,
+          "sha256": "355cd1cb17d0f92aad73f4d855f3ef24defa0780596c6a064914137ba4529434"
+        },
+        {
+          "path": "skills/code-investigate/references/output-template.md",
+          "size": 4123,
+          "sha256": "aab27078ff401ce07c0d8b74035f84d5b5a6077998c2eda4f1719884d6265cd3"
+        },
+        {
+          "path": "skills/code-investigate/references/prompts.md",
+          "size": 3584,
+          "sha256": "6b0189baf1809081ee67e619a13239e68d35584b8b3e00fd0799de02ec9d3740"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-architect",
+      "source_dir": "skills/codex-architect",
+      "source_files": [
+        {
+          "path": "skills/codex-architect/SKILL.md",
+          "size": 3420,
+          "sha256": "8bb6b81b9949b596c73d6418b1090485b17465dd162e36bc8af6a3bad329a4f5"
+        },
+        {
+          "path": "skills/codex-architect/references/project-knowledge.md",
+          "size": 2257,
+          "sha256": "8b6b0c49726089fcaf62a476e89e469005eb186ba83f226c3e129f3aca05c214"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-brainstorm",
+      "source_dir": "skills/codex-brainstorm",
+      "source_files": [
+        {
+          "path": "skills/codex-brainstorm/SKILL.md",
+          "size": 4302,
+          "sha256": "04fdf651f943968be93a1b6b3a246e1d3dcfcd8fac945fc205df08f2ff4a2e75"
+        },
+        {
+          "path": "skills/codex-brainstorm/references/equilibrium.md",
+          "size": 3493,
+          "sha256": "4190b18e2056a5c7f3606d56c04e887b41b0594fe5e6b1c313f6a88472d36ea9"
+        },
+        {
+          "path": "skills/codex-brainstorm/references/techniques.md",
+          "size": 4430,
+          "sha256": "346332c9a75bc54bd49d55cde6d8c6f6d69bd114a87ecbbb286a244267fe072f"
+        },
+        {
+          "path": "skills/codex-brainstorm/references/templates.md",
+          "size": 3533,
+          "sha256": "24b49ec96164288d4a81842b02648cd40878c1018bcea32796592fd40dba822f"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-cli-review",
+      "source_dir": "skills/codex-cli-review",
+      "source_files": [
+        {
+          "path": "skills/codex-cli-review/SKILL.md",
+          "size": 6018,
+          "sha256": "082bf981976239f9d9567e6915e07779b4ffda5e53f586ca4376667193f76350"
+        },
+        {
+          "path": "skills/codex-cli-review/scripts/review.sh",
+          "size": 2694,
+          "sha256": "7dee7f56e5b00dc8aedf9b92c10ae24567125160f8bbfe44de19735af10667a5"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-code-review",
+      "source_dir": "skills/codex-code-review",
+      "source_files": [
+        {
+          "path": "skills/codex-code-review/SKILL.md",
+          "size": 11952,
+          "sha256": "ddd2c60bcf70c7d8afb03160a778f91d9879fbfbac8fba69c0a0070a95920bb3"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-prompt-branch.md",
+          "size": 4548,
+          "sha256": "a694940c466d5b9afd0421d1975a02300d773d8bad1be115060fe2b3832b8de2"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-prompt-fast.md",
+          "size": 3727,
+          "sha256": "da698afbc8a11969dd48cb57e7f4a5fe33e9076ac574b95bdc3a38e0f5353a97"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-prompt-full.md",
+          "size": 4166,
+          "sha256": "fdc479649d292b21335461d54dae561a9e41aa4df0b65354bf8b2257fdbbb73a"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-research-instructions.md",
+          "size": 3544,
+          "sha256": "7c7f1c67de5e5f25844568b94456338aad2bb52c97a9f86dd61b04eaf7fa46a5"
+        },
+        {
+          "path": "skills/codex-code-review/references/review-common.md",
+          "size": 7601,
+          "sha256": "fdc1bf2e8a1213dfdf7eacf1eeeb3c67980df0cfcc3e77654b4d82e258764bc4"
+        },
+        {
+          "path": "skills/codex-code-review/review_rubric.md",
+          "size": 831,
+          "sha256": "dcf735743a438d327c5606354bf3f947d4cbdbd54078c337ab13b7b5146c4628"
+        },
+        {
+          "path": "skills/codex-code-review/templates/review_output.md",
+          "size": 361,
+          "sha256": "ebb2cd1fef7710b0a60977608cae45fd8a7752aebfba598a7051f400a351c9ac"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-explain",
+      "source_dir": "skills/codex-explain",
+      "source_files": [
+        {
+          "path": "skills/codex-explain/SKILL.md",
+          "size": 2277,
+          "sha256": "e3a7099f3193edbb8aafb116fd60753810c7092f5ee090f6581f0c1e9eeb1d9f"
+        },
+        {
+          "path": "skills/codex-explain/references/codex-prompt-explain.md",
+          "size": 1768,
+          "sha256": "141469183846c830b1803bd884bde86350752250a0fc4f59a550b589b840f3a8"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-implement",
+      "source_dir": "skills/codex-implement",
+      "source_files": [
+        {
+          "path": "skills/codex-implement/SKILL.md",
+          "size": 4807,
+          "sha256": "ed4e32d6dd735e66b58b991d7e95389a9b009d1c868d8b2446e406f484db3cdb"
+        },
+        {
+          "path": "skills/codex-implement/references/codex-prompts.md",
+          "size": 3913,
+          "sha256": "288d78d979b25ff0a3bdd0f705e6c831bfc1d4f7408639155810440789086f27"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-review",
+      "source_dir": "skills/codex-review",
+      "source_files": [
+        {
+          "path": "skills/codex-review/SKILL.md",
+          "size": 1025,
+          "sha256": "07e150bf2eb502341aca152e1e5a9104cec591abd086d2cb9e4d3afe02ffdaca"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-review-branch",
+      "source_dir": "skills/codex-review-branch",
+      "source_files": [
+        {
+          "path": "skills/codex-review-branch/SKILL.md",
+          "size": 989,
+          "sha256": "85fbb2fe4753b01f2f623c2682c4fd18b957b3320d973cd89c68e9b8df786e20"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-review-doc",
+      "source_dir": "skills/codex-review-doc",
+      "source_files": [
+        {
+          "path": "skills/codex-review-doc/SKILL.md",
+          "size": 717,
+          "sha256": "50cc6d4e330ee7ebe912b4f47db2038cc933944581b6803276064ffcab26fe16"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-review-fast",
+      "source_dir": "skills/codex-review-fast",
+      "source_files": [
+        {
+          "path": "skills/codex-review-fast/SKILL.md",
+          "size": 1046,
+          "sha256": "6efdd81ed7b535436fb1ff32e4dbaa3ab7cefffac57e4524e4855c5762f34a7d"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-security",
+      "source_dir": "skills/codex-security",
+      "source_files": [
+        {
+          "path": "skills/codex-security/SKILL.md",
+          "size": 720,
+          "sha256": "938abebdab3d8cc1dc0602eb651d046fd69cbd0285aa23fac3371ebbb75ae76e"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-setup",
+      "source_dir": "skills/codex-setup",
+      "source_files": [
+        {
+          "path": "skills/codex-setup/SKILL.md",
+          "size": 4332,
+          "sha256": "fff8c859cbb392dc88069c96d57bf2d9fd6012cf9ba02a5c976d345875747411"
+        },
+        {
+          "path": "skills/codex-setup/references/agents-kernel.md",
+          "size": 2106,
+          "sha256": "1ebbd31aebe29c9e119e008e763a50242d1e2b60790283a28c0a9ca1240defcd"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-test-gen",
+      "source_dir": "skills/codex-test-gen",
+      "source_files": [
+        {
+          "path": "skills/codex-test-gen/SKILL.md",
+          "size": 883,
+          "sha256": "ce5d0b1a53094afdf01bb9b814c05f5501693323d690652d0c69a23a838ac8e6"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "codex-test-review",
+      "source_dir": "skills/codex-test-review",
+      "source_files": [
+        {
+          "path": "skills/codex-test-review/SKILL.md",
+          "size": 891,
+          "sha256": "359417909b2c9b4ce0aa21b8e3149a695b5cef549708cbbd968b24b34cfbff5c"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "contract-decode",
+      "source_dir": "skills/contract-decode",
+      "source_files": [
+        {
+          "path": "skills/contract-decode/SKILL.md",
+          "size": 5310,
+          "sha256": "0515628660da0095c4dd53891e3ce2059f9831b2a1f415dcf32611cf219e768b"
+        },
+        {
+          "path": "skills/contract-decode/references/apis.md",
+          "size": 6505,
+          "sha256": "f6a4e3a8805fdb32aa4716d379a0de257c395064520d0bf0a197cd939a9378a8"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "create-pr",
+      "source_dir": "skills/create-pr",
+      "source_files": [
+        {
+          "path": "skills/create-pr/SKILL.md",
+          "size": 10934,
+          "sha256": "5ea1ff9c2a3dcf80929aa672d727924f97e94e146d1b95b6168a3750119dcb18"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "create-request",
+      "source_dir": "skills/create-request",
+      "source_files": [
+        {
+          "path": "skills/create-request/SKILL.md",
+          "size": 19923,
+          "sha256": "dad02eeb6ae790643ff7f7548c1f5879e53c97a561f8cfbc070189aa85ed9011"
+        },
+        {
+          "path": "skills/create-request/references/feature-context-resolution.md",
+          "size": 5121,
+          "sha256": "3e083b6ddd79ceaeca0c1b9593d1121f731d098d25a1652e9a9efa49e8f27bb1"
+        },
+        {
+          "path": "skills/create-request/references/template.md",
+          "size": 4866,
+          "sha256": "bb027f6aacad6d1440547fe6f229e7b9382c44238e1d82a176cf62dd5333adab"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "de-ai-flavor",
+      "source_dir": "skills/de-ai-flavor",
+      "source_files": [
+        {
+          "path": "skills/de-ai-flavor/SKILL.md",
+          "size": 2571,
+          "sha256": "ec6f1d44a1192fa2c2d319029670ae516b392838a102873b17f67f3131e1897a"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "debug",
+      "source_dir": "skills/debug",
+      "source_files": [
+        {
+          "path": "skills/debug/SKILL.md",
+          "size": 8733,
+          "sha256": "ebb2bb12a3a14638a3944468df8ca48ebeef0b61e8ba57a280e42183dee85199"
+        },
+        {
+          "path": "skills/debug/references/failure-taxonomy.md",
+          "size": 3739,
+          "sha256": "99142741196309b80cb845db72b1f5e2e4354d3e0fca85336609c11c3533b6b6"
+        },
+        {
+          "path": "skills/debug/references/probe-protocol.md",
+          "size": 2244,
+          "sha256": "8e942f8924f4ff779121e27275511d9d81a760bea0cd07a38997a175fd3a7ea2"
+        },
+        {
+          "path": "skills/debug/references/report-template.md",
+          "size": 1472,
+          "sha256": "658a4fb1e5bd1a1eefef8e0d8770f95d32a3e0a5ff31403f32dd5be4a1b6915f"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "deep-analyze",
+      "source_dir": "skills/deep-analyze",
+      "source_files": [
+        {
+          "path": "skills/deep-analyze/SKILL.md",
+          "size": 2111,
+          "sha256": "e4a9b10d5817ac2f2ac9b54957ae7a26356aef5350ad0a70a5320d113fdcfd04"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "deep-explore",
+      "source_dir": "skills/deep-explore",
+      "source_files": [
+        {
+          "path": "skills/deep-explore/SKILL.md",
+          "size": 8946,
+          "sha256": "d58ea8d552e5e5c253d8243aa071bbd2846c233967633af34c2091403c284076"
+        },
+        {
+          "path": "skills/deep-explore/references/agent-prompt.md",
+          "size": 2471,
+          "sha256": "73670c723c1b3d8e20be4dc7c80417225a6b47db866d25175cfba980cb75012e"
+        },
+        {
+          "path": "skills/deep-explore/references/synthesis.md",
+          "size": 3060,
+          "sha256": "7266a28fdfc6ad8f5dc6f72212c895335308a8d46e8b7190875b0426b9fea55a"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "deep-research",
+      "source_dir": "skills/deep-research",
+      "source_files": [
+        {
+          "path": "skills/deep-research/SKILL.md",
+          "size": 14240,
+          "sha256": "b4544b24697c8d344d7c33a06fe4564ddd80671fd192b889d4d7538b5dd964e1"
+        },
+        {
+          "path": "skills/deep-research/references/claim-registry.md",
+          "size": 2186,
+          "sha256": "7842b34a6f1827cdaaf5cee6ce0c74addb2972fa1e37cd9ab45047a93adb315b"
+        },
+        {
+          "path": "skills/deep-research/references/research-roles.md",
+          "size": 3988,
+          "sha256": "8f683511c384f7f066b87705c022c059e8d7821fb18fa04993e7f13822e58057"
+        },
+        {
+          "path": "skills/deep-research/references/scoring-model.md",
+          "size": 2516,
+          "sha256": "c86324407d9cd7bbc734fb7f4620c8aa84bed98ce3899e33dac3d5b7563fab75"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "dep-audit",
+      "source_dir": "skills/dep-audit",
+      "source_files": [
+        {
+          "path": "skills/dep-audit/SKILL.md",
+          "size": 2758,
+          "sha256": "ca15cd00b1be0afa6e239ee12c7f92da9932f6f287e01dbee2f5c8bd83078526"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "dev-security-audit",
+      "source_dir": "skills/dev-security-audit",
+      "source_files": [
+        {
+          "path": "skills/dev-security-audit/SKILL.md",
+          "size": 14262,
+          "sha256": "e56e28eb6ebceb98999abea65ceb4a2ac31a30e13b3fd3ce103477cc05a9c271"
+        },
+        {
+          "path": "skills/dev-security-audit/references/cases/README.md",
+          "size": 2457,
+          "sha256": "5118240b5f4e83cf5b300d2040f4e953acf1a1a59fccb6e719b04aacfd0cb5b1"
+        },
+        {
+          "path": "skills/dev-security-audit/references/cases/apifox-2026-03.md",
+          "size": 10654,
+          "sha256": "7d2dc1b65e07f5090653b75e941b1496d161dedbf40a7746d0a7c636ce3c8c74"
+        },
+        {
+          "path": "skills/dev-security-audit/references/cases/axios-2026-03.md",
+          "size": 14478,
+          "sha256": "aacdaf82aca6fc28771c6b6b89a04e1ce9d6e23eae09370204c16a010856c1b2"
+        },
+        {
+          "path": "skills/dev-security-audit/references/remediation.md",
+          "size": 6272,
+          "sha256": "0f853776eb0331d55fe04cd79cea8f4f65d5323894a8065fc56b6840fa9f6349"
+        },
+        {
+          "path": "skills/dev-security-audit/references/scan-targets.md",
+          "size": 6242,
+          "sha256": "429e52372dd819251ea0d51011ed1f8be3f2e1475bf08b1db45f59205f790112"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "doc-refactor",
+      "source_dir": "skills/doc-refactor",
+      "source_files": [
+        {
+          "path": "skills/doc-refactor/SKILL.md",
+          "size": 1421,
+          "sha256": "b42bc1f0c0ee6586f535aa6fe957e2ab1a7df307973dcbe3b5c5eb8bdf002ee5"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "doc-review",
+      "source_dir": "skills/doc-review",
+      "source_files": [
+        {
+          "path": "skills/doc-review/SKILL.md",
+          "size": 3963,
+          "sha256": "e0b92f772873debd0e858c0d5107b271947b72dd16e65953950234138ef77a66"
+        },
+        {
+          "path": "skills/doc-review/references/codex-prompt-doc.md",
+          "size": 3115,
+          "sha256": "836bff7f4edd8ebe029cbb3883637f7d75e5f0ab5e34109f52f89fea7eedcb4c"
+        },
+        {
+          "path": "skills/doc-review/references/review-loop-doc.md",
+          "size": 861,
+          "sha256": "e37e435161e7d8deba19f1188873b4d0435b88df65f7e0d58905bbd5bbb625b1"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "epic-merge",
+      "source_dir": "skills/epic-merge",
+      "source_files": [
+        {
+          "path": "skills/epic-merge/SKILL.md",
+          "size": 15270,
+          "sha256": "7ec3b7a98d02faeb51b46993df0034c164063c3c8eb9894b24a02d6a735c0a9e"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "feasibility-study",
+      "source_dir": "skills/feasibility-study",
+      "source_files": [
+        {
+          "path": "skills/feasibility-study/SKILL.md",
+          "size": 4393,
+          "sha256": "83f41d52b599dc4ef1d599e1ae1530dab74fe7b447f17cd46c544693b0058814"
+        },
+        {
+          "path": "skills/feasibility-study/references/analysis-phases.md",
+          "size": 2541,
+          "sha256": "0176d424ac5dbe94385f27f05a59f422fcf8fae278c3a04e4c3849587dc11518"
+        },
+        {
+          "path": "skills/feasibility-study/references/codex-discussion-guide.md",
+          "size": 3315,
+          "sha256": "14bb3c846fe67c6cc7dcb180ac93052317280fb02f59ea0b09de55c7bc177e50"
+        },
+        {
+          "path": "skills/feasibility-study/references/output-template.md",
+          "size": 3030,
+          "sha256": "cb89dc84b25de11b98229cf55e9d2a95a45c9092a970cd77ac98b8a0e30402e0"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "feature-dev",
+      "source_dir": "skills/feature-dev",
+      "source_files": [
+        {
+          "path": "skills/feature-dev/SKILL.md",
+          "size": 6079,
+          "sha256": "8b0faa1c3d2513ba66b8b65947c7662b06511554d2d8e83538edf34e4230eeda"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "feature-verify",
+      "source_dir": "skills/feature-verify",
+      "source_files": [
+        {
+          "path": "skills/feature-verify/SKILL.md",
+          "size": 12154,
+          "sha256": "21d6be8696f7c64b553b973540221e808a236cfdcd9d21aebb57676c461e8aec"
+        },
+        {
+          "path": "skills/feature-verify/references/blackbox-testing.md",
+          "size": 8910,
+          "sha256": "2706535e5ffb152d9595bd417936a10d58f2ac25840cb930ff17f3885dd1065a"
+        },
+        {
+          "path": "skills/feature-verify/references/environments.md",
+          "size": 5285,
+          "sha256": "b257d98e60e44a1200b425a9ee39e6e9d8ab7785924cc1e2e75a54e90d54741e"
+        },
+        {
+          "path": "skills/feature-verify/references/output-template.md",
+          "size": 4973,
+          "sha256": "e7310b2cbf6b171d520b0cfbf6d65e005ed9e2f100a7834989c5a9687a3bd9f8"
+        },
+        {
+          "path": "skills/feature-verify/references/safety-rules.md",
+          "size": 2825,
+          "sha256": "f2b9f533fb4d8ce013cea4c2f146baad73afd151521ff8df1357759f6c61f22c"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "fp-brief",
+      "source_dir": "skills/fp-brief",
+      "source_files": [
+        {
+          "path": "skills/fp-brief/SKILL.md",
+          "size": 7003,
+          "sha256": "e6934faa55c257a001f0e3f9d1923f0339d69868ffeb2991eeea2c2eccf7c420"
+        },
+        {
+          "path": "skills/fp-brief/references/codex-verify-prompt.md",
+          "size": 3002,
+          "sha256": "9c6ebcbe62c43cf752a8dde59d28a35b038ec4a674bbc01b505bb2780930365a"
+        },
+        {
+          "path": "skills/fp-brief/references/detection-rules.md",
+          "size": 2047,
+          "sha256": "c20484b9b87538cadc9647bca489902fcedd3f507283786dc7d7fb5968b49d37"
+        },
+        {
+          "path": "skills/fp-brief/references/extraction-guide.md",
+          "size": 5382,
+          "sha256": "8eb716ebf888900187fb7f225403de45b38f6992f4455ac30bda551fcd8bacf6"
+        },
+        {
+          "path": "skills/fp-brief/references/output-template.md",
+          "size": 4504,
+          "sha256": "85de0caa478840d23ffe7123e6af7bb1d1c238099c1b7a07ac4a7a55e9b4bb91"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "generate-runner",
+      "source_dir": "skills/generate-runner",
+      "source_files": [
+        {
+          "path": "skills/generate-runner/SKILL.md",
+          "size": 3590,
+          "sha256": "af947dbc38f86234dd80da00548d038238580106333d503d1a0b0d83eb64bf3c"
+        },
+        {
+          "path": "skills/generate-runner/references/templates.md",
+          "size": 3008,
+          "sha256": "50e2f5ed91006951976f18ad9164698a50408deb6f64716c61d619f9292a1b0e"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "git-investigate",
+      "source_dir": "skills/git-investigate",
+      "source_files": [
+        {
+          "path": "skills/git-investigate/SKILL.md",
+          "size": 2533,
+          "sha256": "c6c7bea9d22e80ccded2de0937d13c989e80c0bb78f2c7f069b62cbe8a88047e"
+        },
+        {
+          "path": "skills/git-investigate/references/commands.md",
+          "size": 2230,
+          "sha256": "f6da8e9a560f879037ff39416efa5c5519dc522f685e10f609ea2b441ed7dd17"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "git-profile",
+      "source_dir": "skills/git-profile",
+      "source_files": [
+        {
+          "path": "skills/git-profile/SKILL.md",
+          "size": 5948,
+          "sha256": "d719a48f0a7574378897bda95751c347a832ca55e4b9ce482797bb80de23f760"
+        },
+        {
+          "path": "skills/git-profile/scripts/git-profile.sh",
+          "size": 32824,
+          "sha256": "82b891d14bc543be2d93abfb6b03cfa460220ffb2d319a7bf664594a69594d90"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "install-hooks",
+      "source_dir": "skills/install-hooks",
+      "source_files": [
+        {
+          "path": "skills/install-hooks/SKILL.md",
+          "size": 2087,
+          "sha256": "041ac6adca4379dcc8755f2b70a4cf486bc828d063f22e785603312a4693761e"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "install-rules",
+      "source_dir": "skills/install-rules",
+      "source_files": [
+        {
+          "path": "skills/install-rules/SKILL.md",
+          "size": 2171,
+          "sha256": "88227289e1aed18532bb13a2d174dd1d0586b354ba07d71fd823f79616dda239"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "install-scripts",
+      "source_dir": "skills/install-scripts",
+      "source_files": [
+        {
+          "path": "skills/install-scripts/SKILL.md",
+          "size": 2101,
+          "sha256": "f9130aa6d5dd915883f72653cf4a30db449c5d01b348120e1f071c39036ca583"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "issue-analyze",
+      "source_dir": "skills/issue-analyze",
+      "source_files": [
+        {
+          "path": "skills/issue-analyze/SKILL.md",
+          "size": 13553,
+          "sha256": "d5b3d44170fc6456dd76fd70e38d2368783acc30aebfe305908d69c5427429c6"
+        },
+        {
+          "path": "skills/issue-analyze/references/classification.md",
+          "size": 4164,
+          "sha256": "5771ee2838ff6c35a0b9798ebb275e00cffee598d52430782ccc2438de7a18f3"
+        },
+        {
+          "path": "skills/issue-analyze/references/report-template.md",
+          "size": 3078,
+          "sha256": "dad6434c715d6419038166f1833cf1e2f9a5e66134d2cd7cb2aed8510f4e4015"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "jira",
+      "source_dir": "skills/jira",
+      "source_files": [
+        {
+          "path": "skills/jira/SKILL.md",
+          "size": 7475,
+          "sha256": "a861028df73f8eebe45937e204c01fb2f2138b711ab252de8f00c566ecc434f5"
+        },
+        {
+          "path": "skills/jira/references/branch-policy.md",
+          "size": 2065,
+          "sha256": "749d9a4ffba52d361e74d6fdf6cf2d2c435f399204f54100399f0a40fe108e70"
+        },
+        {
+          "path": "skills/jira/references/create-policy.md",
+          "size": 2021,
+          "sha256": "f091fa7a22cde0270e6ae462daaeddb1e98e2141548acf0513848f66fe05c6bd"
+        },
+        {
+          "path": "skills/jira/references/transition-mapping.md",
+          "size": 1266,
+          "sha256": "1cf3640d3e9f490d31f4ce2e3e6052da82180854368eae7a77ad9287bc6c83db"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "load-pr-review",
+      "source_dir": "skills/load-pr-review",
+      "source_files": [
+        {
+          "path": "skills/load-pr-review/SKILL.md",
+          "size": 17433,
+          "sha256": "ac240f976fb4e19810d5f8b08dac37276801564a8ee548888b8ea58492bd9011"
+        },
+        {
+          "path": "skills/load-pr-review/references/api-contract.md",
+          "size": 1977,
+          "sha256": "23e458ba0c6f6d8b710bfbe5747fe0252d4861dd3b88501db74e0bf08c69f305"
+        },
+        {
+          "path": "skills/load-pr-review/references/token-budget.md",
+          "size": 1936,
+          "sha256": "02b948f3438def28773bb866a068b0fecb23c013c7cb8ef65539bf3b1d04929f"
+        },
+        {
+          "path": "skills/load-pr-review/references/verdict-triage-prompt.md",
+          "size": 4297,
+          "sha256": "8a22d428a952c93d4f95faf695fb6c17056d7d13d5b4f4f3e8b8dbc48b6fee85"
+        },
+        {
+          "path": "skills/load-pr-review/references/writeback-guardrails.md",
+          "size": 2281,
+          "sha256": "a68b684af937dd59feee5df20c9aec24f723ff8b4f83294bbd2dfa561426a38c"
+        },
+        {
+          "path": "skills/load-pr-review/scripts/load-pr-review.js",
+          "size": 18219,
+          "sha256": "3b8de6a7e26a99ea58ca42a983df3571316ab0c65d5d1743d1640c1691f176b9"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "merge-prep",
+      "source_dir": "skills/merge-prep",
+      "source_files": [
+        {
+          "path": "skills/merge-prep/SKILL.md",
+          "size": 5488,
+          "sha256": "d8825cf56487f3c045fd2cc1b1803ed7989c3de1f25e14c194c16568d87460d3"
+        },
+        {
+          "path": "skills/merge-prep/scripts/pre-merge-check.sh",
+          "size": 3370,
+          "sha256": "f7960e66e5b078865689e79b90525d00385a4da26dea2ce077aa81c41a0982f8"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "necessity-audit",
+      "source_dir": "skills/necessity-audit",
+      "source_files": [
+        {
+          "path": "skills/necessity-audit/SKILL.md",
+          "size": 7662,
+          "sha256": "65c33e142555b545ed3b7a2a4d993028392f93922567fcb026a7100b1ef36d8f"
+        },
+        {
+          "path": "skills/necessity-audit/references/dimensions.md",
+          "size": 4849,
+          "sha256": "160747e0b6ccd9f80d3894893f877c0d1f8a7a5a2c02f6762d6702cb89c52c3c"
+        },
+        {
+          "path": "skills/necessity-audit/references/output-template.md",
+          "size": 2411,
+          "sha256": "bd8d20e6436af9a9b7bedb27b02602de3abb423968ef7cb9659519c724e34293"
+        },
+        {
+          "path": "skills/necessity-audit/references/phase-a-classify.md",
+          "size": 1175,
+          "sha256": "22888cc8b6b1bf5f28acc73238641f587d93a83e0e640176cdd3d477cbc2e340"
+        },
+        {
+          "path": "skills/necessity-audit/references/phase-b-debate-topic.md",
+          "size": 1977,
+          "sha256": "15233f21c309ae88e83cad172f84ab3732682a3a6efee4366476b229b6ca94d5"
+        },
+        {
+          "path": "skills/necessity-audit/references/phase-c-consolidate.md",
+          "size": 2857,
+          "sha256": "9c690a423fd778d5d4d6d94c08202dd5d7765d3896cec440bd55c252cab6d305"
+        },
+        {
+          "path": "skills/necessity-audit/references/redaction-rules.md",
+          "size": 1693,
+          "sha256": "a38145dfb80e67625026624d453d2b4a28758e4f5ee1d8128ef135dcdd8d12b5"
+        },
+        {
+          "path": "skills/necessity-audit/references/review-loop.md",
+          "size": 2693,
+          "sha256": "107d37d9516b9cbc233e3065d90b80da9e81bbcff292b71e8dce091402b9c8f7"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "next-step",
+      "source_dir": "skills/next-step",
+      "source_files": [
+        {
+          "path": "skills/next-step/SKILL.md",
+          "size": 6242,
+          "sha256": "acdcf22450ed21db10f88a6657a3b660f6871a4c5b25e18f808ed386cc0270cb"
+        },
+        {
+          "path": "skills/next-step/references/progression-tables.md",
+          "size": 2278,
+          "sha256": "650b105bb3b7e0a9f4fd6506ef8ed966652db26aebe96aae2cd33b7b3389b7b9"
+        },
+        {
+          "path": "skills/next-step/scripts/analyze.js",
+          "size": 29574,
+          "sha256": "53e07da1a1cba2dab86b7c04238ba343e2e608adc4ebb0b70fad3a8ca66c7c5d"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "obsidian-cli",
+      "source_dir": "skills/obsidian-cli",
+      "source_files": [
+        {
+          "path": "skills/obsidian-cli/SKILL.md",
+          "size": 4499,
+          "sha256": "a92cf29a46ffc145f89659b2b6698472e769d2491ffc96d612455eceba0c68db"
+        },
+        {
+          "path": "skills/obsidian-cli/references/integration-patterns.md",
+          "size": 1771,
+          "sha256": "0b683477425e649577a0f6f9d906eaa98db98790fb6192a2f1977cb4d6fea08f"
+        },
+        {
+          "path": "skills/obsidian-cli/references/troubleshooting.md",
+          "size": 2498,
+          "sha256": "e7791270e6e3ac63f25b7c7527bbeca28be427f7146c5833065c8e308cb6b723"
+        },
+        {
+          "path": "skills/obsidian-cli/scripts/obsidian-exec.sh",
+          "size": 6022,
+          "sha256": "a61b642042da1e811abe0b532b2ce90642bd2fd729c621c12359b39718b352fa"
+        },
+        {
+          "path": "skills/obsidian-cli/scripts/obsidian-preflight.sh",
+          "size": 4387,
+          "sha256": "03c95216a8de63653c09d9cc07980fadecf9a4fe9b4f26d7a0bf34498d7dd2a5"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "op-session",
+      "source_dir": "skills/op-session",
+      "source_files": [
+        {
+          "path": "skills/op-session/SKILL.md",
+          "size": 5104,
+          "sha256": "772fb5d5ad77d7ad902a84188bb77ab5ebd384453ff3395715d9c85bb928e153"
+        },
+        {
+          "path": "skills/op-session/scripts/op-session-init.sh",
+          "size": 5764,
+          "sha256": "b512758dd2ed500dc41fd3b4bcec55ed4f6cadec1b2aa1b981e286ad48404278"
+        },
+        {
+          "path": "skills/op-session/scripts/op-with-session.sh",
+          "size": 2007,
+          "sha256": "db3c375614ad71986c05e2a078e0ca78043de106cdbc5b7bc8c146ec3e4fbbdc"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "orchestrate",
+      "source_dir": "skills/orchestrate",
+      "source_files": [
+        {
+          "path": "skills/orchestrate/SKILL.md",
+          "size": 7012,
+          "sha256": "8b93f9551bfcb19ad1776165acf7640c2bb6b336ca294b4983e2eaab7f19cceb"
+        },
+        {
+          "path": "skills/orchestrate/references/admission-allowlist.json",
+          "size": 1851,
+          "sha256": "90983782fa1bcf4e97d76fad3431e97b3c1924c0e90268a4ad927211165e2eac"
+        },
+        {
+          "path": "skills/orchestrate/references/execution-policy.md",
+          "size": 2209,
+          "sha256": "bf57b08a14e061e669b726797eb298f710771875016a504c41f7040858c6de76"
+        },
+        {
+          "path": "skills/orchestrate/references/plan-schema.md",
+          "size": 3190,
+          "sha256": "4fc826b9208b36a3f9d616d2e987b168576bb35508ff1a149390966201fa618a"
+        },
+        {
+          "path": "skills/orchestrate/references/planner-prompt.md",
+          "size": 2468,
+          "sha256": "51e737eb03b2f06eb26947f6f684d3d6d91bfa4e422dab96d9059a1858d758f7"
+        },
+        {
+          "path": "skills/orchestrate/scripts/plan-context.js",
+          "size": 11527,
+          "sha256": "5cbdd85b29bd46343a94f24b44c410826acf078730a5a64e36d7295746a46677"
+        },
+        {
+          "path": "skills/orchestrate/scripts/run-verify.js",
+          "size": 10380,
+          "sha256": "0d5f0f992c31839a99c32457532ce4b78057f1fac5517f34b22bf0847f774cef"
+        },
+        {
+          "path": "skills/orchestrate/scripts/validate-plan.js",
+          "size": 12108,
+          "sha256": "365a2ea15aec7e737637c4b75bd43aa0840091ebca38ca775a989daecf88a422"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "plan-review",
+      "source_dir": "skills/plan-review",
+      "source_files": [
+        {
+          "path": "skills/plan-review/SKILL.md",
+          "size": 11665,
+          "sha256": "9eadad7c718e83e916df887ad1cb40de7a6b43f9ad4c43f22d25175fd2882749"
+        },
+        {
+          "path": "skills/plan-review/references/codex-prompt-plan.md",
+          "size": 3261,
+          "sha256": "9d7daf5b5ce2cabdec066cd13467f771639664bab027c510dd55382ea3a53912"
+        },
+        {
+          "path": "skills/plan-review/references/review-loop-plan.md",
+          "size": 2656,
+          "sha256": "5b4f3a95b0914d5545ba4542d0b421142691f5403068ac9ea492edf6b251ca00"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "portfolio",
+      "source_dir": "skills/portfolio",
+      "source_files": [
+        {
+          "path": "skills/portfolio/SKILL.md",
+          "size": 3036,
+          "sha256": "6dd47434e7942a8b4a3a0c901f949621b19e2beec9e7f3d9b6467b8bba35baf2"
+        },
+        {
+          "path": "skills/portfolio/references/api.md",
+          "size": 2844,
+          "sha256": "b88d7bc4d8558b99280a3a7a11a213335ad4f0385ef5f18162a6742f05461031"
+        },
+        {
+          "path": "skills/portfolio/references/architecture.md",
+          "size": 4795,
+          "sha256": "9f5c9596df60c28a9d9595489a68963f3e5433f01f4019e63b0ffadafc0b21ba"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "post-dev-recap",
+      "source_dir": "skills/post-dev-recap",
+      "source_files": [
+        {
+          "path": "skills/post-dev-recap/SKILL.md",
+          "size": 14250,
+          "sha256": "454fdf7b71a1172362161e95b9378164f6fc5285db8589a92f87786967dcf8cb"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "post-dev-test",
+      "source_dir": "skills/post-dev-test",
+      "source_files": [
+        {
+          "path": "skills/post-dev-test/SKILL.md",
+          "size": 9550,
+          "sha256": "28d3c635d9769e4f7af068090a482635d65d751ee3a94e89b95d8af38a27a2bf"
+        },
+        {
+          "path": "skills/post-dev-test/references/test-patterns.md",
+          "size": 5574,
+          "sha256": "5a695dd905078a41dc243d22bb187aff0434c84fc1f0d347e384a327c4c4bad9"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "pr-comment",
+      "source_dir": "skills/pr-comment",
+      "source_files": [
+        {
+          "path": "skills/pr-comment/SKILL.md",
+          "size": 5841,
+          "sha256": "f06dac0f62591ddc9524735e0022bf166393b3e82295ee89d444f3377afb3b33"
+        },
+        {
+          "path": "skills/pr-comment/references/api-and-guardrails.md",
+          "size": 2858,
+          "sha256": "aea35371354187070d238a2f74cdb2922f3e88fbc5fac7bcc9b7a8d8a3a9ec8c"
+        },
+        {
+          "path": "skills/pr-comment/scripts/pr-comment.js",
+          "size": 15719,
+          "sha256": "b1404f716de72252c50628afacdf83590e5bc9bdff620975e42866e002a24272"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "pr-review",
+      "source_dir": "skills/pr-review",
+      "source_files": [
+        {
+          "path": "skills/pr-review/SKILL.md",
+          "size": 918,
+          "sha256": "2f9046d2531638ffc0717628ebcfef7424b2a93cd2d70dc23f922cd2fe88b33d"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "pr-summary",
+      "source_dir": "skills/pr-summary",
+      "source_files": [
+        {
+          "path": "skills/pr-summary/SKILL.md",
+          "size": 2552,
+          "sha256": "e1849692ed959ca8bc6bb3b5afc5bb11d17c955bdb88fe8bb7abe32b0a69ad94"
+        },
+        {
+          "path": "skills/pr-summary/scripts/pr-summary.sh",
+          "size": 3043,
+          "sha256": "0e9e04314d322d462f76fee6ac3c7e4350f9f747d77d33a1f853a7cefd300c27"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "pre-pr-audit",
+      "source_dir": "skills/pre-pr-audit",
+      "source_files": [
+        {
+          "path": "skills/pre-pr-audit/SKILL.md",
+          "size": 7800,
+          "sha256": "606c2ba9f87529def030d432aa5bb0f2a4c9e6a4bb4531264e75bfc9b2355e58"
+        },
+        {
+          "path": "skills/pre-pr-audit/references/output-template.md",
+          "size": 2330,
+          "sha256": "dc434cd99c3a499e190a17dbb18e5c42ce6c70f9699e9eb77f87b9e87caf2685"
+        },
+        {
+          "path": "skills/pre-pr-audit/references/scoring-model.md",
+          "size": 2176,
+          "sha256": "c96483907428553da6fd262b01ad5beef8d893b1b4c216dc8ba6e7f02c58c5d0"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "precommit",
+      "source_dir": "skills/precommit",
+      "source_files": [
+        {
+          "path": "skills/precommit/SKILL.md",
+          "size": 3707,
+          "sha256": "1cbf72d408d54ec5fedcb1005bdd3000b531584e6cab7edd70bab16ada7fb7b4"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "precommit-fast",
+      "source_dir": "skills/precommit-fast",
+      "source_files": [
+        {
+          "path": "skills/precommit-fast/SKILL.md",
+          "size": 3400,
+          "sha256": "1fc8f11a26076c4e56b8d57a753f5af8416606327e5725557c3c54b3f876e84b"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "project-audit",
+      "source_dir": "skills/project-audit",
+      "source_files": [
+        {
+          "path": "skills/project-audit/SKILL.md",
+          "size": 2972,
+          "sha256": "466ba5ceb26347cd866d7104b168c52b757a7af5aaa2f6b67a96e4d92d63940e"
+        },
+        {
+          "path": "skills/project-audit/references/check-catalog.md",
+          "size": 2517,
+          "sha256": "ce7ddfe11227aa3a7b4f53c7a88987cbfb2806d8e451af592e39c11d356855f5"
+        },
+        {
+          "path": "skills/project-audit/references/output-template.md",
+          "size": 1612,
+          "sha256": "bf3b9daa9a32ddea9310eac0b656f59a8b044338cfd7b003dc5af95ec920ecfb"
+        },
+        {
+          "path": "skills/project-audit/scripts/audit.js",
+          "size": 34722,
+          "sha256": "5af1ae42feb58120002bf67dd571fc20139c6c6af320166f108c75a6d41873b4"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "project-brief",
+      "source_dir": "skills/project-brief",
+      "source_files": [
+        {
+          "path": "skills/project-brief/SKILL.md",
+          "size": 2884,
+          "sha256": "2ccb7c5104e898c68fa55902abad7ec3c7857de355973e8bf26f11a0b689692c"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "project-setup",
+      "source_dir": "skills/project-setup",
+      "source_files": [
+        {
+          "path": "skills/project-setup/SKILL.md",
+          "size": 26134,
+          "sha256": "a7e909f71aa03d8a364b24304ba8d39ee1fb7574378fc5fd72d2bbdb9f1bb764"
+        },
+        {
+          "path": "skills/project-setup/references/detection-rules.md",
+          "size": 7892,
+          "sha256": "79eeafd55ee676031c361e098b6e7bef9af34517a0fb05066d01d7699ee26527"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "push-ci",
+      "source_dir": "skills/push-ci",
+      "source_files": [
+        {
+          "path": "skills/push-ci/SKILL.md",
+          "size": 8881,
+          "sha256": "538558b3df7a077d0604c47b367115ffa6fa3cb52369b5050f92f7c930782535"
+        }
+      ]
+    },
+    {
+      "source_id": "local-skill-overlay-2026-07-10",
+      "source_name": "readme-i18n-sync",
+      "source_dir": "skills/readme-i18n-sync",
+      "source_files": [
+        {
+          "path": "skills/readme-i18n-sync/SKILL.md",
+          "size": 5890,
+          "sha256": "6de25877ad11f4da564261485849394018dda7637875e03b2911ec7eb28a5f0a"
+        },
+        {
+          "path": "skills/readme-i18n-sync/references/glossary.md",
+          "size": 2781,
+          "sha256": "a7151b3130ee0ddaf7382b05e5809f07469879db8401545b5b181d664946130c"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "recap-ask",
+      "source_dir": "skills/recap-ask",
+      "source_files": [
+        {
+          "path": "skills/recap-ask/SKILL.md",
+          "size": 10211,
+          "sha256": "69d674df73c8dc55fc971a76bcea1840cabe5a24ddb5b71d279bfca90ed7e0c8"
+        },
+        {
+          "path": "skills/recap-ask/references/qa-prompt.md",
+          "size": 7305,
+          "sha256": "725be5f0f7afc70f8973c46604d3308e6544eea745de25d07b1aed32220fd6f9"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "recap-doc",
+      "source_dir": "skills/recap-doc",
+      "source_files": [
+        {
+          "path": "skills/recap-doc/SKILL.md",
+          "size": 10562,
+          "sha256": "807f089620b5357e0de1f0ee473de5ca0410534e7754310183e26ec7505e0926"
+        },
+        {
+          "path": "skills/recap-doc/references/output-template.md",
+          "size": 7085,
+          "sha256": "5096627abee65f66e842e217a2be04b5120210383aa00b3c0edb88daab8c4754"
+        },
+        {
+          "path": "skills/recap-doc/references/prompt-template.md",
+          "size": 7843,
+          "sha256": "2602fae6f82ea8f48dae37524708b1fada621be482e81a4726eeff4f7fcffb8c"
+        },
+        {
+          "path": "skills/recap-doc/references/source-guide.md",
+          "size": 6151,
+          "sha256": "05d0eb00838ca5c85e2b9e7b997bb84670381261658854bd5b8634a4b30117a9"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "refactor",
+      "source_dir": "skills/refactor",
+      "source_files": [
+        {
+          "path": "skills/refactor/SKILL.md",
+          "size": 6008,
+          "sha256": "0216c4a949c7b65dfe4fc433c6c8892c6cfae9151ed9e84c21abae8c8a156f98"
+        },
+        {
+          "path": "skills/refactor/references/behavioral-gate.md",
+          "size": 2561,
+          "sha256": "e70116d835960a18a5d111e433b4827950f16f0094298892984fc16cc10115a2"
+        },
+        {
+          "path": "skills/refactor/references/output-template.md",
+          "size": 1714,
+          "sha256": "19ba034119f1a876ebbb218430da27dab86509876e638c6c22aec96dc7e6e2c5"
+        },
+        {
+          "path": "skills/refactor/references/refactor-catalog.md",
+          "size": 1846,
+          "sha256": "fae94df06c299bfd467404c102b9e80b8819b710850405df72c61900653f63ab"
+        },
+        {
+          "path": "skills/refactor/references/target-detection.md",
+          "size": 3051,
+          "sha256": "a442428dd816be569605bc38883c10a5bb922034d207319199095b477d1ac0ea"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "remind",
+      "source_dir": "skills/remind",
+      "source_files": [
+        {
+          "path": "skills/remind/SKILL.md",
+          "size": 9157,
+          "sha256": "141abf27c577fb8c091040584ae6a765b181bfeb0b00004cb65aa489fa120b5c"
+        },
+        {
+          "path": "skills/remind/references/detection-rules.md",
+          "size": 2504,
+          "sha256": "7298b223294d9aa3d48ac271d3d06fa4b9cda960c1e3231f02f9ef3c64d0c746"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "repo-intake",
+      "source_dir": "skills/repo-intake",
+      "source_files": [
+        {
+          "path": "skills/repo-intake/SKILL.md",
+          "size": 2345,
+          "sha256": "ac885ef7ef0f4c03a0a5d64832a17256488d962105d61e7ed5b2bb3cb5ce7206"
+        },
+        {
+          "path": "skills/repo-intake/references/archived/MIDWAY_HEURISTICS.md",
+          "size": 1025,
+          "sha256": "08b1b8ff5a36917d554280fe5f5d49512ca00f44fb6f6d38e78ac72ca516ba57"
+        },
+        {
+          "path": "skills/repo-intake/scripts/intake_cached.js",
+          "size": 11093,
+          "sha256": "22756262a400c62d959dcf00e29c95fce2053b5ebdd9440e6c2a536af29e9a9f"
+        },
+        {
+          "path": "skills/repo-intake/scripts/scan_delta.js",
+          "size": 7975,
+          "sha256": "c9de437ae587f84b238934b1cb0a2d6b5de778be6e66a64be279d2121687d011"
+        },
+        {
+          "path": "skills/repo-intake/scripts/scan_repo.js",
+          "size": 22973,
+          "sha256": "8f2cd2073ff3ecd987dbcd90566d087d8e8e18429284eaa61a779e0aa17ee14d"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "req-analyze",
+      "source_dir": "skills/req-analyze",
+      "source_files": [
+        {
+          "path": "skills/req-analyze/SKILL.md",
+          "size": 14157,
+          "sha256": "65f6eb06d332895eccebd6ca7396a220bf8c3bf37c5072ba207c7cf7c4011e67"
+        },
+        {
+          "path": "skills/req-analyze/references/output-template.md",
+          "size": 3939,
+          "sha256": "79f440e3c52472d9f8d450b48c25c3d49b3c0d9ffd1a1c3e7f19954aca0aba58"
+        },
+        {
+          "path": "skills/req-analyze/references/research-cascade.md",
+          "size": 1879,
+          "sha256": "99c2a3146fc2149fac1df7fa00a1a0096b102e79f1e01aac56d3b78987b282b0"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "request-tracking",
+      "source_dir": "skills/request-tracking",
+      "source_files": [
+        {
+          "path": "skills/request-tracking/SKILL.md",
+          "size": 2322,
+          "sha256": "d162e291ec96fe3b68a19ed09b83dfb54da4a615523ed530b42d70fb0e30f344"
+        },
+        {
+          "path": "skills/request-tracking/references/operations.md",
+          "size": 1810,
+          "sha256": "0e9a51e685784abe1370ae15590fbaa43c747af8c2cc0499b9a1a3e71e5cf57e"
+        },
+        {
+          "path": "skills/request-tracking/references/template.md",
+          "size": 1768,
+          "sha256": "8502d6eaba394525828924536bc29145fc68eef53409e6a79d590322eaf8f090"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "review-spec",
+      "source_dir": "skills/review-spec",
+      "source_files": [
+        {
+          "path": "skills/review-spec/SKILL.md",
+          "size": 1610,
+          "sha256": "5d2e3057db9e236041068096fbc80f08795726c986fb09102294fb706df0dc47"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "risk-assess",
+      "source_dir": "skills/risk-assess",
+      "source_files": [
+        {
+          "path": "skills/risk-assess/SKILL.md",
+          "size": 3352,
+          "sha256": "341157fd9a330e0d881181b7118225d59eb6c4cccdc0ce0054ae4a2a9611e56f"
+        },
+        {
+          "path": "skills/risk-assess/references/output-template.md",
+          "size": 1839,
+          "sha256": "e250ed257d6b38f3098ea1ad18bdd9c08fc8779f671144bde02e47f4a3c4582e"
+        },
+        {
+          "path": "skills/risk-assess/references/risk-dimensions.md",
+          "size": 2932,
+          "sha256": "37796cba1db4be5073cb6b799454c672c63cf42e5c050aaebde2ac886b898629"
+        },
+        {
+          "path": "skills/risk-assess/scripts/risk-analyze.js",
+          "size": 29847,
+          "sha256": "92274ad8311b8324ec5f5e45644ad5dd1e1e7f56767dc1a96cdee0ae619d7c4f"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "runbook",
+      "source_dir": "skills/runbook",
+      "source_files": [
+        {
+          "path": "skills/runbook/SKILL.md",
+          "size": 7593,
+          "sha256": "d2a0a322eb2eaae15119df91ccbfe05227c65dd70ef32fbc046b16b805dafc96"
+        },
+        {
+          "path": "skills/runbook/references/check-output.md",
+          "size": 2690,
+          "sha256": "f0b2008a33576c3c56b8fe02a6e85d64fb6fdcca19073c7525ce362c91c88d88"
+        },
+        {
+          "path": "skills/runbook/references/discovery-heuristics.md",
+          "size": 3186,
+          "sha256": "122a3b377b742ed131a35fc4409473436a6e4591537764b19c71ccbacbac25c1"
+        },
+        {
+          "path": "skills/runbook/references/template.md",
+          "size": 5317,
+          "sha256": "3effc7307df22e4c93230a8f363fe7fd8dfd2e936b1f4e97a40634fcc752c5bf"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "safe-remove",
+      "source_dir": "skills/safe-remove",
+      "source_files": [
+        {
+          "path": "skills/safe-remove/SKILL.md",
+          "size": 6025,
+          "sha256": "8b60762c0cfbd70e585c968a05db48b15bd3fa576e9f078996db10ea27978e7d"
+        },
+        {
+          "path": "skills/safe-remove/references/removal-policy.md",
+          "size": 4540,
+          "sha256": "be654f75e9e61e7a34b9b022066883bee2adfb396188da9297428fbb68d47498"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "security-review",
+      "source_dir": "skills/security-review",
+      "source_files": [
+        {
+          "path": "skills/security-review/SKILL.md",
+          "size": 3678,
+          "sha256": "b49222c97d5553bb3d651a3d84bfb6a70fe776ac3efb52b1fb1ffd269d1cc98a"
+        },
+        {
+          "path": "skills/security-review/references/codex-prompt-security.md",
+          "size": 2805,
+          "sha256": "84e434296ac39f0cc097bf0aaec130419def0b4f0d545a4265807d0a36bbea26"
+        },
+        {
+          "path": "skills/security-review/references/examples.md",
+          "size": 2261,
+          "sha256": "a8468c3eb55ef6821ab34621b089c3befa390ac43d02e365b670643f25762dcd"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "seek-verdict",
+      "source_dir": "skills/seek-verdict",
+      "source_files": [
+        {
+          "path": "skills/seek-verdict/SKILL.md",
+          "size": 5780,
+          "sha256": "c07ee6c3e33f76631d4dceb5e6cc031fc003378e11191ddcc1bd82702a6fc050"
+        },
+        {
+          "path": "skills/seek-verdict/references/policy-mapping.md",
+          "size": 5560,
+          "sha256": "ac4bd049a9fcce4783e2e96e48bfad086e8896042cc8347948be10770d7b5de1"
+        },
+        {
+          "path": "skills/seek-verdict/references/verdict-prompt.md",
+          "size": 3427,
+          "sha256": "ada178980d1100891e7df233f9758d5e40d9c7c37b108bebba16b97fd2605dcc"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "sharingan",
+      "source_dir": "skills/sharingan",
+      "source_files": [
+        {
+          "path": "skills/sharingan/SKILL.md",
+          "size": 9096,
+          "sha256": "35657c516237e07a013cf9c7575bc532e577b1e43f6b89048bb8c426fd3e9a02"
+        },
+        {
+          "path": "skills/sharingan/references/dependency-graph-algorithm.md",
+          "size": 3203,
+          "sha256": "e02136487757912e71c13ace386a81596ff803f3a89e9e19b51d9860896eab9c"
+        },
+        {
+          "path": "skills/sharingan/references/format-mapping.md",
+          "size": 2927,
+          "sha256": "e7c9973bfed628ce662e59e3060b8fe1f4fe78fa0e2fb1e9837c672f4c5b7a8a"
+        },
+        {
+          "path": "skills/sharingan/references/input-classification.md",
+          "size": 4691,
+          "sha256": "6f15f4cc4054d405d263b19a71ec2683ca8712a8325f69a6b288a08138c1661e"
+        },
+        {
+          "path": "skills/sharingan/references/output-template.md",
+          "size": 1564,
+          "sha256": "949edc72991d61a05398a4200c9b1a738f4dca444fb140c1a3bcf1996380329f"
+        },
+        {
+          "path": "skills/sharingan/references/quality-checklist.md",
+          "size": 1707,
+          "sha256": "ad7921c1202f7dcda002e8124c104b032a33a46b27020edc4c98cc7d5feb6835"
+        },
+        {
+          "path": "skills/sharingan/references/source-bundle.md",
+          "size": 8926,
+          "sha256": "ef5f261eec1bfad24ba3b69e4012b46af44c17ea1f26173c32d099a023e71251"
+        },
+        {
+          "path": "skills/sharingan/scripts/scan-repo.js",
+          "size": 26788,
+          "sha256": "392643d77a17978c5ed7744f862d1e1a86b1e53133f21b4fe9004c6d116b1448"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "simplify",
+      "source_dir": "skills/simplify",
+      "source_files": [
+        {
+          "path": "skills/simplify/SKILL.md",
+          "size": 1562,
+          "sha256": "9562bed1330ad38367d4f8f67c8a366a01e9a26bed5bedf76fda8434bcab7eae"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "skill-health-check",
+      "source_dir": "skills/skill-health-check",
+      "source_files": [
+        {
+          "path": "skills/skill-health-check/SKILL.md",
+          "size": 5211,
+          "sha256": "9d247204f629ae31d856e524cc52a294415ffe3fd917d1455af51f7828697713"
+        },
+        {
+          "path": "skills/skill-health-check/references/routing-signature-guide.md",
+          "size": 2247,
+          "sha256": "c2588c95ba5ed5c0a0a06e49a34db24960dedb0fbc7405adbd1f20574d14536b"
+        },
+        {
+          "path": "skills/skill-health-check/scripts/skill-lint.js",
+          "size": 20496,
+          "sha256": "2bb618a57991d40fddb27d859a798e75273128109f664985f6d0d16eff0409d9"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "smart-commit",
+      "source_dir": "skills/smart-commit",
+      "source_files": [
+        {
+          "path": "skills/smart-commit/SKILL.md",
+          "size": 20953,
+          "sha256": "039dc7d4f050b61de9fcd4b742cc6d591d41f0f4e8d1bfb5b6da605ce9b3e17d"
+        },
+        {
+          "path": "skills/smart-commit/references/execute-mode.md",
+          "size": 2852,
+          "sha256": "90f38ac168a6f053ecc9e9b85074a5a0733e6eaf30e6cc1d538c2354e63d3614"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "smart-rebase",
+      "source_dir": "skills/smart-rebase",
+      "source_files": [
+        {
+          "path": "skills/smart-rebase/SKILL.md",
+          "size": 6352,
+          "sha256": "3a4962ee254732929cc5f0aa74a377ac8f91d972b2e6adfef4d5df9899c72811"
+        },
+        {
+          "path": "skills/smart-rebase/scripts/smart-rebase-analyze.sh",
+          "size": 5951,
+          "sha256": "2cfe64e6551207b8c49f65faf2140c2ef3bc82bce9c5e0e1b42d3e9e49b61385"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "statusline-config",
+      "source_dir": "skills/statusline-config",
+      "source_files": [
+        {
+          "path": "skills/statusline-config/SKILL.md",
+          "size": 11855,
+          "sha256": "302ea14f5a2410c6aa66637a013ccd7784281f4697bb93aaf434be94062bb5d7"
+        },
+        {
+          "path": "skills/statusline-config/references/json-schema.md",
+          "size": 4935,
+          "sha256": "120d8c151504c21cabc4be0c56d4d87489b44b690a5d8400795e6d4ec96b18f2"
+        },
+        {
+          "path": "skills/statusline-config/references/themes.md",
+          "size": 5726,
+          "sha256": "978fdb5d8c49342291c95d649347b291bb1d91b6058e43af8e34a483c90c80e3"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "tech-brief",
+      "source_dir": "skills/tech-brief",
+      "source_files": [
+        {
+          "path": "skills/tech-brief/SKILL.md",
+          "size": 7375,
+          "sha256": "cdfed82d6b051287c574dce724ffacdda319442d652ec81c318ca36370d5e925"
+        },
+        {
+          "path": "skills/tech-brief/references/output-template.md",
+          "size": 5343,
+          "sha256": "147b34d83081f2d55547f9737e18192c9ca193e082e06f0137436cdc0c165978"
+        },
+        {
+          "path": "skills/tech-brief/references/source-guide.md",
+          "size": 4841,
+          "sha256": "e62e871921b03a34e7bbb0ed64143fde5eb9885946c5fa0859f1dccff05ccd54"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "tech-spec",
+      "source_dir": "skills/tech-spec",
+      "source_files": [
+        {
+          "path": "skills/tech-spec/SKILL.md",
+          "size": 3252,
+          "sha256": "b2797cff0e751a7cceb9262eda19a57489c814e0633c7c8cecb8d80c2293d220"
+        },
+        {
+          "path": "skills/tech-spec/references/feature-context-resolution.md",
+          "size": 5607,
+          "sha256": "c9ab43266c2830df80932fae658e5eee8b67ae54db3b7db2e2fca990cb6d7c6a"
+        },
+        {
+          "path": "skills/tech-spec/references/template.md",
+          "size": 1987,
+          "sha256": "4dc3bc4774eb6b5f372567290925ee8a07a84785869243d3e410acb3d885c466"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "test-deep",
+      "source_dir": "skills/test-deep",
+      "source_files": [
+        {
+          "path": "skills/test-deep/SKILL.md",
+          "size": 8966,
+          "sha256": "e17a79ace9328007bad01e7705e9a840af03e4766ad1369e2fcb9238648c097a"
+        },
+        {
+          "path": "skills/test-deep/references/fixer-catalog.md",
+          "size": 2719,
+          "sha256": "57d1907ce2798cdd23a9a9b35809c178a30c2397790339257b1ea3825365fc97"
+        },
+        {
+          "path": "skills/test-deep/references/test-selection.md",
+          "size": 2434,
+          "sha256": "6c34abaeced62cdf212189cb1a5421fa266358722c862e6918d4065abd83dbac"
+        },
+        {
+          "path": "skills/test-deep/references/triage-pipeline.md",
+          "size": 3725,
+          "sha256": "aad983e0117dac351a28ae6f2b37a4f9e71d03bd61264f83edd1bca973f83986"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "test-health",
+      "source_dir": "skills/test-health",
+      "source_files": [
+        {
+          "path": "skills/test-health/SKILL.md",
+          "size": 9024,
+          "sha256": "d54574d797e3bbc44f8bf65d034122f863449a045a5cd6405c8fb35c2c4d58b3"
+        },
+        {
+          "path": "skills/test-health/references/artifact-formats.md",
+          "size": 3157,
+          "sha256": "8ecb063c2db8e90f6c84948a4e791c7afd49714d4d6e41ee49318050f79e2774"
+        },
+        {
+          "path": "skills/test-health/references/test-count-parsers.md",
+          "size": 3033,
+          "sha256": "a1ec3f67bca1adcace1f142bbe46df7a3e206dc18842cbe14dc707eaa6e8c580"
+        },
+        {
+          "path": "skills/test-health/references/trend-schema.md",
+          "size": 3695,
+          "sha256": "91cef9fa7421865359d79e983bb62826bfeef258ec1b717716081241aef84bdf"
+        },
+        {
+          "path": "skills/test-health/scripts/artifact-parser.js",
+          "size": 9595,
+          "sha256": "d6872f207af8ad4f073486dc4c38a6863d08d37e1c676fa12c0f6352a297e08c"
+        },
+        {
+          "path": "skills/test-health/scripts/count-parser.js",
+          "size": 5081,
+          "sha256": "13f906161fb0722b2e4c8626cb8b962cb68e25df6d2e4774f1dcf89c729d7ad2"
+        },
+        {
+          "path": "skills/test-health/scripts/trend.js",
+          "size": 6123,
+          "sha256": "e50025dad0265a7aefb06b730f547bf6151401c54781fd42113ffae5af9111ea"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "test-review",
+      "source_dir": "skills/test-review",
+      "source_files": [
+        {
+          "path": "skills/test-review/SKILL.md",
+          "size": 7820,
+          "sha256": "036b05c593c1a99dd9666ddb2add80ae235ad511518d80805061edcd895568d4"
+        },
+        {
+          "path": "skills/test-review/references/codex-prompt-ac-trace.md",
+          "size": 3860,
+          "sha256": "e5d56dc47c0471e9a93256f0dca75e98b8a45f1a789d5312b35b1f1e82649638"
+        },
+        {
+          "path": "skills/test-review/references/codex-prompt-test-gen.md",
+          "size": 1879,
+          "sha256": "affdab1258a1ca9b708df4d58072982883ca3cf9470b3bf8868546533e55ac2f"
+        },
+        {
+          "path": "skills/test-review/references/codex-prompt-test-review.md",
+          "size": 2985,
+          "sha256": "995b8679157024bdfce2471f9d3ef503e389197f8c3a5291bec05e4f77d136f0"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "ui-first-principles",
+      "source_dir": "skills/ui-first-principles",
+      "source_files": [
+        {
+          "path": "skills/ui-first-principles/SKILL.md",
+          "size": 21858,
+          "sha256": "a2444ab36361e265d58456c9c07b1c05f0b351df54be4c11eb92f9417a414489"
+        },
+        {
+          "path": "skills/ui-first-principles/references/anti-patterns.md",
+          "size": 8570,
+          "sha256": "f30bf0160392d8d2a98ebb09041eedc516f977d61d761570fff6195789e90c15"
+        },
+        {
+          "path": "skills/ui-first-principles/references/jtbd-framework.md",
+          "size": 7847,
+          "sha256": "04e6a9388b49edc0ce288a322ad6e3d328b28bb95282f78552291a3684184ea5"
+        },
+        {
+          "path": "skills/ui-first-principles/references/output-template.md",
+          "size": 9342,
+          "sha256": "6d36686267295b0da30baf8f2328a806edb579c80ab06e1a4d846101db1c8d04"
+        },
+        {
+          "path": "skills/ui-first-principles/references/principle-anchors.md",
+          "size": 7477,
+          "sha256": "12cdf340a6646baee2b48e0c2d15a69f5057d115fa81430c5169f9c6143f8805"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "update-docs",
+      "source_dir": "skills/update-docs",
+      "source_files": [
+        {
+          "path": "skills/update-docs/SKILL.md",
+          "size": 2346,
+          "sha256": "6d25d5f4f3decfd5ff0bbd90c3e1dbc9ae2203ed45293f54f3871e0daecc5ade"
+        }
+      ]
+    },
+    {
+      "source_id": "local-skill-overlay-2026-07-10",
+      "source_name": "update-readme",
+      "source_dir": "skills/update-readme",
+      "source_files": [
+        {
+          "path": "skills/update-readme/SKILL.md",
+          "size": 3413,
+          "sha256": "c2cea3d903e872ffb535c396764a47690cb8b112ce67fdcfe26fce4fac7fff95"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "verify",
+      "source_dir": "skills/verify",
+      "source_files": [
+        {
+          "path": "skills/verify/SKILL.md",
+          "size": 3780,
+          "sha256": "ee4a9acf7a66c4ab32213e893e582629a7ec228b032936e48f18af4ad990df0c"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "watch-ci",
+      "source_dir": "skills/watch-ci",
+      "source_files": [
+        {
+          "path": "skills/watch-ci/SKILL.md",
+          "size": 10149,
+          "sha256": "1b4abd4a7a68e3c51114473b61eb0262c35eeb7e3d6da170e5248e0082f98021"
+        }
+      ]
+    },
+    {
+      "source_id": "upstream-git",
+      "source_name": "zh-tw",
+      "source_dir": "skills/zh-tw",
+      "source_files": [
+        {
+          "path": "skills/zh-tw/SKILL.md",
+          "size": 1279,
+          "sha256": "453e42b87d166aa8aeb659f9e36350c7dfeb0655d5ea951ad52ff8b67d725046"
+        }
+      ]
+    }
+  ]
+}

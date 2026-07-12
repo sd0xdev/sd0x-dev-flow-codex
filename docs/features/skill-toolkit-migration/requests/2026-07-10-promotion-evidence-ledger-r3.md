@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-10
 > **Implementation Base SHA**: `0b24525489ee3be9413ebf0d81e140eeadcc3fe7`
-> **Status**: Pending
+> **Status**: In Progress
 > **Priority**: P0
 > **Depends On**: [R2 — Migration Validation Harness](./2026-07-10-skill-migration-validators-r2.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -52,8 +52,8 @@ Current-fingerprint review/verify state is intentionally invalidated by later ed
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Done | Durable history is separated from current worktree gates |
-| Development | Pending | |
-| Testing | Pending | |
+| Development | In Progress | Custom-ref CAS writer、canonical redacted blobs、closure prepare/finalize、promotion/pack/retirement guards and re-audit implemented |
+| Testing | In Progress | 7 focused ledger fixtures plus R2 final-transaction compatibility pass；tamper/divergence/retirement matrix remains |
 | Acceptance | Pending | |
 
 ## References

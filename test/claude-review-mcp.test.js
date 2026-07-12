@@ -31,6 +31,10 @@ const {
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/cli');
 const { snapshot } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/worktree');
 const {
+  refreshState,
+  resolveStatePath
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
+const {
   commit,
   git,
   initRepository,
@@ -512,6 +516,23 @@ test('doctor skips Claude checks for the default Codex provider', (t) => {
   assert.equal(status.checks.some((check) => check.check === 'claude-cli'), false);
 });
 
+test('doctor reports corrupt runtime state without crashing', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  refreshState(root, { sessionId: 'doctor-corrupt-state' });
+  fs.writeFileSync(resolveStatePath(root), '{not valid json');
+
+  const status = doctor(root);
+
+  assert.equal(status.ok, false);
+  assert.equal(status.status, null);
+  assert.match(status.state_error, /runtime state is unreadable or corrupt/i);
+  assert.deepEqual(
+    status.checks.find((check) => check.check === 'runtime-state-readable'),
+    { check: 'runtime-state-readable', ok: false }
+  );
+});
+
 test('doctor requires Claude readiness only when the project opts in', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -555,6 +576,9 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
 
   const skillArtifacts = [
     'skills/bug-fix/SKILL.md',
+    'skills/create-request/SKILL.md',
+    'skills/create-request/references/request-format.md',
+    'skills/create-request/scripts/request-tool.js',
     'skills/doctor/SKILL.md',
     'skills/doctor/scripts/doctor.js',
     'skills/feature-dev/SKILL.md',

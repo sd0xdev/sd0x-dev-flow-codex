@@ -14,9 +14,12 @@ const {
   markSetupDeferral,
   markSessionActivationFailure,
   readState,
+  recordSubagent,
+  recordVerification,
   refreshState,
   resetState,
-  resolveStatePath
+  resolveStatePath,
+  runtimeStateGeneration
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   commit,
@@ -72,6 +75,41 @@ function createRepo(options = {}) {
     invoke(root, { hook_event_name: 'SessionStart' });
   }
   return root;
+}
+
+function recordPassingReview(root) {
+  refreshState(root);
+  const agents = [
+    'sd0x_codex_primary_reviewer',
+    'sd0x_reviewer',
+    'sd0x_test_reviewer'
+  ];
+  for (const agentType of agents) {
+    const agentId = `${agentType}-hook-test`;
+    recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
+    recordSubagent(root, 'stop', {
+      agent_id: agentId,
+      agent_type: agentType,
+      last_assistant_message: 'No actionable findings remain.'
+    });
+  }
+  return markGate(root, 'review', 'pass', {
+    provider: 'codex',
+    reviewers: 3,
+    agents,
+    findings: 0
+  });
+}
+
+function recordVerificationResult(root, status) {
+  const reviewed = recordPassingReview(root);
+  return recordVerification(root, status, {
+    runner: 'sd0x-deterministic-v1',
+    commands: [{
+      command: 'node --test fixture',
+      exit_code: status === 'pass' ? 0 : 1
+    }]
+  }, reviewed.worktree.fingerprint, 'codex');
 }
 
 test('hooks are inert until the repository opts in', (t) => {
@@ -195,8 +233,8 @@ test('setup deferral never bypasses an already activated session', (t) => {
     hook_event_name: 'Stop',
     session_id: 'session-1'
   }).stdout);
-  assert.equal(output.decision, 'block');
-  assert.match(output.reason, /review/i);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /non-blocking/i);
   assert.equal(hasSetupDeferral(root), true);
 
   invoke(root, { hook_event_name: 'SessionStart', session_id: 'next-session' });
@@ -234,7 +272,7 @@ test('recovered Stop fails closed even if activation marker is unavailable', (t)
   assert.match(output.reason, /no successful SessionStart activation/);
 });
 
-test('failed SessionStart activation recovers and keeps dirty Stop fail-closed', (t) => {
+test('failed SessionStart activation recovers before emitting a dirty Stop advisory', (t) => {
   const root = createRepo({ activate: false });
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const lockPath = `${resolveStatePath(root)}.lock`;
@@ -258,8 +296,8 @@ test('failed SessionStart activation recovers and keeps dirty Stop fail-closed',
   });
   assert.equal(stop.status, 0);
   const output = JSON.parse(stop.stdout);
-  assert.equal(output.decision, 'block');
-  assert.match(output.reason, /review/i);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /non-blocking/i);
   assert.equal(hasSessionActivationFailure(root, 'session-1'), false);
   assert.equal(
     readState(root).sessions.some((entry) => entry.session_id === 'session-1'),
@@ -354,7 +392,7 @@ test('inactive sessions cannot register or consume Claude review ledger entries'
   assert.deepEqual(state.external_review.completed, []);
 });
 
-test('Stop requests review for a dirty worktree', (t) => {
+test('Stop advises review without forcing continuation for a dirty worktree', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
@@ -365,11 +403,13 @@ test('Stop requests review for a dirty worktree', (t) => {
   });
   assert.equal(result.status, 0);
   const output = JSON.parse(result.stdout);
-  assert.equal(output.decision, 'block');
-  assert.match(output.reason, /review/i);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /advisory \(non-blocking\)/i);
+  assert.match(output.systemMessage, /no independent review pass/i);
+  assert.match(output.systemMessage, /decide whether to continue/i);
 });
 
-test('Stop keeps the review loop active without a continuation ceiling', (t) => {
+test('repeated Stop events remain advisory without a continuation ceiling', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
@@ -379,9 +419,143 @@ test('Stop keeps the review loop active without a continuation ceiling', (t) => 
       hook_event_name: 'Stop',
       stop_hook_active: false
     }).stdout);
-    assert.equal(output.decision, 'block');
-    assert.match(output.reason, /review/i);
+    assert.equal(output.continue, true);
+    assert.match(output.systemMessage, /non-blocking/i);
   }
+});
+
+test('Stop advises while review is in progress without forcing continuation', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
+  recordSubagent(root, 'start', {
+    agent_id: 'running-reviewer',
+    agent_type: 'sd0x_reviewer'
+  });
+
+  const output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /reviewers are still running/i);
+  assert.match(output.systemMessage, /decide whether to continue/i);
+});
+
+test('Stop advises verification-required and verification-failed states', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
+  recordPassingReview(root);
+
+  let output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /verification is not recorded/i);
+
+  const current = refreshState(root);
+  recordVerification(root, 'fail', {
+    runner: 'sd0x-deterministic-v1',
+    commands: [{ command: 'node --test fixture', exit_code: 1 }]
+  }, current.worktree.fingerprint, 'codex');
+  output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /verification is recorded as failed/i);
+});
+
+test('Stop emits no completion advisory when all required gates pass', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
+  recordVerificationResult(root, 'pass');
+
+  const output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
+  assert.deepEqual(output, { continue: true });
+});
+
+test('Stop fails closed when runtime state is corrupt', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
+  const validState = readState(root);
+
+  for (const corruptState of [
+    '{not valid json',
+    '{}',
+    JSON.stringify({ schema_version: 7 }),
+    JSON.stringify({
+      schema_version: 6,
+      sessions: [{ session_id: 'session-1' }]
+    }),
+    JSON.stringify({
+      ...validState,
+      gates: {
+        ...validState.gates,
+        review: { status: 'pass' }
+      }
+    }),
+    JSON.stringify({
+      ...validState,
+      review_agents: {
+        ...validState.review_agents,
+        fingerprint: validState.worktree.fingerprint,
+        started: [{}]
+      }
+    })
+  ]) {
+    fs.writeFileSync(resolveStatePath(root), corruptState);
+    const result = invoke(root, { hook_event_name: 'Stop' });
+    assert.match(result.stderr, /runtime state is unreadable or corrupt/i);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.decision, 'block');
+    assert.match(output.reason, /doctor/i);
+  }
+});
+
+test('Stop rejects a passing gate whose clean reviewer ledger was removed', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
+  recordPassingReview(root);
+  const forged = readState(root);
+  forged.review_agents.completed = [];
+  fs.writeFileSync(resolveStatePath(root), JSON.stringify(forged));
+
+  const result = invoke(root, { hook_event_name: 'Stop' });
+  assert.match(result.stderr, /does not match clean native reviewer results/i);
+  assert.equal(JSON.parse(result.stdout).decision, 'block');
+});
+
+test('corrupt-state reset blocks the old session until a new SessionStart', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
+  fs.writeFileSync(resolveStatePath(root), JSON.stringify({ schema_version: 7 }));
+  const failedAttemptGeneration = runtimeStateGeneration(root);
+
+  const reset = resetState(root);
+  assert.equal(reset.reset_recovery.requires_new_session, true);
+  assert.equal(hasSessionActivationFailure(root, 'session-1'), false);
+  markSessionActivationFailure(root, 'session-1', failedAttemptGeneration);
+  let output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
+  assert.equal(output.decision, 'block');
+  assert.match(output.reason, /cannot be recovered from prior activation markers/i);
+
+  invoke(root, { hook_event_name: 'SessionStart', session_id: 'recovered-session' });
+  const staleSession = JSON.parse(invoke(root, {
+    hook_event_name: 'Stop',
+    session_id: 'session-1'
+  }).stdout);
+  assert.equal(staleSession.decision, 'block');
+  assert.match(staleSession.reason, /no successful SessionStart activation/i);
+  output = JSON.parse(invoke(root, {
+    hook_event_name: 'Stop',
+    session_id: 'recovered-session'
+  }).stdout);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /non-blocking/i);
+  assert.equal(readState(root).reset_recovery, undefined);
+  assert.equal(
+    readState(root).sessions.some((entry) => entry.session_id === 'session-1'),
+    false
+  );
+  assert.equal(hasSessionActivationFailure(root, 'recovered-session'), false);
 });
 
 test('Stop fails closed when runtime state cannot be locked', (t) => {
@@ -418,7 +592,9 @@ test('multiple activated sessions retain hook enforcement', (t) => {
       session_id: sessionId,
       stop_hook_active: false
     });
-    assert.equal(JSON.parse(result.stdout).decision, 'block');
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.continue, true);
+    assert.match(output.systemMessage, /decide whether to continue/i);
   }
 });
 
@@ -474,10 +650,11 @@ test('reviewer failures provide finding-or-reset remediation', (t) => {
     hook_event_name: 'Stop',
     stop_hook_active: false
   });
-  const reason = JSON.parse(stop.stdout).reason;
-  assert.match(reason, /fix actionable findings/i);
-  assert.match(reason, /reviewer failed or its ledger is stale/i);
-  assert.match(reason, /ask the user[^\n]+reset/i);
+  const output = JSON.parse(stop.stdout);
+  assert.equal(output.continue, true);
+  assert.match(output.systemMessage, /fix actionable findings/i);
+  assert.match(output.systemMessage, /reviewer failed or its ledger is stale/i);
+  assert.match(output.systemMessage, /ask the user[^\n]+reset/i);
 });
 
 test('Stop yields to the user when reviewer infrastructure is unavailable', (t) => {
@@ -510,7 +687,7 @@ test('Stop yields to the user when reviewer infrastructure is unavailable', (t) 
   const output = JSON.parse(stop.stdout);
   assert.equal(output.continue, true);
   assert.match(output.systemMessage, /reviewer infrastructure is unavailable/i);
-  assert.match(output.systemMessage, /ask the user[^\n]+reset/i);
+  assert.match(output.systemMessage, /user-authorized[^\n]+reset/i);
   assert.doesNotMatch(output.systemMessage, /or start a new Codex task/i);
   assert.match(output.systemMessage, /same fingerprint/i);
   const state = readState(root);
