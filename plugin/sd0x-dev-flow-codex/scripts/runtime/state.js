@@ -10,7 +10,7 @@ const {
 } = require('./config');
 const { findRepoRoot, snapshot, snapshotProjection } = require('./worktree');
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const LOCK_WAIT_MS = 5_000;
 const LOCK_RETRY_MS = 20;
 const LOCK_OWNER_GRACE_MS = 1_000;
@@ -701,6 +701,7 @@ function defaultState() {
     },
     review_agents: {
       fingerprint: null,
+      collaboration_round_id: null,
       started: [],
       completed: []
     },
@@ -959,7 +960,7 @@ function consumeSetupDeferral(cwd, sessionId) {
   return true;
 }
 
-function assertCurrentStateShape(value) {
+function assertCurrentStateShape(value, options = {}) {
   const object = (candidate, label) => {
     if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
       throw new Error(`${label} must be an object`);
@@ -1068,6 +1069,15 @@ function assertCurrentStateShape(value) {
 
   collection(value.review_agents, 'runtime state.review_agents');
   collection(value.external_review, 'runtime state.external_review');
+  if (!(options.allowMissingCollaborationRoundId &&
+        value.review_agents.collaboration_round_id === undefined) &&
+      value.review_agents.collaboration_round_id !== null &&
+      (typeof value.review_agents.collaboration_round_id !== 'string' ||
+        !value.review_agents.collaboration_round_id)) {
+    throw new Error(
+      'runtime state.review_agents.collaboration_round_id must be a string or null'
+    );
+  }
   for (const collectionName of ['review_agents', 'external_review']) {
     const candidate = value[collectionName];
     if ((candidate.started.length > 0 || candidate.completed.length > 0) &&
@@ -1154,13 +1164,59 @@ function assertCurrentStateShape(value) {
   }
 }
 
+function collaborationRoundId(agentId, prefix) {
+  if (typeof agentId !== 'string' || !agentId.startsWith(prefix)) return null;
+  const remainder = agentId.slice(prefix.length);
+  const separator = remainder.indexOf(':');
+  return separator > 0 ? remainder.slice(0, separator) : null;
+}
+
+function inferLegacyCollaborationRound(reviewAgents) {
+  const started = reviewAgents.started.filter((entry) =>
+    typeof entry.agent_id === 'string' && entry.agent_id.startsWith('collaboration:')
+  );
+  const completed = reviewAgents.completed.filter((entry) =>
+    typeof entry.agent_id === 'string' &&
+      entry.agent_id.startsWith('collaboration-result:')
+  );
+  if (started.length === 0 && completed.length === 0) {
+    return { present: false, roundId: null };
+  }
+  const startedRoundIds = started.map((entry) =>
+    collaborationRoundId(entry.agent_id, 'collaboration:')
+  );
+  const completedRoundIds = completed.map((entry) =>
+    collaborationRoundId(entry.agent_id, 'collaboration-result:')
+  );
+  if (startedRoundIds.includes(null) || completedRoundIds.includes(null)) {
+    return { present: true, roundId: null };
+  }
+  const active = new Set(startedRoundIds);
+  let roundId = completedRoundIds[completedRoundIds.length - 1];
+  if (started.length > 0) roundId = active.size === 1 ? [...active][0] : null;
+  return {
+    present: true,
+    roundId
+  };
+}
+
 function normalizeState(value) {
   const base = defaultState();
-  if (!value || ![1, 2, 3, 4, 5, SCHEMA_VERSION].includes(value.schema_version)) {
+  if (!value || ![1, 2, 3, 4, 5, 6, SCHEMA_VERSION].includes(value.schema_version)) {
     throw new Error('runtime state schema_version is missing or unsupported');
   }
   if (value.schema_version === SCHEMA_VERSION) assertCurrentStateShape(value);
+  if (value.schema_version === 6) {
+    assertCurrentStateShape(value, { allowMissingCollaborationRoundId: true });
+  }
   const invalidatesLegacyEvidence = value.schema_version <= 5;
+  const legacyCollaborationRound = value.schema_version === 6
+    ? inferLegacyCollaborationRound(value.review_agents)
+    : { present: false, roundId: null };
+  const invalidatesV6CollaborationEvidence = legacyCollaborationRound.present &&
+    legacyCollaborationRound.roundId === null;
+  const invalidatesReviewEvidence = invalidatesLegacyEvidence ||
+    invalidatesV6CollaborationEvidence;
   const migratingV4State = value.schema_version === 4;
   const normalizedAt = now();
   const normalizeTimestamp = (candidate) =>
@@ -1200,16 +1256,19 @@ function normalizeState(value) {
     sessions,
     worktree: { ...base.worktree, ...(value.worktree || {}) },
     gates: {
-      review: invalidatesLegacyEvidence
+      review: invalidatesReviewEvidence
         ? base.gates.review
         : { ...base.gates.review, ...(value.gates?.review || {}) },
-      verify: invalidatesLegacyEvidence
+      verify: invalidatesReviewEvidence
         ? base.gates.verify
         : { ...base.gates.verify, ...(value.gates?.verify || {}) }
     },
-    review_agents: invalidatesLegacyEvidence ? base.review_agents : {
+    review_agents: invalidatesReviewEvidence ? base.review_agents : {
       ...base.review_agents,
       ...(value.review_agents || {}),
+      collaboration_round_id: value.schema_version === 6
+        ? legacyCollaborationRound.roundId
+        : value.review_agents?.collaboration_round_id || null,
       started: !migratingV4State && Array.isArray(value.review_agents?.started)
         ? value.review_agents.started
         : [],
@@ -1217,7 +1276,7 @@ function normalizeState(value) {
         ? value.review_agents.completed
         : []
     },
-    external_review: invalidatesLegacyEvidence ? base.external_review : {
+    external_review: invalidatesReviewEvidence ? base.external_review : {
       ...base.external_review,
       ...(value.external_review || {}),
       started: pruneExternalReviewStarts(value.external_review?.started),
@@ -1342,6 +1401,7 @@ function invalidateGates(state) {
   state.gates.verify = defaultGate();
   state.review_agents = {
     fingerprint: null,
+    collaboration_round_id: null,
     started: [],
     completed: []
   };
@@ -1626,6 +1686,7 @@ function recordSubagent(cwd, phase, details) {
     if (state.review_agents.fingerprint !== worktree.fingerprint) {
       state.review_agents = {
         fingerprint: worktree.fingerprint,
+        collaboration_round_id: null,
         started: [],
         completed: []
       };
@@ -1665,11 +1726,224 @@ function recordSubagent(cwd, phase, details) {
     );
     if (existing >= 0) collection[existing] = entry;
     else collection.push(entry);
+    if (phase === 'stop') {
+      state.review_agents.started = state.review_agents.started.filter((item) =>
+        !(item.agent_type === entry.agent_type &&
+          item.agent_id.startsWith('collaboration:'))
+      );
+    }
     if (phase === 'stop' && entry.outcome === 'findings') {
       blockGatesForFinding(state, worktree, entry.agent_type);
     }
     return state;
   });
+}
+
+function collaborationRoundAgentId(roundId, agentType) {
+  return `collaboration:${roundId}:${agentType}`;
+}
+
+function currentCollaborationRound(reviewAgents) {
+  return reviewAgents.collaboration_round_id;
+}
+
+function recordCollaborationRoundStart(cwd, details) {
+  if (!details || typeof details !== 'object' ||
+      typeof details.expected_fingerprint !== 'string' ||
+      !['codex', 'claude'].includes(details.expected_provider) ||
+      typeof details.expected_runtime_epoch !== 'string' ||
+      typeof details.round_id !== 'string' || !details.round_id) {
+    throw new Error('Collaboration review round start is malformed');
+  }
+  return withStateLock(cwd, (state) => {
+    const worktree = snapshot(cwd);
+    const provider = reviewProvider(cwd);
+    if (worktree.fingerprint !== details.expected_fingerprint ||
+        provider !== details.expected_provider ||
+        state.runtime_epoch !== details.expected_runtime_epoch) {
+      throw new Error('Collaboration review round start is stale');
+    }
+    applySnapshot(state, worktree);
+    applyReviewProvider(state, provider);
+    if (state.review_agents.fingerprint !== worktree.fingerprint) {
+      state.review_agents = {
+        fingerprint: worktree.fingerprint,
+        collaboration_round_id: null,
+        started: [],
+        completed: []
+      };
+    }
+    if (state.review_agents.started.some((entry) =>
+      entry.agent_id.startsWith('collaboration:')
+    )) {
+      throw new Error('A collaboration review round is already active');
+    }
+    state.review_agents.collaboration_round_id = details.round_id;
+    for (const agentType of requiredReviewers(provider)) {
+      const entry = {
+        agent_id: collaborationRoundAgentId(
+          details.round_id,
+          agentType
+        ),
+        agent_type: agentType,
+        recorded_at: now()
+      };
+      const existing = state.review_agents.started.findIndex((item) =>
+        item.agent_id === entry.agent_id && item.agent_type === entry.agent_type
+      );
+      if (existing >= 0) state.review_agents.started[existing] = entry;
+      else state.review_agents.started.push(entry);
+    }
+    return state;
+  });
+}
+
+function recordCollaborationReview(cwd, details) {
+  if (!details || typeof details !== 'object' ||
+      typeof details.expected_fingerprint !== 'string' ||
+      !['codex', 'claude'].includes(details.expected_provider) ||
+      typeof details.expected_runtime_epoch !== 'string' ||
+      typeof details.expected_round_id !== 'string' || !details.expected_round_id ||
+      typeof details.transcript_path !== 'string' ||
+      !Array.isArray(details.results)) {
+    throw new Error('Collaboration review evidence is malformed');
+  }
+  const required = requiredReviewers(details.expected_provider);
+  if (details.results.length < required.length ||
+      !required.every((agentType) => details.results.some((entry) =>
+        entry?.agent_type === agentType
+      ))) {
+    throw new Error('Collaboration review evidence is missing a required reviewer');
+  }
+  for (const result of details.results) {
+    if (!result || !required.includes(result.agent_type) ||
+        typeof result.agent_id !== 'string' || !result.agent_id ||
+        typeof result.result !== 'string' || !result.result.trim()) {
+      throw new Error('Collaboration reviewer result is malformed');
+    }
+  }
+
+  return withStateLock(cwd, (state) => {
+    const worktree = snapshot(cwd);
+    const provider = reviewProvider(cwd);
+    if (worktree.fingerprint !== details.expected_fingerprint ||
+        provider !== details.expected_provider ||
+        state.runtime_epoch !== details.expected_runtime_epoch) {
+      throw new Error(
+        'Collaboration review evidence is stale for the current runtime state'
+      );
+    }
+    applySnapshot(state, worktree);
+    applyReviewProvider(state, provider);
+    if (state.review_agents.fingerprint !== worktree.fingerprint) {
+      state.review_agents = {
+        fingerprint: worktree.fingerprint,
+        collaboration_round_id: null,
+        started: [],
+        completed: []
+      };
+    }
+    const superseded = currentCollaborationRound(state.review_agents) !==
+      details.expected_round_id;
+    const roundAgentIds = new Set(required.map((agentType) =>
+      collaborationRoundAgentId(
+        details.expected_round_id,
+        agentType
+      )
+    ));
+    if (!superseded) {
+      state.review_agents.started = state.review_agents.started.filter((entry) =>
+        !roundAgentIds.has(entry.agent_id)
+      );
+    }
+    for (const result of details.results) {
+      const message = result.result.trim();
+      const entry = {
+        agent_id: `collaboration-result:${details.expected_round_id}:${result.agent_id}`,
+        agent_type: result.agent_type,
+        recorded_at: now(),
+        started_at: typeof result.started_at === 'string' &&
+            Number.isFinite(Date.parse(result.started_at))
+          ? result.started_at
+          : now(),
+        result_sha256: sha256(message),
+        outcome: /^no actionable findings(?: remain)?\.?$/i.test(message)
+          ? 'clean'
+          : 'findings',
+        has_transcript: true
+      };
+      if (superseded && entry.outcome === 'clean') continue;
+      const existing = state.review_agents.completed.findIndex((item) =>
+        item.agent_id === entry.agent_id &&
+        item.agent_type === entry.agent_type &&
+        item.result_sha256 === entry.result_sha256
+      );
+      if (existing >= 0) state.review_agents.completed[existing] = entry;
+      else state.review_agents.completed.push(entry);
+      if (entry.outcome === 'findings') {
+        blockGatesForFinding(state, worktree, entry.agent_type);
+      }
+    }
+    return state;
+  });
+}
+
+function recordCollaborationFailure(cwd, details, evidence) {
+  if (!details || typeof details !== 'object' ||
+      typeof details.expected_fingerprint !== 'string' ||
+      !['codex', 'claude'].includes(details.expected_provider) ||
+      typeof details.expected_runtime_epoch !== 'string' ||
+      typeof details.expected_round_id !== 'string' ||
+      !details.expected_round_id) {
+    throw new Error('Collaboration failure identity is malformed');
+  }
+  validateEvidence('review', 'fail', evidence, details.expected_provider);
+  let recorded = false;
+  let reason = 'identity-changed';
+  const state = withStateLock(cwd, (current) => {
+    const worktree = snapshot(cwd);
+    const provider = reviewProvider(cwd);
+    if (current.runtime_epoch !== details.expected_runtime_epoch ||
+        worktree.fingerprint !== details.expected_fingerprint ||
+        provider !== details.expected_provider) {
+      applySnapshot(current, worktree);
+      applyReviewProvider(current, provider);
+      return current;
+    }
+    if (currentCollaborationRound(current.review_agents) !==
+        details.expected_round_id) {
+      reason = 'round-superseded';
+      return current;
+    }
+    if (typeof details.before_record === 'function') details.before_record();
+    const finalWorktree = snapshot(cwd);
+    const finalProvider = reviewProvider(cwd);
+    if (current.runtime_epoch !== details.expected_runtime_epoch ||
+        finalWorktree.fingerprint !== details.expected_fingerprint ||
+        finalProvider !== details.expected_provider) {
+      applySnapshot(current, finalWorktree);
+      applyReviewProvider(current, finalProvider);
+      return current;
+    }
+    if (currentCollaborationRound(current.review_agents) !==
+        details.expected_round_id) {
+      reason = 'round-superseded';
+      return current;
+    }
+    applySnapshot(current, worktree);
+    applyReviewProvider(current, provider);
+    current.gates.review = {
+      status: 'fail',
+      fingerprint: worktree.fingerprint,
+      evidence,
+      updated_at: now()
+    };
+    current.gates.verify = defaultGate();
+    recorded = true;
+    reason = null;
+    return current;
+  });
+  return { recorded, reason, state };
 }
 
 function recordExternalReview(cwd, details) {
@@ -1844,8 +2118,12 @@ function discardExternalReviewStart(cwd, details) {
 
 function isCurrentPass(state, gate) {
   const value = state.gates[gate];
-  return value.status === 'pass' &&
+  const current = value.status === 'pass' &&
     value.fingerprint === state.worktree.fingerprint;
+  if (!current) return false;
+  if (gate === 'review') return !hasOutstandingReviewers(state);
+  if (gate === 'verify') return isCurrentPass(state, 'review');
+  return true;
 }
 
 function isCurrentFail(state, gate) {
@@ -1935,7 +2213,8 @@ function resetState(cwd = process.cwd()) {
         requires_new_session: true
       };
     }
-    return writeState(cwd, reset);
+    const written = writeState(cwd, reset);
+    return written;
   } finally {
     fs.rmSync(lockPath, { recursive: true, force: true });
   }
@@ -1988,6 +2267,9 @@ module.exports = {
   prepareRequestClosure,
   recordExternalReview,
   recordExternalReviewStart,
+  recordCollaborationFailure,
+  recordCollaborationReview,
+  recordCollaborationRoundStart,
   recordPromotionEvidence,
   recordSubagent,
   recordVerification,

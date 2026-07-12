@@ -964,7 +964,7 @@ test('legacy state invalidates old gates and discards retry counters', (t) => {
   }));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 6);
+  assert.equal(state.schema_version, 7);
   assert.equal(state.gates.review.status, 'pending');
   assert.equal(state.gates.verify.status, 'pending');
   assert.equal('iteration' in state, false);
@@ -990,7 +990,7 @@ test('schema v4 migration invalidates pre-provider evidence and removes exhauste
   fs.writeFileSync(statePath, JSON.stringify(legacy));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 6);
+  assert.equal(state.schema_version, 7);
   assert.equal('iteration' in state, false);
   assert.equal('continuations' in state.sessions[0], false);
   assert.equal(state.gates.review.status, 'pending');
@@ -1061,7 +1061,7 @@ test('schema v3 migration clears gate evidence and preserves sessions', (t) => {
   }));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 6);
+  assert.equal(state.schema_version, 7);
   assert.deepEqual(state.sessions.map((entry) => entry.session_id), [
     'v3-session'
   ]);
@@ -1080,7 +1080,7 @@ test('state lock immediately reclaims a dead owner', (t) => {
   fs.writeFileSync(path.join(lockPath, 'owner'), '99999999');
 
   const state = refreshState(root, { sessionId: 'session-after-crash' });
-  assert.equal(state.schema_version, 6);
+  assert.equal(state.schema_version, 7);
   assert.equal(state.sessions[0].session_id, 'session-after-crash');
   assert.equal(fs.existsSync(lockPath), false);
 });

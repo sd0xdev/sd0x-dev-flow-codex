@@ -194,7 +194,7 @@ $(git rev-parse --git-path sd0x-dev-flow-codex/runtime-state.json)
 - Review pass 必須和目前 fingerprint 相同。
 - Verify 只能在目前 review pass 後由 deterministic runner 記錄，且 runner 前後 fingerprint 必須相同。
 - Fingerprint 改變會清除兩個 gates 與 reviewer observations。
-- Review pass 必須實際觀察到同 fingerprint 的 configured primary、implementation 與 test reviewer `SubagentStart`，以及 terminal `last_assistant_message` 精確回報 `No actionable findings remain.` 的相符 `SubagentStop`；review evidence 同時必須包含目前 provider、`reviewers: 3`、必要 reviewer identities 與 `findings: 0`。Codex mode 的 primary 是 `sd0x_codex_primary_reviewer`；Claude mode 是 `sd0x_claude_primary_reviewer`，並額外要求 nested Claude MCP structured clean evidence。
+- Review pass 必須實際觀察到同 fingerprint 的 configured primary、implementation 與 test reviewer。原生 custom-agent surface 使用 matching `SubagentStart` 與帶 terminal `last_assistant_message` 的 `SubagentStop`。只提供 persistent collaboration agents 的 Codex surface 則由 `codex-collaboration-jsonl-v1` adapter 在 dispatch 前綁定 immutable round ID、runtime epoch、exact direct agent paths、transcript file identity、byte offset 與 prefix hash，只接受 offset 後 canonical `sub_agent_activity: interacted` 與相符 `FINAL_ANSWER` agent messages；interrupt、overlap、未終局、缺結果、格式漂移、prefix/file identity、runtime epoch、round ID 或 fingerprint 改變都 fail closed。Runtime state 明確保存目前 collaboration round ID，所有 failure write 與 finalizer 都必須匹配它，不能用 completed array 順序推導 ownership，因此延遲的舊 round 結果無法覆寫同 fingerprint 的 successor；但同 fingerprint/epoch 的 authenticated late finding 仍會依 sticky-finding 規則撤銷 gates，而不轉移 ownership，superseded clean evidence 則忽略。三個 results 會在同一 state lock 內重新 snapshot 後原子寫入，`gate.js pass` 再從原始 offset 掃到 gate boundary，且只由相同 round ID 的 finalizer移除 marker；concurrent identical finalizer以該 round的三個 clean state results做 idempotent completion。Review evidence 同時必須包含目前 provider、`reviewers: 3`、必要 reviewer identities 與 `findings: 0`。Codex mode 的 primary 是 `sd0x_codex_primary_reviewer`；Claude mode 是 `sd0x_claude_primary_reviewer`，並額外要求 nested Claude MCP structured clean evidence。
 - Provider 從 `codex` 切換為 `claude` 或反向切換時，runtime 會清除 gates 與 reviewer evidence。Claude MCP 的輸入 fingerprint、structured output fingerprint 與 hook 當下 snapshot 必須完全相同；PreToolUse 會以 session、tool use、fingerprint 與 runtime epoch 登記 invocation，PostToolUse 必須消耗同一筆 start，reset 後才完成的舊 result 因 start ledger 已清除而被拒絕。失敗、無 structured output、stale fingerprint 或 pre-reset result 都不記 evidence。
 - 任一 reviewer 對目前 fingerprint 記過 findings 後會保持 blocking；後續同 fingerprint 的 clean result 不得覆蓋。只有 worktree edit 產生新 fingerprint，或使用者明確執行 `$sd0x-dev-flow-codex:reset`，才能清除。
 - Review pass 要求目前 fingerprint 的 Claude/Codex start ledgers 都已終局；pass 或 verify pass 後才到達的同 fingerprint finding 會原子撤銷 review、清除 verify，讓 workflow 回到 review-findings-remain。
@@ -281,6 +281,8 @@ Setup 預設寫入 Codex-first provider：
 | `SubagentStart` | 記錄 reviewer id/type/fingerprint，注入 reviewer focus。 |
 | `SubagentStop` | 同 fingerprint、有 matching start 且有非空 terminal assistant message 才記錄 outcome；第一次無輸出會要求 continuation，續跑後的 terminal result 仍可記錄。 |
 | `Stop` | 缺 review/verify 時回傳 `continue: true` 的 non-blocking advisory，由模型依使用者意圖、任務完整度、風險與 evidence reliability 判斷是否繼續；runtime 仍保留 exact-fingerprint gate 狀態，未記錄的 gate 不得宣稱通過。Session activation/runtime-state failure仍 hard-block。 |
+
+Persistent collaboration agent 不會重新觸發 per-run `SubagentStart`/`SubagentStop`。Review skill 因此在每輪 dispatch 前執行 `round.js begin`，gate pass 前執行 `round.js import`；begin 會在 native started ledger 登記三個 round owners，使 existing review/verify pass 暫時失效並回到 `review-in-progress`，且同 fingerprint/epoch 的 active marker 不能被第二次 begin 覆蓋。即使 transcript adapter unavailable，round owners 也會保留，之後只能由相符 native `SubagentStop` 終結。Marker lock 記錄 process owner，只回收 dead owner或超過 grace period仍沒有有效 owner的殘留 lock，絕不因 age 回收確認存活的 owner。Reset 以 runtime epoch 讓未完成 marker失效；下一個 begin會在 marker lock內退休 stale marker，沒有 active round owners時也會 quarantine malformed marker，再建立新的 adapter或 native-fallback round，舊 result 不能重放。Adapter 只補足這個 Codex event transport 差異；原生 hooks 仍是首選，transcript 未提供或格式不符時不會降級成 parent prose evidence。Codex 官方將 transcript JSONL 視為非穩定介面，因此任何格式更新都必須新增明確 adapter version 與 wire-format fixtures，不能寬鬆猜測欄位。
 
 Protected paths 目前包含 `.env*`、`.git/`、SSH private-key names、credentials/secrets config 與 private-key formats；`.env.example`、`.env.sample`、`.env.template` 允許修改。
 
@@ -376,7 +378,7 @@ npm run dev:unlink        # user home
 | 既有 `SKILL.md` | 否 | 是 | 是 | 否 | 否 |
 | 新增 skill/resource file | 否 | 是 | 是 | 否 | 視情況 |
 | `hooks/hooks.json` | 否 | 否 | 是 | 是 | 否 |
-| 新增 hook script file | 否 | 是 | 是 | 若 definition 改變則是 | 否 |
+| 新增 hook/runtime/review script file | 否 | 是 | 是 | 若 hook definition 改變則是 | 否 |
 | `.mcp.json` | 否 | 新增或路徑變更時是 | 是 | 否 | 否 |
 | 既有 MCP server `.js` | 下一個 MCP process | 否 | 是 | 否 | 否 |
 | 新增 MCP server file | 否 | 是 | 是 | 否 | 否 |

@@ -644,6 +644,7 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
   };
 
   const skillArtifacts = [
+    'scripts/runtime/collaboration.js',
     'skills/bug-fix/SKILL.md',
     'skills/create-request/SKILL.md',
     'skills/create-request/references/request-format.md',
@@ -659,6 +660,7 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
     'skills/review/references/review-theory.md',
     'skills/review/scripts/gate.js',
     'skills/review/scripts/provider.js',
+    'skills/review/scripts/round.js',
     'skills/review/scripts/snapshot.js',
     'skills/setup/SKILL.md',
     'skills/setup/scripts/setup.js',
