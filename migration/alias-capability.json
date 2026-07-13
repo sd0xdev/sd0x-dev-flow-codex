@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "decision": "mapping-only",
+  "codex_version": "codex-cli 0.144.1",
+  "registry_mechanism": null,
+  "alias": "r4-alias-probe",
+  "manual_invocation": true,
+  "auto_route_excluded": false,
+  "registry_dump_path": "migration/evidence/alias-registry-dump.json",
+  "registry_dump_hash": "58b7de071098ab70cfc562f0b29027abba7c0b1c92771c7831c4d702335b6201",
+  "fixture_manifest_path": "test/fixtures/alias-capability/plugin/.codex-plugin/plugin.json",
+  "fixture_manifest_hash": "7834bc05d6cb26d033604afe7c1b9b7ff2448bca48d939946b2b9474107c3ad2",
+  "plugin_fingerprint": "c31b28f8ab2daa70d524984b805d498cf2fb61c5b197073eea48b3a9c9e074b4",
+  "reproduce_argv": [
+    "CODEX_HOME=$PWD/.codex-dev-home codex --version",
+    "CODEX_HOME=$PWD/.codex-dev-home codex app-server generate-json-schema --experimental --out <temporary-directory>",
+    "CODEX_HOME=$PWD/.codex-dev-home npm run migration:alias:probe"
+  ],
+  "tested_at": "2026-07-13T09:55:57+08:00",
+  "rationale": "Codex supports explicit and implicit skill invocation, but its versioned registry schema exposes no flag or API that preserves explicit invocation while excluding a skill from implicit routing. Prompt sampling cannot close that proof gap."
+}

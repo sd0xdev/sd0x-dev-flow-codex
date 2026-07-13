@@ -172,6 +172,12 @@ test('tracked composite inventory is complete, lossless, and raw-byte bound', ()
 test('tracked disposition closes package, routing, mode, alias, and rationale fields', () => {
   const disposition = trackedDisposition();
   assert.deepEqual(disposition.compatibility_alias_candidates, ALIAS_CANDIDATES);
+  assert.deepEqual(disposition.alias_policy_decision, {
+    policy: 'mapping-only',
+    codex_version: 'codex-cli 0.144.1',
+    evidence: 'migration/alias-capability.json',
+    rationale: 'The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only.'
+  });
   const aliases = new Set(ALIAS_CANDIDATES);
   const dispositions = new Set(['keep', 'port', 'adapt', 'merge', 'optional', 'retire']);
   const deliveryStates = new Set(['planned', 'candidate', 'pack-ready', 'promoted', 'retired']);

@@ -24,6 +24,7 @@
     "migration:manifest:source-check": "node scripts/generate-skill-manifest.js --check",
     "migration:disposition:init": "node scripts/initialize-skill-disposition.js",
     "migration:audit": "node scripts/skill-migration-audit.js audit-source",
+    "migration:alias:probe": "node scripts/probe-alias-capability.js --check",
     "doctor": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js doctor",
     "snapshot": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js snapshot"
   }

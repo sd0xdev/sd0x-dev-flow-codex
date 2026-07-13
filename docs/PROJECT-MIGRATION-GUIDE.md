@@ -385,6 +385,7 @@ npm run dev:unlink        # user home
 | 既有 Agent template | 否 | 否 | 是 | 否 | 是 |
 | 新增 Agent template file | 否 | 是 | 是 | 否 | 是 |
 | `.codex/sd0x-dev-flow.json` | 下一次 hook read | 否 | 啟用或 provider change 需要 | 否 | 否 |
+| `migration/alias-capability.json` 或 registry evidence | audit 下一次執行 | 否 | 重新做 capability probe 時是 | 否 | 否 |
 
 原因：overlay 只處理建立當下已存在的檔案，而且 `SKILL.md` 與 manifest 必須是 regular files；新檔與後續 entrypoint 變更不會自動出現在 cache。MCP process 與 tool registry 也綁 task lifecycle，所以 adapter 或 `.mcp.json` 更新後要開新 task。
 
@@ -397,6 +398,14 @@ npm run dev:local:status
 ```
 
 User-level 模式則使用同名的 `dev:unlink`、`dev:link`、`dev:status`。不要只重跑 `link`。
+
+重新評估 alias registry capability 時，先關閉舊 Codex process，依上方三個命令刷新 repository-only overlay，再以 `CODEX_HOME="$PWD/.codex-dev-home" codex` 開新 task。於同一 isolated home 執行：
+
+```bash
+CODEX_HOME="$PWD/.codex-dev-home" npm run migration:alias:probe
+```
+
+Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向的測試 skill 暫放到 ignored `.codex-dev-home/skills/`，拒絕 symlinked skills/tmp ancestors，擷取 versioned app-server schema與 explicit/neutral model-visible catalogs，並在 isolated ephemeral read-only turn 實際驗證 exact marker。它會 byte-for-byte 比對 freshly generated normalized dump與 committed evidence，綁定執行前後 directory manifest、hash與 file/directory inode，再把整個 owned directory原子搬入 lock-owned exclusive nonce container；搬後 identity正確才刪本次 inode，否則原位還原或保留完整 quarantine並非零退出。既有同名 skill、並行 probe、same-byte replacement、quarantine collision或途中出現的外來 path都不會被覆寫/刪除，也不接觸 user-level `CODEX_HOME`。只有輸出出現可檢查的 automatic-candidate exclusion field/API、neutral catalog實際排除 alias，且 explicit invocation仍成功時，才可另開 request 重新考慮 `manual-only`。目前 Codex `0.144.1` 的 exclusion fields 為空，所以所有 compatibility aliases永久維持 `mapping-only`。
 
 `.codex-plugin/plugin.json` 是刻意保留的 snapshot regular file。若要改 manifest version，應在修改前先 `unlink` 舊版本，再修改 source manifest 並 `link` 新版本；否則舊版本 overlay 可能留在舊 cache path，需先確認 marker ownership 再清理。
 
@@ -609,6 +618,7 @@ Reset 會保留可信 state 的 active sessions 與目前 worktree snapshot、ro
 - PreToolUse 無法攔截所有等價 shell 寫入方式。
 - Verify detector 目前只涵蓋 Node、Python、Go、Rust 的基本策略。
 - Plugin core 尚未覆蓋 Claude 版大多數 domain-specific skills，這是刻意範圍控制。
+- Codex `0.144.1` 的 skill registry 沒有可檢查的 manual-only/implicit-route exclusion flag；compatibility aliases 因此只保留 mapping，不建立 live alias skill。任何 Codex/plugin registry 變更都必須重跑 repository-only R4 probe與 version-bound audit，不能用 prompt sampling 直接升級。
 - `create-request` 已可安全建立、更新與掃描 tickets；`Completed` 只能透過 bundled runtime 的 durable `closure prepare` → runtime-owned descriptor-bound `closure apply` → docs review → `closure finalize` transaction。Pending record持久化 exact prior/proposed bytes、request 的 immutable canonical Implementation Base SHA與每個 AC location的 reconstructable content identity；base 必須是 subject HEAD ancestor，commit subject的 `base_sha` 另須完全相等。Apply 以 inode-bound durable journal與 write-all loop工作：prepare後既有或 write-boundary 使用者編輯原樣 fail closed；mutation開始後任一失敗都保留 journal，不做無法原子 CAS 的自動 rollback。Unknown bytes即使有 journal也不會自動覆寫；明確 operator 必須連同 inspected `expected_current_sha256`使用 `closure recover action=restore-prior`恢復 persisted prior後重播，或用 `action=abandon`保留 request bytes並移除 recovery ownership。Restore要求 journaled inode，先把當下 file原子移到回傳的 `.sd0x/closure-recovery/` displaced backup，再以 no-overwrite link安裝 prior，因此最後瞬間的 edit不會被銷毀；abandon可處理 editor atomic-save replacement inode；runtime不得自行選擇。Apply/recover/finalize/promotion與 low-level append只接受 unit目前最新 commit-order pending/closure revision，而且 latest closure必須消費 latest pending；mutation與 journal removal前都在 state lock內重驗。Finalize、selected audit request讀取、source/promotion payload traversal均綁 no-follow descriptor、ancestor/file identity及完整目錄 entry manifest，source audit在 ledger audit後再 hash並重驗 ledger OID。Evidence Git root discovery、metadata path、ref/history/tree reads清除 ambient repository/index selectors並綁單一 captured OID。任何 gate、subject、AC/check、path containment、ref 或 restart evidence 不符都停在 `Candidate Complete`。
 
 ## 15. Decision log

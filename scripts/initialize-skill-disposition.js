@@ -151,6 +151,12 @@ function buildDisposition(markdown) {
   return {
     schema_version: 1,
     compatibility_alias_candidates: ALIAS_CANDIDATES,
+    alias_policy_decision: {
+      policy: 'mapping-only',
+      codex_version: 'codex-cli 0.144.1',
+      evidence: 'migration/alias-capability.json',
+      rationale: 'The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only.'
+    },
     canonical_targets: canonicalTargets,
     skills: parsed
       .map(({ index, ...row }) => {

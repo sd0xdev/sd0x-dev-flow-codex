@@ -1,0 +1,6 @@
+{
+  "name": "sd0x-alias-capability-fixture",
+  "version": "0.0.0",
+  "description": "Repository-only fixture for the Foundation R4 alias registry probe.",
+  "skills": "./skills/"
+}

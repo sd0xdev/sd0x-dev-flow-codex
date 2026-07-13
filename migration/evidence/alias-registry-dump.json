@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "codex_version": "codex-cli 0.144.1",
+  "normalized": true,
+  "redactions": {
+    "absolute_paths": "removed",
+    "account_data": "removed"
+  },
+  "fixture": {
+    "alias": "r4-alias-probe",
+    "manifest_path": "test/fixtures/alias-capability/plugin/.codex-plugin/plugin.json",
+    "manifest_sha256": "7834bc05d6cb26d033604afe7c1b9b7ff2448bca48d939946b2b9474107c3ad2",
+    "skill_path": "test/fixtures/alias-capability/plugin/skills/r4-alias-probe/SKILL.md",
+    "skill_sha256": "7ce065358bdd0034f3a37e0a6972bb4fec837c31d9e041b072c94f1d64b33657"
+  },
+  "registry_schema": {
+    "source": "codex app-server generate-json-schema --experimental",
+    "skills_list_metadata_fields": [
+      "dependencies",
+      "description",
+      "enabled",
+      "interface",
+      "name",
+      "path",
+      "scope",
+      "shortDescription"
+    ],
+    "skills_list_interface_fields": [
+      "brandColor",
+      "defaultPrompt",
+      "displayName",
+      "iconLarge",
+      "iconSmall",
+      "shortDescription"
+    ],
+    "skills_config_write_fields": [
+      "enabled",
+      "name",
+      "path"
+    ],
+    "explicit_invocation_input_fields": [
+      "name",
+      "path",
+      "type"
+    ],
+    "automatic_candidate_exclusion_fields": []
+  },
+  "observations": {
+    "manual_invocation": {
+      "supported": true,
+      "selector": "$r4-alias-probe",
+      "evidence": "An isolated ephemeral read-only codex exec returned the exact R4_ALIAS_PROBE_INVOKED fixture marker."
+    },
+    "implicit_routing": {
+      "candidate_source": "Every enabled skill description in the model-visible skill catalog",
+      "evidence": "Official Codex documentation states that implicit invocation matches the skill description."
+    },
+    "manual_only_exclusion": {
+      "supported": false,
+      "inspectable_mechanism": null,
+      "evidence": "SkillMetadata and SkillInterface expose no implicit-routing exclusion field; SkillsConfigWrite exposes only the whole-skill enabled flag."
+    },
+    "negative_prompt_regression": {
+      "role": "negative-only",
+      "can_upgrade_policy": false
+    },
+    "repository_probe": {
+      "explicit_selector_present": true,
+      "explicit_catalog_has_alias": true,
+      "neutral_catalog_has_alias": true,
+      "manual_invocation_marker_observed": true,
+      "user_or_account_data_retained": false,
+      "absolute_paths_retained": false
+    }
+  },
+  "conclusion": "The repository-only fixture is explicitly invokable but remains in the model-visible catalog for neutral prompts, and no inspectable registry mechanism separates explicit invocation from implicit routing candidates in this Codex version."
+}

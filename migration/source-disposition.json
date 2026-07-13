@@ -24,6 +24,12 @@
     "precommit-fast",
     "project-setup"
   ],
+  "alias_policy_decision": {
+    "policy": "mapping-only",
+    "codex_version": "codex-cli 0.144.1",
+    "evidence": "migration/alias-capability.json",
+    "rationale": "The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only."
+  },
   "canonical_targets": {
     "doctor": {
       "modes": [
