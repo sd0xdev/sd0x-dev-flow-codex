@@ -6,9 +6,13 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { readProjectConfig } = require('./config');
 const {
+  applyRequestClosure,
+  attestCommitClosureReview,
+  beginCommitClosureReview,
   markGate,
   finalizeRequestClosure,
   prepareRequestClosure,
+  recoverRequestClosure,
   recordPromotionEvidence,
   readState,
   refreshState,
@@ -22,6 +26,9 @@ const {
   claudeRequiredFlags,
   resolveClaudeExecutable
 } = require('../mcp/server');
+const {
+  beginCollaborationReview
+} = require('./collaboration');
 
 function print(value) {
   process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
@@ -223,7 +230,6 @@ function doctor(cwd, options = {}) {
     'skills/setup/scripts/setup.js',
     'templates/agents/sd0x-claude-primary-reviewer.toml',
     'templates/agents/sd0x-codex-primary-reviewer.toml',
-    'templates/agents/sd0x-reviewer.toml',
     'templates/agents/sd0x-test-reviewer.toml'
   ];
   const checks = required.map((relative) => ({
@@ -279,7 +285,11 @@ function usage() {
     '  cli.js verify',
     '  cli.js gate review <pass|fail> --evidence JSON',
     '  cli.js closure prepare --input-file PATH',
+    '  cli.js closure apply --input-file PATH',
+    '  cli.js closure recover --input-file PATH',
     '  cli.js closure finalize --input-file PATH',
+    '  cli.js closure commit-review-begin --input-file PATH',
+    '  cli.js closure commit-review-attest --input-file PATH',
     '  cli.js evidence record --input-file PATH',
     ''
   ].join('\n'));
@@ -317,6 +327,28 @@ function main(argv = process.argv.slice(2), cwd = process.cwd()) {
   }
   if (command === 'closure' && gate === 'prepare') {
     print(prepareRequestClosure(cwd, parseInput(argv)));
+    return 0;
+  }
+  if (command === 'closure' && gate === 'apply') {
+    print(applyRequestClosure(cwd, parseInput(argv)));
+    return 0;
+  }
+  if (command === 'closure' && gate === 'recover') {
+    print(recoverRequestClosure(cwd, parseInput(argv)));
+    return 0;
+  }
+  if (command === 'closure' && gate === 'commit-review-begin') {
+    const marker = beginCommitClosureReview(cwd, parseInput(argv));
+    print({
+      marker,
+      collaboration: beginCollaborationReview(cwd, {
+        commitSubjectSha256: marker.subject_sha256
+      })
+    });
+    return 0;
+  }
+  if (command === 'closure' && gate === 'commit-review-attest') {
+    print(attestCommitClosureReview(cwd, parseInput(argv)));
     return 0;
   }
   if (command === 'closure' && gate === 'finalize') {

@@ -18,6 +18,7 @@ const {
   runReviewGate
 } = require('../plugin/sd0x-dev-flow-codex/skills/review/scripts/gate');
 const {
+  beginCommitClosureReview,
   isCurrentPass,
   markGate,
   nextAction,
@@ -35,7 +36,6 @@ isolateGitEnvironment();
 
 const REVIEWERS = [
   'sd0x_codex_primary_reviewer',
-  'sd0x_reviewer',
   'sd0x_test_reviewer'
 ];
 const GATE = path.resolve(
@@ -52,7 +52,7 @@ const GATE = path.resolve(
 function passEvidence() {
   return {
     provider: 'codex',
-    reviewers: 3,
+    reviewers: 2,
     agents: REVIEWERS,
     findings: 0,
     summary: 'no actionable findings'
@@ -175,14 +175,19 @@ function appendRows(transcript, rows) {
   fs.appendFileSync(transcript, `${rows.map((row) => JSON.stringify(row)).join('\n')}\n`);
 }
 
-function cleanRows() {
+function cleanRows(commitSubjectSha256 = null) {
   return REVIEWERS.flatMap((agentType) => [
     activity(agentType),
-    finalMessage(agentType, 'No actionable findings remain.')
+    finalMessage(agentType, [
+      'No actionable findings remain.',
+      commitSubjectSha256
+        ? `Commit-Subject-SHA256: ${commitSubjectSha256}`
+        : null
+    ].filter(Boolean).join('\n'))
   ]);
 }
 
-test('collaboration adapter imports three canonical terminal reviewer results', (t) => {
+test('collaboration adapter imports two canonical terminal reviewer results', (t) => {
   const values = fixture();
   t.after(() => values.cleanup());
   const started = beginCollaborationReview(values.root, { env: values.env });
@@ -200,7 +205,7 @@ test('collaboration adapter imports three canonical terminal reviewer results', 
 
   const state = readState(values.root);
   assert.equal(state.review_agents.collaboration_round_id, started.round_id);
-  assert.equal(state.review_agents.completed.length, 3);
+  assert.equal(state.review_agents.completed.length, 2);
   assert.ok(state.review_agents.completed.every((entry) =>
     entry.outcome === 'clean' && entry.has_transcript === true
   ));
@@ -210,7 +215,45 @@ test('collaboration adapter imports three canonical terminal reviewer results', 
   assert.equal(isCurrentPass(readState(values.root), 'review'), true);
 });
 
-test('schema v6 active collaboration round migrates with explicit ownership', (t) => {
+test('collaboration adapter reviews a clean commit subject with durable identity', (t) => {
+  const values = fixture();
+  t.after(() => values.cleanup());
+  git(values.root, ['add', 'app.js']);
+  commit(values.root, 'implementation');
+  const subject = {
+    kind: 'commit',
+    base_sha: String(git(values.root, ['rev-parse', 'HEAD^'])).trim(),
+    head_sha: String(git(values.root, ['rev-parse', 'HEAD'])).trim(),
+    tree_sha: String(git(values.root, ['rev-parse', 'HEAD^{tree}'])).trim()
+  };
+  const closure = beginCommitClosureReview(values.root, subject);
+  const started = beginCollaborationReview(values.root, {
+    env: values.env,
+    commitSubjectSha256: closure.subject_sha256
+  });
+  assert.equal(started.available, true);
+  assert.equal(started.fingerprint, 'clean');
+  assert.equal(started.commit_subject_sha256, closure.subject_sha256);
+  const repeatedClosure = beginCommitClosureReview(values.root, subject);
+  const repeatedRound = beginCollaborationReview(values.root, {
+    env: values.env,
+    commitSubjectSha256: repeatedClosure.subject_sha256
+  });
+  assert.equal(repeatedClosure.generation, closure.generation);
+  assert.equal(repeatedRound.round_id, started.round_id);
+  assert.equal(repeatedRound.reused, true);
+  assert.equal(readState(values.root).review_agents.started.length, 2);
+
+  appendRows(values.transcript, cleanRows(closure.subject_sha256));
+  const imported = importCollaborationReview(values.root, { env: values.env });
+  assert.equal(imported.imported, true);
+  assert.equal(readState(values.root).review_agents.completed.length, 2);
+  const gated = runGate(values);
+  assert.equal(gated.status, 0, gated.stderr);
+  assert.equal(isCurrentPass(readState(values.root), 'review'), true);
+});
+
+test('schema v6 active collaboration round invalidates pre-two-view ownership', (t) => {
   const values = fixture();
   t.after(() => values.cleanup());
   const started = beginCollaborationReview(values.root, { env: values.env });
@@ -218,37 +261,55 @@ test('schema v6 active collaboration round migrates with explicit ownership', (t
   const legacy = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   legacy.schema_version = 6;
   delete legacy.review_agents.collaboration_round_id;
+  legacy.review_agents.started.push({
+    agent_id: `collaboration:${started.round_id}:sd0x_reviewer`,
+    agent_type: 'sd0x_reviewer',
+    recorded_at: new Date().toISOString()
+  });
   fs.writeFileSync(statePath, JSON.stringify(legacy));
 
   const migrated = readState(values.root);
-  assert.equal(migrated.review_agents.collaboration_round_id, started.round_id);
-  appendRows(values.transcript, cleanRows());
-  assert.equal(importCollaborationReview(values.root, {
-    env: values.env
-  }).imported, true);
-  const gated = runGate(values);
-  assert.equal(gated.status, 0, gated.stderr);
+  assert.equal(migrated.review_agents.collaboration_round_id, null);
+  assert.deepEqual(migrated.review_agents.started, []);
+  assert.deepEqual(migrated.review_agents.completed, []);
+  assert.equal(migrated.gates.review.status, 'pending');
 });
 
-test('schema v6 imported collaboration round migrates with explicit ownership', (t) => {
+test('schema v6 imported three-view round invalidates gates and results', (t) => {
   const values = fixture();
   t.after(() => values.cleanup());
   const started = beginCollaborationReview(values.root, { env: values.env });
   appendRows(values.transcript, cleanRows());
   importCollaborationReview(values.root, { env: values.env });
+  markGate(values.root, 'review', 'pass', passEvidence());
   const statePath = resolveStatePath(values.root);
   const legacy = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   legacy.schema_version = 6;
   delete legacy.review_agents.collaboration_round_id;
+  legacy.gates.review.evidence.reviewers = 3;
+  legacy.gates.review.evidence.agents = [
+    'sd0x_codex_primary_reviewer',
+    'sd0x_reviewer',
+    'sd0x_test_reviewer'
+  ];
+  legacy.review_agents.completed.push({
+    agent_id: `collaboration-result:${started.round_id}:legacy-implementation`,
+    agent_type: 'sd0x_reviewer',
+    recorded_at: new Date().toISOString(),
+    started_at: new Date().toISOString(),
+    result_sha256: '3'.repeat(64),
+    outcome: 'clean',
+    has_transcript: true
+  });
   fs.writeFileSync(statePath, JSON.stringify(legacy));
 
   const migrated = readState(values.root);
-  assert.equal(migrated.review_agents.collaboration_round_id, started.round_id);
-  const gated = runGate(values);
-  assert.equal(gated.status, 0, gated.stderr);
+  assert.equal(migrated.review_agents.collaboration_round_id, null);
+  assert.deepEqual(migrated.review_agents.completed, []);
+  assert.equal(migrated.gates.review.status, 'pending');
 });
 
-test('schema v6 migration preserves ordered completed-round history', (t) => {
+test('schema v6 migration discards ordered completed-round history', (t) => {
   const values = fixture();
   t.after(() => values.cleanup());
   beginCollaborationReview(values.root, { env: values.env });
@@ -265,9 +326,9 @@ test('schema v6 migration preserves ordered completed-round history', (t) => {
   fs.writeFileSync(statePath, JSON.stringify(legacy));
 
   const migrated = readState(values.root);
-  assert.equal(migrated.review_agents.collaboration_round_id, second.round_id);
-  assert.equal(migrated.review_agents.completed.length, 6);
-  assert.equal(isCurrentPass(migrated, 'review'), true);
+  assert.equal(migrated.review_agents.collaboration_round_id, null);
+  assert.deepEqual(migrated.review_agents.completed, []);
+  assert.equal(isCurrentPass(migrated, 'review'), false);
 });
 
 test('schema v6 migration invalidates conflicting active collaboration rounds', (t) => {
@@ -304,8 +365,6 @@ test('collaboration adapter rejects interrupted, forged, and missing reviewers',
     activity(REVIEWERS[1]),
     activity(REVIEWERS[1], 'interrupted', '2'),
     finalMessage(REVIEWERS[1], 'No actionable findings remain.'),
-    activity(REVIEWERS[2]),
-    finalMessage(REVIEWERS[2], 'No actionable findings remain.')
   ]);
   assert.throws(
     () => importCollaborationReview(values.root, { env: values.env }),
@@ -593,7 +652,7 @@ test('a new collaboration round suspends an existing review pass', (t) => {
   beginCollaborationReview(values.root, { env: values.env });
   const state = readState(values.root);
   assert.equal(isCurrentPass(state, 'review'), false);
-  assert.equal(state.review_agents.started.length, 3);
+  assert.equal(state.review_agents.started.length, 2);
   assert.deepEqual(nextAction(state), {
     action: 'review',
     reason: 'review-in-progress'
@@ -835,7 +894,7 @@ test('delayed import cannot reclaim ownership from a completed successor round',
       expected_round_id: first.round_id
     }, {
       provider: first.provider,
-      reviewers: 3,
+      reviewers: 2,
       agents: REVIEWERS,
       findings: 1,
       summary: 'delayed superseded round failure'
@@ -929,7 +988,7 @@ test('conditional collaboration failure never binds to edited bytes', (t) => {
     }
   }, {
     provider: 'codex',
-    reviewers: 3,
+    reviewers: 2,
     agents: REVIEWERS,
     findings: 1,
     summary: 'collaboration evidence changed'
@@ -964,7 +1023,7 @@ test('failed gate evidence retains the round boundary for a corrected retry', (t
   const invalid = runGate(values, {
     provider: 'codex',
     reviewers: 2,
-    agents: REVIEWERS.slice(0, 2),
+    agents: REVIEWERS.slice(0, 1),
     findings: 0
   });
   assert.notEqual(invalid.status, 0);
@@ -994,7 +1053,7 @@ test('collaboration findings remain blocking and malformed JSONL fails closed', 
   assert.equal(imported.results[1].outcome, 'findings');
   assert.throws(() => markGate(values.root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 3,
+    reviewers: 2,
     agents: REVIEWERS,
     findings: 0
   }), /unresolved findings|terminal findings|clean terminal results/);

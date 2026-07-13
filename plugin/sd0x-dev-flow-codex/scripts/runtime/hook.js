@@ -9,6 +9,7 @@ const {
   clearSetupDeferral,
   clearSessionActivationFailure,
   consumeSetupDeferral,
+  commitClosureReviewerContext,
   discardExternalReviewStart,
   nextAction,
   readState,
@@ -221,8 +222,8 @@ function handle(eventName, input) {
       'sd0x Dev Flow is active.',
       'Completion gates are tied to the exact worktree fingerprint.',
       projectConfig.review.provider === 'claude'
-        ? 'Use the Claude-wrapper primary subagent plus two independent Codex reviewer subagents; the Claude MCP call must happen inside its wrapper.'
-        : 'Use the gpt-5.6-sol xhigh Codex primary subagent plus two independent gpt-5.6-sol xhigh Codex reviewer subagents; do not call Claude.',
+        ? 'Use the Claude-wrapper primary subagent plus one independent Codex test reviewer subagent; the Claude MCP call must happen inside its wrapper.'
+        : 'Use the gpt-5.6-sol xhigh Codex primary subagent plus one independent gpt-5.6-sol xhigh Codex test reviewer subagent; do not call Claude.',
       'Use the deterministic verify runner for tests.',
       pendingMessage(state, sessionId)
     ].join(' ')));
@@ -276,8 +277,9 @@ function handle(eventName, input) {
     } else if (input.agent_type === 'sd0x_claude_primary_reviewer') {
       focus = 'Call the Claude MCP exactly once for the supplied root and fingerprint, then validate and relay its structured result.';
     }
+    const commitContext = commitClosureReviewerContext(cwd);
     emit(contextOutput(eventName,
-      `Stay read-only and review only the current worktree changes. ${focus} Return concrete actionable findings with file and line references; say explicitly when no findings remain.`));
+      `Stay read-only. ${commitContext || 'Review only the current worktree changes.'} ${focus} Return concrete actionable findings with file and line references; say explicitly when no findings remain.`));
     return;
   }
 

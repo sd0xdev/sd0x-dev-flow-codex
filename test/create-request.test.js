@@ -558,6 +558,17 @@ test('create-request payload is Codex-native, concise, and closure-safe', () => 
   assert.match(skill, /60 seconds/);
   assert.match(skill, /file:line/);
   assert.match(skill, /highest writable state is[\s\S]*Candidate Complete/i);
-  assert.match(skill, /durable[\s\S]*request-closure operation/i);
-  assert.ok(fs.existsSync(path.join(path.dirname(skillPath), 'references', 'request-format.md')));
+  assert.match(skill, /closure prepare[\s\S]*closure finalize/i);
+  const referencePath = path.join(path.dirname(skillPath), 'references', 'request-format.md');
+  assert.ok(fs.existsSync(referencePath));
+  const reference = fs.readFileSync(referencePath, 'utf8');
+  assert.match(reference, /Durable closure[\s\S]*two-perspective review/i);
+  assert.match(reference, /pending_record_sha256[\s\S]*supersedes_record_sha256/i);
+  assert.match(reference, /path:line/);
+  assert.match(reference, /at least one evidence location outside the request/i);
+  assert.match(reference,
+    /Legacy pending records[\s\S]*schema-v2[\s\S]*cannot be[\s\S]*newly applied or finalized/i);
+  assert.match(reference, /Recovery remains available[\s\S]*legacy apply journal/i);
+  assert.match(reference, /there is no automatic rollback/i);
+  assert.doesNotMatch(reference, /failed truncate\/write\/fsync[^.]*restores the exact prior/i);
 });

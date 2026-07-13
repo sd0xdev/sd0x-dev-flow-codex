@@ -85,6 +85,24 @@ test('snapshot includes staged changes hidden by HEAD-matching worktree content'
   assert.equal(current.requires_review, true);
 });
 
+test('snapshot ignores an ambient alternate Git index', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'README.md'), '# Real staged change\n');
+  git(root, ['add', 'README.md']);
+  const alternateIndex = path.join(root, '.git', 'alternate-index');
+  process.env.GIT_INDEX_FILE = alternateIndex;
+  try {
+    git(root, ['read-tree', 'HEAD']);
+    const current = snapshot(root);
+    assert.notEqual(current.fingerprint, 'clean');
+    assert.deepEqual(current.files, ['README.md']);
+  } finally {
+    delete process.env.GIT_INDEX_FILE;
+    fs.rmSync(alternateIndex, { force: true });
+  }
+});
+
 test('snapshot includes a staged new file deleted from the worktree', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

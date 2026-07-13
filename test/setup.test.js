@@ -58,10 +58,6 @@ test('setup preserves user guidance and is idempotent', (t) => {
       fs.realpathSync(path.join(root, '.git'))
     )
   );
-  const implementationAgent = fs.readFileSync(
-    path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml'),
-    'utf8'
-  );
   const testAgent = fs.readFileSync(
     path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
     'utf8'
@@ -77,14 +73,15 @@ test('setup preserves user guidance and is idempotent', (t) => {
   assert.match(codexPrimaryAgent, /model = "gpt-5\.6-sol"/);
   assert.match(codexPrimaryAgent, /model_reasoning_effort = "xhigh"/);
   assert.match(claudePrimaryAgent, /mcp__sd0x_claude_review__review_worktree/);
-  assert.match(implementationAgent, /performance, resource growth/);
-  assert.match(implementationAgent, /model = "gpt-5\.6-sol"/);
-  assert.match(implementationAgent, /model_reasoning_effort = "xhigh"/);
-  assert.match(implementationAgent, /intentional design/);
+  assert.equal(fs.existsSync(path.join(
+    root, '.codex', 'agents', 'sd0x-reviewer.toml'
+  )), false);
   assert.match(testAgent, /acceptance traceability/);
   assert.match(testAgent, /model = "gpt-5\.6-sol"/);
   assert.match(testAgent, /model_reasoning_effort = "xhigh"/);
   assert.match(testAgent, /mock reasonableness/);
+  assert.match(testAgent, /independently from the configured primary reviewer/i);
+  assert.doesNotMatch(testAgent, /implementation reviewer/i);
   const projectConfig = JSON.parse(
     fs.readFileSync(path.join(root, '.codex', 'sd0x-dev-flow.json'), 'utf8')
   );
@@ -93,10 +90,9 @@ test('setup preserves user guidance and is idempotent', (t) => {
   assert.deepEqual(reviewPlan(root), {
     provider: 'codex',
     primary_agent: 'sd0x_codex_primary_reviewer',
-    reviewers: 3,
+    reviewers: 2,
     agents: [
       'sd0x_codex_primary_reviewer',
-      'sd0x_reviewer',
       'sd0x_test_reviewer'
     ],
     codex: { model: 'gpt-5.6-sol', reasoning_effort: 'xhigh' },
@@ -130,15 +126,40 @@ test('setup removes obsolete loop limits while preserving custom config', (t) =>
   assert.equal('limits' in config, false);
 });
 
-test('setup refuses to replace an unowned agent file', (t) => {
+test('setup preserves an unowned retired agent file', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const agentPath = path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml');
   fs.mkdirSync(path.dirname(agentPath), { recursive: true });
   fs.writeFileSync(agentPath, 'name = "custom"\n');
-  assert.throws(() => setup(root), /Refusing to replace unowned/);
-  assert.equal(fs.existsSync(path.join(root, 'AGENTS.md')), false);
-  assert.equal(fs.existsSync(path.join(root, '.codex', 'sd0x-dev-flow.json')), false);
+  const result = setup(root);
+  const repeated = setup(root);
+  assert.equal(fs.readFileSync(agentPath, 'utf8'), 'name = "custom"\n');
+  assert.equal(result.results.find((item) =>
+    item.file.endsWith(`${path.sep}sd0x-reviewer.toml`)
+  ).status,
+    'preserved');
+  assert.equal(repeated.results.find((item) =>
+    item.file.endsWith(`${path.sep}sd0x-reviewer.toml`)
+  ).status, 'preserved');
+  assert.equal(repeated.activation_deferred, false);
+  assert.equal(repeated.setup_claim, null);
+});
+
+test('setup removes the retired managed implementation reviewer', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const agentPath = path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml');
+  fs.mkdirSync(path.dirname(agentPath), { recursive: true });
+  fs.writeFileSync(agentPath,
+    '# Managed by sd0x-dev-flow-codex.\nname = "sd0x_reviewer"\n');
+  const result = setup(root);
+  assert.equal(fs.existsSync(agentPath), false);
+  assert.equal(result.results.find((item) =>
+    item.file.endsWith(`${path.sep}sd0x-reviewer.toml`)
+  ).status,
+    'removed');
+  assert.equal(result.activation_deferred, true);
 });
 
 test('setup preflights invalid config before writing guidance', (t) => {
@@ -243,6 +264,9 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
   assert.match(guide, new RegExp(`- ${skillCount} 個 skills：`));
   assert.match(guide, /Auto-loop 沒有固定 round 或 continuation 上限/);
   assert.match(guide, /reason: reviewer-unavailable/);
+  assert.match(guide, /runtime state schema 是 v8/);
+  assert.match(guide, /三個 `\.codex\/agents\/\*\.toml`/);
+  assert.doesNotMatch(guide, /Codex-default primary \+ dual Codex reviewers/);
   assert.match(guide, /continue: true/);
   assert.match(guide, /failed gate[^\n]+stale ledger[^\n]+保留/);
   assert.doesNotMatch(guide, /Auto-loop 必須有上限|超限時 escalation|round／continuation semantics/);
@@ -256,12 +280,17 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
   assert.match(migration, /non-blocking Stop advisory/);
   assert.match(migration, /model decides whether to continue/i);
   assert.doesNotMatch(migration, /Automation must persist until/);
+  assert.doesNotMatch(migration, /primary, implementation, and test agents/i);
+  assert.doesNotMatch(migration, /independent implementation and test review/i);
   assert.match(toolkitSpec, new RegExp(`目標 repository 只有 ${skillCount} 個核心 skills`));
   assert.match(toolkitSpec, new RegExp(`\\| Skills \\| 100 \\| ${skillCount} \\|`));
   assert.match(toolkitSpec, /Current Codex skills are[^\n]+`reset`/);
+  assert.doesNotMatch(toolkitSpec, /Configured primary \+ dual Codex review/);
+  assert.doesNotMatch(toolkitSpec, /configured primary \+ dual Codex review/);
+  assert.doesNotMatch(toolkitSpec, /primary \+ 兩個 native Codex perspectives/);
   assert.match(readme, /\.codex\/agents\/sd0x-codex-primary-reviewer\.toml/);
   assert.match(readme, /sd0x-claude-primary-reviewer\.toml/);
-  assert.match(readme, /sd0x-reviewer\.toml/);
+  assert.match(readme, /移除舊的 setup-managed `sd0x-reviewer\.toml`/);
   assert.match(readme, /sd0x-test-reviewer\.toml/);
   assert.doesNotMatch(readme, /\.codex\/agents\/sd0x_reviewer\.toml|sd0x_test_reviewer\.toml/);
 });

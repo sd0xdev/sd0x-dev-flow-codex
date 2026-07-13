@@ -22,7 +22,7 @@ const BLOCK = `${START}
 - Before completing code or configuration changes, run \`$sd0x-dev-flow-codex:review\`, then \`$sd0x-dev-flow-codex:verify\`.
 - For documentation-only changes, review is required but deterministic verification is optional.
 - After any fix, rerun review because the previous gate belongs to the previous fingerprint.
-- Run the configured \`sd0x_codex_primary_reviewer\` or \`sd0x_claude_primary_reviewer\` plus \`sd0x_reviewer\` and \`sd0x_test_reviewer\` in parallel; keep every perspective independent and read-only.
+- Run the configured \`sd0x_codex_primary_reviewer\` or \`sd0x_claude_primary_reviewer\` plus \`sd0x_test_reviewer\` in parallel; keep both perspectives independent and read-only.
 - Never claim a gate passed without recording evidence through the plugin runtime.
 ${END}`;
 
@@ -58,6 +58,14 @@ function assertAgentOwnership(destination, desiredContent) {
   if (existing !== desiredContent && !existing.startsWith(MANAGED_MARKER)) {
     throw new Error(`Refusing to replace unowned agent file: ${destination}`);
   }
+}
+
+function removeRetiredManagedAgent(destination) {
+  if (!fs.existsSync(destination)) return 'unchanged';
+  const existing = fs.readFileSync(destination, 'utf8');
+  if (!existing.startsWith(MANAGED_MARKER)) return 'preserved';
+  fs.rmSync(destination);
+  return 'removed';
 }
 
 function projectConfig(existing) {
@@ -106,7 +114,6 @@ function setup(cwd = process.cwd()) {
   const agentPlans = [
     'sd0x-codex-primary-reviewer.toml',
     'sd0x-claude-primary-reviewer.toml',
-    'sd0x-reviewer.toml',
     'sd0x-test-reviewer.toml'
   ].map((name) => ({
     source: path.join(pluginRoot, 'templates', 'agents', name),
@@ -122,6 +129,11 @@ function setup(cwd = process.cwd()) {
   }, {
     file: configPath,
     status: writeIfChanged(configPath, desiredConfig)
+  }, {
+    file: path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml'),
+    status: removeRetiredManagedAgent(path.join(
+      root, '.codex', 'agents', 'sd0x-reviewer.toml'
+    ))
   }];
 
   for (const plan of agentPlans) {
@@ -133,10 +145,12 @@ function setup(cwd = process.cwd()) {
 
   const activationFiles = new Set([
     configPath,
+    path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml'),
     ...agentPlans.map((plan) => plan.destination)
   ]);
   const activationDeferred = results.some((item) =>
-    activationFiles.has(item.file) && item.status !== 'unchanged'
+    activationFiles.has(item.file) &&
+      !['unchanged', 'preserved'].includes(item.status)
   );
   const claimToken = activationDeferred ? markSetupDeferral(root) : null;
 
@@ -167,6 +181,7 @@ module.exports = {
   START,
   assertAgentOwnership,
   projectConfig,
+  removeRetiredManagedAgent,
   setup,
   updateManagedBlock
 };

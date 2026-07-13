@@ -17,10 +17,52 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-function writeJson(filePath, value) {
-  const temporary = `${filePath}.${process.pid}.tmp`;
-  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: 'wx' });
-  fs.renameSync(temporary, filePath);
+function replaceFilesTransaction(entries, hooks = {}) {
+  const transaction = crypto.randomUUID();
+  const prepared = entries.map((entry, index) => ({
+    ...entry,
+    prior: fs.readFileSync(entry.path),
+    temporary: `${entry.path}.${process.pid}.${transaction}.${index}.tmp`
+  }));
+  let installed = 0;
+  try {
+    for (const entry of prepared) {
+      fs.writeFileSync(entry.temporary, entry.bytes, { flag: 'wx' });
+    }
+    for (const [index, entry] of prepared.entries()) {
+      if (typeof hooks.beforeInstall === 'function') {
+        hooks.beforeInstall({ index, path: entry.path });
+      }
+      fs.renameSync(entry.temporary, entry.path);
+      installed += 1;
+    }
+  } catch (error) {
+    let rollbackError = null;
+    const rollbackArtifacts = [];
+    for (let index = installed - 1; index >= 0; index -= 1) {
+      const entry = prepared[index];
+      const rollback = `${entry.path}.${process.pid}.${transaction}.${index}.rollback`;
+      try {
+        fs.writeFileSync(rollback, entry.prior, { flag: 'wx' });
+        if (typeof hooks.beforeRollbackInstall === 'function') {
+          hooks.beforeRollbackInstall({ index, path: entry.path, rollback });
+        }
+        fs.renameSync(rollback, entry.path);
+      } catch (failure) {
+        rollbackError ||= failure;
+        if (fs.existsSync(rollback)) rollbackArtifacts.push(rollback);
+      }
+    }
+    if (rollbackError) {
+      throw new Error(
+        `${error.message}; version rollback failed: ${rollbackError.message}; ` +
+        `prior bytes retained at: ${rollbackArtifacts.join(', ') || 'unavailable'}`
+      );
+    }
+    throw error;
+  } finally {
+    for (const entry of prepared) fs.rmSync(entry.temporary, { force: true });
+  }
 }
 
 function releasePaths(root = ROOT) {
@@ -29,6 +71,7 @@ function releasePaths(root = ROOT) {
     root,
     packagePath: path.join(root, 'package.json'),
     marketplacePath: path.join(root, '.agents', 'plugins', 'marketplace.json'),
+    migrationGuidePath: path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
     pluginRoot,
     manifestPath: path.join(pluginRoot, '.codex-plugin', 'plugin.json')
   };
@@ -254,15 +297,33 @@ function checkRelease(root = ROOT) {
   };
 }
 
-function setVersion(version, root = ROOT) {
+function setVersion(version, root = ROOT, hooks = {}) {
   parseVersion(version);
   const paths = releasePaths(root);
   const packageJson = readJson(paths.packagePath);
   const manifest = readJson(paths.manifestPath);
+  const migrationGuide = fs.readFileSync(paths.migrationGuidePath, 'utf8');
+  const documentedVersion =
+    /> Codex 版本：`sd0x-dev-flow-codex` `([^`]+)`/;
+  assert(documentedVersion.test(migrationGuide),
+    'migration guide must contain the documented Codex version');
   packageJson.version = version;
   manifest.version = version;
-  writeJson(paths.packagePath, packageJson);
-  writeJson(paths.manifestPath, manifest);
+  const updatedGuide = migrationGuide.replace(
+    documentedVersion,
+    `> Codex 版本：\`sd0x-dev-flow-codex\` \`${version}\``
+  );
+  replaceFilesTransaction([
+    {
+      path: paths.packagePath,
+      bytes: `${JSON.stringify(packageJson, null, 2)}\n`
+    },
+    {
+      path: paths.manifestPath,
+      bytes: `${JSON.stringify(manifest, null, 2)}\n`
+    },
+    { path: paths.migrationGuidePath, bytes: updatedGuide }
+  ], hooks);
   return checkRelease(root);
 }
 

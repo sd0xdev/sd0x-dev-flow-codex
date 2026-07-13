@@ -10,12 +10,12 @@ function reviewPlan(cwd = process.cwd()) {
   const primaryAgent = provider === 'claude'
     ? 'sd0x_claude_primary_reviewer'
     : 'sd0x_codex_primary_reviewer';
-  const agents = [primaryAgent, 'sd0x_reviewer', 'sd0x_test_reviewer'];
+  const agents = [primaryAgent, 'sd0x_test_reviewer'];
   if (provider === 'claude') agents.push('claude_mcp_primary');
   return {
     provider,
     primary_agent: primaryAgent,
-    reviewers: 3,
+    reviewers: 2,
     agents,
     codex: {
       model: 'gpt-5.6-sol',

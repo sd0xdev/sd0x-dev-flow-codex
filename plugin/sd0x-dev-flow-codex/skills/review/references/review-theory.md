@@ -26,7 +26,7 @@ are preserved from `sd0x-dev-flow`'s `codex-invocation`, `auto-loop`,
 - Persist the loop through review and deterministic verification; saying that a
   review should run is not evidence that it ran.
 
-Codex-native intentional differences are stricter and explicit: all three
+Codex-native intentional differences are stricter and explicit: both
 perspectives are blocking, P0/P1/P2 all block, Nits are excluded, provider and
 worktree fingerprint changes invalidate evidence, and no degraded pass exists.
 Instead of the source workflow's fixed round cap and stateful-primary shortcut,
@@ -43,9 +43,8 @@ escape hatch for stale runtime evidence and never bypasses a gate.
    by this worktree, but follow dependencies far enough to prove the runtime
    effect. Evidence may live in unchanged surrounding code.
 3. **Orthogonal perspectives.** The configured Codex or Claude primary covers
-   both implementation and tests; native Codex reviewers independently
-   emphasize implementation risk and test/acceptance adequacy. Their union is
-   the useful result.
+   implementation and tests; the native Codex test reviewer independently
+   emphasizes test and acceptance adequacy. Their union is the useful result.
 4. **Impact-based severity.** Severity describes credible user or engineering
    impact, not reviewer confidence. Unverified suspicions are omitted rather
    than downgraded.
@@ -54,7 +53,7 @@ escape hatch for stale runtime evidence and never bypasses a gate.
    violated invariant or root cause, actionable recommendation, and regression
    protection without exposing secrets.
 6. **Convergence is re-observation.** Fixing is not verifying. Any edit changes
-   the fingerprint and requires all three perspectives to review again.
+   the fingerprint and requires both perspectives to review again.
 7. **Fail closed.** A missing, stale, malformed, cancelled, or failed reviewer
    cannot contribute clean evidence.
 
@@ -113,7 +112,7 @@ Only findings that survive all five checks are actionable.
 
 This Codex-native implementation is deliberately stricter than the source
 workflow's merge-ready sentinel: every P0/P1/P2 blocks until fixed and re-reviewed.
-All three perspectives are blocking; there is no degraded pass. Re-review starts
+Both perspectives are blocking; there is no degraded pass. Re-review starts
 with a fresh full scan on the new fingerprint. A reviewer may receive only its own
 prior finding identities as non-authoritative hypotheses so it can verify the
 root-cause fix without being anchored by another perspective.

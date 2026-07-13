@@ -51,12 +51,11 @@ function runReviewGate(status, args, cwd = process.cwd(), hooks = {}) {
           expected_round_id: imported.round_id
         }, {
           provider,
-          reviewers: 3,
+          reviewers: 2,
           agents: [
             provider === 'claude'
               ? 'sd0x_claude_primary_reviewer'
               : 'sd0x_codex_primary_reviewer',
-            'sd0x_reviewer',
             'sd0x_test_reviewer'
           ],
           findings: 1,

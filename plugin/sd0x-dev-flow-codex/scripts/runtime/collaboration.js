@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const {
   isCurrentPass,
+  commitClosureReviewIdentity,
   readState,
   recordCollaborationRoundStart,
   refreshState,
@@ -14,8 +15,8 @@ const {
 const { reviewProvider } = require('./config');
 const { findRepoRoot, snapshot } = require('./worktree');
 
-const ADAPTER = 'codex-collaboration-jsonl-v1';
-const MARKER_SCHEMA_VERSION = 1;
+const ADAPTER = 'codex-collaboration-jsonl-v2';
+const MARKER_SCHEMA_VERSION = 3;
 const MARKER_LOCK_OWNER_GRACE_MS = 1_000;
 const MARKER_LOCK_WAIT_MS = 5_000;
 
@@ -29,7 +30,6 @@ function requiredReviewers(provider) {
     provider === 'claude'
       ? 'sd0x_claude_primary_reviewer'
       : 'sd0x_codex_primary_reviewer',
-    'sd0x_reviewer',
     'sd0x_test_reviewer'
   ];
 }
@@ -165,8 +165,16 @@ function writeMarker(cwd, marker) {
 function beginCollaborationReview(cwd = process.cwd(), options = {}) {
   const root = findRepoRoot(cwd);
   const worktree = snapshot(root);
-  if (!worktree.requires_review) {
+  const commitIdentity = options.commitSubjectSha256
+    ? commitClosureReviewIdentity(root)
+    : null;
+  if (!worktree.requires_review &&
+      (!commitIdentity ||
+       commitIdentity.subject_sha256 !== options.commitSubjectSha256)) {
     return { available: false, reason: 'worktree-clean' };
+  }
+  if (worktree.requires_review && options.commitSubjectSha256) {
+    throw new Error('Commit collaboration review requires a clean tracked worktree');
   }
   const provider = reviewProvider(root);
   const state = refreshState(root);
@@ -188,6 +196,8 @@ function beginCollaborationReview(cwd = process.cwd(), options = {}) {
     round_id: roundId,
     repository_root: fs.realpathSync(root),
     fingerprint: worktree.fingerprint,
+    commit_subject_sha256: commitIdentity?.subject_sha256 || null,
+    commit_attestation_generation: commitIdentity?.generation || null,
     provider,
     runtime_epoch: state.runtime_epoch,
     parent_path: parentPath,
@@ -199,6 +209,7 @@ function beginCollaborationReview(cwd = process.cwd(), options = {}) {
     transcript_ino: transcriptStat.ino,
     started_at: new Date().toISOString()
   } : null;
+  let reusedMarker = null;
   withMarkerLock(root, () => {
     let existing;
     try {
@@ -215,7 +226,14 @@ function beginCollaborationReview(cwd = process.cwd(), options = {}) {
     if (existing && existing.repository_root === fs.realpathSync(root) &&
         existing.fingerprint === worktree.fingerprint &&
         existing.provider === provider &&
-        existing.runtime_epoch === state.runtime_epoch) {
+        existing.runtime_epoch === state.runtime_epoch &&
+        existing.commit_subject_sha256 === (commitIdentity?.subject_sha256 || null) &&
+        existing.commit_attestation_generation ===
+          (commitIdentity?.generation || null)) {
+      if (commitIdentity) {
+        reusedMarker = existing;
+        return;
+      }
       throw new Error(
         'A collaboration review round is already active for this fingerprint'
       );
@@ -231,6 +249,7 @@ function beginCollaborationReview(cwd = process.cwd(), options = {}) {
       throw new Error('Collaboration review round changed while it was starting');
     }
   });
+  if (reusedMarker) return { available: true, ...reusedMarker, reused: true };
   return marker
     ? { available: true, ...marker }
     : {
@@ -251,6 +270,7 @@ function readMarker(cwd) {
     const expected = [
       'adapter', 'fingerprint', 'parent_path', 'provider', 'repository_root',
       'reviewers', 'round_id', 'runtime_epoch', 'schema_version', 'started_at',
+      'commit_subject_sha256', 'commit_attestation_generation',
       'transcript_dev', 'transcript_ino', 'transcript_offset',
       'transcript_path', 'transcript_prefix_sha256'
     ].sort();
@@ -259,7 +279,15 @@ function readMarker(cwd) {
         typeof marker.round_id !== 'string' || !marker.round_id ||
         !['codex', 'claude'].includes(marker.provider) ||
         typeof marker.fingerprint !== 'string' ||
-        !/^[a-f0-9]{64}$/.test(marker.fingerprint) ||
+        !(/^[a-f0-9]{64}$/.test(marker.fingerprint) ||
+          (marker.fingerprint === 'clean' &&
+           /^[a-f0-9]{64}$/.test(marker.commit_subject_sha256 || ''))) ||
+        !(marker.commit_subject_sha256 === null ||
+          /^[a-f0-9]{64}$/.test(marker.commit_subject_sha256 || '')) ||
+        !(marker.commit_attestation_generation === null ||
+          /^[0-9a-f-]{36}$/i.test(marker.commit_attestation_generation || '')) ||
+        ((marker.commit_subject_sha256 === null) !==
+          (marker.commit_attestation_generation === null)) ||
         !Array.isArray(marker.reviewers) ||
         JSON.stringify(marker.reviewers) !==
           JSON.stringify(requiredReviewers(marker.provider)) ||
@@ -294,7 +322,12 @@ function payloadText(message, author, parentPath) {
   return payload || null;
 }
 
-function parseCollaborationEvents(text, reviewers, parentPath = '/root') {
+function parseCollaborationEvents(
+  text,
+  reviewers,
+  parentPath = '/root',
+  expectedCommitSubjectSha256 = null
+) {
   const reviewerSet = new Set(reviewers);
   const pending = new Map();
   const interrupted = new Set();
@@ -357,9 +390,24 @@ function parseCollaborationEvents(text, reviewers, parentPath = '/root') {
       throw new Error('Malformed collaboration terminal message');
     }
     if (!start || payload.recipient !== start.parent_path) continue;
-    const result = payloadText(payload, payload.author, start.parent_path);
+    let result = payloadText(payload, payload.author, start.parent_path);
     if (!result) continue;
-    results.push({ ...start, result });
+    if (expectedCommitSubjectSha256) {
+      const terminal = `Commit-Subject-SHA256: ${expectedCommitSubjectSha256}`;
+      const resultLines = result.split(/\r?\n/);
+      if (resultLines.at(-1) !== terminal) {
+        throw new Error(
+          `Collaboration reviewer result must end with exactly: ${terminal}`
+        );
+      }
+      result = resultLines.slice(0, -1).join('\n').trim();
+      if (!result) throw new Error('Collaboration reviewer result is empty');
+    }
+    results.push({
+      ...start,
+      result,
+      commit_subject_sha256: expectedCommitSubjectSha256
+    });
     pending.delete(payload.author);
   }
   for (const reviewer of reviewers) {
@@ -414,8 +462,14 @@ function completeCollaborationReview(cwd = process.cwd(), options = {}) {
     }
     const worktree = snapshot(root);
     const state = readState(root);
+    const commitIdentity = marker.commit_subject_sha256
+      ? commitClosureReviewIdentity(root)
+      : null;
     if ((typeof options.expectedRoundId === 'string' &&
           marker.round_id !== options.expectedRoundId) ||
+        (marker.commit_subject_sha256 &&
+          (commitIdentity?.subject_sha256 !== marker.commit_subject_sha256 ||
+           commitIdentity?.generation !== marker.commit_attestation_generation)) ||
         worktree.fingerprint !== marker.fingerprint ||
         state.runtime_epoch !== marker.runtime_epoch ||
         state.review_provider !== marker.provider ||
@@ -427,9 +481,14 @@ function completeCollaborationReview(cwd = process.cwd(), options = {}) {
     const finalMarker = readMarker(root);
     const finalState = readState(root);
     const finalWorktree = snapshot(root);
+    const finalCommitIdentity = marker.commit_subject_sha256
+      ? commitClosureReviewIdentity(root)
+      : null;
     if (!finalMarker || finalMarker.round_id !== marker.round_id ||
         finalMarker.runtime_epoch !== marker.runtime_epoch ||
         finalMarker.fingerprint !== marker.fingerprint ||
+        (marker.commit_subject_sha256 &&
+          finalCommitIdentity?.generation !== marker.commit_attestation_generation) ||
         finalState.runtime_epoch !== marker.runtime_epoch ||
         finalWorktree.fingerprint !== marker.fingerprint ||
         finalState.gates.review.status !== 'pass' ||
@@ -455,8 +514,14 @@ function importCollaborationReview(cwd = process.cwd(), options = {}) {
   }
   const worktree = snapshot(root);
   const provider = reviewProvider(root);
+  const commitIdentity = marker.commit_subject_sha256
+    ? commitClosureReviewIdentity(root)
+    : null;
   if (fs.realpathSync(root) !== marker.repository_root ||
-      worktree.fingerprint !== marker.fingerprint || provider !== marker.provider) {
+      worktree.fingerprint !== marker.fingerprint || provider !== marker.provider ||
+      (marker.commit_subject_sha256 &&
+       (commitIdentity?.subject_sha256 !== marker.commit_subject_sha256 ||
+        commitIdentity?.generation !== marker.commit_attestation_generation))) {
     throw new Error('Collaboration review marker is stale for the current worktree');
   }
   const transcriptPath = fs.realpathSync(marker.transcript_path);
@@ -478,7 +543,8 @@ function importCollaborationReview(cwd = process.cwd(), options = {}) {
   const results = parseCollaborationEvents(
     bytes.subarray(marker.transcript_offset).toString('utf8'),
     marker.reviewers,
-    marker.parent_path
+    marker.parent_path,
+    marker.commit_subject_sha256
   );
   if (typeof options.beforeRecord === 'function') options.beforeRecord();
   recordCollaborationReview(root, {
@@ -486,6 +552,8 @@ function importCollaborationReview(cwd = process.cwd(), options = {}) {
     expected_provider: marker.provider,
     expected_runtime_epoch: marker.runtime_epoch,
     expected_round_id: marker.round_id,
+    expected_commit_subject_sha256: marker.commit_subject_sha256,
+    expected_commit_attestation_generation: marker.commit_attestation_generation,
     transcript_path: transcriptPath,
     results
   });

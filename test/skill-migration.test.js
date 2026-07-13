@@ -9,6 +9,7 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const test = require('node:test');
 const {
   auditCandidate,
+  auditDeliveredPayload,
   auditSource,
   compareCheckout,
   validateRequestDag
@@ -99,7 +100,7 @@ function prepareRow(root, sourceName, options = {}) {
 }
 
 function recordPassingGates(root, suffix) {
-  const agents = ['sd0x_codex_primary_reviewer', 'sd0x_reviewer', 'sd0x_test_reviewer'];
+  const agents = ['sd0x_codex_primary_reviewer', 'sd0x_test_reviewer'];
   for (const agentType of agents) {
     const agentId = `${agentType}-${suffix}`;
     recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
@@ -111,7 +112,7 @@ function recordPassingGates(root, suffix) {
   }
   let state = markGate(root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 3,
+    reviewers: 2,
     agents,
     findings: 0,
     summary: 'fixture clean'
@@ -215,6 +216,43 @@ test('current repository passes the source, distribution, and request-DAG audit'
   assert.equal(result.disposition_rows, 100);
   assert.equal(result.external_dependencies, 36);
   assert.equal(result.requests, 4);
+});
+
+test('delivered source payload audit binds traversal and post-ledger bytes', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-delivered-payload-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-delivered-outside-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+  const relative = 'plugin/sd0x-dev-flow-codex/skills/fixture';
+  const directory = path.join(root, relative);
+  fs.mkdirSync(directory, { recursive: true });
+  fs.writeFileSync(path.join(directory, 'SKILL.md'), '# Fixture\n');
+  assert.throws(() => auditDeliveredPayload(root, relative, {
+    promotionUnitId: 'fixture/default',
+    beforeEvidenceAudit() {
+      fs.appendFileSync(path.join(directory, 'SKILL.md'), 'drift\n');
+    }
+  }), /delivered payload changed during evidence audit/);
+  fs.writeFileSync(path.join(directory, 'SKILL.md'), '# Fixture\n');
+  let evidenceOid = 'a'.repeat(40);
+  assert.throws(() => auditDeliveredPayload(root, relative, {
+    currentEvidenceOid: () => evidenceOid,
+    afterEvidenceAudit() {
+      evidenceOid = 'b'.repeat(40);
+    }
+  }, () => ({ oid: 'a'.repeat(40) })), /evidence ref changed/);
+  fs.writeFileSync(path.join(outside, 'SKILL.md'), '# Outside\n');
+  const saved = `${directory}.saved`;
+  assert.throws(() => auditDeliveredPayload(root, relative, {
+    payloadHooks: {
+      beforePayloadTraversal() {
+        fs.renameSync(directory, saved);
+        fs.symlinkSync(outside, directory);
+      }
+    }
+  }), /payload file identity changed|missing path or symlink/);
+  fs.rmSync(directory);
+  fs.renameSync(saved, directory);
 });
 
 test('source audit rejects staged bytes, disposition, attribution, markers, and discovery drift', (t) => {

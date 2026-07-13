@@ -17,7 +17,9 @@ const {
   validateRoutingContract
 } = require('./skill-routing-test');
 const {
-  auditEvidenceLedger
+  auditEvidenceLedger,
+  evidenceRefOid,
+  hashPayloadTree
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -71,6 +73,19 @@ function assert(condition, message) {
 
 function sha256(bytes) {
   return crypto.createHash('sha256').update(bytes).digest('hex');
+}
+
+function canonicalJson(value) {
+  const canonical = (item) => {
+    if (Array.isArray(item)) return item.map(canonical);
+    if (item && typeof item === 'object') {
+      return Object.fromEntries(Object.keys(item).sort().map((key) => [
+        key, canonical(item[key])
+      ]));
+    }
+    return item;
+  };
+  return `${JSON.stringify(canonical(value))}\n`;
 }
 
 function sortedUnique(values) {
@@ -699,10 +714,45 @@ function auditSource(options = {}) {
   }
   if (!options.skipDeliveredEvidence) {
     for (const [promotionUnitId, kind] of deliveredUnits) {
-      auditEvidenceLedger(root, {
+      const unitRows = disposition.skills.filter((row) =>
+        row.promotion_unit_id === promotionUnitId
+      ).map((row) => ['pack-ready', 'promoted'].includes(row.delivery_state)
+        ? { ...row, delivery_state: 'candidate' }
+        : row).sort((left, right) => BYTEWISE(left.source_name, right.source_name));
+      const dispositionEvidence = unitRows.length === 1 ? unitRows[0] : unitRows;
+      const expected = {
         promotion_unit_id: promotionUnitId,
-        kind
-      });
+        kind,
+        disposition_row_sha256: sha256(Buffer.from(canonicalJson(dispositionEvidence))),
+        request_path: unitRows[0].promotion_request
+      };
+      assert(unitRows.every((row) => row.promotion_request === expected.request_path),
+        `${promotionUnitId}: delivered rows disagree on promotion request`);
+      let payloadRelative = null;
+      if (kind === 'retirement') {
+        expected.payload_tree_sha256 = null;
+      } else {
+        const targetNames = sortedUnique(unitRows.map((row) => row.target_skill));
+        const packages = sortedUnique(unitRows.map((row) => row.target_package));
+        assert(targetNames.length === 1 && packages.length === 1,
+          `${promotionUnitId}: delivered rows disagree on target/package`);
+        payloadRelative = kind === 'promotion'
+          ? `plugin/sd0x-dev-flow-codex/skills/${targetNames[0]}`
+          : `migration/packs/${packages[0]}/${targetNames[0]}`;
+      }
+      if (payloadRelative) {
+        auditDeliveredPayload(root, payloadRelative, {
+          payloadHooks: options.payloadHooks,
+          beforeEvidenceAudit: options.beforeDeliveredEvidenceAudit,
+          promotionUnitId,
+          currentEvidenceOid: () => evidenceRefOid(root)
+        }, (payloadHash) => auditEvidenceLedger(root, {
+          ...expected,
+          payload_tree_sha256: payloadHash
+        }));
+      } else {
+        auditEvidenceLedger(root, { ...expected });
+      }
     }
   }
   const result = {
@@ -721,6 +771,28 @@ function auditSource(options = {}) {
     result.ok = result.compare.ok;
   }
   return result;
+}
+
+function auditDeliveredPayload(root, relative, options = {}, audit = () => {}) {
+  const payloadHash = hashPayloadTree(root, relative, options.payloadHooks || {});
+  if (typeof options.beforeEvidenceAudit === 'function') {
+    options.beforeEvidenceAudit({
+      promotion_unit_id: options.promotionUnitId || null,
+      payload_relative: relative
+    });
+  }
+  const auditResult = audit(payloadHash);
+  if (typeof options.afterEvidenceAudit === 'function') {
+    options.afterEvidenceAudit(auditResult);
+  }
+  if (hashPayloadTree(root, relative) !== payloadHash) {
+    throw new Error(`${options.promotionUnitId || relative}: delivered payload changed during evidence audit`);
+  }
+  if (auditResult?.oid && typeof options.currentEvidenceOid === 'function' &&
+      options.currentEvidenceOid() !== auditResult.oid) {
+    throw new Error(`${options.promotionUnitId || relative}: evidence ref changed during delivered payload audit`);
+  }
+  return payloadHash;
 }
 
 function cleanGitEnvironment() {
@@ -2151,6 +2223,7 @@ if (require.main === module) {
 module.exports = {
   BOUNDARY_MARKER,
   auditCandidate,
+  auditDeliveredPayload,
   auditSource,
   compareCheckout,
   parseArguments,

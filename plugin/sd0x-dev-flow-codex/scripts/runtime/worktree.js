@@ -21,12 +21,31 @@ const PROTECTED_PATTERNS = [
   /\.(?:key|p12|pfx|pem)$/i
 ];
 
+function cleanGitEnvironment() {
+  const env = { ...process.env };
+  for (const key of [
+    'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_COMMON_DIR', 'GIT_CONFIG_COUNT',
+    'GIT_CONFIG_PARAMETERS', 'GIT_DIR', 'GIT_INDEX_FILE', 'GIT_NAMESPACE',
+    'GIT_OBJECT_DIRECTORY',
+    'GIT_QUARANTINE_PATH', 'GIT_REPLACE_REF_BASE', 'GIT_SHALLOW_FILE',
+    'GIT_WORK_TREE'
+  ]) delete env[key];
+  for (const key of Object.keys(env)) {
+    if (/^GIT_CONFIG_(?:KEY|VALUE)_\d+$/.test(key)) delete env[key];
+  }
+  env.GIT_CONFIG_GLOBAL = require('node:os').devNull;
+  env.GIT_CONFIG_NOSYSTEM = '1';
+  env.GIT_NO_REPLACE_OBJECTS = '1';
+  return env;
+}
+
 function runGit(cwd, args, options = {}) {
-  const result = spawnSync('git', args, {
+  const result = spawnSync('git', ['--no-replace-objects', ...args], {
     cwd,
     encoding: options.encoding === undefined ? 'utf8' : options.encoding,
     maxBuffer: 64 * 1024 * 1024,
-    windowsHide: true
+    windowsHide: true,
+    env: cleanGitEnvironment()
   });
 
   if (result.status !== 0) {
@@ -84,7 +103,8 @@ function classifyFiles(files) {
 function nestedRepositoryFingerprint(directory) {
   const rootResult = spawnSync('git', ['-C', directory, 'rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
-    windowsHide: true
+    windowsHide: true,
+    env: cleanGitEnvironment()
   });
   if (rootResult.status !== 0 || !rootResult.stdout.trim()) return null;
 
@@ -98,7 +118,8 @@ function nestedRepositoryFingerprint(directory) {
 
   const headResult = spawnSync('git', ['-C', directory, 'rev-parse', 'HEAD'], {
     encoding: 'utf8',
-    windowsHide: true
+    windowsHide: true,
+    env: cleanGitEnvironment()
   });
   const head = headResult.status === 0 ? headResult.stdout.trim() : 'unborn';
   return `${head}:${snapshot(directory).fingerprint}`;
@@ -284,6 +305,7 @@ function isProtectedPath(filePath, root = process.cwd()) {
 
 module.exports = {
   classifyFiles,
+  cleanGitEnvironment,
   extractPatchPaths,
   extractToolPaths,
   findRepoRoot,

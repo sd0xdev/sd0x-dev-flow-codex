@@ -31,6 +31,9 @@ function fixture() {
     version: '0.1.0',
     private: true
   });
+  fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
+    '> Codex 版本：`sd0x-dev-flow-codex` `0.1.0`\n');
   writeJson(path.join(root, '.agents', 'plugins', 'marketplace.json'), {
     name: MARKETPLACE_NAME,
     plugins: [{
@@ -115,6 +118,77 @@ test('version setter updates package and plugin manifest together', (t) => {
       path.join(values.pluginRoot, '.codex-plugin', 'plugin.json')
     )).version,
     '2.3.4-rc.1'
+  );
+  assert.match(
+    fs.readFileSync(path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
+      'utf8'),
+    /> Codex 版本：`sd0x-dev-flow-codex` `2\.3\.4-rc\.1`/
+  );
+});
+
+test('version setter rolls back every source after each install boundary fails', (t) => {
+  for (const failAt of [0, 1, 2]) {
+    const values = fixture();
+    t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+    assert.throws(() => setVersion('2.3.4', values.root, {
+      beforeInstall({ index }) {
+        if (index === failAt) throw new Error(`injected install failure ${failAt}`);
+      }
+    }), new RegExp(`injected install failure ${failAt}`));
+    assert.equal(
+      JSON.parse(fs.readFileSync(path.join(values.root, 'package.json'))).version,
+      '0.1.0'
+    );
+    assert.equal(
+      JSON.parse(fs.readFileSync(
+        path.join(values.pluginRoot, '.codex-plugin', 'plugin.json')
+      )).version,
+      '0.1.0'
+    );
+    assert.match(
+      fs.readFileSync(path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
+        'utf8'),
+      /> Codex 版本：`sd0x-dev-flow-codex` `0\.1\.0`/
+    );
+  }
+});
+
+test('version setter preserves prior bytes when rollback installation also fails', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  let failure;
+  try {
+    setVersion('2.3.4', values.root, {
+      beforeInstall({ index }) {
+        if (index === 2) throw new Error('injected install failure');
+      },
+      beforeRollbackInstall({ index }) {
+        if (index === 1) throw new Error('injected rollback failure');
+      }
+    });
+  } catch (error) {
+    failure = error;
+  }
+  assert.match(failure?.message || '',
+    /injected install failure; version rollback failed: injected rollback failure/);
+  const pluginDirectory = path.join(values.pluginRoot, '.codex-plugin');
+  const artifacts = fs.readdirSync(pluginDirectory)
+    .filter((name) => name.endsWith('.rollback'));
+  assert.equal(artifacts.length, 1);
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(pluginDirectory, artifacts[0]))).version,
+    '0.1.0'
+  );
+  assert.match(failure.message, new RegExp(artifacts[0]));
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(values.root, 'package.json'))).version,
+    '0.1.0'
+  );
+  assert.equal(
+    JSON.parse(fs.readFileSync(
+      path.join(values.pluginRoot, '.codex-plugin', 'plugin.json')
+    )).version,
+    '2.3.4'
   );
 });
 

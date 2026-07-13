@@ -668,7 +668,6 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
     'skills/verify/scripts/verify.js',
     'templates/agents/sd0x-claude-primary-reviewer.toml',
     'templates/agents/sd0x-codex-primary-reviewer.toml',
-    'templates/agents/sd0x-reviewer.toml',
     'templates/agents/sd0x-test-reviewer.toml'
   ];
 

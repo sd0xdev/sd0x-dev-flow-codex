@@ -27,6 +27,9 @@ node "<skill-directory>/scripts/request-tool.js" resolve [--feature <key>] [--pa
 node "<skill-directory>/scripts/request-tool.js" scan
 ```
 
+Read [references/request-format.md](references/request-format.md) before every create
+or update. It owns both the ticket format and the durable closure transaction.
+
 Use the helper's canonical paths and active-request list. Never guess after a null or
 ambiguous resolution. If both a feature key and path are supplied, they must resolve
 to the same slug. The helper is query-only and never creates directories or files.
@@ -68,11 +71,16 @@ repo-relative `file:line` evidence for every `Complete`. Timeout, cancellation,
 unavailability, malformed output, missing evidence, or subject drift makes affected
 ACs inconclusive and prevents `Completed`.
 
-All-Complete, High-confidence verification may propose `Completed`, but do not write
-that transition directly unless the repository provides its configured durable
-request-closure operation. Until that operation is available, write `Candidate
-Complete` and report the closure limitation. This prevents a request edit from
-reusing evidence for the pre-edit fingerprint.
+All-Complete, High-confidence verification may propose `Completed`, but never write
+that transition directly. Use the bundled runtime's `closure prepare`, then its
+runtime-owned `closure apply` to safely write the exact proposed bytes, run the
+ordinary docs review, then use `closure finalize`. Follow the byte and evidence
+contract in the reference. If apply leaves a journal with unknown bytes, stop for an
+explicit operator choice before invoking `closure recover restore-prior|abandon`;
+bind that choice to the operator-inspected `expected_current_sha256` and never choose
+recovery automatically. Any
+missing gate, stale subject, failed AC/check, tampered ref, or restart mismatch stops
+at `Candidate Complete`.
 
 ## Update all
 

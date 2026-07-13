@@ -67,7 +67,6 @@ function passReview(root) {
   refreshState(root);
   for (const agentType of [
     'sd0x_codex_primary_reviewer',
-    'sd0x_reviewer',
     'sd0x_test_reviewer'
   ]) {
     const agentId = `${agentType}-1`;
@@ -81,10 +80,9 @@ function passReview(root) {
   }
   return markGate(root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 3,
+    reviewers: 2,
     agents: [
       'sd0x_codex_primary_reviewer',
-      'sd0x_reviewer',
       'sd0x_test_reviewer'
     ],
     findings: 0

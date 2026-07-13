@@ -22,7 +22,7 @@ Preserve the original engineering invariants, not the original command inventory
 | Slash commands | Curated plugin skills | Consolidated into nine intent-driven workflows to protect context budget. |
 | `allowed-tools` skill metadata | Runtime permissions plus narrow skill instructions | Removed because it is not the Codex skill contract. |
 | Codex MCP primary review | Configured primary subagent | Defaults to `gpt-5.6-sol`/`xhigh`; an explicit project setting selects the Claude wrapper and bundled read-only adapter. |
-| `Task` secondary reviewer | Native parallel subagents | Uses project-scoped primary, implementation, and test agents as independent Codex-orchestrated perspectives. |
+| `Task` secondary reviewer | Native parallel subagents | Uses the project-scoped configured primary and test agent as two independent Codex-orchestrated perspectives. |
 | Claude Edit/Write payload fields | Canonical Codex `apply_patch` adapter | Parses `tool_input.command` patch headers. |
 | Claude Stop loop | Codex Stop non-blocking completion advisory | The model decides whether more review/verification is warranted; exact-fingerprint gate state remains visible and cannot be claimed as passed without runtime evidence. |
 | Session state in project files | Git metadata runtime state | Keeps loop state out of the worktree. |
@@ -33,7 +33,7 @@ Preserve the original engineering invariants, not the original command inventory
 ## What Migrated
 
 - Completion guidance through SessionStart, edit, prompt, subagent, and a non-blocking Stop advisory；protected paths、activation failures and unreadable runtime state remain hard failures.
-- A Codex-first configurable primary subagent plus independent implementation and test review using observed read-only Codex subagents.
+- A Codex-first configurable primary subagent plus an independent test/acceptance review using observed read-only Codex subagents.
 - Deterministic verification with project-aware commands and recorded exit-code evidence.
 - Protected-path checks for Codex `apply_patch` operations.
 - Idempotent repository setup that preserves user-authored `AGENTS.md` content.

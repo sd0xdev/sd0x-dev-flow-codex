@@ -79,7 +79,7 @@
     ],
     "SubagentStart": [
       {
-        "matcher": "^(?:sd0x_codex_primary_reviewer|sd0x_claude_primary_reviewer|sd0x_reviewer|sd0x_test_reviewer)$",
+        "matcher": "^(?:sd0x_codex_primary_reviewer|sd0x_claude_primary_reviewer|sd0x_test_reviewer)$",
         "hooks": [
           {
             "type": "command",
@@ -91,7 +91,7 @@
     ],
     "SubagentStop": [
       {
-        "matcher": "^(?:sd0x_codex_primary_reviewer|sd0x_claude_primary_reviewer|sd0x_reviewer|sd0x_test_reviewer)$",
+        "matcher": "^(?:sd0x_codex_primary_reviewer|sd0x_claude_primary_reviewer|sd0x_test_reviewer)$",
         "hooks": [
           {
             "type": "command",
