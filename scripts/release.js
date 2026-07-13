@@ -70,6 +70,7 @@ function releasePaths(root = ROOT) {
   return {
     root,
     packagePath: path.join(root, 'package.json'),
+    aliasCapabilityPath: path.join(root, 'migration', 'alias-capability.json'),
     marketplacePath: path.join(root, '.agents', 'plugins', 'marketplace.json'),
     migrationGuidePath: path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
     pluginRoot,
@@ -141,6 +142,10 @@ function releasePlan(options) {
 
 function sha256(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+function sha256Bytes(bytes) {
+  return crypto.createHash('sha256').update(bytes).digest('hex');
 }
 
 function runGit(root, args) {
@@ -255,13 +260,23 @@ function symbolicLinks(directory) {
 function checkRelease(root = ROOT) {
   const paths = releasePaths(root);
   const packageJson = readJson(paths.packagePath);
+  const aliasCapability = readJson(paths.aliasCapabilityPath);
   const marketplace = readJson(paths.marketplacePath);
   const manifest = readJson(paths.manifestPath);
+  const migrationGuide = fs.readFileSync(paths.migrationGuidePath, 'utf8');
+  const documentedVersion =
+    /> Codex 版本：`sd0x-dev-flow-codex` `([^`]+)`/.exec(migrationGuide)?.[1];
 
   assert(SEMVER_PATTERN.test(packageJson.version), 'package.json version must be valid SemVer');
   assert(packageJson.private === true, 'the repository package must remain private');
   assert(manifest.name === PLUGIN_NAME, `manifest name must be ${PLUGIN_NAME}`);
   assert(manifest.version === packageJson.version, 'package and plugin versions must match');
+  assert(documentedVersion === packageJson.version,
+    'migration guide and package versions must match');
+  assert(
+    aliasCapability.plugin_fingerprint === sha256(paths.manifestPath),
+    'alias capability plugin fingerprint must match the plugin manifest'
+  );
   assert(manifest.repository === REPOSITORY_URL, `manifest repository must be ${REPOSITORY_URL}`);
   assert(manifest.homepage === REPOSITORY_URL, `manifest homepage must be ${REPOSITORY_URL}`);
   assert(manifest.interface?.websiteURL === REPOSITORY_URL, `manifest websiteURL must be ${REPOSITORY_URL}`);
@@ -299,16 +314,24 @@ function checkRelease(root = ROOT) {
 
 function setVersion(version, root = ROOT, hooks = {}) {
   parseVersion(version);
+  checkRelease(root);
   const paths = releasePaths(root);
   const packageJson = readJson(paths.packagePath);
+  const aliasCapability = readJson(paths.aliasCapabilityPath);
   const manifest = readJson(paths.manifestPath);
   const migrationGuide = fs.readFileSync(paths.migrationGuidePath, 'utf8');
   const documentedVersion =
     /> Codex 版本：`sd0x-dev-flow-codex` `([^`]+)`/;
   assert(documentedVersion.test(migrationGuide),
     'migration guide must contain the documented Codex version');
+  assert(
+    aliasCapability.plugin_fingerprint === sha256(paths.manifestPath),
+    'alias capability plugin fingerprint must match the current plugin manifest'
+  );
   packageJson.version = version;
   manifest.version = version;
+  const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
+  aliasCapability.plugin_fingerprint = sha256Bytes(manifestBytes);
   const updatedGuide = migrationGuide.replace(
     documentedVersion,
     `> Codex 版本：\`sd0x-dev-flow-codex\` \`${version}\``
@@ -320,9 +343,13 @@ function setVersion(version, root = ROOT, hooks = {}) {
     },
     {
       path: paths.manifestPath,
-      bytes: `${JSON.stringify(manifest, null, 2)}\n`
+      bytes: manifestBytes
     },
-    { path: paths.migrationGuidePath, bytes: updatedGuide }
+    { path: paths.migrationGuidePath, bytes: updatedGuide },
+    {
+      path: paths.aliasCapabilityPath,
+      bytes: `${JSON.stringify(aliasCapability, null, 2)}\n`
+    }
   ], hooks);
   return checkRelease(root);
 }

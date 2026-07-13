@@ -1,6 +1,6 @@
 {
   "name": "sd0x-dev-flow-codex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Codex-native engineering loop with dual review, deterministic verification, and fingerprinted completion gates.",
   "author": {
     "name": "sd0xdev"

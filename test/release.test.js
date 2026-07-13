@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -21,6 +22,31 @@ const { commit, git, initRepository } = require('./helpers/git');
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function syncAliasFingerprint(root, pluginRoot) {
+  const manifestPath = path.join(pluginRoot, '.codex-plugin', 'plugin.json');
+  const aliasPath = path.join(root, 'migration', 'alias-capability.json');
+  const aliasCapability = JSON.parse(fs.readFileSync(aliasPath));
+  aliasCapability.plugin_fingerprint = crypto.createHash('sha256')
+    .update(fs.readFileSync(manifestPath))
+    .digest('hex');
+  writeJson(aliasPath, aliasCapability);
+}
+
+function versionSourceBytes(root, pluginRoot) {
+  return [
+    path.join(root, 'package.json'),
+    path.join(pluginRoot, '.codex-plugin', 'plugin.json'),
+    path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
+    path.join(root, 'migration', 'alias-capability.json')
+  ].map((filePath) => [filePath, fs.readFileSync(filePath)]);
+}
+
+function assertSourceBytes(entries) {
+  for (const [filePath, bytes] of entries) {
+    assert.deepEqual(fs.readFileSync(filePath), bytes, filePath);
+  }
 }
 
 function fixture() {
@@ -53,6 +79,12 @@ function fixture() {
       websiteURL: REPOSITORY_URL,
       longDescription: 'Codex-first review with an optional Claude MCP primary.'
     }
+  });
+  const manifestPath = path.join(pluginRoot, '.codex-plugin', 'plugin.json');
+  writeJson(path.join(root, 'migration', 'alias-capability.json'), {
+    plugin_fingerprint: crypto.createHash('sha256')
+      .update(fs.readFileSync(manifestPath))
+      .digest('hex')
   });
   writeJson(path.join(pluginRoot, '.mcp.json'), {});
   writeJson(path.join(pluginRoot, 'hooks', 'hooks.json'), {});
@@ -124,10 +156,17 @@ test('version setter updates package and plugin manifest together', (t) => {
       'utf8'),
     /> Codex 版本：`sd0x-dev-flow-codex` `2\.3\.4-rc\.1`/
   );
+  const manifestPath = path.join(values.pluginRoot, '.codex-plugin', 'plugin.json');
+  assert.equal(
+    JSON.parse(fs.readFileSync(path.join(
+      values.root, 'migration', 'alias-capability.json'
+    ))).plugin_fingerprint,
+    crypto.createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex')
+  );
 });
 
 test('version setter rolls back every source after each install boundary fails', (t) => {
-  for (const failAt of [0, 1, 2]) {
+  for (const failAt of [0, 1, 2, 3]) {
     const values = fixture();
     t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
     assert.throws(() => setVersion('2.3.4', values.root, {
@@ -149,6 +188,13 @@ test('version setter rolls back every source after each install boundary fails',
       fs.readFileSync(path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
         'utf8'),
       /> Codex 版本：`sd0x-dev-flow-codex` `0\.1\.0`/
+    );
+    const manifestPath = path.join(values.pluginRoot, '.codex-plugin', 'plugin.json');
+    assert.equal(
+      JSON.parse(fs.readFileSync(path.join(
+        values.root, 'migration', 'alias-capability.json'
+      ))).plugin_fingerprint,
+      crypto.createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex')
     );
   }
 });
@@ -202,6 +248,52 @@ test('release check rejects mismatched versions', (t) => {
   assert.throws(() => checkRelease(values.root), /versions must match/);
 });
 
+test('release check rejects a stale migration-guide version', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const guidePath = path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md');
+  fs.writeFileSync(guidePath,
+    '> Codex 版本：`sd0x-dev-flow-codex` `0.0.9`\n');
+  assert.throws(() => checkRelease(values.root), /migration guide and package versions/);
+});
+
+test('release check rejects a stale alias capability plugin fingerprint', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const aliasPath = path.join(values.root, 'migration', 'alias-capability.json');
+  const aliasCapability = JSON.parse(fs.readFileSync(aliasPath));
+  aliasCapability.plugin_fingerprint = '0'.repeat(64);
+  writeJson(aliasPath, aliasCapability);
+  assert.throws(() => checkRelease(values.root), /alias capability plugin fingerprint/);
+});
+
+test('version setter rejects stale alias evidence before changing any source', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const aliasPath = path.join(values.root, 'migration', 'alias-capability.json');
+  const aliasCapability = JSON.parse(fs.readFileSync(aliasPath));
+  aliasCapability.plugin_fingerprint = '0'.repeat(64);
+  writeJson(aliasPath, aliasCapability);
+  const prior = versionSourceBytes(values.root, values.pluginRoot);
+
+  assert.throws(() => setVersion('2.3.4', values.root),
+    /alias capability plugin fingerprint/);
+  assertSourceBytes(prior);
+});
+
+test('version setter preflights the complete release contract without mutation', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const marketplacePath = path.join(values.root, '.agents', 'plugins', 'marketplace.json');
+  const marketplace = JSON.parse(fs.readFileSync(marketplacePath));
+  marketplace.plugins[0].policy.installation = 'BLOCKED';
+  writeJson(marketplacePath, marketplace);
+  const prior = versionSourceBytes(values.root, values.pluginRoot);
+
+  assert.throws(() => setVersion('2.3.4', values.root), /must be installable/);
+  assertSourceBytes(prior);
+});
+
 test('release check rejects metadata that presents Claude as the fixed primary', (t) => {
   const values = fixture();
   t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
@@ -210,6 +302,7 @@ test('release check rejects metadata that presents Claude as the fixed primary',
   manifest.interface.longDescription =
     'A harness that combines a Claude MCP primary review with Codex reviewers.';
   writeJson(manifestPath, manifest);
+  syncAliasFingerprint(values.root, values.pluginRoot);
 
   assert.throws(
     () => checkRelease(values.root),
