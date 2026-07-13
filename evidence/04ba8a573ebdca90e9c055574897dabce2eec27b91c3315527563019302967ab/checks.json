@@ -1,0 +1,1 @@
+{"redactor_version":"sd0x-redactor-v1","value":{"commands":[{"argv":["npm","run","migration:alias:probe"],"exit_code":0},{"argv":["npm","run","check"],"exit_code":0}]}}
