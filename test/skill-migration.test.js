@@ -851,7 +851,8 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   assert.throws(() => auditCandidate({
     root: values.root,
     candidate: 'migration/candidates/architecture',
-    target: 'architecture'
+    target: 'architecture',
+    aliasCapability: { codexVersion: 'codex-cli 0.144.1' }
   }), /stale for Codex version/);
 });
 
