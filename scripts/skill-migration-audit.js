@@ -71,6 +71,7 @@ const SHELL_GIT_ENV_MUTATION_PATTERN = /\b[A-Z_][A-Z0-9_]*(?:\[[^\]\n]+\])?\s*(?
 const FRONTMATTER_FIELDS = new Set(['name', 'description']);
 const ALIAS_CAPABILITY_PATH = 'migration/alias-capability.json';
 const ALIAS_REGISTRY_DUMP_PATH = 'migration/evidence/alias-registry-dump.json';
+const WAVE1_READINESS_PATH = 'migration/evidence/wave1-delivery-readiness.json';
 const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
 const CORE_TARGETS = Object.freeze([
   'bug-fix',
@@ -374,6 +375,120 @@ function repositoryIdentity(root) {
     head_sha: revisions[0],
     tree_sha: revisions[1]
   };
+}
+
+function validateWave1Readiness(root, disposition, options = {}) {
+  const readinessRead = readJson(root, WAVE1_READINESS_PATH,
+    'Wave 1 delivery readiness');
+  const readiness = readinessRead.value;
+  if (options.snapshotBindings instanceof Map) {
+    options.snapshotBindings.set(WAVE1_READINESS_PATH, readinessRead.bytes);
+  }
+  assertExactKeys(readiness, [
+    'schema_version', 'wave', 'implementation_subject', 'review', 'verify',
+    'reload', 'units'
+  ], 'Wave 1 delivery readiness');
+  assert(readiness.schema_version === 1 && readiness.wave === 1,
+    'Wave 1 delivery readiness schema or wave is invalid');
+
+  const subject = readiness.implementation_subject;
+  assertExactKeys(subject, ['kind', 'base_sha', 'head_sha', 'tree_sha'],
+    'Wave 1 readiness implementation subject');
+  assert(subject.kind === 'commit' &&
+      [subject.base_sha, subject.head_sha, subject.tree_sha]
+        .every((value) => /^[0-9a-f]{40}$/.test(value)),
+  'Wave 1 readiness implementation subject is invalid');
+  assert(runGit(root, ['rev-parse', '--verify', `${subject.head_sha}^{commit}`]).trim() ===
+    subject.head_sha, 'Wave 1 readiness subject commit is unavailable');
+  assert(runGit(root, ['rev-parse', '--verify', `${subject.head_sha}^{tree}`]).trim() ===
+    subject.tree_sha, 'Wave 1 readiness subject tree is stale');
+  try {
+    runGit(root, ['merge-base', '--is-ancestor', subject.base_sha, subject.head_sha]);
+    runGit(root, ['merge-base', '--is-ancestor', subject.head_sha, 'HEAD']);
+  } catch {
+    throw new Error('Wave 1 readiness subject ancestry is invalid');
+  }
+
+  const review = readiness.review;
+  assertExactKeys(review, [
+    'provider', 'agents', 'findings', 'subject_sha256', 'attested_at'
+  ], 'Wave 1 readiness review');
+  assert(review.provider === 'codex' && review.findings === 0 &&
+      JSON.stringify(review.agents) === JSON.stringify([
+        'sd0x_codex_primary_reviewer', 'sd0x_test_reviewer'
+      ]) && review.subject_sha256 === sha256(Buffer.from(canonicalJson(subject))) &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(review.attested_at),
+  'Wave 1 readiness review evidence is invalid');
+
+  const verify = readiness.verify;
+  assertExactKeys(verify, [
+    'runner', 'command', 'exit_code', 'tests', 'duration_ms', 'recorded_at'
+  ], 'Wave 1 readiness verification');
+  assert(verify.runner === 'sd0x-deterministic-v1' &&
+      verify.command === 'npm run check' && verify.exit_code === 0 &&
+      Number.isInteger(verify.tests) && verify.tests >= 390 &&
+      Number.isInteger(verify.duration_ms) && verify.duration_ms > 0 &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(verify.recorded_at),
+  'Wave 1 readiness verification evidence is invalid');
+
+  const reload = readiness.reload;
+  assertExactKeys(reload, [
+    'commands', 'exit_codes', 'local_home', 'final_state', 'copied_files',
+    'linked_files', 'user_home_touched', 'recorded_at'
+  ], 'Wave 1 readiness reload');
+  assert(JSON.stringify(reload.commands) === JSON.stringify([
+    'npm run dev:local:unlink',
+    'npm run dev:local:link',
+    'npm run dev:local:status'
+  ]) && JSON.stringify(reload.exit_codes) === JSON.stringify([0, 0, 0]) &&
+      reload.local_home === true && reload.final_state === 'linked' &&
+      Number.isInteger(reload.copied_files) && reload.copied_files > 0 &&
+      Number.isInteger(reload.linked_files) && reload.linked_files > 0 &&
+      reload.user_home_touched === false &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(reload.recorded_at),
+  'Wave 1 readiness reload evidence is invalid');
+
+  assert(readiness.units && typeof readiness.units === 'object' &&
+      !Array.isArray(readiness.units) && Object.keys(readiness.units).length > 0,
+  'Wave 1 readiness units are required');
+  for (const [promotionUnitId, unit] of Object.entries(readiness.units)) {
+    assertExactKeys(unit, [
+      'target_skill', 'target_package', 'request_path', 'payload_path',
+      'payload_tree_sha256', 'preflight_audit_fingerprint',
+      'final_audit_fingerprint', 'behavior_test_path', 'behavior_test_sha256'
+    ], `${promotionUnitId} Wave 1 readiness unit`);
+    assert(/^[a-z0-9][a-z0-9-]*\/(?:default|deep)$/.test(promotionUnitId),
+      `${promotionUnitId}: readiness promotion unit is invalid`);
+    const rows = disposition.skills.filter((row) =>
+      row.promotion_unit_id === promotionUnitId
+    );
+    const deliveryStates = unit.target_package === 'core'
+      ? new Set(['candidate', 'promoted'])
+      : new Set(['candidate', 'pack-ready']);
+    assert(rows.length > 0 && rows.every((row) =>
+      row.wave === 1 && deliveryStates.has(row.delivery_state) &&
+      row.target_skill === unit.target_skill &&
+      row.target_package === unit.target_package &&
+      row.promotion_request === unit.request_path),
+    `${promotionUnitId}: readiness unit differs from Wave 1 disposition`);
+    const expectedPayloadPath = unit.target_package === 'core'
+      ? `plugin/sd0x-dev-flow-codex/skills/${unit.target_skill}`
+      : `migration/packs/${unit.target_package}/${unit.target_skill}`;
+    assert(unit.payload_path === expectedPayloadPath,
+    `${promotionUnitId}: readiness payload path is invalid`);
+    assert(hashPayloadTree(root, unit.payload_path) === unit.payload_tree_sha256,
+      `${promotionUnitId}: readiness payload hash is stale`);
+    assert(/^[0-9a-f]{64}$/.test(unit.preflight_audit_fingerprint) &&
+      /^[0-9a-f]{64}$/.test(unit.final_audit_fingerprint) &&
+      unit.preflight_audit_fingerprint !== unit.final_audit_fingerprint,
+    `${promotionUnitId}: readiness audit fingerprints are invalid`);
+    const behavior = containedPath(root, unit.behavior_test_path, {
+      label: `${promotionUnitId} readiness behavior test`, type: 'file'
+    });
+    assert(sha256(fs.readFileSync(behavior)) === unit.behavior_test_sha256,
+      `${promotionUnitId}: readiness behavior test hash is stale`);
+  }
+  return { units: Object.keys(readiness.units).length };
 }
 
 function assertSourceTransaction(root, transaction, options = {}) {
@@ -1053,7 +1168,7 @@ function validateRequestDag(root, disposition, options = {}) {
   return { requests: records.size, promotion_owners: ownerByUnit.size };
 }
 
-function auditSourceTransaction(options = {}, initialIdentity = null) {
+function auditSourceTransaction(options = {}, initialIdentity = null, context = {}) {
   const root = path.resolve(options.root || ROOT);
   realDirectory(root, 'repository root');
   const sourceIdentity = initialIdentity || repositoryIdentity(root);
@@ -1083,6 +1198,11 @@ function auditSourceTransaction(options = {}, initialIdentity = null) {
   const sourceSnapshots = new Map();
   sourceSnapshots.set('migration/source-inventory.generated.json', inventoryRead.bytes);
   sourceSnapshots.set('migration/source-disposition.json', dispositionRead.bytes);
+  const wave1Readiness = context.candidateSandbox
+    ? { units: 0 }
+    : validateWave1Readiness(root, disposition, {
+      snapshotBindings: sourceSnapshots
+    });
   const requestManifest = {};
   const aliasCapability = validateAliasCapability(root, disposition, {
     ...(options.aliasCapability || {}),
@@ -1162,6 +1282,7 @@ function auditSourceTransaction(options = {}, initialIdentity = null) {
     alias_policy: aliasCapability.decision,
     alias_codex_version: aliasCapability.codex_version,
     durable_completion_units: deliveredUnits.size,
+    readiness_units: wave1Readiness.units,
     inventory_sha256: sha256(rawInventory)
   };
   if (options.compare) {
@@ -5704,7 +5825,7 @@ function auditCandidate(options = {}) {
     aliasCapability: options.aliasCapability,
     requestDag: options.requestDag,
     beforeSourceSnapshotRevalidation: options.beforeSourceSnapshotRevalidation
-  }, candidateIdentity);
+  }, candidateIdentity, { candidateSandbox: true });
   assert(source.ok, 'source audit must pass before candidate audit');
   if (typeof options.afterSourceAudit === 'function') options.afterSourceAudit();
   let finalGates = null;
@@ -6020,5 +6141,6 @@ module.exports = {
   validateInventory,
   validateAliasCapability,
   validateRequestDag,
-  validateMarkdownTables
+  validateMarkdownTables,
+  validateWave1Readiness
 };

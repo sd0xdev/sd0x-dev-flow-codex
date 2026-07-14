@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "wave": 1,
+  "implementation_subject": {
+    "kind": "commit",
+    "base_sha": "8e3efb425e3848cb537beda2101d16014114fe3d",
+    "head_sha": "5d3e1f20e439c1d5faf5a9eaf0584696f352eef1",
+    "tree_sha": "e679e363100334cfbdc4618a14b6b04211684cb8"
+  },
+  "review": {
+    "provider": "codex",
+    "agents": [
+      "sd0x_codex_primary_reviewer",
+      "sd0x_test_reviewer"
+    ],
+    "findings": 0,
+    "subject_sha256": "ab4a8ac9c3c2cf6c3cbc42d58c5e29ff2a306ad8498ec8006f5ea6478e6d2210",
+    "attested_at": "2026-07-14T16:23:13.683Z"
+  },
+  "verify": {
+    "runner": "sd0x-deterministic-v1",
+    "command": "npm run check",
+    "exit_code": 0,
+    "tests": 390,
+    "duration_ms": 885347,
+    "recorded_at": "2026-07-14T16:23:03.591Z"
+  },
+  "reload": {
+    "commands": [
+      "npm run dev:local:unlink",
+      "npm run dev:local:link",
+      "npm run dev:local:status"
+    ],
+    "exit_codes": [
+      0,
+      0,
+      0
+    ],
+    "local_home": true,
+    "final_state": "linked",
+    "copied_files": 13,
+    "linked_files": 32,
+    "user_home_touched": false,
+    "recorded_at": "2026-07-14T16:35:36.861Z"
+  },
+  "units": {
+    "create-request/default": {
+      "target_skill": "create-request",
+      "target_package": "core",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-create-request-promotion.md",
+      "payload_path": "plugin/sd0x-dev-flow-codex/skills/create-request",
+      "payload_tree_sha256": "312aae1ad28799e84845939ae695b1cdc6d7da5eacc95a6e2a97a94d9cf91c26",
+      "preflight_audit_fingerprint": "de3fd31182c64399a6ac6d812bf35c7cf4de26c49df2a769889fa61a7cf661b0",
+      "final_audit_fingerprint": "824370f8f04cb191e29a26f854b08e66b87b666c67d2fcf37516217952e6c027",
+      "behavior_test_path": "test/create-request-default-routing.test.js",
+      "behavior_test_sha256": "778dea62932582448564eabd3f415885d26c6a3e8f25f840fb9dfde364f5e42e"
+    }
+  }
+}

@@ -13,7 +13,8 @@ const {
   auditSource,
   compareCheckout,
   validateAliasCapability,
-  validateRequestDag
+  validateRequestDag,
+  validateWave1Readiness
 } = require('../scripts/skill-migration-audit');
 const {
   routingContractBlock,
@@ -291,6 +292,21 @@ test('current repository passes the source, distribution, and request-DAG audit'
   assert.equal(result.requests, 15);
   assert.equal(result.alias_policy, 'mapping-only');
   assert.equal(result.alias_codex_version, 'codex-cli 0.144.4');
+  assert.equal(result.readiness_units, 1);
+});
+
+test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t) => {
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const disposition = readJson(values.root, 'migration/source-disposition.json');
+  assert.deepEqual(validateWave1Readiness(values.root, disposition), { units: 1 });
+
+  const readinessPath = 'migration/evidence/wave1-delivery-readiness.json';
+  const readiness = readJson(values.root, readinessPath);
+  readiness.units['create-request/default'].payload_tree_sha256 = '0'.repeat(64);
+  writeJson(values.root, readinessPath, readiness);
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /readiness payload hash is stale/);
 });
 
 test('alias capability evidence locks every compatibility alias to mapping-only', () => {
