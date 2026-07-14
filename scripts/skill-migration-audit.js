@@ -379,6 +379,7 @@ function repositoryIdentity(root) {
 function assertSourceTransaction(root, transaction, options = {}) {
   assert(transaction && typeof transaction === 'object',
     'source transaction binding is missing');
+  if (typeof options.beforeRevalidation === 'function') options.beforeRevalidation();
   assert(JSON.stringify(requestFiles(root)) === JSON.stringify(transaction.request_manifest),
     'request file set changed during the source transaction');
   for (const [relative, bytes] of transaction.snapshots) {
@@ -396,7 +397,6 @@ function assertSourceTransaction(root, transaction, options = {}) {
   'migration staging manifest changed while auditing');
   assert(evidenceRefOid(root) === transaction.evidence_oid,
     'evidence ref changed while auditing source');
-  if (typeof options.afterReads === 'function') options.afterReads();
   const currentIdentity = repositoryIdentity(root);
   assert(canonicalJson(currentIdentity) ===
     canonicalJson(transaction.repository_identity),
@@ -5935,7 +5935,7 @@ function auditCandidate(options = {}) {
     'final audit requires a current verify pass at completion');
   }
   const completedIdentity = assertSourceTransaction(root, source._transaction, {
-    afterReads: options.afterSourceTransactionReads
+    beforeRevalidation: options.beforeSourceTransactionRevalidation
   });
   const completedTree = candidateTree(root, relative);
   assert(JSON.stringify(completedTree.files) === JSON.stringify(tree.files),

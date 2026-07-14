@@ -5121,7 +5121,7 @@ test('candidate transaction retains source external state and tree manifests', (
     root: stagingValues.root,
     candidate: stagingValues.candidate,
     target: 'architecture',
-    afterSourceAudit() {
+    beforeSourceTransactionRevalidation() {
       fs.writeFileSync(path.join(stagingValues.root,
         'migration/staging/post-source-extra.log'), 'late\n');
     }
@@ -5138,7 +5138,7 @@ test('candidate transaction retains source external state and tree manifests', (
     root: evidenceValues.root,
     candidate: evidenceValues.candidate,
     target: 'architecture',
-    afterSourceAudit() {
+    beforeSourceTransactionRevalidation() {
       git(evidenceValues.root, ['update-ref', evidenceRef, parentOid, originalOid]);
     }
   }), /evidence ref changed while auditing source/);
@@ -5147,19 +5147,19 @@ test('candidate transaction retains source external state and tree manifests', (
     root: identityValues.root,
     candidate: identityValues.candidate,
     target: 'architecture',
-    afterSourceTransactionReads() {
+    beforeSourceTransactionRevalidation() {
       const disposition = readJson(identityValues.root, 'migration/source-disposition.json');
       disposition.skills.find((row) => row.source_name === 'architecture').rationale +=
         ' Concurrent mutation.';
       writeJson(identityValues.root, 'migration/source-disposition.json', disposition);
     }
-  }), /source repository identity changed while auditing/);
+  }), /source snapshot changed while auditing|source repository identity changed while auditing/);
 
   assert.throws(() => auditCandidate({
     root: ignoredValues.root,
     candidate: ignoredValues.candidate,
     target: 'architecture',
-    afterSourceTransactionReads() {
+    beforeSourceTransactionRevalidation() {
       fs.writeFileSync(path.join(
         ignoredValues.root,
         ignoredValues.candidate,
