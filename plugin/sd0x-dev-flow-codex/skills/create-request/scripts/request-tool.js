@@ -560,6 +560,7 @@ if (require.main === module) {
 module.exports = {
   acceptanceCounts,
   containedPath,
+  markdownField,
   parseRequest,
   resolveFeature,
   scanRequests

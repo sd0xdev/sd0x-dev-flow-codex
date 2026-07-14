@@ -23,6 +23,7 @@ const {
   hashPayloadTree
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
+  markdownField,
   parseRequest
 } = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
 
@@ -775,17 +776,6 @@ function validateDistribution(root, disposition) {
   }
 }
 
-function requestMetadata(markdown) {
-  const metadata = {};
-  for (const line of markdown.replace(/\r\n/g, '\n').split('\n')) {
-    const match = /^>\s*\*\*([^*]+)\*\*:\s*(.*)$/.exec(line);
-    if (!match) continue;
-    const key = match[1].trim().toLowerCase().replace(/\s+/g, '_');
-    if (!(key in metadata)) metadata[key] = match[2].trim();
-  }
-  return metadata;
-}
-
 function metadataLinks(value) {
   if (!value || value === '—' || /^none$/i.test(value)) return [];
   return [...value.matchAll(/\[[^\]]*\]\(([^)#]+)(?:#[^)]+)?\)/g)]
@@ -828,13 +818,16 @@ function resolveRequestLink(root, from, link) {
 function validateRequestDag(root, disposition) {
   const files = requestFiles(root);
   const records = new Map();
+  const baseErrors = new Map();
   const head = runGit(root, ['rev-parse', '--verify', 'HEAD^{commit}']).trim();
   for (const relative of files) {
     const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
     const markdown = fs.readFileSync(absolute, 'utf8');
-    const metadata = requestMetadata(markdown);
-    assert(metadata.status, `${relative}: Status metadata is required`);
-    const baseSha = (metadata.implementation_base_sha || '').replace(/^`|`$/g, '');
+    const parsed = parseRequest(absolute, root, new Date(), baseErrors);
+    assert(parsed.parse_errors.length === 0,
+      `${relative}: canonical request metadata is invalid: ${parsed.parse_errors.join(', ')}`);
+    const baseSha = (markdownField(markdown, 'Implementation Base SHA') || '')
+      .replace(/^`|`$/g, '');
     assert(/^[0-9a-f]{40}$/.test(baseSha),
       `${relative}: valid Implementation Base SHA is required`);
     try {
@@ -843,18 +836,21 @@ function validateRequestDag(root, disposition) {
     } catch {
       throw new Error(`${relative}: Implementation Base SHA must be an ancestor commit of HEAD`);
     }
-    const dependencies = metadataLinks(metadata.depends_on)
+    const dependsOn = markdownField(markdown, 'Depends On');
+    const supersedesValue = markdownField(markdown, 'Supersedes');
+    const supersededByValue = markdownField(markdown, 'Superseded By');
+    const dependencies = metadataLinks(dependsOn)
       .map((link) => resolveRequestLink(root, relative, link));
-    const supersedes = metadataLinks(metadata.supersedes)
+    const supersedes = metadataLinks(supersedesValue)
       .map((link) => resolveRequestLink(root, relative, link));
-    const supersededBy = metadataLinks(metadata.superseded_by)
+    const supersededBy = metadataLinks(supersededByValue)
       .map((link) => resolveRequestLink(root, relative, link));
     assert(supersedes.length <= 1 && supersededBy.length <= 1,
       `${relative}: supersession pointers must be singular`);
     for (const [field, value, links] of [
-      ['Depends On', metadata.depends_on, dependencies],
-      ['Supersedes', metadata.supersedes, supersedes],
-      ['Superseded By', metadata.superseded_by, supersededBy]
+      ['Depends On', dependsOn, dependencies],
+      ['Supersedes', supersedesValue, supersedes],
+      ['Superseded By', supersededByValue, supersededBy]
     ]) {
       if (value && value !== '—' && !/^none$/i.test(value)) {
         assert(links.length > 0, `${relative}: ${field} must use a contained Markdown link`);
@@ -862,7 +858,7 @@ function validateRequestDag(root, disposition) {
     }
     records.set(relative, {
       relative,
-      status: metadata.status,
+      status: parsed.status.toLowerCase(),
       dependencies: sortedUnique(dependencies),
       supersedes: supersedes[0] || null,
       superseded_by: supersededBy[0] || null
@@ -876,18 +872,18 @@ function validateRequestDag(root, disposition) {
     }
     if (record.superseded_by) {
       const replacement = records.get(record.superseded_by);
-      assert(record.status === 'Superseded',
+      assert(record.status === 'superseded',
         `${record.relative}: Superseded By requires Superseded status`);
       assert(replacement?.supersedes === record.relative,
         `${record.relative}: supersession replacement is not reciprocal`);
     }
-    if (record.status === 'Superseded') {
+    if (record.status === 'superseded') {
       assert(record.superseded_by,
         `${record.relative}: Superseded status requires Superseded By`);
     }
     if (record.supersedes) {
       const prior = records.get(record.supersedes);
-      assert(prior?.status === 'Superseded' && prior.superseded_by === record.relative,
+      assert(prior?.status === 'superseded' && prior.superseded_by === record.relative,
         `${record.relative}: supersedes pointer is not reciprocal`);
     }
   }
@@ -921,7 +917,7 @@ function validateRequestDag(root, disposition) {
     if (row.promotion_request === null) continue;
     const owner = normalizeRelative(row.promotion_request, `${row.source_name}.promotion_request`);
     assert(records.has(owner), `${row.source_name}: promotion request does not exist: ${owner}`);
-    assert(records.get(owner).status !== 'Superseded',
+    assert(records.get(owner).status !== 'superseded',
       `${row.source_name}: promotion owner cannot be Superseded`);
     const priorOwner = ownerByUnit.get(row.promotion_unit_id);
     assert(!priorOwner || priorOwner === owner,
@@ -941,7 +937,7 @@ function validateRequestDag(root, disposition) {
       `${row.promotion_unit_id}: promotion rows disagree on owner or target mode`);
     detailsByUnit.set(row.promotion_unit_id, details);
     if (['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)) {
-      assert(['Completed', 'Done'].includes(records.get(owner).status),
+      assert(['completed', 'done'].includes(records.get(owner).status),
         `${row.source_name}: delivered promotion owner must be Completed`);
     }
   }

@@ -4780,6 +4780,27 @@ test('request DAG rejects cycles, invalid bases, supersession errors, and downst
   const r1 = path.join(values.root,
     'docs/features/skill-toolkit-migration/requests/2026-07-10-skill-migration-foundation-r1.md');
   const original = fs.readFileSync(r1, 'utf8');
+  const requestAuditRejects = (pattern) => {
+    assert.throws(() => validateRequestDag(values.root, disposition), pattern);
+    assert.throws(() => auditSource({ root: values.root }), pattern);
+    assert.throws(() => auditCandidate({
+      root: values.root,
+      candidate: 'migration/candidates/architecture',
+      target: 'architecture'
+    }), pattern);
+  };
+  fs.writeFileSync(r1, original
+    .replace(/^> \*\*Status\*\*:.*\n/m, '')
+    .replace(/^> \*\*Implementation Base SHA\*\*:.*\n/m, '')
+    .replace('## Background',
+      '## Background\n\n> **Status**: Completed\n> **Implementation Base SHA**: `0b24525489ee3be9413ebf0d81e140eeadcc3fe7`'));
+  requestAuditRejects(/canonical request metadata is invalid: missing-status/);
+  fs.writeFileSync(r1, original.replace(
+    /^> \*\*Status\*\*:.*$/m,
+    '> **Status**: Banana'
+  ));
+  requestAuditRejects(/canonical request metadata is invalid: invalid-status/);
+  fs.writeFileSync(r1, original);
   const r4Name = './2026-07-10-skill-alias-capability-r4.md';
   fs.writeFileSync(r1, original.replace(
     '> **Tech Spec**:',
@@ -4787,7 +4808,8 @@ test('request DAG rejects cycles, invalid bases, supersession errors, and downst
   ));
   assert.throws(() => validateRequestDag(values.root, disposition), /dependency cycle/);
   fs.writeFileSync(r1, original.replace(/`[0-9a-f]{40}`/, '`0000000000000000000000000000000000000000`'));
-  assert.throws(() => validateRequestDag(values.root, disposition), /ancestor commit/);
+  assert.throws(() => validateRequestDag(values.root, disposition),
+    /canonical request metadata is invalid: missing-implementation-base-commit/);
   const nonSuperseded = original.replace(
     /^> \*\*Status\*\*: .*$/m,
     '> **Status**: Pending'
