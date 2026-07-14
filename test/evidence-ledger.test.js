@@ -617,6 +617,12 @@ test('request closure prepare and finalize bind proposal, projection, and two re
   assert.equal(closure.record.pending_record_sha256, pending.record_sha256);
   assert.deepEqual(readEvidenceRecord(root, closure.record_sha256).record,
     closure.record);
+  assert.equal(auditEvidenceLedger(root).ok, true);
+  const closedRequest = fs.readFileSync(path.join(root, requestPath));
+  fs.appendFileSync(path.join(root, requestPath), '\npost-closure edit\n');
+  assert.throws(() => auditEvidenceLedger(root),
+    /Current request no longer matches durable completion evidence/);
+  fs.writeFileSync(path.join(root, requestPath), closedRequest);
   const restarted = finalizeRequestClosure(root, {
     pending_record_sha256: pending.record_sha256,
     recorded_at: '2026-07-12T01:02:00.000Z',
@@ -2562,7 +2568,7 @@ test('promotion records require final closure and current review/verify gates', 
   t.after(() => fs.rmSync(promotionBundle, { force: true }));
   fs.rmSync(cloneRoot, { recursive: true });
   fs.rmSync(bundleClone, { recursive: true });
-  git(path.dirname(cloneRoot), ['clone', '--quiet', root, cloneRoot]);
+  git(path.dirname(cloneRoot), ['clone', '--quiet', '--no-local', root, cloneRoot]);
   git(cloneRoot, ['fetch', 'origin', `${EVIDENCE_REF}:${EVIDENCE_REF}`]);
   assert.equal(auditEvidenceLedger(cloneRoot, {
     promotion_unit_id: 'fixture/default',
@@ -2572,7 +2578,7 @@ test('promotion records require final closure and current review/verify gates', 
     disposition_row_sha256: sha256(canonicalJson(fixtureDisposition()))
   }).selected.record_sha256, promotion.record_sha256);
   evidenceGit(root, ['bundle', 'create', promotionBundle, EVIDENCE_REF]);
-  git(path.dirname(bundleClone), ['clone', '--quiet', root, bundleClone]);
+  git(path.dirname(bundleClone), ['clone', '--quiet', '--no-local', root, bundleClone]);
   evidenceGit(bundleClone, [
     'fetch', promotionBundle, `${EVIDENCE_REF}:${EVIDENCE_REF}`
   ]);

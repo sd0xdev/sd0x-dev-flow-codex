@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target_skill": "architecture",
+  "target_package": "planning-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "architecture/default",
+      "target_mode": null,
+      "source_names": [
+        "architecture"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Create a 3-architecture.md component and data-flow design from the approved technical specification.",
+          "Document component responsibilities, integration points, and architecture decisions for the billing feature.",
+          "Update the existing feature architecture document after repository boundaries changed."
+        ],
+        "negative_boundaries": [
+          "Analyze the product problem and write feature-wide requirements.",
+          "Implement the approved architecture and modify production code.",
+          "Write a feature-level technical specification with work breakdown and test strategy."
+        ]
+      },
+      "behavior_tests": [
+        "test/architecture-default-routing.test.js"
+      ]
+    }
+  ]
+}

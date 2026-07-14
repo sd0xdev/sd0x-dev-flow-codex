@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-10
 > **Implementation Base SHA**: `0b24525489ee3be9413ebf0d81e140eeadcc3fe7`
-> **Status**: In Progress
+> **Status**: Candidate Complete
 > **Priority**: P0
 > **Depends On**: [R1 — Source Snapshot and Manifest](./2026-07-10-skill-migration-foundation-r1.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -49,7 +49,7 @@ Pinned source fidelity and Codex promotion safety are different validations. Thi
 - [x] Candidate audit supports virtual-target preflight and final live re-audit；tests prove moving into plugin invalidates preflight fingerprint and final promotion requires fresh global audit/review/verify evidence.
 - [x] Candidate audit requires sorted closed `capabilities[]`/`operations[]`、owner contract/routing tests for each catalogued target mode、well-formed Markdown tables and rejects omitted mutations or unauthorized operations；R1 seed itself passes before mode implementation.
 - [x] Distribution audit proves staging/candidates/pack-ready trees are absent from core manifest/discovery，rejects non-core rows under `plugin/`, and requires current AGENTS/MIGRATION/PROJECT-MIGRATION-GUIDE core-pack markers.
-- [ ] Tests cover malicious paths、duplicate/source drift、retire units、required base SHA metadata、owner/Superseded pointers and an acyclic request DAG with no downstream AC ownership；`npm run check` plus review/verify pass.
+- [x] Tests cover malicious paths、duplicate/source drift、retire units、required base SHA metadata、owner/Superseded pointers and an acyclic request DAG with no downstream AC ownership；`npm run check` plus review/verify pass.
 
 ## Progress
 
@@ -57,8 +57,8 @@ Pinned source fidelity and Codex promotion safety are different validations. Thi
 |---|---|---|
 | Analysis | Done | Source and candidate trust boundaries are specified |
 | Development | Done | Source、compare、candidate、distribution and request-DAG audit modes implemented |
-| Testing | Done | 16 focused fixture tests pass，including executable exact-routing registry、candidate/live coexistence、candidate/pack symlink containment、closed filesystem/network/subprocess/module classifiers、core/pack final re-audit and final-gate TOCTOU；full repository check pending latest fingerprint |
-| Acceptance | In Progress | Full check and fingerprint-bound review/verify remain |
+| Testing | Done | Migration suite passes 34/34；full `npm run check` passes 311/311，including exact routing、candidate/live coexistence、symlink containment、closed mutation/module classifiers、parser cost bounds、promotion TOCTOU and request-DAG coverage |
+| Acceptance | Candidate Complete | Two independent Codex reviewers reported no actionable findings and deterministic verification passed on fingerprint `aaac5eb07fc50807860e40ce3b7cc0860776559584066911829acef631c9b46d`；durable independent AC closure remains |
 
 ## References
 

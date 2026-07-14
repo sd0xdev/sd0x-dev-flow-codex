@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target_skill": "plan-review",
+  "target_package": "planning-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "plan-review/default",
+      "target_mode": null,
+      "source_names": [
+        "plan-review"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Critique this implementation plan for missing steps, dependency errors, risks, and weak verification.",
+          "Review the proposed execution sequence before work begins and return actionable findings.",
+          "Stress-test the rollback, validation, and decision points in this plan."
+        ],
+        "negative_boundaries": [
+          "Generate the final component architecture document for the feature.",
+          "Inspect the dirty worktree and record the fingerprint-bound code review gate.",
+          "Judge whether an existing lifecycle specification is correct and internally consistent."
+        ]
+      },
+      "behavior_tests": [
+        "test/plan-review-default-routing.test.js"
+      ]
+    }
+  ]
+}

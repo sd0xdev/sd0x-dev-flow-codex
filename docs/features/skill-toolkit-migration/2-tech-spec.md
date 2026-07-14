@@ -11,7 +11,7 @@
 
 ### 1.1 Problem
 
-Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flow` 的完整 skill 工具包。可重現 Git snapshot 有 98 個 skills / 263 files / 138 references / 25 scripts；目前 sibling 開發環境另有兩個 ignored local-only skills，共 3 files / 1 reference。Composite inventory 因此是 100 / 266 / 139 / 25；目標 repository 只有 9 個核心 skills。若逐檔直拷，Claude Code tool names、hook payload、session state、Codex MCP 角色與 mutation authorization 會在 Codex runtime 失真；若只挑少數重寫，又會遺失來源長期累積的工作流理論。
+Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flow` 的完整 skill 工具包。可重現 Git snapshot 有 98 個 skills / 263 files / 138 references / 25 scripts；目前 sibling 開發環境另有兩個 ignored local-only skills，共 3 files / 1 reference。Composite inventory 因此是 100 / 266 / 139 / 25；Wave 1 的 `req-analyze` 與 `tech-spec` final payload 已進入 gate transaction，目標 repository 只有 11 個核心 skills。若逐檔直拷，Claude Code tool names、hook payload、session state、Codex MCP 角色與 mutation authorization 會在 Codex runtime 失真；若只挑少數重寫，又會遺失來源長期累積的工作流理論。
 
 ### 1.2 Goals
 
@@ -42,13 +42,13 @@ Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flo
 
 | Metric | Composite source | Current Codex plugin | Gap |
 |---|---:|---:|---:|
-| Skills | 100 | 9 | 91 entrypoints, plus semantic merges |
+| Skills | 100 | 11 | 89 entrypoints, plus semantic merges |
 | SKILL.md lines | 16,849 | curated core | Large orchestration surface |
 | Skill payload files | 266 | bundled core only | 259 files require disposition |
 | References | 139 | review theory + existing refs | Progressive-loading migration required |
 | Bundled scripts | 25 | deterministic runtime scripts | Runtime/API audit required |
 
-Current Codex skills are `bug-fix`、`create-request`、`doctor`、`feature-dev`、`remind`、`reset`、`review`、`setup`、`verify`。其中 review 已把來源的 reviewer/auto-loop 理論改成 configured Codex-first/Claude-wrapper primary + 一個 independent native Codex test perspective，並綁定 exact worktree fingerprint 與 provider policy。R1/R2 infrastructure 已實作，R3 durable closure/ledger 已完成；R4 對 Codex `0.144.1` 的 registry capability probe 已完成並永久選定 version-bound `mapping-only` fallback；`create-request` 仍是受限 live bootstrap，正式 Wave 1 promotion evidence 由後續唯一 gate-owner ticket補齊。
+Current Codex skills are `bug-fix`、`create-request`、`doctor`、`feature-dev`、`remind`、`req-analyze`、`reset`、`review`、`setup`、`tech-spec`、`verify`。其中 review 已把來源的 reviewer/auto-loop 理論改成 configured Codex-first/Claude-wrapper primary + 一個 independent native Codex test perspective，並綁定 exact worktree fingerprint 與 provider policy。R1/R2 infrastructure 已實作，R3 durable closure/ledger 已完成；R4 對 Codex `0.144.1` 的 registry capability probe 已完成並永久選定 version-bound `mapping-only` fallback；`create-request` 仍是受限 live bootstrap，正式 Wave 1 promotion evidence 由後續唯一 gate-owner ticket補齊。
 
 Composite provenance 不把 dirty working tree 假裝成 commit：primary Git tree 固定為 98/263/138/25；`readme-i18n-sync` 與 `update-readme` 是明列 raw-byte hash 的 local overlay。R1 只能在 hashes 全部相符時匯入；完成後 overlay bytes 由本 repository 的 tracked staging 固定。
 
@@ -383,7 +383,7 @@ Resolver contract：
 
 | Priority | Input | Accepted form / basis | Result on ambiguity |
 |---:|---|---|---|
-| 0 | Explicit docs path | Repo-relative `docs/features/<slug>/` or `docs/features/<slug>/requests/<ticket>.md`；feature directory may include one trailing slash | Invalid/escaping path → fail |
+| 0 | Explicit docs path | Repo-relative `docs/features/<slug>/`、`docs/features/<slug>/1-requirements.md`、`docs/features/<slug>/2-tech-spec.md` or `docs/features/<slug>/requests/<ticket>.md`；only the feature directory may include one trailing slash | Invalid/escaping/symlinked path → fail |
 | 0 | Explicit key | `--feature <slug>`；`/^[a-z0-9][a-z0-9._-]*$/i` | Missing feature dir returns a proposed path；resolver never creates it |
 | 1 | Branch | Prefix is one of `feat/`, `feature/`, `fix/`, `docs/`；remaining first segment is `<slug>` and must match an existing feature dir | No exact match → continue cascade |
 | 2 | Changed paths | `git diff --name-only HEAD --`；unique `docs/features/<slug>/` or canonical skill-to-feature manifest mapping | Multiple features → Need Human |
@@ -698,6 +698,21 @@ Dependencies:
 | [R2 — Migration validation harness](./requests/2026-07-10-skill-migration-validators-r2.md) | Source/candidate audit modes、schema/reference/tool/routing checks、drift report | R1 |
 | [R3 — Promotion evidence ledger](./requests/2026-07-10-promotion-evidence-ledger-r3.md) | Durable per-unit completion evidence in Git metadata | R2 |
 | [R4 — Alias registry capability](./requests/2026-07-10-skill-alias-capability-r4.md) | Registry exclusion proof or permanent mapping-only fallback | R3 |
+
+Wave 1 gate-owner tickets（每票恰好一個 promotion unit）：
+
+| Promotion unit | Delivery | Request |
+|---|---|---|
+| `architecture/default` | planning-pack handoff | [Architecture pack-ready](./requests/2026-07-14-wave1-architecture-pack-ready.md) |
+| `create-request/default` | core promotion | [Create-request promotion](./requests/2026-07-14-wave1-create-request-promotion.md) |
+| `feasibility-study/default` | planning-pack handoff | [Feasibility-study pack-ready](./requests/2026-07-14-wave1-feasibility-study-pack-ready.md) |
+| `necessity-audit/default` | planning-pack handoff | [Necessity-audit pack-ready](./requests/2026-07-14-wave1-necessity-audit-pack-ready.md) |
+| `plan-review/default` | planning-pack handoff | [Plan-review pack-ready](./requests/2026-07-14-wave1-plan-review-pack-ready.md) |
+| `req-analyze/default` | core promotion | [Req-analyze promotion](./requests/2026-07-14-wave1-req-analyze-promotion.md) |
+| `request-tracking/default` | planning-pack handoff | [Request-tracking pack-ready](./requests/2026-07-14-wave1-request-tracking-pack-ready.md) |
+| `review-spec/default` | planning-pack handoff | [Review-spec pack-ready](./requests/2026-07-14-wave1-review-spec-pack-ready.md) |
+| `tech-spec/deep` | core promotion | [Tech-spec deep promotion](./requests/2026-07-14-wave1-tech-spec-deep-promotion.md) |
+| `tech-spec/default` | core promotion | [Tech-spec promotion](./requests/2026-07-14-wave1-tech-spec-promotion.md) |
 
 Foundation R1–R4 完成後，由受限 live-bootstrap `/create-request` 為 Wave 1 建立 child requests；後續 wave 採相同 just-in-time split。這些 tickets 在 R3 closure API 可用前仍不得由 skill 直接寫成 `Completed`。Request creation algorithm：
 

@@ -231,7 +231,12 @@ function appendEvidenceRevisionUnlocked(cwd, record, blobs = {}, options = {}) {
   if ((options.expected_old_oid || null) !== oldOid) {
     throw new Error('Evidence ref compare-and-swap expectation is stale');
   }
-  if (oldOid) auditEvidenceLedger(root);
+  if (oldOid) auditEvidenceLedger(root, {}, {
+    supersedingRequestUnit: record.kind === 'request-closure-pending' &&
+      record.supersedes_record_sha256
+      ? record.promotion_unit_id
+      : null
+  });
   const priorRecords = oldOid ? evidenceRecordsAt(root, oldOid) : [];
   const latestPrior = (kind) => priorRecords.filter((entry) =>
     entry.kind === kind && entry.promotion_unit_id === record.promotion_unit_id
@@ -1500,7 +1505,11 @@ function prepareRequestClosure(cwd, options, hooks = {}) {
   };
   record.record_sha256 = evidenceRecordHash(record);
   const currentEvidenceOid = evidenceRefOid(root);
-  if (currentEvidenceOid) auditEvidenceLedger(root);
+  if (currentEvidenceOid) auditEvidenceLedger(root, {}, {
+    supersedingRequestUnit: options.supersedes_record_sha256
+      ? options.promotion_unit_id
+      : null
+  });
   const existingRecord = currentEvidenceOid
     ? evidenceRecordsAt(root, currentEvidenceOid).find((entry) =>
       entry.record_sha256 === record.record_sha256
@@ -3122,6 +3131,22 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
           Date.parse(values[index - 1].recorded_at)) {
         throw new Error('Evidence revision timestamps must advance monotonically');
       }
+    }
+  }
+  for (const [key, closure] of latestRevision) {
+    if (!key.startsWith('request-closure\0')) continue;
+    const unit = key.slice('request-closure\0'.length);
+    if (hooks.supersedingRequestUnit === unit) continue;
+    const pending = latestRevision.get(`request-closure-pending\0${unit}`);
+    if (pending?.record_sha256 !== closure.pending_record_sha256) continue;
+    const request = readBoundRegularFile(root, closure.request_path, {
+      beforeRead: hooks.beforeRequestRead
+    });
+    const bytes = request.bytes;
+    if (sha256(bytes) !== closure.request_content_sha256 ||
+        sha256(canonicalJson(requestDefinition(bytes.toString('utf8')))) !==
+          closure.ac_definition_sha256 || !completedRequest(bytes.toString('utf8'))) {
+      throw new Error('Current request no longer matches durable completion evidence');
     }
   }
   const selected = expected.promotion_unit_id

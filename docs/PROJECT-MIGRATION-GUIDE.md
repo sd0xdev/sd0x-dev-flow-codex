@@ -102,7 +102,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 
 Codex core 目前刻意只包含：
 
-- 9 個 skills：`setup`、`review`、`verify`、`feature-dev`、`bug-fix`、`create-request`、`remind`、`reset`、`doctor`。
+- 11 個 skills：`setup`、`review`、`verify`、`feature-dev`、`bug-fix`、`create-request`、`req-analyze`、`remind`、`reset`、`doctor`、`tech-spec`。
 - 1 個 opt-in bundled MCP server：`sd0x_claude_review`，只在 Claude provider 中透過本機 Claude CLI 提供外部 primary 視角。
 - 3 個 project-scoped reviewer profiles：Codex primary、Claude wrapper 與 test；預設兩個實際 reviewer 都使用 Codex。
 - Session、prompt、edit、subagent 與 Stop lifecycle hooks。
@@ -587,7 +587,7 @@ Reset 會保留可信 state 的 active sessions 與目前 worktree snapshot、ro
 
 1. 是否跨 repository 普遍可用？
 2. 是否明顯改善執行品質，而非只是 prompt alias？
-3. 是否無法由現有九個 skills 組合完成？
+3. 是否無法由現有 core skills 組合完成？
 4. 是否值得永久增加 skill discovery metadata？
 5. 是否需要 Codex-native hook/subagent/tool，而不是 Claude compatibility shim？
 6. 是否有 deterministic resource 或測試可以保護其核心行為？

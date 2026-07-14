@@ -243,10 +243,10 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
     'sd0x-dev-flow-codex',
     'skills'
   );
-  const skillCount = fs.readdirSync(skillsRoot, { withFileTypes: true })
+  const skillNames = fs.readdirSync(skillsRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory() && fs.existsSync(
       path.join(skillsRoot, entry.name, 'SKILL.md')
-    )).length;
+    )).map((entry) => entry.name).sort();
   const guide = fs.readFileSync(
     path.join(repositoryRoot, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
     'utf8'
@@ -260,8 +260,29 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
     '2-tech-spec.md'
   ), 'utf8');
 
-  assert.equal(skillCount, 9);
-  assert.match(guide, new RegExp(`- ${skillCount} 個 skills：`));
+  assert.deepEqual(skillNames, [
+    'bug-fix',
+    'create-request',
+    'doctor',
+    'feature-dev',
+    'remind',
+    'req-analyze',
+    'reset',
+    'review',
+    'setup',
+    'tech-spec',
+    'verify'
+  ]);
+  const catalogNames = (text, pattern) => [...pattern.exec(text)[1]
+    .matchAll(/`([a-z0-9-]+)`/g)].map((match) => match[1]).sort();
+  const guideCatalog = /^- \d+ 個 skills：([^\n]+)$/m;
+  const specCatalog = /^Current Codex skills are ([^。\n]+)。/m;
+  assert.match(guide, guideCatalog);
+  assert.match(toolkitSpec, specCatalog);
+  assert.deepEqual(catalogNames(guide, guideCatalog), skillNames);
+  assert.deepEqual(catalogNames(toolkitSpec, specCatalog), skillNames);
+  assert.match(guide, new RegExp(`- ${skillNames.length} 個 skills：`));
+  assert.doesNotMatch(guide, /現有(?:[零一二三四五六七八九十百]+|\d+)個 skills/);
   assert.match(guide, /Auto-loop 沒有固定 round 或 continuation 上限/);
   assert.match(guide, /reason: reviewer-unavailable/);
   assert.match(guide, /runtime state schema 是 v8/);
@@ -282,8 +303,10 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
   assert.doesNotMatch(migration, /Automation must persist until/);
   assert.doesNotMatch(migration, /primary, implementation, and test agents/i);
   assert.doesNotMatch(migration, /independent implementation and test review/i);
-  assert.match(toolkitSpec, new RegExp(`目標 repository 只有 ${skillCount} 個核心 skills`));
-  assert.match(toolkitSpec, new RegExp(`\\| Skills \\| 100 \\| ${skillCount} \\|`));
+  assert.match(toolkitSpec, new RegExp(`目標 repository 只有 ${skillNames.length} 個核心 skills`));
+  assert.match(toolkitSpec, new RegExp(`\\| Skills \\| 100 \\| ${skillNames.length} \\|`));
+  assert.match(toolkitSpec,
+    /Explicit docs path[^\n]+docs\/features\/<slug>\/1-requirements\.md[^\n]+docs\/features\/<slug>\/2-tech-spec\.md/);
   assert.match(toolkitSpec, /Current Codex skills are[^\n]+`reset`/);
   assert.doesNotMatch(toolkitSpec, /Configured primary \+ dual Codex review/);
   assert.doesNotMatch(toolkitSpec, /configured primary \+ dual Codex review/);

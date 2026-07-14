@@ -4,11 +4,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 const test = require('node:test');
+const requestToolPath = process.env.SD0X_CREATE_REQUEST_TOOL ||
+  '../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool';
+const resolvedRequestToolPath = require.resolve(path.resolve(__dirname, requestToolPath));
 const {
   resolveFeature,
   scanRequests
-} = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
+} = require(resolvedRequestToolPath);
 const {
   commit,
   git,
@@ -82,12 +86,15 @@ test('explicit resolution is contained, canonical, and lists only active request
   });
   assert.deepEqual(result.active_requests.map((item) => item.title), ['Active']);
   assert.equal(resolveFeature(root, { path: 'docs/features/auth/' }).key, 'auth');
+  assert.equal(resolveFeature(root, {
+    path: 'docs/features/auth/2-tech-spec.md'
+  }).key, 'auth');
   for (const invalid of [
-    'docs/features/auth/2-tech-spec.md',
     'docs/features/auth/requests',
     'docs/features/auth/requests/'
   ]) {
-    assert.throws(() => resolveFeature(root, { path: invalid }), /feature directory|request Markdown|only a feature/);
+    assert.throws(() => resolveFeature(root, { path: invalid }),
+      /feature directory|lifecycle Markdown|request Markdown|only a feature/);
   }
   assert.throws(
     () => resolveFeature(root, { feature: 'billing', path: 'docs/features/auth' }),
@@ -104,12 +111,37 @@ test('resolution rejects symlink escapes and ambiguous implicit context', (t) =>
   fs.mkdirSync(path.join(root, 'docs', 'features'), { recursive: true });
   fs.symlinkSync(outside, path.join(root, 'docs', 'features', 'escape'));
   assert.throws(() => resolveFeature(root, { feature: 'escape' }), /symlink/);
+  fs.rmSync(path.join(root, 'docs', 'features', 'escape'));
 
   write(root, 'docs/features/auth/2-tech-spec.md', '# Auth\n');
   write(root, 'docs/features/billing/2-tech-spec.md', '# Billing\n');
   const result = resolveFeature(root);
   assert.equal(result.key, null);
   assert.equal(result.source, 'none');
+});
+
+test('implicit resolution and scans reject external, internal, and dangling feature symlinks', (t) => {
+  for (const kind of ['external', 'internal', 'dangling']) {
+    const root = createRepo();
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-feature-link-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    t.after(() => fs.rmSync(outside, { recursive: true, force: true }));
+    const features = path.join(root, 'docs', 'features');
+    fs.mkdirSync(features, { recursive: true });
+    const target = kind === 'external'
+      ? outside
+      : kind === 'internal'
+        ? path.join(root, 'private-feature')
+        : path.join(root, 'missing-feature');
+    if (kind !== 'dangling') {
+      write(target, 'requests/2026-07-01-hidden.md', request({ title: 'Hidden pending' }));
+    }
+    fs.symlinkSync(path.relative(features, target), path.join(features, 'linked'));
+
+    assert.throws(() => scanRequests(root, { today: '2026-07-12' }), /feature directory.*symlink/,
+      kind);
+    assert.throws(() => resolveFeature(root), /symlink/, kind);
+  }
 });
 
 test('resolution and scan reject nested request and archive symlink escapes', (t) => {
@@ -393,6 +425,122 @@ test('Completed and Done require a valid base SHA and fully checked ACs', (t) =>
   assert.equal(resolveFeature(root, { feature: 'a' }).active_requests.length, 7);
 });
 
+test('bounded ancestry remains correct beyond the synchronous child output limit', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const base = git(root, ['rev-parse', 'HEAD']).toString().trim();
+  const commits = Array.from({ length: 26000 }, (_, index) => [
+    'commit refs/heads/main',
+    'committer Fixture <fixture@example.invalid> 1700000000 +0000',
+    'data 1',
+    'x',
+    ...(index === 0 ? [`from ${base}`] : []),
+    ''
+  ].join('\n')).join('\n');
+  const imported = spawnSync('git', ['fast-import', '--quiet'], {
+    cwd: root,
+    input: commits,
+    encoding: 'utf8',
+    maxBuffer: 16 * 1024 * 1024
+  });
+  assert.equal(imported.status, 0, imported.stderr || imported.stdout);
+  git(root, ['reset', '--hard', 'HEAD']);
+  for (const suffix of ['one', 'two']) {
+    write(root, `docs/features/a/requests/2026-07-01-${suffix}.md`,
+      withImplementationBase(root, request({
+        title: `Bounded ${suffix}`,
+        status: 'Completed',
+        checked: 2
+      }), base));
+  }
+  const scan = scanRequests(root, { today: '2026-07-12' });
+  assert.equal(scan.total, 2);
+  assert.equal(scan.incomplete, 0);
+});
+
+test('CLI ignores hostile ambient Git repository and configuration selectors', (t) => {
+  const root = createRepo();
+  const hostile = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(hostile, { recursive: true, force: true }));
+  write(root, 'docs/features/auth/requests/2026-07-01-pending.md',
+    request({ title: 'Visible pending' }));
+  const cliPath = path.resolve(__dirname, requestToolPath);
+  const result = spawnSync(process.execPath, [cliPath, 'scan', '--today', '2026-07-12'], {
+    cwd: root,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      GIT_ALTERNATE_OBJECT_DIRECTORIES: path.join(hostile, '.git', 'objects'),
+      GIT_COMMON_DIR: path.join(hostile, '.git'),
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_GLOBAL: path.join(hostile, 'hostile.gitconfig'),
+      GIT_CONFIG_KEY_0: 'core.bare',
+      GIT_CONFIG_NOSYSTEM: '0',
+      GIT_CONFIG_PARAMETERS: "'core.bare'='true'",
+      GIT_CONFIG_VALUE_0: 'true',
+      GIT_DIR: path.join(hostile, '.git'),
+      GIT_INDEX_FILE: path.join(hostile, '.git', 'index'),
+      GIT_NAMESPACE: 'hostile',
+      GIT_OBJECT_DIRECTORY: path.join(hostile, '.git', 'objects'),
+      GIT_QUARANTINE_PATH: path.join(hostile, '.git', 'objects'),
+      GIT_REPLACE_REF_BASE: 'refs/replace-hostile/',
+      GIT_SHALLOW_FILE: path.join(hostile, '.git', 'shallow'),
+      GIT_WORK_TREE: hostile
+    }
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const scan = JSON.parse(result.stdout);
+  assert.equal(scan.total, 1);
+  assert.equal(scan.incomplete, 1);
+  assert.equal(scan.requests[0].title, 'Visible pending');
+});
+
+test('CLI preserves the caller-selected Git PATH in its clean subprocess environment', (t) => {
+  if (process.platform === 'win32' || /\s/.test(process.execPath)) {
+    t.skip('the executable PATH wrapper fixture requires a whitespace-free Unix node path');
+    return;
+  }
+  const root = createRepo();
+  const wrapperRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-git-path-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(wrapperRoot, { recursive: true, force: true }));
+  write(root, 'docs/features/auth/requests/2026-07-01-pending.md',
+    request({ title: 'PATH-selected pending' }));
+  const gitExecutable = (process.env.PATH || '').split(path.delimiter)
+    .map((directory) => path.join(directory, 'git'))
+    .find((candidate) => {
+      try {
+        fs.accessSync(candidate, fs.constants.X_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  assert.ok(gitExecutable, 'test requires Git on the caller PATH');
+  const marker = path.join(wrapperRoot, 'used');
+  const wrapper = path.join(wrapperRoot, 'git');
+  fs.writeFileSync(wrapper, [
+    `#!${process.execPath}`,
+    "'use strict';",
+    "const fs = require('node:fs');",
+    "const { spawnSync } = require('node:child_process');",
+    `fs.writeFileSync(${JSON.stringify(marker)}, 'used\\n');`,
+    `const result = spawnSync(${JSON.stringify(gitExecutable)}, process.argv.slice(2), { stdio: 'inherit' });`,
+    "process.exit(result.status === null ? 1 : result.status);",
+    ''
+  ].join('\n'));
+  fs.chmodSync(wrapper, 0o755);
+  const cliPath = path.resolve(__dirname, requestToolPath);
+  const result = spawnSync(process.execPath, [cliPath, 'scan', '--today', '2026-07-12'], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { PATH: wrapperRoot }
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(fs.readFileSync(marker, 'utf8'), 'used\n');
+});
+
 test('Superseded is terminal only with contained reciprocal replacement links', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -545,8 +693,7 @@ test('feature discovery rejects symlinked and dangling docs ancestors', (t) => {
 });
 
 test('create-request payload is Codex-native, concise, and closure-safe', () => {
-  const root = path.resolve(__dirname, '..');
-  const skillPath = path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills', 'create-request', 'SKILL.md');
+  const skillPath = path.join(path.dirname(path.dirname(resolvedRequestToolPath)), 'SKILL.md');
   const skill = fs.readFileSync(skillPath, 'utf8');
   const lines = skill.split(/\r?\n/).length;
 
@@ -558,7 +705,7 @@ test('create-request payload is Codex-native, concise, and closure-safe', () => 
   assert.match(skill, /60 seconds/);
   assert.match(skill, /file:line/);
   assert.match(skill, /highest writable state is[\s\S]*Candidate Complete/i);
-  assert.match(skill, /closure prepare[\s\S]*closure finalize/i);
+  assert.match(skill, /closure preparation[\s\S]*finalization/i);
   const referencePath = path.join(path.dirname(skillPath), 'references', 'request-format.md');
   assert.ok(fs.existsSync(referencePath));
   const reference = fs.readFileSync(referencePath, 'utf8');
@@ -571,4 +718,9 @@ test('create-request payload is Codex-native, concise, and closure-safe', () => 
   assert.match(reference, /Recovery remains available[\s\S]*legacy apply journal/i);
   assert.match(reference, /there is no automatic rollback/i);
   assert.doesNotMatch(reference, /failed truncate\/write\/fsync[^.]*restores the exact prior/i);
+  const helper = fs.readFileSync(path.join(path.dirname(skillPath), 'scripts', 'request-tool.js'), 'utf8');
+  assert.match(helper, /merge-base['"], ['"]--is-ancestor/);
+  assert.doesNotMatch(helper, /rev-list['"], ['"]HEAD/);
+  assert.match(helper, /const baseErrors = new Map\(\)/);
+  assert.match(helper, /env: CLEAN_GIT_ENV/);
 });
