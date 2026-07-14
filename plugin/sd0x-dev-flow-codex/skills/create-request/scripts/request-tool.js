@@ -207,9 +207,7 @@ function implementationBaseError(root, value) {
   return null;
 }
 
-function parseRequest(filePath, root, today = new Date(), baseErrors = new Map()) {
-  let content = '';
-  content = fs.readFileSync(filePath, 'utf8');
+function parseRequestContent(content, filePath, root, today = new Date(), baseErrors = new Map()) {
   const relative = toPosix(path.relative(root, filePath));
   const title = content.match(TITLE_RE)?.at(1).trim() || path.basename(filePath, '.md');
   const status = markdownField(content, 'Status') || 'unknown';
@@ -274,6 +272,11 @@ function parseRequest(filePath, root, today = new Date(), baseErrors = new Map()
     value: { supersededBy, supersedes }
   });
   return result;
+}
+
+function parseRequest(filePath, root, today = new Date(), baseErrors = new Map()) {
+  return parseRequestContent(fs.readFileSync(filePath, 'utf8'),
+    filePath, root, today, baseErrors);
 }
 
 function addParseError(request, error) {
@@ -562,6 +565,7 @@ module.exports = {
   containedPath,
   markdownField,
   parseRequest,
+  parseRequestContent,
   resolveFeature,
   scanRequests
 };

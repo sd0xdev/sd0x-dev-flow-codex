@@ -24,7 +24,8 @@ const {
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   markdownField,
-  parseRequest
+  parseRequest,
+  parseRequestContent
 } = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -815,15 +816,21 @@ function resolveRequestLink(root, from, link) {
   return relative;
 }
 
-function validateRequestDag(root, disposition) {
+function validateRequestDag(root, disposition, options = {}) {
   const files = requestFiles(root);
   const records = new Map();
+  const snapshots = new Map();
   const baseErrors = new Map();
   const head = runGit(root, ['rev-parse', '--verify', 'HEAD^{commit}']).trim();
   for (const relative of files) {
     const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
-    const markdown = fs.readFileSync(absolute, 'utf8');
-    const parsed = parseRequest(absolute, root, new Date(), baseErrors);
+    const bytes = fs.readFileSync(absolute);
+    const markdown = bytes.toString('utf8');
+    snapshots.set(relative, bytes);
+    if (typeof options.afterRequestRead === 'function') {
+      options.afterRequestRead({ relative, absolute, markdown });
+    }
+    const parsed = parseRequestContent(markdown, absolute, root, new Date(), baseErrors);
     assert(parsed.parse_errors.length === 0,
       `${relative}: canonical request metadata is invalid: ${parsed.parse_errors.join(', ')}`);
     const baseSha = (markdownField(markdown, 'Implementation Base SHA') || '')
@@ -960,6 +967,11 @@ function validateRequestDag(root, disposition) {
     assert(records.get(details.owner).dependencies.includes(defaultDetails.owner),
       `${unit}: mode gate owner must depend on ${details.target_skill}/default`);
   }
+  for (const [relative, bytes] of snapshots) {
+    const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
+    assert(fs.readFileSync(absolute).equals(bytes),
+      `${relative}: request changed while validating the DAG`);
+  }
   return { requests: records.size, promotion_owners: ownerByUnit.size };
 }
 
@@ -984,7 +996,7 @@ function auditSource(options = {}) {
   validateBoundaryMarkers(root);
   validateDistribution(root, disposition);
   const aliasCapability = validateAliasCapability(root, disposition, options.aliasCapability || {});
-  const requestDag = validateRequestDag(root, disposition);
+  const requestDag = validateRequestDag(root, disposition, options.requestDag || {});
   const deliveredUnits = new Map();
   for (const row of rows.values()) {
     if (!['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)) continue;
@@ -5559,7 +5571,8 @@ function auditCandidate(options = {}) {
   const source = auditSource({
     root,
     skipDeliveredEvidence: true,
-    aliasCapability: options.aliasCapability
+    aliasCapability: options.aliasCapability,
+    requestDag: options.requestDag
   });
   assert(source.ok, 'source audit must pass before candidate audit');
   let finalGates = null;

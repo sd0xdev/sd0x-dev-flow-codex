@@ -4801,6 +4801,30 @@ test('request DAG rejects cycles, invalid bases, supersession errors, and downst
   ));
   requestAuditRejects(/canonical request metadata is invalid: invalid-status/);
   fs.writeFileSync(r1, original);
+  const mutationOptions = () => ({
+    afterRequestRead({ relative }) {
+      if (relative.endsWith('2026-07-10-skill-migration-foundation-r1.md')) {
+        fs.writeFileSync(r1, original);
+      }
+    }
+  });
+  const missingStatus = original.replace(/^> \*\*Status\*\*:.*\n/m, '');
+  fs.writeFileSync(r1, missingStatus);
+  assert.throws(() => validateRequestDag(values.root, disposition, mutationOptions()),
+    /canonical request metadata is invalid: missing-status/);
+  fs.writeFileSync(r1, missingStatus);
+  assert.throws(() => auditSource({
+    root: values.root,
+    requestDag: mutationOptions()
+  }), /canonical request metadata is invalid: missing-status/);
+  fs.writeFileSync(r1, missingStatus);
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    requestDag: mutationOptions()
+  }), /canonical request metadata is invalid: missing-status/);
+  fs.writeFileSync(r1, original);
   const r4Name = './2026-07-10-skill-alias-capability-r4.md';
   fs.writeFileSync(r1, original.replace(
     '> **Tech Spec**:',
