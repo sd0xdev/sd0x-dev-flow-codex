@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-14
 > **Implementation Base SHA**: `8e3efb425e3848cb537beda2101d16014114fe3d`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -52,7 +52,7 @@ Source `architecture` belongs in the separate planning pack, not the curated cor
 | Analysis | Complete | Pinned source、planning-pack boundary、Claude/MCP assumptions and artifact ownership reviewed. |
 | Development | Complete | Codex-native bounded architecture workflow、pack handoff specification、closed contract and deterministic routing harness implemented. Preflight `1210c392ae37316e2cf79d543fb083ab8db0425453e642c06d3a455812f1757f` passed for payload `3f387bee80432cfb95c55f4e222526fcfb727807f7941ab9ea62671978f481d0`, then exact bytes moved only to the planning-pack path. |
 | Testing | Complete | Exact-fingerprint review、386-test deterministic verification and final pack audit `13c22176043f89e58ac441c6d0e2ab3b3c601d1b9c3dedee2265ccefa497ae59` passed; core discovery remains unchanged. |
-| Acceptance | Candidate Complete | All seven ACs have direct payload、contract、routing、audit and handoff evidence. Durable request closure and `pack-ready` recording remain the next transaction. |
+| Acceptance | Complete | All seven ACs have direct payload、contract、routing、audit and handoff evidence. Durable request closure and `pack-ready` recording remain the next transaction. |
 
 ## References
 

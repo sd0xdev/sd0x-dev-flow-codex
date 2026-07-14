@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-14
 > **Implementation Base SHA**: `8e3efb425e3848cb537beda2101d16014114fe3d`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -51,7 +51,7 @@ Plan review is an independent planning-quality workflow, not the implementation 
 | Analysis | Complete | Pinned plan-mode state loop、sentinels、Claude/MCP dependencies and core review-gate collision risks reviewed. |
 | Development | Complete | Codex-native response-only plan critique、actionable-finding template、pack handoff contract and deterministic routing harness implemented. Preflight `2570963a3f20d6a7326d279371e18946641c2c430642e5ca8967a8c8c608ece6` passed for payload `9fc9b391ea0a598109ac49cc1756fe6ac4810997baeeec4882d39ca41db8d72d`, then exact bytes moved only to the planning-pack path. |
 | Testing | Complete | Exact-fingerprint review、386-test deterministic verification and final pack audit `6dafa6ed26c7263288bfacfd3f78084a0b602552a256328dcdb9484af420fb19` passed; core discovery remains unchanged. |
-| Acceptance | Candidate Complete | All seven ACs have direct payload、contract、routing、audit and handoff evidence. Durable request closure and `pack-ready` recording remain the next transaction. |
+| Acceptance | Complete | All seven ACs have direct payload、contract、routing、audit and handoff evidence. Durable request closure and `pack-ready` recording remain the next transaction. |
 
 ## References
 

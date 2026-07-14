@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-14
 > **Implementation Base SHA**: `8e3efb425e3848cb537beda2101d16014114fe3d`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [Wave 1 Tech-Spec Core Promotion](./2026-07-14-wave1-tech-spec-promotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -52,7 +52,7 @@ Source `deep-analyze` is a compatibility mapping into the canonical technical-de
 | Analysis | Complete | Pinned `deep-analyze` source、mapping-only alias decision、shared canonical payload and default/deep ownership boundary reviewed. |
 | Development | Complete | Canonical default/deep registry、bounded deep workflow、mapping-only ledger row and generated routing harness implemented. Exact live-byte candidate copy verified with `cmp`; shared payload `d110dcf425607c0cfe15080b19b90119a22208325b424952f4de2d02ebaf81c7` passed deep preflight `0d099c19d451442d94305e59a1d277f2641eff2c73b15f8af644d7c7a686d13c`. |
 | Testing | Complete | Shared-payload review and deterministic verification passed at `8564efbafe8f0bae2d850d2f63e2316b9bf86f3a06ad5dfea9562ce57d2a4e96`; `npm run check` passed 336/336 tests. Deep final audit `30521a63f7d931f84c5f102a9ca1bc72f98186cc01b36c242ef1b1d30d5b74b9` passed. Repository-only reload/status remained linked with 13 copied and 31 linked files. |
-| Acceptance | Candidate Complete | Independent acceptance verification returned 7/7 Complete/High. R3 closure/promotion is intentionally deferred because the upstream default ticket is not Completed; no durable promotion record is claimed. |
+| Acceptance | Complete | Independent acceptance verification returned 7/7 Complete/High. The upstream default dependency is satisfied by durable closure record `98cefbdab25f8ad4b65248dad7845c0b40e0150ea2bf056cae557fc22c50bace`; this ticket's superseding R3 closure/promotion transaction remains pending after review found stale dependency text. |
 
 ## References
 

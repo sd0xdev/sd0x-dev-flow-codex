@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-14
 > **Implementation Base SHA**: `8e3efb425e3848cb537beda2101d16014114fe3d`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -51,7 +51,7 @@ Specification review checks problem/solution document conformance before impleme
 | Analysis | Complete | Pinned spec-review dimensions、lifecycle layer boundaries、plan/code-review overlap and mutation risks reviewed. |
 | Development | Complete | Codex-native read-only lifecycle-spec review、evidence-backed finding template、pack handoff contract and deterministic routing harness implemented. Preflight `98779fd97b2827a2ad318004dca52778f746873080130204bf6a52e83d75dc68` passed for payload `3cde1526283525dd7cf0104adf918b5cd580451e4fa03c6f0cf6e0b99c47a218`, then exact bytes moved only to the planning-pack path. |
 | Testing | Complete | Exact-fingerprint review、386-test deterministic verification and final pack audit `efa53d5f06c61301a956226f5fcc2b29fb9b659c41dc14ac0c7b35bc2b7b7c7b` passed; core discovery remains unchanged. |
-| Acceptance | Candidate Complete | All seven ACs have direct payload、contract、routing、audit and handoff evidence. Durable request closure and `pack-ready` recording remain the next transaction. |
+| Acceptance | Complete | All seven ACs have direct payload、contract、routing、audit and handoff evidence. Durable request closure and `pack-ready` recording remain the next transaction. |
 
 ## References
 
