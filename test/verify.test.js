@@ -138,6 +138,7 @@ test('Windows resolves package runners through their command shims', () => {
   assert.equal(observed.command, 'npm.cmd');
   assert.deepEqual(observed.args, ['run', 'check']);
   assert.equal(observed.options.shell, true);
+  assert.equal(observed.options.timeout, 30 * 60 * 1000);
 });
 
 test('verification records successful deterministic evidence', (t) => {

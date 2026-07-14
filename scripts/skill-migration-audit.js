@@ -364,14 +364,19 @@ function currentCodexVersion(root, required = true) {
 }
 
 function repositoryIdentity(root) {
+  const revisions = runGit(root, [
+    'rev-parse', '--revs-only', 'HEAD^{commit}', 'HEAD^{tree}'
+  ]).trim().split('\n');
+  assert(revisions.length === 2 && revisions.every((value) => /^[0-9a-f]{40,64}$/.test(value)),
+    'repository identity revisions are invalid');
   return {
     fingerprint: snapshotWorktree(root).fingerprint,
-    head_sha: runGit(root, ['rev-parse', '--verify', 'HEAD^{commit}']).trim(),
-    tree_sha: runGit(root, ['rev-parse', '--verify', 'HEAD^{tree}']).trim()
+    head_sha: revisions[0],
+    tree_sha: revisions[1]
   };
 }
 
-function assertSourceTransaction(root, transaction) {
+function assertSourceTransaction(root, transaction, currentIdentity = null) {
   assert(transaction && typeof transaction === 'object',
     'source transaction binding is missing');
   assert(JSON.stringify(requestFiles(root)) === JSON.stringify(transaction.request_manifest),
@@ -391,7 +396,7 @@ function assertSourceTransaction(root, transaction) {
   'migration staging manifest changed while auditing');
   assert(evidenceRefOid(root) === transaction.evidence_oid,
     'evidence ref changed while auditing source');
-  assert(canonicalJson(repositoryIdentity(root)) ===
+  assert(canonicalJson(currentIdentity || repositoryIdentity(root)) ===
     canonicalJson(transaction.repository_identity),
   'source repository identity changed while auditing');
 }
@@ -1045,10 +1050,10 @@ function validateRequestDag(root, disposition, options = {}) {
   return { requests: records.size, promotion_owners: ownerByUnit.size };
 }
 
-function auditSource(options = {}) {
+function auditSourceTransaction(options = {}, initialIdentity = null) {
   const root = path.resolve(options.root || ROOT);
   realDirectory(root, 'repository root');
-  const sourceIdentity = repositoryIdentity(root);
+  const sourceIdentity = initialIdentity || repositoryIdentity(root);
   const inventoryRead = readJson(
     root,
     'migration/source-inventory.generated.json',
@@ -1176,6 +1181,10 @@ function auditSource(options = {}) {
     value: transaction
   });
   return result;
+}
+
+function auditSource(options = {}) {
+  return auditSourceTransaction(options);
 }
 
 function auditDeliveredPayload(root, relative, options = {}, audit = () => {}) {
@@ -5686,13 +5695,13 @@ function auditCandidate(options = {}) {
   assert(pathTarget === target,
     'candidate directory name must equal --target');
 
-  const source = auditSource({
+  const source = auditSourceTransaction({
     root,
     skipDeliveredEvidence: true,
     aliasCapability: options.aliasCapability,
     requestDag: options.requestDag,
     beforeSourceSnapshotRevalidation: options.beforeSourceSnapshotRevalidation
-  });
+  }, candidateIdentity);
   assert(source.ok, 'source audit must pass before candidate audit');
   if (typeof options.afterSourceAudit === 'function') options.afterSourceAudit();
   let finalGates = null;
@@ -5927,8 +5936,9 @@ function auditCandidate(options = {}) {
     'candidate tree manifest changed while auditing');
   assert(candidateTreeDigest(completedTree) === treeHash,
     'candidate tree bytes changed while auditing');
-  assertSourceTransaction(root, source._transaction);
-  assert(canonicalJson(repositoryIdentity(root)) === canonicalJson(candidateIdentity),
+  const completedIdentity = repositoryIdentity(root);
+  assertSourceTransaction(root, source._transaction, completedIdentity);
+  assert(canonicalJson(completedIdentity) === canonicalJson(candidateIdentity),
     'candidate repository identity changed while auditing');
   return {
     ok: true,
