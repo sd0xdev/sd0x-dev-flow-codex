@@ -859,6 +859,57 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     aliasCapability: ownerMutationOptions()
   }), /owner request changed while validating capability/);
   restore();
+  const splitDecisionOptions = () => ({
+    codexVersion: 'codex-cli 0.144.4',
+    afterDecisionRead() {
+      const mutated = readJson(values.root, 'migration/alias-capability.json');
+      mutated.reproduce_argv[0] = 'CODEX_HOME=~/.codex codex --version';
+      writeJson(values.root, 'migration/alias-capability.json', mutated);
+      syncAliasOwnerRequest(values.root, mutated);
+    }
+  });
+  assert.throws(() => validateAliasCapability(
+    values.root, raceDisposition, splitDecisionOptions()
+  ), /owner evidence does not match the decision artifact/);
+  restore();
+  assert.throws(() => auditSource({
+    root: values.root,
+    aliasCapability: splitDecisionOptions()
+  }), /owner evidence does not match the decision artifact/);
+  restore();
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    aliasCapability: splitDecisionOptions()
+  }), /owner evidence does not match the decision artifact/);
+  restore();
+  const ownerRelative = path.relative(values.root, ownerRequestPath).split(path.sep).join('/');
+  const lateOwnerMutationOptions = () => {
+    let mutated = false;
+    return {
+      afterRequestRead({ relative }) {
+        if (mutated || relative === ownerRelative) return;
+        fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
+          .replace(/^<!-- sd0x-alias-capability-owner:v1 [^\r\n]+ -->\n?/m, ''));
+        mutated = true;
+      }
+    };
+  };
+  assert.throws(() => auditSource({
+    root: values.root,
+    aliasCapability: { codexVersion: 'codex-cli 0.144.4' },
+    requestDag: lateOwnerMutationOptions()
+  }), /request differs from its prior source snapshot/);
+  restore();
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    aliasCapability: { codexVersion: 'codex-cli 0.144.4' },
+    requestDag: lateOwnerMutationOptions()
+  }), /request differs from its prior source snapshot/);
+  restore();
 
   const mappingDisposition = readJson(values.root, 'migration/source-disposition.json');
   assert.throws(() => validateAliasCapability(values.root, mappingDisposition, {

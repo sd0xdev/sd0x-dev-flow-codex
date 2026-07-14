@@ -192,7 +192,8 @@ function containedPath(root, relative, options = {}) {
 function readJson(root, relative, label) {
   const filePath = containedPath(root, relative, { label, type: 'file' });
   try {
-    return { value: JSON.parse(fs.readFileSync(filePath, 'utf8')), filePath };
+    const bytes = fs.readFileSync(filePath);
+    return { value: JSON.parse(bytes.toString('utf8')), filePath, bytes };
   } catch (error) {
     throw new Error(`${label} is not valid JSON: ${error.message}`);
   }
@@ -362,6 +363,12 @@ function currentCodexVersion(root, required = true) {
 function validateAliasCapability(root, disposition, options = {}) {
   const decisionRead = readJson(root, ALIAS_CAPABILITY_PATH, 'alias capability decision');
   const decision = decisionRead.value;
+  if (typeof options.afterDecisionRead === 'function') {
+    options.afterDecisionRead({
+      decisionPath: decisionRead.filePath,
+      decisionBytes: decisionRead.bytes
+    });
+  }
   assertExactKeys(decision, [
     'schema_version', 'decision', 'codex_version', 'registry_mechanism', 'alias',
     'manual_invocation', 'auto_route_excluded', 'registry_dump_path',
@@ -539,8 +546,12 @@ function validateAliasCapability(root, disposition, options = {}) {
     ownerEvidence.tested_at === decision.tested_at &&
     ownerEvidence.decision === decision.decision &&
     ownerEvidence.registry_mechanism === decision.registry_mechanism &&
-    ownerEvidence.decision_sha256 === sha256(fs.readFileSync(decisionRead.filePath)),
+    ownerEvidence.decision_sha256 === sha256(decisionRead.bytes),
   'alias capability owner evidence does not match the decision artifact');
+  if (options.snapshotBindings instanceof Map) {
+    options.snapshotBindings.set(ALIAS_CAPABILITY_PATH, decisionRead.bytes);
+    options.snapshotBindings.set(decision.owner_request_path, ownerRequestBytes);
+  }
 
   if (decision.decision === 'mapping-only') {
     assert(decision.registry_mechanism === null && decision.auto_route_excluded === false,
@@ -568,6 +579,8 @@ function validateAliasCapability(root, disposition, options = {}) {
   });
   assert(fs.readFileSync(currentOwnerRequestPath).equals(ownerRequestBytes),
     'alias capability owner request changed while validating capability');
+  assert(fs.readFileSync(decisionRead.filePath).equals(decisionRead.bytes),
+    'alias capability decision changed while validating capability');
   return { decision: decision.decision, codex_version: decision.codex_version };
 }
 
@@ -834,6 +847,11 @@ function validateRequestDag(root, disposition, options = {}) {
     const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
     const bytes = fs.readFileSync(absolute);
     const markdown = bytes.toString('utf8');
+    const expectedBytes = options.expectedSnapshots instanceof Map
+      ? options.expectedSnapshots.get(relative)
+      : null;
+    assert(!expectedBytes || expectedBytes.equals(bytes),
+      `${relative}: request differs from its prior source snapshot`);
     snapshots.set(relative, bytes);
     if (typeof options.afterRequestRead === 'function') {
       options.afterRequestRead({ relative, absolute, markdown });
@@ -1005,8 +1023,15 @@ function auditSource(options = {}) {
     'R1 source rows must retain approved MIT status');
   validateBoundaryMarkers(root);
   validateDistribution(root, disposition);
-  const aliasCapability = validateAliasCapability(root, disposition, options.aliasCapability || {});
-  const requestDag = validateRequestDag(root, disposition, options.requestDag || {});
+  const sourceSnapshots = new Map();
+  const aliasCapability = validateAliasCapability(root, disposition, {
+    ...(options.aliasCapability || {}),
+    snapshotBindings: sourceSnapshots
+  });
+  const requestDag = validateRequestDag(root, disposition, {
+    ...(options.requestDag || {}),
+    expectedSnapshots: sourceSnapshots
+  });
   const deliveredUnits = new Map();
   for (const row of rows.values()) {
     if (!['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)) continue;
@@ -1078,6 +1103,13 @@ function auditSource(options = {}) {
   if (options.compare) {
     result.compare = compareCheckout(root, inventoryRead.value, options.compare);
     result.ok = result.compare.ok;
+  }
+  for (const [relative, bytes] of sourceSnapshots) {
+    const absolute = containedPath(root, relative, {
+      label: 'source snapshot binding', type: 'file'
+    });
+    assert(fs.readFileSync(absolute).equals(bytes),
+      `${relative}: source snapshot changed while auditing`);
   }
   return result;
 }
