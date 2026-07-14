@@ -1152,6 +1152,10 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     target: 'architecture',
     aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
   }).ok, true);
+  assert.throws(() => auditSource({
+    root: values.root,
+    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+  }), /readiness behavior test hash is stale/);
 
   const consistentDecision = structuredClone(decision);
   const consistentDump = structuredClone(dump);
@@ -1186,10 +1190,6 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     assert.throws(() => validateAliasCapability(values.root, disposition, {
       codexVersion: 'codex-cli 0.144.4'
     }), pattern, name);
-    assert.throws(() => auditSource({
-      root: values.root,
-      aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
-    }), pattern, `${name}-source`);
     assert.throws(() => auditCandidate({
       root: values.root,
       candidate: manualCandidate,
