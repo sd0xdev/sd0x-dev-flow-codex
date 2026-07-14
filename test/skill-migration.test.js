@@ -37,6 +37,9 @@ const {
   recordVerification,
   refreshState
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
+const {
+  snapshot: snapshotWorktree
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/worktree');
 const { commit, git, initRepository } = require('./helpers/git');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -5007,6 +5010,46 @@ test('request DAG rejects cycles, invalid bases, supersession errors, and downst
   architecture.promotion_request =
     'docs/features/skill-toolkit-migration/requests/2026-07-10-skill-migration-foundation-r1.md';
   assert.throws(() => validateRequestDag(values.root, disposition), /gate owner cannot be downstream/);
+});
+
+test('source and candidate transactions bind clean HEAD and post-source changes', (t) => {
+  const sourceValues = fixtureRoot();
+  const candidateValues = fixtureRoot();
+  t.after(() => fs.rmSync(sourceValues.workspace, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(candidateValues.workspace, { recursive: true, force: true }));
+
+  git(sourceValues.root, ['add', '-A']);
+  commit(sourceValues.root, 'clean source fixture');
+  assert.equal(snapshotWorktree(sourceValues.root).fingerprint, 'clean');
+  assert.throws(() => auditSource({
+    root: sourceValues.root,
+    beforeSourceSnapshotRevalidation() {
+      const agentsPath = path.join(sourceValues.root, 'AGENTS.md');
+      fs.writeFileSync(agentsPath, fs.readFileSync(agentsPath, 'utf8')
+        .replace('sd0x-skill-migration-boundary:v1', 'removed-boundary'));
+      git(sourceValues.root, ['add', 'AGENTS.md']);
+      commit(sourceValues.root, 'concurrent source change');
+    }
+  }), /source repository identity changed while auditing/);
+
+  prepareRow(candidateValues.root, 'architecture');
+  const candidateRelative = writeCandidate(candidateValues.root, {
+    target: 'architecture',
+    sourceNames: ['architecture'],
+    targetPackage: 'planning-pack',
+    unit: 'architecture/default'
+  });
+  assert.throws(() => auditCandidate({
+    root: candidateValues.root,
+    candidate: candidateRelative,
+    target: 'architecture',
+    afterSourceAudit() {
+      const disposition = readJson(candidateValues.root, 'migration/source-disposition.json');
+      disposition.skills.find((row) => row.source_name === 'statusline-config')
+        .delivery_state = 'bogus';
+      writeJson(candidateValues.root, 'migration/source-disposition.json', disposition);
+    }
+  }), /candidate repository identity changed while auditing/);
 });
 
 test('audit CLI returns structured success and fails unknown modes', () => {

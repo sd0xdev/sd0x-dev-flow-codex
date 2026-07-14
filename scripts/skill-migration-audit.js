@@ -363,6 +363,14 @@ function currentCodexVersion(root, required = true) {
   }
 }
 
+function repositoryIdentity(root) {
+  return {
+    fingerprint: snapshotWorktree(root).fingerprint,
+    head_sha: runGit(root, ['rev-parse', '--verify', 'HEAD^{commit}']).trim(),
+    tree_sha: runGit(root, ['rev-parse', '--verify', 'HEAD^{tree}']).trim()
+  };
+}
+
 function validateAliasCapability(root, disposition, options = {}) {
   const decisionRead = readJson(root, ALIAS_CAPABILITY_PATH, 'alias capability decision');
   const decision = decisionRead.value;
@@ -1015,7 +1023,7 @@ function validateRequestDag(root, disposition, options = {}) {
 function auditSource(options = {}) {
   const root = path.resolve(options.root || ROOT);
   realDirectory(root, 'repository root');
-  const sourceFingerprint = snapshotWorktree(root).fingerprint;
+  const sourceIdentity = repositoryIdentity(root);
   const inventoryRead = readJson(
     root,
     'migration/source-inventory.generated.json',
@@ -1134,8 +1142,8 @@ function auditSource(options = {}) {
     assert(fs.readFileSync(absolute).equals(bytes),
       `${relative}: source snapshot changed while auditing`);
   }
-  assert(snapshotWorktree(root).fingerprint === sourceFingerprint,
-    'source worktree fingerprint changed while auditing');
+  assert(canonicalJson(repositoryIdentity(root)) === canonicalJson(sourceIdentity),
+    'source repository identity changed while auditing');
   return result;
 }
 
@@ -5620,6 +5628,7 @@ function assertExistingLiveTargetUnmodified(root, target) {
 
 function auditCandidate(options = {}) {
   const root = path.resolve(options.root || ROOT);
+  const candidateIdentity = repositoryIdentity(root);
   const relative = normalizeRelative(options.candidate, 'candidate path');
   assert(!relative.startsWith('migration/staging/'),
     'migration/staging is source evidence and cannot be audited as a candidate');
@@ -5643,6 +5652,7 @@ function auditCandidate(options = {}) {
     beforeSourceSnapshotRevalidation: options.beforeSourceSnapshotRevalidation
   });
   assert(source.ok, 'source audit must pass before candidate audit');
+  if (typeof options.afterSourceAudit === 'function') options.afterSourceAudit();
   let finalGates = null;
   if (phase !== 'preflight') {
     const state = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
@@ -5874,6 +5884,8 @@ function auditCandidate(options = {}) {
       finalGates.state.isCurrentPass(completed, 'verify'),
     'final audit requires a current verify pass at completion');
   }
+  assert(canonicalJson(repositoryIdentity(root)) === canonicalJson(candidateIdentity),
+    'candidate repository identity changed while auditing');
   return {
     ok: true,
     mode: 'audit-candidate',
