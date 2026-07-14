@@ -342,6 +342,8 @@ test('Wave 1 readiness derives audit fingerprints from reviewed inputs', (t) => 
   disposition.skills.find((row) => row.source_name === 'create-request').rationale +=
     ' reviewed-subject drift';
   writeJson(values.root, dispositionPath, disposition);
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /current audit inputs differ from reviewed subject/);
   git(values.root, ['add', dispositionPath]);
   git(values.root, ['-c', 'commit.gpgSign=false', 'commit', '-m',
     'change reviewed disposition inputs'], { stdio: 'ignore' });

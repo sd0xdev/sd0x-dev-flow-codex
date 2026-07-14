@@ -500,6 +500,12 @@ function validateWave1Readiness(root, disposition, options = {}) {
     assert(sha256(gitBlobAtPath(root, subject.head_sha, unit.behavior_test_path)) ===
       unit.behavior_test_sha256,
     `${promotionUnitId}: readiness behavior test differs from reviewed subject`);
+    const currentAudit = candidateAuditIdentitiesFromCurrent(
+      root, disposition, unit, promotionUnitId
+    );
+    assert(currentAudit.preflight === expectedAudit.preflight &&
+      currentAudit.final === expectedAudit.final,
+    `${promotionUnitId}: current audit inputs differ from reviewed subject`);
   }
   return { units: Object.keys(readiness.units).length };
 }
@@ -1433,10 +1439,30 @@ function jsonAtCommit(repository, commit, relative, label) {
   }
 }
 
-function candidateAuditIdentitiesAtCommit(repository, commit, unit, promotionUnitId) {
-  const disposition = jsonAtCommit(
-    repository, commit, 'migration/source-disposition.json', 'source disposition'
-  );
+function candidateAuditIdentities(details) {
+  const identity = {
+    target: details.unit.target_skill,
+    mode: details.mode,
+    promotionUnitId: details.promotionUnitId,
+    treeHash: details.treeHash,
+    testEvidence: details.testEvidence,
+    rows: details.rows
+  };
+  return {
+    preflight: candidateAuditIdentity({
+      ...identity,
+      phase: 'preflight',
+      relative: `migration/candidates/${details.unit.target_skill}`
+    }),
+    final: candidateAuditIdentity({
+      ...identity,
+      phase: details.unit.target_package === 'core' ? 'final' : 'pack-final',
+      relative: details.unit.payload_path
+    })
+  };
+}
+
+function auditIdentityRows(disposition, unit, promotionUnitId) {
   const rows = disposition.skills.filter((row) =>
     row.target_skill === unit.target_skill &&
     ['candidate', 'pack-ready', 'promoted'].includes(row.delivery_state)
@@ -1444,13 +1470,10 @@ function candidateAuditIdentitiesAtCommit(repository, commit, unit, promotionUni
   assert(rows.length > 0 && rows.some((row) =>
     row.promotion_unit_id === promotionUnitId
   ), `${promotionUnitId}: reviewed subject lacks active disposition rows`);
-  const contract = jsonAtCommit(
-    repository, commit, `${unit.payload_path}/migration-contract.json`,
-    `${promotionUnitId} migration contract`
-  );
-  assert(Array.isArray(contract.units) && contract.units.some((entry) =>
-    entry.promotion_unit_id === promotionUnitId
-  ), `${promotionUnitId}: reviewed subject contract lacks the promotion unit`);
+  return rows;
+}
+
+function auditIdentityTestEvidence(contract, bytesForPath) {
   const testEvidence = [];
   for (const contractUnit of contract.units) {
     assert(Array.isArray(contractUnit.behavior_tests) &&
@@ -1458,7 +1481,7 @@ function candidateAuditIdentitiesAtCommit(repository, commit, unit, promotionUni
       Array.isArray(contractUnit.routing?.negative_boundaries),
     `${contractUnit.promotion_unit_id}: reviewed subject behavior contract is invalid`);
     for (const testPath of contractUnit.behavior_tests) {
-      const bytes = gitBlobAtPath(repository, commit, testPath);
+      const bytes = bytesForPath(testPath);
       testEvidence.push({
         path: testPath,
         promotion_unit_id: contractUnit.promotion_unit_id,
@@ -1472,29 +1495,55 @@ function candidateAuditIdentitiesAtCommit(repository, commit, unit, promotionUni
       });
     }
   }
-  testEvidence.sort((left, right) => BYTEWISE(left.path, right.path));
+  return testEvidence.sort((left, right) => BYTEWISE(left.path, right.path));
+}
+
+function candidateAuditIdentitiesAtCommit(repository, commit, unit, promotionUnitId) {
+  const disposition = jsonAtCommit(
+    repository, commit, 'migration/source-disposition.json', 'source disposition'
+  );
+  const rows = auditIdentityRows(disposition, unit, promotionUnitId);
+  const contract = jsonAtCommit(
+    repository, commit, `${unit.payload_path}/migration-contract.json`,
+    `${promotionUnitId} migration contract`
+  );
+  assert(Array.isArray(contract.units) && contract.units.some((entry) =>
+    entry.promotion_unit_id === promotionUnitId
+  ), `${promotionUnitId}: reviewed subject contract lacks the promotion unit`);
   const [, targetMode] = promotionUnitId.split('/');
-  const mode = targetMode === 'default' ? null : targetMode;
-  const identity = {
-    target: unit.target_skill,
-    mode,
+  return candidateAuditIdentities({
+    unit,
     promotionUnitId,
+    mode: targetMode === 'default' ? null : targetMode,
     treeHash: hashPayloadTreeAtCommit(repository, commit, unit.payload_path),
-    testEvidence,
+    testEvidence: auditIdentityTestEvidence(contract, (testPath) =>
+      gitBlobAtPath(repository, commit, testPath)
+    ),
     rows
-  };
-  return {
-    preflight: candidateAuditIdentity({
-      ...identity,
-      phase: 'preflight',
-      relative: `migration/candidates/${unit.target_skill}`
-    }),
-    final: candidateAuditIdentity({
-      ...identity,
-      phase: unit.target_package === 'core' ? 'final' : 'pack-final',
-      relative: unit.payload_path
-    })
-  };
+  });
+}
+
+function candidateAuditIdentitiesFromCurrent(root, disposition, unit, promotionUnitId) {
+  const contract = readJson(
+    root, `${unit.payload_path}/migration-contract.json`,
+    `${promotionUnitId} current migration contract`
+  ).value;
+  assert(Array.isArray(contract.units) && contract.units.some((entry) =>
+    entry.promotion_unit_id === promotionUnitId
+  ), `${promotionUnitId}: current contract lacks the promotion unit`);
+  const [, targetMode] = promotionUnitId.split('/');
+  return candidateAuditIdentities({
+    unit,
+    promotionUnitId,
+    mode: targetMode === 'default' ? null : targetMode,
+    treeHash: hashPayloadTree(root, unit.payload_path),
+    testEvidence: auditIdentityTestEvidence(contract, (testPath) => fs.readFileSync(
+      containedPath(root, testPath, {
+        label: `${promotionUnitId} current behavior test`, type: 'file'
+      })
+    )),
+    rows: auditIdentityRows(disposition, unit, promotionUnitId)
+  });
 }
 
 function compareFileMaps(baseline, current) {
