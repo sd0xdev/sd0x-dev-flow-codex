@@ -293,14 +293,14 @@ test('current repository passes the source, distribution, and request-DAG audit'
   assert.equal(result.requests, 15);
   assert.equal(result.alias_policy, 'mapping-only');
   assert.equal(result.alias_codex_version, 'codex-cli 0.144.4');
-  assert.equal(result.readiness_units, 1);
+  assert.equal(result.readiness_units, 9);
 });
 
 test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   const disposition = readJson(values.root, 'migration/source-disposition.json');
-  assert.deepEqual(validateWave1Readiness(values.root, disposition), { units: 1 });
+  assert.deepEqual(validateWave1Readiness(values.root, disposition), { units: 9 });
 
   const readinessPath = 'migration/evidence/wave1-delivery-readiness.json';
   const readiness = readJson(values.root, readinessPath);
@@ -343,7 +343,7 @@ test('Wave 1 readiness derives audit fingerprints from reviewed inputs', (t) => 
   promoted.skills.find((row) => row.source_name === 'create-request').delivery_state =
     'promoted';
   writeJson(values.root, dispositionPath, promoted);
-  assert.deepEqual(validateWave1Readiness(values.root, promoted), { units: 1 });
+  assert.deepEqual(validateWave1Readiness(values.root, promoted), { units: 9 });
 
   const disposition = structuredClone(originalDisposition);
   disposition.skills.find((row) => row.source_name === 'create-request').rationale +=
