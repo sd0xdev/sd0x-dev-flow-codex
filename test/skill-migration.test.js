@@ -338,7 +338,14 @@ test('Wave 1 readiness derives audit fingerprints from reviewed inputs', (t) => 
   ), /readiness audit fingerprints differ from reviewed subject/);
 
   writeJson(values.root, readinessPath, readJson(ROOT, readinessPath));
-  const disposition = readJson(values.root, dispositionPath);
+  const originalDisposition = readJson(values.root, dispositionPath);
+  const promoted = structuredClone(originalDisposition);
+  promoted.skills.find((row) => row.source_name === 'create-request').delivery_state =
+    'promoted';
+  writeJson(values.root, dispositionPath, promoted);
+  assert.deepEqual(validateWave1Readiness(values.root, promoted), { units: 1 });
+
+  const disposition = structuredClone(originalDisposition);
   disposition.skills.find((row) => row.source_name === 'create-request').rationale +=
     ' reviewed-subject drift';
   writeJson(values.root, dispositionPath, disposition);
