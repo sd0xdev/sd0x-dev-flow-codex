@@ -22,6 +22,9 @@ const {
   evidenceRefOid,
   hashPayloadTree
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
+const {
+  parseRequest
+} = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
 
 const ROOT = path.resolve(__dirname, '..');
 const BYTEWISE = (left, right) => Buffer.from(left).compare(Buffer.from(right));
@@ -362,7 +365,7 @@ function validateAliasCapability(root, disposition, options = {}) {
     'schema_version', 'decision', 'codex_version', 'registry_mechanism', 'alias',
     'manual_invocation', 'auto_route_excluded', 'registry_dump_path',
     'registry_dump_hash', 'fixture_manifest_path', 'fixture_manifest_hash',
-    'plugin_fingerprint', 'reproduce_argv', 'tested_at', 'rationale'
+    'plugin_fingerprint', 'owner_request_path', 'reproduce_argv', 'tested_at', 'rationale'
   ], 'alias capability decision');
   assert(decision.schema_version === 1, 'alias capability schema_version must be 1');
   assert(['mapping-only', 'manual-only'].includes(decision.decision),
@@ -380,6 +383,9 @@ function validateAliasCapability(root, disposition, options = {}) {
     'alias capability fixture manifest hash is invalid');
   assert(/^[0-9a-f]{64}$/.test(decision.plugin_fingerprint),
     'alias capability plugin fingerprint is invalid');
+  assert(/^docs\/features\/skill-toolkit-migration\/requests\/\d{4}-\d{2}-\d{2}-alias-capability-[a-z0-9-]+\.md$/.test(
+    decision.owner_request_path),
+  'alias capability owner request path is invalid');
   assert(Array.isArray(decision.reproduce_argv) && decision.reproduce_argv.length >= 3 &&
     decision.reproduce_argv.every((command) => typeof command === 'string' && command.length > 0),
   'alias capability reproduce_argv must contain reproducible commands');
@@ -499,6 +505,37 @@ function validateAliasCapability(root, disposition, options = {}) {
     assert(runtimeVersion === decision.codex_version,
       `${decision.decision} alias evidence is stale for Codex version: ${runtimeVersion}`);
   }
+
+  const ownerRequestPath = containedPath(root, decision.owner_request_path, {
+    label: 'alias capability owner request', type: 'file'
+  });
+  const ownerRequest = fs.readFileSync(ownerRequestPath, 'utf8');
+  const ownerRecord = parseRequest(ownerRequestPath, root);
+  assert(['candidate complete', 'completed'].includes(ownerRecord.status.toLowerCase()),
+    'alias capability owner request must be acceptance-ready');
+  assert(ownerRecord.parse_errors.length === 0 && ownerRecord.total > 0 &&
+    ownerRecord.checked === ownerRecord.total,
+    'alias capability owner request must have complete acceptance criteria');
+  const ownerEvidenceMatches = Array.from(ownerRequest.matchAll(
+    /^<!-- sd0x-alias-capability-owner:v1 ([^\r\n]+) -->$/gm
+  ));
+  assert(ownerEvidenceMatches.length === 1,
+    'alias capability owner request must contain exactly one evidence record');
+  let ownerEvidence;
+  try {
+    ownerEvidence = JSON.parse(ownerEvidenceMatches[0][1]);
+  } catch (error) {
+    throw new Error(`alias capability owner evidence is not valid JSON: ${error.message}`);
+  }
+  assertExactKeys(ownerEvidence, [
+    'codex_version', 'decision', 'decision_sha256', 'registry_mechanism', 'tested_at'
+  ], 'alias capability owner evidence');
+  assert(ownerEvidence.codex_version === decision.codex_version &&
+    ownerEvidence.tested_at === decision.tested_at &&
+    ownerEvidence.decision === decision.decision &&
+    ownerEvidence.registry_mechanism === decision.registry_mechanism &&
+    ownerEvidence.decision_sha256 === sha256(fs.readFileSync(decisionRead.filePath)),
+  'alias capability owner evidence does not match the decision artifact');
 
   if (decision.decision === 'mapping-only') {
     assert(decision.registry_mechanism === null && decision.auto_route_excluded === false,

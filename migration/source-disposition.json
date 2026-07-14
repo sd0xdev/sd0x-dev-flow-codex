@@ -26,7 +26,7 @@
   ],
   "alias_policy_decision": {
     "policy": "mapping-only",
-    "codex_version": "codex-cli 0.144.1",
+    "codex_version": "codex-cli 0.144.4",
     "evidence": "migration/alias-capability.json",
     "rationale": "The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only."
   },
@@ -1455,7 +1455,7 @@
       "source_name": "req-analyze",
       "disposition": "adapt",
       "target_package": "core",
-      "delivery_state": "candidate",
+      "delivery_state": "promoted",
       "target_skill": "req-analyze",
       "target_mode": null,
       "alias_candidate": false,

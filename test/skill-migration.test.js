@@ -50,13 +50,27 @@ function copy(source, destination) {
   fs.cpSync(source, destination, { recursive: true });
 }
 
-function fixtureRoot() {
+function fixtureRoot(options = {}) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-migration-audit-'));
   const root = path.join(workspace, 'repo');
   execFileSync('git', ['clone', '--no-local', '--quiet', ROOT, root], {
     env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' }
   });
   copy(path.join(ROOT, 'migration'), path.join(root, 'migration'));
+  const disposition = readJson(root, 'migration/source-disposition.json');
+  for (const [sourceName, deliveryState] of Object.entries(
+    options.deliveryStateOverrides || {}
+  )) {
+    disposition.skills.find((row) => row.source_name === sourceName).delivery_state = deliveryState;
+  }
+  for (const row of disposition.skills) {
+    if (['pack-ready', 'promoted'].includes(row.delivery_state)) {
+      row.delivery_state = 'candidate';
+    } else if (row.delivery_state === 'retired') {
+      row.delivery_state = 'planned';
+    }
+  }
+  writeJson(root, 'migration/source-disposition.json', disposition);
   copy(path.join(ROOT, 'plugin', 'sd0x-dev-flow-codex', 'skills'),
     path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills'));
   copy(path.join(ROOT, 'docs', 'features', 'skill-toolkit-migration'),
@@ -83,6 +97,22 @@ function writeJson(root, relative, value) {
   const filePath = path.join(root, relative);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function syncAliasOwnerRequest(root, decision) {
+  const requestPath = path.join(root, decision.owner_request_path);
+  const evidence = {
+    codex_version: decision.codex_version,
+    decision: decision.decision,
+    decision_sha256: crypto.createHash('sha256')
+      .update(fs.readFileSync(path.join(root, 'migration/alias-capability.json'))).digest('hex'),
+    registry_mechanism: decision.registry_mechanism,
+    tested_at: decision.tested_at
+  };
+  const request = fs.readFileSync(requestPath, 'utf8')
+    .replace(/^<!-- sd0x-alias-capability-owner:v1 [^\r\n]+ -->$/m,
+      `<!-- sd0x-alias-capability-owner:v1 ${JSON.stringify(evidence)} -->`);
+  fs.writeFileSync(requestPath, request);
 }
 
 function hashJson(value) {
@@ -248,9 +278,9 @@ test('current repository passes the source, distribution, and request-DAG audit'
   });
   assert.equal(result.disposition_rows, 100);
   assert.equal(result.external_dependencies, 36);
-  assert.equal(result.requests, 14);
+  assert.equal(result.requests, 15);
   assert.equal(result.alias_policy, 'mapping-only');
-  assert.equal(result.alias_codex_version, 'codex-cli 0.144.1');
+  assert.equal(result.alias_codex_version, 'codex-cli 0.144.4');
 });
 
 test('alias capability evidence locks every compatibility alias to mapping-only', () => {
@@ -258,7 +288,7 @@ test('alias capability evidence locks every compatibility alias to mapping-only'
   const result = validateAliasCapability(ROOT, disposition);
   assert.deepEqual(result, {
     decision: 'mapping-only',
-    codex_version: 'codex-cli 0.144.1'
+    codex_version: 'codex-cli 0.144.4'
   });
   const aliases = disposition.skills.filter((row) => row.alias_candidate);
   assert.equal(aliases.length, disposition.compatibility_alias_candidates.length);
@@ -278,6 +308,7 @@ test('R4 completion summary and executable probe evidence stay synchronized', ()
     'docs/features/skill-toolkit-migration/2-tech-spec.md'), 'utf8');
   const packageJson = readJson(ROOT, 'package.json');
   const decision = readJson(ROOT, 'migration/alias-capability.json');
+  const ownerRequest = fs.readFileSync(path.join(ROOT, decision.owner_request_path), 'utf8');
   const dumpPath = path.join(ROOT, decision.registry_dump_path);
   const dumpBytes = fs.readFileSync(dumpPath);
   const dump = JSON.parse(dumpBytes);
@@ -289,6 +320,13 @@ test('R4 completion summary and executable probe evidence stay synchronized', ()
   assert.equal(crypto.createHash('sha256').update(dumpBytes).digest('hex'),
     decision.registry_dump_hash);
   assert.equal(dump.codex_version, decision.codex_version);
+  assert.match(ownerRequest, /^> \*\*Status\*\*: (?:Candidate Complete|Completed)$/m);
+  assert.doesNotMatch(ownerRequest, /- \[ \]/);
+  assert.ok(ownerRequest.includes(`Codex version: \`${decision.codex_version}\``));
+  assert.ok(ownerRequest.includes(`Tested at: \`${decision.tested_at}\``));
+  assert.ok(ownerRequest.includes(`Alias decision: \`${decision.decision}\``));
+  assert.ok(ownerRequest.includes('Registry mechanism: `null`'));
+  assert.equal((ownerRequest.match(/sd0x-alias-capability-owner:v1/g) || []).length, 1);
   assert.equal(dump.observations.repository_probe.manual_invocation_marker_observed, true);
   assert.equal(dump.observations.repository_probe.user_or_account_data_retained, false);
   assert.equal(dump.observations.repository_probe.absolute_paths_retained, false);
@@ -307,7 +345,7 @@ test('alias probe deterministically reproduces normalized evidence', () => {
     'test/fixtures/alias-capability/plugin/skills/r4-alias-probe/SKILL.md');
   const properties = (names) => Object.fromEntries(names.map((name) => [name, {}]));
   const generated = buildDump({
-    codexVersion: 'codex-cli 0.144.1',
+    codexVersion: 'codex-cli 0.144.4',
     fixture: {
       manifestRelative: dump.fixture.manifest_path,
       manifestBytes: fs.readFileSync(manifestPath),
@@ -358,7 +396,7 @@ test('alias probe orchestration checks fake Codex output and cleanup failures', 
     if (behavior.cliFailure && args[0] === behavior.cliFailure) {
       throw new Error('fixture CLI failure');
     }
-    if (args[0] === '--version') return 'codex-cli 0.144.1\n';
+    if (args[0] === '--version') return 'codex-cli 0.144.4\n';
     if (args[0] === 'app-server') {
       const output = args[args.indexOf('--out') + 1];
       const directory = path.join(output, 'v2');
@@ -707,6 +745,8 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     'test/fixtures/alias-capability/plugin/skills/r4-alias-probe/SKILL.md');
   const pluginManifestPath = path.join(values.root,
     'plugin/sd0x-dev-flow-codex/.codex-plugin/plugin.json');
+  const ownerRequestPath = path.join(values.root,
+    'docs/features/skill-toolkit-migration/requests/2026-07-14-alias-capability-codex-0-144-4-refresh.md');
   const dispositionPath = path.join(values.root, 'migration/source-disposition.json');
   const originals = new Map([
     [decisionPath, fs.readFileSync(decisionPath)],
@@ -714,6 +754,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     [fixtureManifestPath, fs.readFileSync(fixtureManifestPath)],
     [fixtureSkillPath, fs.readFileSync(fixtureSkillPath)],
     [pluginManifestPath, fs.readFileSync(pluginManifestPath)],
+    [ownerRequestPath, fs.readFileSync(ownerRequestPath)],
     [dispositionPath, fs.readFileSync(dispositionPath)]
   ]);
   const restore = () => {
@@ -756,6 +797,44 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   assert.throws(() => auditSource({ root: values.root }), /stale for the core plugin fingerprint/);
   candidateRejects(/stale for the core plugin fingerprint/);
   restore();
+  fs.rmSync(ownerRequestPath);
+  assert.throws(() => auditSource({ root: values.root }), /alias capability owner request is missing/);
+  candidateRejects(/alias capability owner request is missing/);
+  restore();
+  fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
+    .replace('"codex_version":"codex-cli 0.144.4"',
+      '"codex_version":"codex-cli 0.144.5"') +
+    '\nCodex version: `codex-cli 0.144.4`; Tested at: `2026-07-14T21:38:33+08:00`\n');
+  assert.throws(() => auditSource({ root: values.root }),
+    /owner evidence does not match the decision artifact/);
+  candidateRejects(/owner evidence does not match the decision artifact/);
+  restore();
+  fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
+    .replace('"decision":"mapping-only"', '"decision":"manual-only"'));
+  assert.throws(() => auditSource({ root: values.root }),
+    /owner evidence does not match the decision artifact/);
+  candidateRejects(/owner evidence does not match the decision artifact/);
+  restore();
+  const duplicateOwnerEvidence = fs.readFileSync(ownerRequestPath, 'utf8')
+    .match(/^<!-- sd0x-alias-capability-owner:v1 [^\r\n]+ -->$/m)[0];
+  fs.appendFileSync(ownerRequestPath, `\n${duplicateOwnerEvidence}\n`);
+  assert.throws(() => auditSource({ root: values.root }),
+    /must contain exactly one evidence record/);
+  candidateRejects(/must contain exactly one evidence record/);
+  restore();
+  fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
+    .replace('> **Status**: Candidate Complete', '> **Status**: In Progress')
+    .replace('## Background', '## Background\n\n> **Status**: Candidate Complete'));
+  assert.throws(() => auditSource({ root: values.root }),
+    /owner request must be acceptance-ready/);
+  candidateRejects(/owner request must be acceptance-ready/);
+  restore();
+  fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
+    .replace(/^## Acceptance Criteria\n\n(?:- \[[ xX]\].*\n)+/m, '## Acceptance Criteria\n\n'));
+  assert.throws(() => auditSource({ root: values.root }),
+    /owner request must have complete acceptance criteria/);
+  candidateRejects(/owner request must have complete acceptance criteria/);
+  restore();
 
   const mappingDisposition = readJson(values.root, 'migration/source-disposition.json');
   assert.throws(() => validateAliasCapability(values.root, mappingDisposition, {
@@ -771,6 +850,22 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     target: 'architecture',
     aliasCapability: { codexVersion: 'codex-cli 9.9.9' }
   }), /mapping-only alias evidence is stale for Codex version/);
+
+  const invalidMappingDecision = readJson(values.root, 'migration/alias-capability.json');
+  invalidMappingDecision.registry_mechanism = 'unexpectedExclusion';
+  writeJson(values.root, 'migration/alias-capability.json', invalidMappingDecision);
+  syncAliasOwnerRequest(values.root, invalidMappingDecision);
+  assert.throws(() => auditSource({
+    root: values.root,
+    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+  }), /mapping-only decision cannot claim a registry exclusion mechanism/);
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+  }), /mapping-only decision cannot claim a registry exclusion mechanism/);
+  restore();
 
   const decision = readJson(values.root, 'migration/alias-capability.json');
   const dump = readJson(values.root, 'migration/evidence/alias-registry-dump.json');
@@ -791,19 +886,21 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     .update(fs.readFileSync(dumpPath)).digest('hex');
   writeJson(values.root, 'migration/alias-capability.json', decision);
   writeJson(values.root, 'migration/source-disposition.json', disposition);
+  syncAliasOwnerRequest(values.root, decision);
   assert.throws(() => validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.144.1'
+    codexVersion: 'codex-cli 0.144.4'
   }), /manual-only registry evidence is missing or ambiguous/);
   dump.observations.repository_probe.neutral_catalog_has_alias = false;
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', dump);
   decision.registry_dump_hash = crypto.createHash('sha256')
     .update(fs.readFileSync(dumpPath)).digest('hex');
   writeJson(values.root, 'migration/alias-capability.json', decision);
+  syncAliasOwnerRequest(values.root, decision);
   assert.deepEqual(validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.144.1'
+    codexVersion: 'codex-cli 0.144.4'
   }), {
     decision: 'manual-only',
-    codex_version: 'codex-cli 0.144.1'
+    codex_version: 'codex-cli 0.144.4'
   });
   prepareRow(values.root, 'architecture', { capabilities: ['core'] });
   const manualCandidate = writeCandidate(values.root, {
@@ -816,30 +913,31 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: manualCandidate,
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.144.1' }
+    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
   }).ok, true);
 
   const consistentDecision = structuredClone(decision);
   const consistentDump = structuredClone(dump);
   const negativeManualCases = [
-    ['mechanism', (candidateDecision) => { candidateDecision.registry_mechanism = null; }],
+    ['mechanism', (candidateDecision) => { candidateDecision.registry_mechanism = null; },
+      /manual-only requires an inspectable registry mechanism/],
     ['exclusion-result', (candidateDecision) => {
       candidateDecision.auto_route_excluded = false;
-    }],
+    }, /manual-only requires an inspectable registry mechanism/],
     ['support-flag', (_candidateDecision, candidateDump) => {
       candidateDump.observations.manual_only_exclusion.supported = false;
-    }],
+    }, /manual-only registry evidence is missing or ambiguous/],
     ['manual-invocation', (candidateDecision) => {
       candidateDecision.manual_invocation = false;
-    }],
+    }, /must record successful explicit invocation support/],
     ['marker', (_candidateDecision, candidateDump) => {
       candidateDump.observations.repository_probe.manual_invocation_marker_observed = false;
-    }],
+    }, /repository-only alias probe evidence is incomplete/],
     ['explicit-catalog', (_candidateDecision, candidateDump) => {
       candidateDump.observations.repository_probe.explicit_catalog_has_alias = false;
-    }]
+    }, /repository-only alias probe evidence is incomplete/]
   ];
-  for (const [name, mutate] of negativeManualCases) {
+  for (const [name, mutate, pattern] of negativeManualCases) {
     const candidateDecision = structuredClone(consistentDecision);
     const candidateDump = structuredClone(consistentDump);
     mutate(candidateDecision, candidateDump);
@@ -847,14 +945,26 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     candidateDecision.registry_dump_hash = crypto.createHash('sha256')
       .update(fs.readFileSync(dumpPath)).digest('hex');
     writeJson(values.root, 'migration/alias-capability.json', candidateDecision);
+    syncAliasOwnerRequest(values.root, candidateDecision);
     assert.throws(() => validateAliasCapability(values.root, disposition, {
-      codexVersion: 'codex-cli 0.144.1'
-    }), undefined, name);
+      codexVersion: 'codex-cli 0.144.4'
+    }), pattern, name);
+    assert.throws(() => auditSource({
+      root: values.root,
+      aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+    }), pattern, `${name}-source`);
+    assert.throws(() => auditCandidate({
+      root: values.root,
+      candidate: manualCandidate,
+      target: 'architecture',
+      aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+    }), pattern, `${name}-candidate`);
   }
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', consistentDump);
   consistentDecision.registry_dump_hash = crypto.createHash('sha256')
     .update(fs.readFileSync(dumpPath)).digest('hex');
   writeJson(values.root, 'migration/alias-capability.json', consistentDecision);
+  syncAliasOwnerRequest(values.root, consistentDecision);
   Object.assign(decision, consistentDecision);
 
   assert.throws(() => validateAliasCapability(values.root, disposition, {
@@ -872,7 +982,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.144.1' }
+    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
   }), /stale for Codex version/);
 });
 
@@ -916,6 +1026,9 @@ test('delivered source payload audit binds traversal and post-ledger bytes', (t)
 test('source audit rejects staged bytes, disposition, attribution, markers, and discovery drift', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const fixtureDisposition = readJson(values.root, 'migration/source-disposition.json');
+  assert.equal(fixtureDisposition.skills.some((row) =>
+    ['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)), false);
   assert.equal(auditSource({ root: values.root }).ok, true);
 
   const staged = path.join(values.root, 'migration', 'staging', 'architecture', 'SKILL.md');
@@ -999,6 +1112,19 @@ test('source audit rejects staged bytes, disposition, attribution, markers, and 
     '---', 'name: unknown-live', 'description: Unknown live skill.', '---', ''
   ].join('\n'));
   assert.throws(() => auditSource({ root: values.root }), /outside the approved target catalog/);
+});
+
+test('fresh-clone fixture normalizes retirement evidence back to planned state', (t) => {
+  const values = fixtureRoot({
+    deliveryStateOverrides: { 'statusline-config': 'retired' }
+  });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const disposition = readJson(values.root, 'migration/source-disposition.json');
+  const statusline = disposition.skills.find((row) => row.source_name === 'statusline-config');
+  assert.equal(statusline.delivery_state, 'planned');
+  assert.equal(disposition.skills.some((row) =>
+    ['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)), false);
+  assert.equal(auditSource({ root: values.root }).ok, true);
 });
 
 test('compare mode separates committed primary drift from exact local overlay drift', (t) => {
@@ -4634,7 +4760,7 @@ test('request DAG rejects cycles, invalid bases, supersession errors, and downst
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   const disposition = readJson(values.root, 'migration/source-disposition.json');
-  assert.equal(validateRequestDag(values.root, disposition).requests, 14);
+  assert.equal(validateRequestDag(values.root, disposition).requests, 15);
   const deep = path.join(values.root,
     'docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-tech-spec-deep-promotion.md');
   const deepOriginal = fs.readFileSync(deep, 'utf8');

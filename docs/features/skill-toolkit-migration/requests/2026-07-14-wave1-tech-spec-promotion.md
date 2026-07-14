@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-14
 > **Implementation Base SHA**: `8e3efb425e3848cb537beda2101d16014114fe3d`
-> **Status**: In Progress
+> **Status**: Candidate Complete
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -41,9 +41,9 @@ The lifecycle needs a solution-design owner after requirements analysis. This ti
 - [x] Candidate contract declares the complete active `tech-spec` mode registry and closes default-mode provenance、capabilities and operations.
 - [x] Routing tests separate default technical design from `req-analyze` and deep-analysis prompts.
 - [x] Candidate preflight audit passes with exact payload and behavior-test identity.
-- [ ] Final core move and disposition transition pass global audit、independent review and deterministic verification.
+- [x] Final core move passes global audit、independent review and deterministic verification；candidate disposition is ready for the runtime-owned promotion transition.
 - [x] R3 transaction inputs are ready to bind `tech-spec/default`、this request and the final payload fingerprint after docs review and fresh deterministic verification on the resulting Completed-request fingerprint.
-- [ ] Repository-only reload/status proves canonical discovery without a compatibility alias directory.
+- [x] Repository-only reload/status proves canonical discovery without a compatibility alias directory.
 
 ## Progress
 
@@ -52,7 +52,7 @@ The lifecycle needs a solution-design owner after requirements analysis. This ti
 | Analysis | Complete | Pinned default source、shared resolver boundary and default/deep ownership split reviewed |
 | Development | Complete | Exact live-byte candidate copy verified with `cmp`; shared payload `d110dcf425607c0cfe15080b19b90119a22208325b424952f4de2d02ebaf81c7` passed default preflight `9460fdf87ec2cec08a0931837be532bf1a1dea3063f6f58492a6c8ca2b539088`. |
 | Testing | Complete | Shared-payload review and deterministic verification passed at `8564efbafe8f0bae2d850d2f63e2316b9bf86f3a06ad5dfea9562ce57d2a4e96`; `npm run check` passed 336/336 tests. Default final audit `aba7fafd829468a56c84ac019d3ff1ac9b5d8481fd328cecde7bba97e268556b` passed. |
-| Acceptance | In Progress | Current implementation and gates are clean, but the dedicated default AC verifier remained Partial on AC 5 and inconclusive on AC 2/7. No R3 closure or promotion is recorded. |
+| Acceptance | Candidate Complete | All seven ACs now have direct contract、routing、final-audit、review/verify and reload evidence. R3 closure and promotion remain intentionally unrecorded until this ticket's durable transaction runs. |
 
 ## References
 

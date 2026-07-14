@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-14
 > **Implementation Base SHA**: `8e3efb425e3848cb537beda2101d16014114fe3d`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -52,7 +52,7 @@ Wave 1 needs the problem-space lifecycle entrypoint before solution design and e
 | Analysis | Complete | Pinned source、candidate contract and Codex-native adaptation boundaries reviewed |
 | Development | Complete | Revised candidate preflight `fd7189b3…145da34` passed after review fixes; exact payload moved to final core path without reload |
 | Testing | Complete | Full `npm run check` passes 319/319 and review/verify gates passed on fingerprint `2938ad3e…10ad` after closure-drift and R3 gate-sequence regressions were added |
-| Acceptance | Candidate Complete | Fresh isolated verifier returned all seven ACs Complete, but AC 6 and the overall verdict were Medium confidence；R3 closure remains intentionally blocked until every AC is High confidence |
+| Acceptance | Complete | All seven ACs are Complete with High-confidence commit-tree evidence；the R3 transaction binds the clean implementation subject and requires an exact post-edit documentation review before finalization. |
 
 ## References
 

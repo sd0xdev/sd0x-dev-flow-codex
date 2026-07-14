@@ -1,21 +1,22 @@
 {
   "schema_version": 1,
   "decision": "mapping-only",
-  "codex_version": "codex-cli 0.144.1",
+  "codex_version": "codex-cli 0.144.4",
   "registry_mechanism": null,
   "alias": "r4-alias-probe",
   "manual_invocation": true,
   "auto_route_excluded": false,
   "registry_dump_path": "migration/evidence/alias-registry-dump.json",
-  "registry_dump_hash": "58b7de071098ab70cfc562f0b29027abba7c0b1c92771c7831c4d702335b6201",
+  "registry_dump_hash": "6477d2f281f85a5f579e70dff9cd59c9edaf9f8901d509ef74f2ba7b09f9d154",
   "fixture_manifest_path": "test/fixtures/alias-capability/plugin/.codex-plugin/plugin.json",
   "fixture_manifest_hash": "7834bc05d6cb26d033604afe7c1b9b7ff2448bca48d939946b2b9474107c3ad2",
   "plugin_fingerprint": "1273c312e39bfa7587bfa3b78ea921d5832b9e91f991e6931311576d88a9c17b",
+  "owner_request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-alias-capability-codex-0-144-4-refresh.md",
   "reproduce_argv": [
     "CODEX_HOME=$PWD/.codex-dev-home codex --version",
     "CODEX_HOME=$PWD/.codex-dev-home codex app-server generate-json-schema --experimental --out <temporary-directory>",
     "CODEX_HOME=$PWD/.codex-dev-home npm run migration:alias:probe"
   ],
-  "tested_at": "2026-07-13T09:55:57+08:00",
+  "tested_at": "2026-07-14T21:38:33+08:00",
   "rationale": "Codex supports explicit and implicit skill invocation, but its versioned registry schema exposes no flag or API that preserves explicit invocation while excluding a skill from implicit routing. Prompt sampling cannot close that proof gap."
 }
