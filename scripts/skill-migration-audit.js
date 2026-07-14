@@ -5934,14 +5934,14 @@ function auditCandidate(options = {}) {
       finalGates.state.isCurrentPass(completed, 'verify'),
     'final audit requires a current verify pass at completion');
   }
+  const completedIdentity = assertSourceTransaction(root, source._transaction, {
+    afterReads: options.afterSourceTransactionReads
+  });
   const completedTree = candidateTree(root, relative);
   assert(JSON.stringify(completedTree.files) === JSON.stringify(tree.files),
     'candidate tree manifest changed while auditing');
   assert(candidateTreeDigest(completedTree) === treeHash,
     'candidate tree bytes changed while auditing');
-  const completedIdentity = assertSourceTransaction(root, source._transaction, {
-    afterReads: options.afterSourceTransactionReads
-  });
   assert(canonicalJson(completedIdentity) === canonicalJson(candidateIdentity),
     'candidate repository identity changed while auditing');
   return {

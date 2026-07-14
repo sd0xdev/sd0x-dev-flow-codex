@@ -5094,7 +5094,10 @@ test('candidate transaction retains source external state and tree manifests', (
   const stagingValues = fixtureRoot();
   const evidenceValues = fixtureRoot({ copyEvidenceRef: true });
   const identityValues = fixtureRoot();
-  for (const values of [treeValues, stagingValues, evidenceValues, identityValues]) {
+  const ignoredValues = fixtureRoot();
+  for (const values of [
+    treeValues, stagingValues, evidenceValues, identityValues, ignoredValues
+  ]) {
     t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
     prepareRow(values.root, 'architecture');
     values.candidate = writeCandidate(values.root, {
@@ -5151,6 +5154,19 @@ test('candidate transaction retains source external state and tree manifests', (
       writeJson(identityValues.root, 'migration/source-disposition.json', disposition);
     }
   }), /source repository identity changed while auditing/);
+
+  assert.throws(() => auditCandidate({
+    root: ignoredValues.root,
+    candidate: ignoredValues.candidate,
+    target: 'architecture',
+    afterSourceTransactionReads() {
+      fs.writeFileSync(path.join(
+        ignoredValues.root,
+        ignoredValues.candidate,
+        'late-ignored.log'
+      ), 'late\n');
+    }
+  }), /candidate tree manifest changed while auditing/);
 });
 
 test('audit CLI returns structured success and fails unknown modes', () => {
