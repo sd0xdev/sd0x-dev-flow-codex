@@ -451,6 +451,19 @@ function validateWave1Readiness(root, disposition, options = {}) {
   assert(readiness.units && typeof readiness.units === 'object' &&
       !Array.isArray(readiness.units) && Object.keys(readiness.units).length > 0,
   'Wave 1 readiness units are required');
+  const reviewedDisposition = jsonAtCommit(
+    root, subject.head_sha, 'migration/source-disposition.json',
+    'Wave 1 readiness source disposition'
+  );
+  const expectedUnits = sortedUnique(reviewedDisposition.skills.filter((row) => {
+    if (row.wave !== 1) return false;
+    const request = gitBlobAtPath(root, subject.head_sha, row.promotion_request)
+      .toString('utf8');
+    return /^> \*\*Status\*\*: Candidate Complete$/m.test(request);
+  }).map((row) => row.promotion_unit_id));
+  const actualUnits = Object.keys(readiness.units).sort(BYTEWISE);
+  assert(JSON.stringify(actualUnits) === JSON.stringify(expectedUnits),
+    'Wave 1 readiness unit set differs from reviewed Candidate Complete requests');
   for (const [promotionUnitId, unit] of Object.entries(readiness.units)) {
     assertExactKeys(unit, [
       'target_skill', 'target_package', 'request_path', 'payload_path',

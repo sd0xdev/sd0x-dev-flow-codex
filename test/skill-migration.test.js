@@ -324,6 +324,34 @@ test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t)
     /readiness payload differs from reviewed subject/);
 });
 
+test('Wave 1 readiness requires the exact reviewed Candidate Complete unit set', (t) => {
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const readinessPath = 'migration/evidence/wave1-delivery-readiness.json';
+  const disposition = readJson(values.root, 'migration/source-disposition.json');
+  const baseline = readJson(values.root, readinessPath);
+
+  const missingUnit = structuredClone(baseline);
+  delete missingUnit.units['architecture/default'];
+  writeJson(values.root, readinessPath, missingUnit);
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /unit set differs from reviewed Candidate Complete requests/);
+
+  const substitutedUnit = structuredClone(baseline);
+  substitutedUnit.units['substitute/default'] =
+    substitutedUnit.units['architecture/default'];
+  delete substitutedUnit.units['architecture/default'];
+  writeJson(values.root, readinessPath, substitutedUnit);
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /unit set differs from reviewed Candidate Complete requests/);
+
+  const missingTechSpecMode = structuredClone(baseline);
+  delete missingTechSpecMode.units['tech-spec/deep'];
+  writeJson(values.root, readinessPath, missingTechSpecMode);
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /unit set differs from reviewed Candidate Complete requests/);
+});
+
 test('Wave 1 readiness derives audit fingerprints from reviewed inputs', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
@@ -345,13 +373,29 @@ test('Wave 1 readiness derives audit fingerprints from reviewed inputs', (t) => 
   writeJson(values.root, dispositionPath, promoted);
   assert.deepEqual(validateWave1Readiness(values.root, promoted), { units: 9 });
 
+  const packReady = structuredClone(originalDisposition);
+  packReady.skills.find((row) => row.source_name === 'architecture').delivery_state =
+    'pack-ready';
+  writeJson(values.root, dispositionPath, packReady);
+  assert.deepEqual(validateWave1Readiness(values.root, packReady), { units: 9 });
+
   const disposition = structuredClone(originalDisposition);
-  disposition.skills.find((row) => row.source_name === 'create-request').rationale +=
-    ' reviewed-subject drift';
+  disposition.skills.find((row) => row.source_name === 'create-request').delivery_state =
+    'promoted';
+  const driftedArchitecture = disposition.skills.find((row) =>
+    row.source_name === 'architecture'
+  );
+  driftedArchitecture.rationale += ' reviewed-subject drift';
   writeJson(values.root, dispositionPath, disposition);
   assert.throws(() => validateWave1Readiness(values.root, disposition),
     /current audit inputs differ from reviewed subject/);
-  git(values.root, ['add', dispositionPath]);
+  const createRequestPath = disposition.skills.find((row) =>
+    row.source_name === 'create-request'
+  ).promotion_request;
+  const createRequest = fs.readFileSync(path.join(values.root, createRequestPath), 'utf8')
+    .replace('> **Status**: Completed', '> **Status**: Candidate Complete');
+  fs.writeFileSync(path.join(values.root, createRequestPath), createRequest);
+  git(values.root, ['add', dispositionPath, createRequestPath]);
   git(values.root, ['-c', 'commit.gpgSign=false', 'commit', '-m',
     'change reviewed disposition inputs'], { stdio: 'ignore' });
   const changedSubject = readJson(values.root, readinessPath);
