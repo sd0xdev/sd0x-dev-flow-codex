@@ -5071,7 +5071,7 @@ test('source and candidate transactions bind clean HEAD and post-source changes'
         .delivery_state = 'bogus';
       writeJson(candidateValues.root, 'migration/source-disposition.json', disposition);
     }
-  }), /candidate repository identity changed while auditing/);
+  }), /source snapshot changed while auditing|candidate repository identity changed while auditing/);
 });
 
 test('source transaction binds the delivered-evidence ref OID', (t) => {
@@ -5085,6 +5085,57 @@ test('source transaction binds the delivered-evidence ref OID', (t) => {
     root: values.root,
     beforeSourceSnapshotRevalidation() {
       git(values.root, ['update-ref', evidenceRef, parentOid, originalOid]);
+    }
+  }), /evidence ref changed while auditing source/);
+});
+
+test('candidate transaction retains source external state and tree manifests', (t) => {
+  const treeValues = fixtureRoot();
+  const stagingValues = fixtureRoot();
+  const evidenceValues = fixtureRoot({ copyEvidenceRef: true });
+  for (const values of [treeValues, stagingValues, evidenceValues]) {
+    t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+    prepareRow(values.root, 'architecture');
+    values.candidate = writeCandidate(values.root, {
+      target: 'architecture',
+      sourceNames: ['architecture'],
+      targetPackage: 'planning-pack',
+      unit: 'architecture/default'
+    });
+  }
+
+  assert.throws(() => auditCandidate({
+    root: treeValues.root,
+    candidate: treeValues.candidate,
+    target: 'architecture',
+    afterCandidateTreeRead({ directory }) {
+      fs.writeFileSync(path.join(directory, 'concurrent-extra.log'), 'late\n');
+    }
+  }), /candidate tree manifest changed while auditing/);
+
+  assert.throws(() => auditCandidate({
+    root: stagingValues.root,
+    candidate: stagingValues.candidate,
+    target: 'architecture',
+    afterSourceAudit() {
+      fs.writeFileSync(path.join(stagingValues.root,
+        'migration/staging/post-source-extra.log'), 'late\n');
+    }
+  }), /migration staging manifest changed while auditing/);
+
+  const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
+  const originalOid = git(evidenceValues.root, ['rev-parse', evidenceRef], {
+    encoding: 'utf8'
+  }).trim();
+  const parentOid = git(evidenceValues.root, ['rev-parse', `${originalOid}^`], {
+    encoding: 'utf8'
+  }).trim();
+  assert.throws(() => auditCandidate({
+    root: evidenceValues.root,
+    candidate: evidenceValues.candidate,
+    target: 'architecture',
+    afterSourceAudit() {
+      git(evidenceValues.root, ['update-ref', evidenceRef, parentOid, originalOid]);
     }
   }), /evidence ref changed while auditing source/);
 });

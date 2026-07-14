@@ -371,6 +371,31 @@ function repositoryIdentity(root) {
   };
 }
 
+function assertSourceTransaction(root, transaction) {
+  assert(transaction && typeof transaction === 'object',
+    'source transaction binding is missing');
+  assert(JSON.stringify(requestFiles(root)) === JSON.stringify(transaction.request_manifest),
+    'request file set changed during the source transaction');
+  for (const [relative, bytes] of transaction.snapshots) {
+    const absolute = containedPath(root, relative, {
+      label: 'source snapshot binding', type: 'file'
+    });
+    assert(fs.readFileSync(absolute).equals(bytes),
+      `${relative}: source snapshot changed while auditing`);
+  }
+  const stagingRoot = containedPath(root, 'migration/staging', {
+    label: 'migration staging root', type: 'directory'
+  });
+  assert(JSON.stringify(regularTreeFiles(stagingRoot)) ===
+    JSON.stringify(transaction.staging_manifest),
+  'migration staging manifest changed while auditing');
+  assert(evidenceRefOid(root) === transaction.evidence_oid,
+    'evidence ref changed while auditing source');
+  assert(canonicalJson(repositoryIdentity(root)) ===
+    canonicalJson(transaction.repository_identity),
+  'source repository identity changed while auditing');
+}
+
 function validateAliasCapability(root, disposition, options = {}) {
   const decisionRead = readJson(root, ALIAS_CAPABILITY_PATH, 'alias capability decision');
   const decision = decisionRead.value;
@@ -1138,21 +1163,18 @@ function auditSource(options = {}) {
   if (typeof options.beforeSourceSnapshotRevalidation === 'function') {
     options.beforeSourceSnapshotRevalidation();
   }
-  assert(JSON.stringify(requestFiles(root)) === JSON.stringify(requestManifest.files),
-    'request file set changed during the source audit');
-  for (const [relative, bytes] of sourceSnapshots) {
-    const absolute = containedPath(root, relative, {
-      label: 'source snapshot binding', type: 'file'
-    });
-    assert(fs.readFileSync(absolute).equals(bytes),
-      `${relative}: source snapshot changed while auditing`);
-  }
-  assert(JSON.stringify(regularTreeFiles(stagingRoot)) === JSON.stringify(stagingManifest),
-    'migration staging manifest changed while auditing');
-  assert(evidenceRefOid(root) === sourceEvidenceOid,
-    'evidence ref changed while auditing source');
-  assert(canonicalJson(repositoryIdentity(root)) === canonicalJson(sourceIdentity),
-    'source repository identity changed while auditing');
+  const transaction = {
+    repository_identity: sourceIdentity,
+    staging_manifest: [...stagingManifest],
+    evidence_oid: sourceEvidenceOid,
+    request_manifest: [...requestManifest.files],
+    snapshots: new Map(sourceSnapshots)
+  };
+  assertSourceTransaction(root, transaction);
+  Object.defineProperty(result, '_transaction', {
+    enumerable: false,
+    value: transaction
+  });
   return result;
 }
 
@@ -1388,6 +1410,17 @@ function candidateTree(root, relative) {
   }
   visit(directory, '');
   return { directory, files: files.sort(BYTEWISE) };
+}
+
+function candidateTreeDigest(tree) {
+  const content = tree.files.map((file) => fs.readFileSync(
+    path.join(tree.directory, ...file.split('/'))
+  ));
+  return sha256(Buffer.concat(tree.files.flatMap((file, index) => [
+    Buffer.from(`${file}\0`),
+    content[index],
+    Buffer.from('\0')
+  ])));
 }
 
 function localReferences(markdown) {
@@ -5711,6 +5744,9 @@ function auditCandidate(options = {}) {
   }
 
   const tree = candidateTree(root, relative);
+  if (typeof options.afterCandidateTreeRead === 'function') {
+    options.afterCandidateTreeRead({ directory: tree.directory, files: [...tree.files] });
+  }
   assert(tree.files.includes('SKILL.md'), 'candidate is missing SKILL.md');
   assert(tree.files.includes('migration-contract.json'),
     'candidate is missing migration-contract.json');
@@ -5851,14 +5887,7 @@ function auditCandidate(options = {}) {
     'sensitive candidate operations cannot contain policy text outside the authorization block');
   }
 
-  const content = tree.files.map((file) => fs.readFileSync(
-    path.join(tree.directory, ...file.split('/'))
-  ));
-  const treeHash = sha256(Buffer.concat(tree.files.flatMap((file, index) => [
-    Buffer.from(`${file}\0`),
-    content[index],
-    Buffer.from('\0')
-  ])));
+  const treeHash = candidateTreeDigest(tree);
   const identity = {
     phase,
     relative,
@@ -5893,6 +5922,12 @@ function auditCandidate(options = {}) {
       finalGates.state.isCurrentPass(completed, 'verify'),
     'final audit requires a current verify pass at completion');
   }
+  const completedTree = candidateTree(root, relative);
+  assert(JSON.stringify(completedTree.files) === JSON.stringify(tree.files),
+    'candidate tree manifest changed while auditing');
+  assert(candidateTreeDigest(completedTree) === treeHash,
+    'candidate tree bytes changed while auditing');
+  assertSourceTransaction(root, source._transaction);
   assert(canonicalJson(repositoryIdentity(root)) === canonicalJson(candidateIdentity),
     'candidate repository identity changed while auditing');
   return {
