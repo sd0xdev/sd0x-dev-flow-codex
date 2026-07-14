@@ -835,6 +835,30 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     /owner request must have complete acceptance criteria/);
   candidateRejects(/owner request must have complete acceptance criteria/);
   restore();
+  const ownerMutationOptions = () => ({
+    codexVersion: 'codex-cli 0.144.4',
+    afterOwnerRequestRead({ ownerRequestPath: capturedPath }) {
+      fs.writeFileSync(capturedPath, fs.readFileSync(capturedPath, 'utf8')
+        .replace(/^<!-- sd0x-alias-capability-owner:v1 [^\r\n]+ -->\n?/m, ''));
+    }
+  });
+  const raceDisposition = readJson(values.root, 'migration/source-disposition.json');
+  assert.throws(() => validateAliasCapability(
+    values.root, raceDisposition, ownerMutationOptions()
+  ), /owner request changed while validating capability/);
+  restore();
+  assert.throws(() => auditSource({
+    root: values.root,
+    aliasCapability: ownerMutationOptions()
+  }), /owner request changed while validating capability/);
+  restore();
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    aliasCapability: ownerMutationOptions()
+  }), /owner request changed while validating capability/);
+  restore();
 
   const mappingDisposition = readJson(values.root, 'migration/source-disposition.json');
   assert.throws(() => validateAliasCapability(values.root, mappingDisposition, {
@@ -4801,6 +4825,33 @@ test('request DAG rejects cycles, invalid bases, supersession errors, and downst
   ));
   requestAuditRejects(/canonical request metadata is invalid: invalid-status/);
   fs.writeFileSync(r1, original);
+  const concurrentRequest = path.join(path.dirname(r1),
+    '2026-07-14-concurrent-added-request.md');
+  const additionOptions = () => {
+    let added = false;
+    return {
+      afterRequestRead() {
+        if (added) return;
+        fs.writeFileSync(concurrentRequest, original);
+        added = true;
+      }
+    };
+  };
+  assert.throws(() => validateRequestDag(values.root, disposition, additionOptions()),
+    /request file set changed while validating the DAG/);
+  fs.rmSync(concurrentRequest);
+  assert.throws(() => auditSource({
+    root: values.root,
+    requestDag: additionOptions()
+  }), /request file set changed while validating the DAG/);
+  fs.rmSync(concurrentRequest);
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    requestDag: additionOptions()
+  }), /request file set changed while validating the DAG/);
+  fs.rmSync(concurrentRequest);
   const mutationOptions = () => ({
     afterRequestRead({ relative }) {
       if (relative.endsWith('2026-07-10-skill-migration-foundation-r1.md')) {

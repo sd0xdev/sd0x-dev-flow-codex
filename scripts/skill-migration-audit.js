@@ -24,7 +24,6 @@ const {
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   markdownField,
-  parseRequest,
   parseRequestContent
 } = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
 
@@ -511,8 +510,12 @@ function validateAliasCapability(root, disposition, options = {}) {
   const ownerRequestPath = containedPath(root, decision.owner_request_path, {
     label: 'alias capability owner request', type: 'file'
   });
-  const ownerRequest = fs.readFileSync(ownerRequestPath, 'utf8');
-  const ownerRecord = parseRequest(ownerRequestPath, root);
+  const ownerRequestBytes = fs.readFileSync(ownerRequestPath);
+  const ownerRequest = ownerRequestBytes.toString('utf8');
+  if (typeof options.afterOwnerRequestRead === 'function') {
+    options.afterOwnerRequestRead({ ownerRequestPath, ownerRequest });
+  }
+  const ownerRecord = parseRequestContent(ownerRequest, ownerRequestPath, root);
   assert(['candidate complete', 'completed'].includes(ownerRecord.status.toLowerCase()),
     'alias capability owner request must be acceptance-ready');
   assert(ownerRecord.parse_errors.length === 0 && ownerRecord.total > 0 &&
@@ -560,6 +563,11 @@ function validateAliasCapability(root, disposition, options = {}) {
       dump.observations.repository_probe.neutral_catalog_has_alias === false,
     'manual-only registry evidence is missing or ambiguous');
   }
+  const currentOwnerRequestPath = containedPath(root, decision.owner_request_path, {
+    label: 'alias capability owner request', type: 'file'
+  });
+  assert(fs.readFileSync(currentOwnerRequestPath).equals(ownerRequestBytes),
+    'alias capability owner request changed while validating capability');
   return { decision: decision.decision, codex_version: decision.codex_version };
 }
 
@@ -967,6 +975,8 @@ function validateRequestDag(root, disposition, options = {}) {
     assert(records.get(details.owner).dependencies.includes(defaultDetails.owner),
       `${unit}: mode gate owner must depend on ${details.target_skill}/default`);
   }
+  assert(JSON.stringify(requestFiles(root)) === JSON.stringify(files),
+    'request file set changed while validating the DAG');
   for (const [relative, bytes] of snapshots) {
     const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
     assert(fs.readFileSync(absolute).equals(bytes),
