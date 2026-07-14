@@ -4174,7 +4174,10 @@ test('core preflight preserves an existing live bootstrap until exact candidate 
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   git(values.root, ['add', 'plugin/sd0x-dev-flow-codex/skills/create-request']);
-  commit(values.root, 'establish approved live bootstrap');
+  git(values.root, [
+    '-c', 'commit.gpgSign=false', 'commit', '--allow-empty',
+    '-m', 'establish approved live bootstrap'
+  ], { stdio: 'ignore' });
   prepareRow(values.root, 'create-request');
   const relative = writeCandidate(values.root, {
     target: 'create-request',
