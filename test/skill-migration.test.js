@@ -312,20 +312,84 @@ test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t)
   writeJson(values.root, readinessPath,
     readJson(ROOT, 'migration/evidence/wave1-delivery-readiness.json'));
   const payloadPath = 'plugin/sd0x-dev-flow-codex/skills/create-request';
-  const behaviorPath = 'test/create-request-default-routing.test.js';
   fs.appendFileSync(path.join(values.root, payloadPath, 'SKILL.md'), '\npost-review drift\n');
-  fs.appendFileSync(path.join(values.root, behaviorPath), '\n// post-review drift\n');
   const drifted = readJson(values.root, readinessPath);
   const unit = drifted.units['create-request/default'];
   unit.payload_tree_sha256 = hashPayloadTree(values.root, payloadPath);
-  unit.behavior_test_sha256 = crypto.createHash('sha256')
-    .update(fs.readFileSync(path.join(values.root, behaviorPath))).digest('hex');
   writeJson(values.root, readinessPath, drifted);
-  git(values.root, ['add', payloadPath, behaviorPath, readinessPath]);
+  git(values.root, ['add', payloadPath, readinessPath]);
   git(values.root, ['-c', 'commit.gpgSign=false', 'commit', '-m',
     'post-subject payload drift'], { stdio: 'ignore' });
   assert.throws(() => validateWave1Readiness(values.root, disposition),
     /readiness payload differs from reviewed subject/);
+});
+
+test('Wave 1 readiness derives audit fingerprints from reviewed inputs', (t) => {
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const readinessPath = 'migration/evidence/wave1-delivery-readiness.json';
+  const dispositionPath = 'migration/source-disposition.json';
+  const random = readJson(values.root, readinessPath);
+  random.units['create-request/default'].preflight_audit_fingerprint = '1'.repeat(64);
+  random.units['create-request/default'].final_audit_fingerprint = '2'.repeat(64);
+  writeJson(values.root, readinessPath, random);
+  assert.throws(() => validateWave1Readiness(
+    values.root, readJson(values.root, dispositionPath)
+  ), /readiness audit fingerprints differ from reviewed subject/);
+
+  writeJson(values.root, readinessPath, readJson(ROOT, readinessPath));
+  const disposition = readJson(values.root, dispositionPath);
+  disposition.skills.find((row) => row.source_name === 'create-request').rationale +=
+    ' reviewed-subject drift';
+  writeJson(values.root, dispositionPath, disposition);
+  git(values.root, ['add', dispositionPath]);
+  git(values.root, ['-c', 'commit.gpgSign=false', 'commit', '-m',
+    'change reviewed disposition inputs'], { stdio: 'ignore' });
+  const changedSubject = readJson(values.root, readinessPath);
+  changedSubject.implementation_subject.head_sha = git(values.root, ['rev-parse', 'HEAD'])
+    .toString('utf8').trim();
+  changedSubject.implementation_subject.tree_sha =
+    git(values.root, ['rev-parse', 'HEAD^{tree}']).toString('utf8').trim();
+  const subject = changedSubject.implementation_subject;
+  changedSubject.review.subject_sha256 = crypto.createHash('sha256').update(JSON.stringify({
+    base_sha: subject.base_sha,
+    head_sha: subject.head_sha,
+    kind: subject.kind,
+    tree_sha: subject.tree_sha
+  }) + '\n').digest('hex');
+  writeJson(values.root, readinessPath, changedSubject);
+  assert.throws(() => validateWave1Readiness(
+    values.root, readJson(values.root, dispositionPath)
+  ), /readiness audit fingerprints differ from reviewed subject/);
+});
+
+test('Wave 1 readiness independently binds canonical behavior-test bytes', (t) => {
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const readinessPath = 'migration/evidence/wave1-delivery-readiness.json';
+  const disposition = readJson(values.root, 'migration/source-disposition.json');
+  const behaviorPath = 'test/create-request-default-routing.test.js';
+  const alternatePath = 'test/create-request-alternate-routing.test.js';
+  fs.copyFileSync(path.join(values.root, behaviorPath), path.join(values.root, alternatePath));
+  const alternate = readJson(values.root, readinessPath);
+  alternate.units['create-request/default'].behavior_test_path = alternatePath;
+  writeJson(values.root, readinessPath, alternate);
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /readiness behavior test path is invalid/);
+
+  fs.rmSync(path.join(values.root, alternatePath));
+  writeJson(values.root, readinessPath, readJson(ROOT, readinessPath));
+  fs.appendFileSync(path.join(values.root, behaviorPath), '\n// post-review drift\n');
+  const drifted = readJson(values.root, readinessPath);
+  drifted.units['create-request/default'].behavior_test_sha256 = crypto
+    .createHash('sha256').update(fs.readFileSync(path.join(values.root, behaviorPath)))
+    .digest('hex');
+  writeJson(values.root, readinessPath, drifted);
+  git(values.root, ['add', behaviorPath, readinessPath]);
+  git(values.root, ['-c', 'commit.gpgSign=false', 'commit', '-m',
+    'post-subject behavior drift'], { stdio: 'ignore' });
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /readiness behavior test differs from reviewed subject/);
 });
 
 test('alias capability evidence locks every compatibility alias to mapping-only', () => {

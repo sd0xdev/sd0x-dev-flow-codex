@@ -481,10 +481,13 @@ function validateWave1Readiness(root, disposition, options = {}) {
     assert(hashPayloadTreeAtCommit(root, subject.head_sha, unit.payload_path) ===
       unit.payload_tree_sha256,
     `${promotionUnitId}: readiness payload differs from reviewed subject`);
-    assert(/^[0-9a-f]{64}$/.test(unit.preflight_audit_fingerprint) &&
-      /^[0-9a-f]{64}$/.test(unit.final_audit_fingerprint) &&
-      unit.preflight_audit_fingerprint !== unit.final_audit_fingerprint,
-    `${promotionUnitId}: readiness audit fingerprints are invalid`);
+    const expectedAudit = candidateAuditIdentitiesAtCommit(
+      root, subject.head_sha, unit, promotionUnitId
+    );
+    assert(unit.preflight_audit_fingerprint === expectedAudit.preflight &&
+      unit.final_audit_fingerprint === expectedAudit.final &&
+      expectedAudit.preflight !== expectedAudit.final,
+    `${promotionUnitId}: readiness audit fingerprints differ from reviewed subject`);
     const [, targetMode] = promotionUnitId.split('/');
     assert(unit.behavior_test_path ===
       `test/${unit.target_skill}-${targetMode}-routing.test.js`,
@@ -1420,6 +1423,78 @@ function hashPayloadTreeAtCommit(repository, commit, relative) {
     gitBlob(repository, record.object),
     Buffer.from('\0')
   ])));
+}
+
+function jsonAtCommit(repository, commit, relative, label) {
+  try {
+    return JSON.parse(gitBlobAtPath(repository, commit, relative).toString('utf8'));
+  } catch (error) {
+    throw new Error(`${label} is invalid in reviewed subject: ${error.message}`);
+  }
+}
+
+function candidateAuditIdentitiesAtCommit(repository, commit, unit, promotionUnitId) {
+  const disposition = jsonAtCommit(
+    repository, commit, 'migration/source-disposition.json', 'source disposition'
+  );
+  const rows = disposition.skills.filter((row) =>
+    row.target_skill === unit.target_skill &&
+    ['candidate', 'pack-ready', 'promoted'].includes(row.delivery_state)
+  );
+  assert(rows.length > 0 && rows.some((row) =>
+    row.promotion_unit_id === promotionUnitId
+  ), `${promotionUnitId}: reviewed subject lacks active disposition rows`);
+  const contract = jsonAtCommit(
+    repository, commit, `${unit.payload_path}/migration-contract.json`,
+    `${promotionUnitId} migration contract`
+  );
+  assert(Array.isArray(contract.units) && contract.units.some((entry) =>
+    entry.promotion_unit_id === promotionUnitId
+  ), `${promotionUnitId}: reviewed subject contract lacks the promotion unit`);
+  const testEvidence = [];
+  for (const contractUnit of contract.units) {
+    assert(Array.isArray(contractUnit.behavior_tests) &&
+      Array.isArray(contractUnit.routing?.positive_triggers) &&
+      Array.isArray(contractUnit.routing?.negative_boundaries),
+    `${contractUnit.promotion_unit_id}: reviewed subject behavior contract is invalid`);
+    for (const testPath of contractUnit.behavior_tests) {
+      const bytes = gitBlobAtPath(repository, commit, testPath);
+      testEvidence.push({
+        path: testPath,
+        promotion_unit_id: contractUnit.promotion_unit_id,
+        sha256: sha256(bytes),
+        positive_routing_sha256: sha256(Buffer.from(JSON.stringify(
+          contractUnit.routing.positive_triggers
+        ))),
+        negative_routing_sha256: sha256(Buffer.from(JSON.stringify(
+          contractUnit.routing.negative_boundaries
+        )))
+      });
+    }
+  }
+  testEvidence.sort((left, right) => BYTEWISE(left.path, right.path));
+  const [, targetMode] = promotionUnitId.split('/');
+  const mode = targetMode === 'default' ? null : targetMode;
+  const identity = {
+    target: unit.target_skill,
+    mode,
+    promotionUnitId,
+    treeHash: hashPayloadTreeAtCommit(repository, commit, unit.payload_path),
+    testEvidence,
+    rows
+  };
+  return {
+    preflight: candidateAuditIdentity({
+      ...identity,
+      phase: 'preflight',
+      relative: `migration/candidates/${unit.target_skill}`
+    }),
+    final: candidateAuditIdentity({
+      ...identity,
+      phase: unit.target_package === 'core' ? 'final' : 'pack-final',
+      relative: unit.payload_path
+    })
+  };
 }
 
 function compareFileMaps(baseline, current) {
