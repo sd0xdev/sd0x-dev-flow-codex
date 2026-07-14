@@ -525,7 +525,7 @@
       "source_name": "create-request",
       "disposition": "adapt",
       "target_package": "core",
-      "delivery_state": "candidate",
+      "delivery_state": "promoted",
       "target_skill": "create-request",
       "target_mode": null,
       "alias_candidate": false,

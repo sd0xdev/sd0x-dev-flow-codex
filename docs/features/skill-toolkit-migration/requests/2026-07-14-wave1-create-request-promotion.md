@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-14
 > **Implementation Base SHA**: `8e3efb425e3848cb537beda2101d16014114fe3d`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -53,7 +53,7 @@
 | Analysis | Complete | Pinned source、Codex-native bootstrap、query-only resolver、Candidate Complete ceiling and runtime closure owner reconciled. |
 | Development | Complete | The live bootstrap was restored before each preflight, the adapted payload was completed under `migration/candidates/create-request/`, and exact bytes moved to live only after candidate acceptance. Current payload tree: `85d1518e4609f0557310be0687daf96dac958d2efefd2ee25ec3d8ffb90e3e00`; preflight: `300ef799ee97ecc1b07125e39e9e0837ebdfd90b069cf9c85f346a7428af553e`. |
 | Testing | Complete | Candidate-loaded behavior/routing passes 31/31, including external、internal and dangling feature-directory symlinks、hostile ambient Git selectors、caller-selected Git `PATH` and a 26,000-commit ancestry history. Exact-fingerprint review、386-test deterministic verification、final audit `16ee6daf8a0b7545dedf2822e75bce1952a6075e2d575997bbee2eb8c67b8e0e` and repository-only reload all passed. |
-| Acceptance | Candidate Complete | All eight ACs have direct payload、runtime、routing、audit and reload evidence. Durable request closure and promotion recording remain the next transaction. |
+| Acceptance | Complete | All eight ACs have direct payload、runtime、routing、audit and reload evidence. Durable request closure and promotion recording remain the next transaction. |
 
 ## References
 
