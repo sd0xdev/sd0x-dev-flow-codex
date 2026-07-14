@@ -376,7 +376,7 @@ function repositoryIdentity(root) {
   };
 }
 
-function assertSourceTransaction(root, transaction, currentIdentity = null) {
+function assertSourceTransaction(root, transaction, options = {}) {
   assert(transaction && typeof transaction === 'object',
     'source transaction binding is missing');
   assert(JSON.stringify(requestFiles(root)) === JSON.stringify(transaction.request_manifest),
@@ -396,9 +396,12 @@ function assertSourceTransaction(root, transaction, currentIdentity = null) {
   'migration staging manifest changed while auditing');
   assert(evidenceRefOid(root) === transaction.evidence_oid,
     'evidence ref changed while auditing source');
-  assert(canonicalJson(currentIdentity || repositoryIdentity(root)) ===
+  if (typeof options.afterReads === 'function') options.afterReads();
+  const currentIdentity = repositoryIdentity(root);
+  assert(canonicalJson(currentIdentity) ===
     canonicalJson(transaction.repository_identity),
   'source repository identity changed while auditing');
+  return currentIdentity;
 }
 
 function validateAliasCapability(root, disposition, options = {}) {
@@ -5936,8 +5939,9 @@ function auditCandidate(options = {}) {
     'candidate tree manifest changed while auditing');
   assert(candidateTreeDigest(completedTree) === treeHash,
     'candidate tree bytes changed while auditing');
-  const completedIdentity = repositoryIdentity(root);
-  assertSourceTransaction(root, source._transaction, completedIdentity);
+  const completedIdentity = assertSourceTransaction(root, source._transaction, {
+    afterReads: options.afterSourceTransactionReads
+  });
   assert(canonicalJson(completedIdentity) === canonicalJson(candidateIdentity),
     'candidate repository identity changed while auditing');
   return {
