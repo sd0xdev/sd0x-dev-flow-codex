@@ -59,6 +59,13 @@ function fixtureRoot(options = {}) {
   execFileSync('git', ['clone', '--no-local', '--quiet', ROOT, root], {
     env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' }
   });
+  if (options.copyEvidenceRef) {
+    const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
+    execFileSync('git', ['fetch', '--quiet', ROOT, `${evidenceRef}:${evidenceRef}`], {
+      cwd: root,
+      env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' }
+    });
+  }
   copy(path.join(ROOT, 'migration'), path.join(root, 'migration'));
   const disposition = readJson(root, 'migration/source-disposition.json');
   for (const [sourceName, deliveryState] of Object.entries(
@@ -1108,6 +1115,21 @@ test('source audit rejects staged bytes, disposition, attribution, markers, and 
   assert.equal(fixtureDisposition.skills.some((row) =>
     ['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)), false);
   assert.equal(auditSource({ root: values.root }).ok, true);
+  const ignoredStagingAddition = path.join(values.root,
+    'migration/staging/concurrent-extra.log');
+  const addIgnoredStagingFile = () => fs.writeFileSync(ignoredStagingAddition, 'late\n');
+  assert.throws(() => auditSource({
+    root: values.root,
+    beforeSourceSnapshotRevalidation: addIgnoredStagingFile
+  }), /staging manifest changed while auditing/);
+  fs.rmSync(ignoredStagingAddition);
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    beforeSourceSnapshotRevalidation: addIgnoredStagingFile
+  }), /staging manifest changed while auditing/);
+  fs.rmSync(ignoredStagingAddition);
 
   const staged = path.join(values.root, 'migration', 'staging', 'architecture', 'SKILL.md');
   const stagedBytes = fs.readFileSync(staged);
@@ -5050,6 +5072,21 @@ test('source and candidate transactions bind clean HEAD and post-source changes'
       writeJson(candidateValues.root, 'migration/source-disposition.json', disposition);
     }
   }), /candidate repository identity changed while auditing/);
+});
+
+test('source transaction binds the delivered-evidence ref OID', (t) => {
+  const values = fixtureRoot({ copyEvidenceRef: true });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
+  const originalOid = git(values.root, ['rev-parse', evidenceRef], { encoding: 'utf8' }).trim();
+  const parentOid = git(values.root, ['rev-parse', `${originalOid}^`], { encoding: 'utf8' }).trim();
+  assert.notEqual(parentOid, originalOid);
+  assert.throws(() => auditSource({
+    root: values.root,
+    beforeSourceSnapshotRevalidation() {
+      git(values.root, ['update-ref', evidenceRef, parentOid, originalOid]);
+    }
+  }), /evidence ref changed while auditing source/);
 });
 
 test('audit CLI returns structured success and fails unknown modes', () => {

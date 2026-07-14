@@ -1029,6 +1029,11 @@ function auditSource(options = {}) {
     'migration/source-inventory.generated.json',
     'source inventory'
   );
+  const stagingRoot = containedPath(root, 'migration/staging', {
+    label: 'migration staging root', type: 'directory'
+  });
+  const stagingManifest = regularTreeFiles(stagingRoot);
+  const sourceEvidenceOid = evidenceRefOid(root);
   const rawInventory = inventoryRead.bytes;
   const names = validateInventory(root, inventoryRead.value, rawInventory);
   const dispositionRead = readJson(
@@ -1142,6 +1147,10 @@ function auditSource(options = {}) {
     assert(fs.readFileSync(absolute).equals(bytes),
       `${relative}: source snapshot changed while auditing`);
   }
+  assert(JSON.stringify(regularTreeFiles(stagingRoot)) === JSON.stringify(stagingManifest),
+    'migration staging manifest changed while auditing');
+  assert(evidenceRefOid(root) === sourceEvidenceOid,
+    'evidence ref changed while auditing source');
   assert(canonicalJson(repositoryIdentity(root)) === canonicalJson(sourceIdentity),
     'source repository identity changed while auditing');
   return result;
