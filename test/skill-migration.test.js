@@ -33,6 +33,7 @@ const {
   validateInstallation
 } = require('../scripts/probe-alias-capability');
 const {
+  hashPayloadTree,
   markGate,
   recordSubagent,
   recordVerification,
@@ -307,6 +308,24 @@ test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t)
   writeJson(values.root, readinessPath, readiness);
   assert.throws(() => validateWave1Readiness(values.root, disposition),
     /readiness payload hash is stale/);
+
+  writeJson(values.root, readinessPath,
+    readJson(ROOT, 'migration/evidence/wave1-delivery-readiness.json'));
+  const payloadPath = 'plugin/sd0x-dev-flow-codex/skills/create-request';
+  const behaviorPath = 'test/create-request-default-routing.test.js';
+  fs.appendFileSync(path.join(values.root, payloadPath, 'SKILL.md'), '\npost-review drift\n');
+  fs.appendFileSync(path.join(values.root, behaviorPath), '\n// post-review drift\n');
+  const drifted = readJson(values.root, readinessPath);
+  const unit = drifted.units['create-request/default'];
+  unit.payload_tree_sha256 = hashPayloadTree(values.root, payloadPath);
+  unit.behavior_test_sha256 = crypto.createHash('sha256')
+    .update(fs.readFileSync(path.join(values.root, behaviorPath))).digest('hex');
+  writeJson(values.root, readinessPath, drifted);
+  git(values.root, ['add', payloadPath, behaviorPath, readinessPath]);
+  git(values.root, ['-c', 'commit.gpgSign=false', 'commit', '-m',
+    'post-subject payload drift'], { stdio: 'ignore' });
+  assert.throws(() => validateWave1Readiness(values.root, disposition),
+    /readiness payload differs from reviewed subject/);
 });
 
 test('alias capability evidence locks every compatibility alias to mapping-only', () => {

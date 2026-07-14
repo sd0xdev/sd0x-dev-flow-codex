@@ -478,15 +478,25 @@ function validateWave1Readiness(root, disposition, options = {}) {
     `${promotionUnitId}: readiness payload path is invalid`);
     assert(hashPayloadTree(root, unit.payload_path) === unit.payload_tree_sha256,
       `${promotionUnitId}: readiness payload hash is stale`);
+    assert(hashPayloadTreeAtCommit(root, subject.head_sha, unit.payload_path) ===
+      unit.payload_tree_sha256,
+    `${promotionUnitId}: readiness payload differs from reviewed subject`);
     assert(/^[0-9a-f]{64}$/.test(unit.preflight_audit_fingerprint) &&
       /^[0-9a-f]{64}$/.test(unit.final_audit_fingerprint) &&
       unit.preflight_audit_fingerprint !== unit.final_audit_fingerprint,
     `${promotionUnitId}: readiness audit fingerprints are invalid`);
+    const [, targetMode] = promotionUnitId.split('/');
+    assert(unit.behavior_test_path ===
+      `test/${unit.target_skill}-${targetMode}-routing.test.js`,
+    `${promotionUnitId}: readiness behavior test path is invalid`);
     const behavior = containedPath(root, unit.behavior_test_path, {
       label: `${promotionUnitId} readiness behavior test`, type: 'file'
     });
     assert(sha256(fs.readFileSync(behavior)) === unit.behavior_test_sha256,
       `${promotionUnitId}: readiness behavior test hash is stale`);
+    assert(sha256(gitBlobAtPath(root, subject.head_sha, unit.behavior_test_path)) ===
+      unit.behavior_test_sha256,
+    `${promotionUnitId}: readiness behavior test differs from reviewed subject`);
   }
   return { units: Object.keys(readiness.units).length };
 }
@@ -1391,6 +1401,25 @@ function treeRecords(repository, commit, pathspecs) {
 
 function gitBlob(repository, object) {
   return runGit(repository, ['cat-file', 'blob', object], null);
+}
+
+function gitBlobAtPath(repository, commit, relative) {
+  const records = treeRecords(repository, commit, [relative]);
+  assert(records.length === 1 && records[0].path === relative,
+    `reviewed subject does not contain exact file: ${relative}`);
+  return gitBlob(repository, records[0].object);
+}
+
+function hashPayloadTreeAtCommit(repository, commit, relative) {
+  const prefix = `${relative}/`;
+  const records = treeRecords(repository, commit, [relative]);
+  assert(records.length > 0 && records.every((record) => record.path.startsWith(prefix)),
+    `reviewed subject does not contain exact payload: ${relative}`);
+  return sha256(Buffer.concat(records.flatMap((record) => [
+    Buffer.from(`${record.path.slice(prefix.length)}\0`),
+    gitBlob(repository, record.object),
+    Buffer.from('\0')
+  ])));
 }
 
 function compareFileMaps(baseline, current) {
