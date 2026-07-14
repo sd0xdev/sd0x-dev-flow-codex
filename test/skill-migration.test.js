@@ -1129,6 +1129,62 @@ test('source audit rejects staged bytes, disposition, attribution, markers, and 
   assert.throws(() => auditSource({ root: values.root }), /target_package drift/);
   fs.writeFileSync(dispositionPath, dispositionBytes);
 
+  const lateMutationRejects = (mutate) => {
+    assert.throws(() => auditSource({
+      root: values.root,
+      beforeSourceSnapshotRevalidation: mutate
+    }), /source snapshot changed while auditing/);
+    fs.writeFileSync(dispositionPath, dispositionBytes);
+    assert.throws(() => auditCandidate({
+      root: values.root,
+      candidate: 'migration/candidates/architecture',
+      target: 'architecture',
+      beforeSourceSnapshotRevalidation: mutate
+    }), /source snapshot changed while auditing/);
+    fs.writeFileSync(dispositionPath, dispositionBytes);
+  };
+  lateMutationRejects(() => {
+    const lateDisposition = JSON.parse(dispositionBytes);
+    lateDisposition.skills[0].delivery_state = 'bogus';
+    writeJson(values.root, 'migration/source-disposition.json', lateDisposition);
+  });
+
+  const inventoryPath = path.join(values.root, 'migration/source-inventory.generated.json');
+  const inventoryBytes = fs.readFileSync(inventoryPath);
+  const mutateInventory = () => fs.appendFileSync(inventoryPath, ' ');
+  assert.throws(() => auditSource({
+    root: values.root,
+    beforeSourceSnapshotRevalidation: mutateInventory
+  }), /source snapshot changed while auditing/);
+  fs.writeFileSync(inventoryPath, inventoryBytes);
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    beforeSourceSnapshotRevalidation: mutateInventory
+  }), /source snapshot changed while auditing/);
+  fs.writeFileSync(inventoryPath, inventoryBytes);
+
+  const architectureRequestPath = path.join(values.root,
+    'docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-architecture-pack-ready.md');
+  const architectureRequestBytes = fs.readFileSync(architectureRequestPath);
+  const mutateArchitectureRequest = () => fs.writeFileSync(
+    architectureRequestPath,
+    fs.readFileSync(architectureRequestPath, 'utf8').replace(/^> \*\*Status\*\*:.*\n/m, '')
+  );
+  assert.throws(() => auditSource({
+    root: values.root,
+    beforeDeliveredEvidenceAudit: mutateArchitectureRequest
+  }), /source snapshot changed while auditing/);
+  fs.writeFileSync(architectureRequestPath, architectureRequestBytes);
+  assert.throws(() => auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/architecture',
+    target: 'architecture',
+    beforeSourceSnapshotRevalidation: mutateArchitectureRequest
+  }), /source snapshot changed while auditing/);
+  fs.writeFileSync(architectureRequestPath, architectureRequestBytes);
+
   const remappedCore = JSON.parse(dispositionBytes);
   const createRequest = remappedCore.skills.find((row) => row.source_name === 'create-request');
   createRequest.target_skill = 'arbitrary-core';

@@ -23,6 +23,9 @@ const {
   hashPayloadTree
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
+  snapshot: snapshotWorktree
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/worktree');
+const {
   markdownField,
   parseRequestContent
 } = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
@@ -853,6 +856,9 @@ function validateRequestDag(root, disposition, options = {}) {
     assert(!expectedBytes || expectedBytes.equals(bytes),
       `${relative}: request differs from its prior source snapshot`);
     snapshots.set(relative, bytes);
+    if (options.snapshotBindings instanceof Map) {
+      options.snapshotBindings.set(relative, bytes);
+    }
     if (typeof options.afterRequestRead === 'function') {
       options.afterRequestRead({ relative, absolute, markdown });
     }
@@ -995,6 +1001,9 @@ function validateRequestDag(root, disposition, options = {}) {
   }
   assert(JSON.stringify(requestFiles(root)) === JSON.stringify(files),
     'request file set changed while validating the DAG');
+  if (options.manifestBinding && typeof options.manifestBinding === 'object') {
+    options.manifestBinding.files = [...files];
+  }
   for (const [relative, bytes] of snapshots) {
     const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
     assert(fs.readFileSync(absolute).equals(bytes),
@@ -1006,32 +1015,42 @@ function validateRequestDag(root, disposition, options = {}) {
 function auditSource(options = {}) {
   const root = path.resolve(options.root || ROOT);
   realDirectory(root, 'repository root');
+  const sourceFingerprint = snapshotWorktree(root).fingerprint;
   const inventoryRead = readJson(
     root,
     'migration/source-inventory.generated.json',
     'source inventory'
   );
-  const rawInventory = fs.readFileSync(inventoryRead.filePath);
+  const rawInventory = inventoryRead.bytes;
   const names = validateInventory(root, inventoryRead.value, rawInventory);
-  const disposition = readJson(
+  const dispositionRead = readJson(
     root,
     'migration/source-disposition.json',
     'source disposition'
-  ).value;
+  );
+  const disposition = dispositionRead.value;
   const rows = validateDisposition(disposition, names);
   assert([...rows.values()].every((row) => row.license_status === 'approved'),
     'R1 source rows must retain approved MIT status');
   validateBoundaryMarkers(root);
   validateDistribution(root, disposition);
   const sourceSnapshots = new Map();
+  sourceSnapshots.set('migration/source-inventory.generated.json', inventoryRead.bytes);
+  sourceSnapshots.set('migration/source-disposition.json', dispositionRead.bytes);
+  const requestManifest = {};
   const aliasCapability = validateAliasCapability(root, disposition, {
     ...(options.aliasCapability || {}),
     snapshotBindings: sourceSnapshots
   });
   const requestDag = validateRequestDag(root, disposition, {
     ...(options.requestDag || {}),
-    expectedSnapshots: sourceSnapshots
+    expectedSnapshots: sourceSnapshots,
+    snapshotBindings: sourceSnapshots,
+    manifestBinding: requestManifest
   });
+  if (typeof options.beforeDeliveredEvidenceAudit === 'function') {
+    options.beforeDeliveredEvidenceAudit();
+  }
   const deliveredUnits = new Map();
   for (const row of rows.values()) {
     if (!['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)) continue;
@@ -1075,7 +1094,6 @@ function auditSource(options = {}) {
       if (payloadRelative) {
         auditDeliveredPayload(root, payloadRelative, {
           payloadHooks: options.payloadHooks,
-          beforeEvidenceAudit: options.beforeDeliveredEvidenceAudit,
           promotionUnitId,
           currentEvidenceOid: () => evidenceRefOid(root)
         }, (payloadHash) => auditEvidenceLedger(root, {
@@ -1104,6 +1122,11 @@ function auditSource(options = {}) {
     result.compare = compareCheckout(root, inventoryRead.value, options.compare);
     result.ok = result.compare.ok;
   }
+  if (typeof options.beforeSourceSnapshotRevalidation === 'function') {
+    options.beforeSourceSnapshotRevalidation();
+  }
+  assert(JSON.stringify(requestFiles(root)) === JSON.stringify(requestManifest.files),
+    'request file set changed during the source audit');
   for (const [relative, bytes] of sourceSnapshots) {
     const absolute = containedPath(root, relative, {
       label: 'source snapshot binding', type: 'file'
@@ -1111,6 +1134,8 @@ function auditSource(options = {}) {
     assert(fs.readFileSync(absolute).equals(bytes),
       `${relative}: source snapshot changed while auditing`);
   }
+  assert(snapshotWorktree(root).fingerprint === sourceFingerprint,
+    'source worktree fingerprint changed while auditing');
   return result;
 }
 
@@ -5614,7 +5639,8 @@ function auditCandidate(options = {}) {
     root,
     skipDeliveredEvidence: true,
     aliasCapability: options.aliasCapability,
-    requestDag: options.requestDag
+    requestDag: options.requestDag,
+    beforeSourceSnapshotRevalidation: options.beforeSourceSnapshotRevalidation
   });
   assert(source.ok, 'source audit must pass before candidate audit');
   let finalGates = null;
