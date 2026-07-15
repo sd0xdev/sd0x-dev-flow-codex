@@ -3182,14 +3182,19 @@ function auditEvidenceLedgerTransaction(cwd, expected = {}, hooks = {}) {
       throw new Error('Current request no longer matches durable completion evidence');
     }
   }
+  const selectsRequestClosure = expected.kind === 'request-closure';
   const selected = expected.promotion_unit_id
-    ? [...seenRecords.values()].filter((record) =>
-        record.promotion_unit_id === expected.promotion_unit_id &&
-        ['promotion', 'pack-ready', 'retirement'].includes(record.kind)
-      ).at(-1)
+    ? selectsRequestClosure
+      ? latestRevision.get(`request-closure\0${expected.promotion_unit_id}`) || null
+      : [...seenRecords.values()].filter((record) =>
+          record.promotion_unit_id === expected.promotion_unit_id &&
+          ['promotion', 'pack-ready', 'retirement'].includes(record.kind)
+        ).at(-1)
     : null;
   if (expected.promotion_unit_id && !selected) {
-    throw new Error(`Evidence has no completion record for ${expected.promotion_unit_id}`);
+    throw new Error(selectsRequestClosure
+      ? `Evidence has no request closure for ${expected.promotion_unit_id}`
+      : `Evidence has no completion record for ${expected.promotion_unit_id}`);
   }
   if (selected) {
     const currentClosure = latestRevision.get(
@@ -3198,7 +3203,13 @@ function auditEvidenceLedgerTransaction(cwd, expected = {}, hooks = {}) {
     const currentPending = latestRevision.get(
       `request-closure-pending\0${selected.promotion_unit_id}`
     );
-    if (currentClosure?.record_sha256 !== selected.request_closure_record_sha256 ||
+    if (selectsRequestClosure) {
+      if (currentClosure?.record_sha256 !== selected.record_sha256 ||
+          selected.pending_record_sha256 !== currentPending?.record_sha256) {
+        throw new Error('Selected request closure is superseded');
+      }
+    } else if (currentClosure?.record_sha256 !==
+        selected.request_closure_record_sha256 ||
         currentClosure?.pending_record_sha256 !== currentPending?.record_sha256) {
       throw new Error('Selected completion references a superseded request closure');
     }

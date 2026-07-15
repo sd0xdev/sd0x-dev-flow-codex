@@ -1258,6 +1258,40 @@ test('ledger audit rejects a closure committed before its pending record', (t) =
   assert.throws(() => auditEvidenceLedger(root), /must follow.*pending commit-order/);
 });
 
+test('ledger audit can select the latest durable request closure', (t) => {
+  const root = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
+  const subject = dirtySubject(root);
+  const pending = prepareRequestClosure(root, {
+    promotion_unit_id: 'fixture/default',
+    request_path: requestPath,
+    proposed_request: completedRequestBytes(root),
+    subject,
+    evidence: passingClosureEvidence(root, subject),
+    recorded_at: '2026-07-12T01:11:00.000Z',
+    supersedes_record_sha256: null
+  });
+  applyRequestClosure(root, { pending_record_sha256: pending.record_sha256 });
+  recordCleanReview(root);
+  const closure = finalizeRequestClosure(root, {
+    pending_record_sha256: pending.record_sha256,
+    recorded_at: '2026-07-12T01:12:00.000Z',
+    supersedes_record_sha256: null
+  });
+
+  const audit = auditEvidenceLedger(root, {
+    promotion_unit_id: 'fixture/default',
+    kind: 'request-closure',
+    request_path: requestPath
+  });
+  assert.equal(audit.selected.record_sha256, closure.record_sha256);
+  assert.throws(() => auditEvidenceLedger(root, {
+    promotion_unit_id: 'missing/default',
+    kind: 'request-closure'
+  }), /Evidence has no request closure/);
+});
+
 test('closure and promotion writers reject superseded pending and closure records', (t) => {
   const root = repository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

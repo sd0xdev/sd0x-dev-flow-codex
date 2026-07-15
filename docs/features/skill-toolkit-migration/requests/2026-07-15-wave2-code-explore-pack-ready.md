@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `a8af4196c453319f647d945c6c0f351775e71641`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -51,8 +51,8 @@ Source `code-explore` belongs in the separate research pack, not the curated cor
 |---|---|---|
 | Analysis | Complete | Pinned source, research-pack boundary, unsupported assumptions, and behavioral contract inspected. |
 | Development | Complete | Exact accepted bytes moved from `migration/candidates/` to `migration/packs/research-pack/`; the candidate directory is empty. |
-| Testing | Complete | 12/12 preflights, 125/125 focused tests, six named fixtures, and adversarial probes passed. Payload `49a93552629a3a43690e634f5caf77283f7186e2c6cf8f033efe53ed7d40761a`; preflight `cc49da683dc2c92973bba236c4bd52627d90cd0be9186f52d4d252a40fda5a37`. |
-| Acceptance | Candidate Complete | Independent create-request AC verifier returned terminal PASS; fresh final-fingerprint review, verification, and R3 durable closure remain. |
+| Testing | Complete | 12/12 preflights, 125/125 focused tests, six named fixtures, and adversarial probes passed. Payload `49a93552629a3a43690e634f5caf77283f7186e2c6cf8f033efe53ed7d40761a`; preflight `cc49da683dc2c92973bba236c4bd52627d90cd0be9186f52d4d252a40fda5a37`. Final pack audit `f6863b2b4413e083b0171c730c2114a5d48ac5583e67be38b10329f03b0774a3` passed. |
+| Acceptance | Complete | Independent create-request AC verifier returned terminal PASS; final-fingerprint review, deterministic verification, and final pack audit passed. The runtime-owned R3 closure and pack-ready evidence bind this exact Completed request. |
 
 ## References
 

@@ -44,8 +44,13 @@ const {
   validateInstallation
 } = require('../scripts/probe-alias-capability');
 const {
+  applyRequestClosure,
+  auditEvidenceLedger,
+  finalizeRequestClosure,
   hashPayloadTree,
   markGate,
+  prepareRequestClosure,
+  recordPromotionEvidence,
   recordSubagent,
   recordVerification,
   refreshState
@@ -118,6 +123,20 @@ function fixtureRoot(options = {}) {
     path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills'));
   copy(path.join(ROOT, 'docs', 'features', 'skill-toolkit-migration'),
     path.join(root, 'docs', 'features', 'skill-toolkit-migration'));
+  if (options.candidateCompletePacks && !options.completedCandidatePacks) {
+    for (const requestPath of new Set(disposition.skills
+      .filter((row) => row.target_package === 'research-pack' &&
+        row.delivery_state === 'candidate')
+      .map((row) => row.promotion_request))) {
+      const absolute = path.join(root, requestPath);
+      const request = fs.readFileSync(absolute, 'utf8')
+        .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
+        .replace(/ Final pack audit `[0-9a-f]{64}` passed\./g, '')
+        .replace(/^\| Acceptance \| Complete \|.*$/m,
+          '| Acceptance | Candidate Complete | Payload and preflight evidence are recorded; R3 closure is pending. |');
+      fs.writeFileSync(absolute, request);
+    }
+  }
   copy(path.join(ROOT, 'test', 'fixtures', 'alias-capability'),
     path.join(root, 'test', 'fixtures', 'alias-capability'));
   copy(path.join(ROOT, 'scripts', 'research-validators'),
@@ -229,7 +248,8 @@ function recordPassingGates(root, suffix) {
     recordSubagent(root, 'stop', {
       agent_id: agentId,
       agent_type: agentType,
-      last_assistant_message: 'No actionable findings remain.'
+      last_assistant_message: 'No actionable findings remain.',
+      agent_transcript_path: `/tmp/${agentId}.jsonl`
     });
   }
   let state = markGate(root, 'review', 'pass', {
@@ -414,6 +434,12 @@ test('source audit binds Candidate Complete research-pack ticket evidence', (t) 
   fs.writeFileSync(askPath, original.replace(evidence[2], '${audit}'));
   assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
     /unresolved candidate evidence placeholder/);
+  fs.writeFileSync(askPath, original.replace(
+    '> **Status**: Candidate Complete',
+    '> **Status**: Candidate Complete\n> **Status**: Completed'
+  ));
+  assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
+    /exactly one canonical Candidate Complete or Completed status/);
 
   fs.writeFileSync(askPath, original);
   const semanticsPath = path.join(values.root, 'test/ask-default-semantics.test.js');
@@ -438,6 +464,152 @@ test('source audit binds Candidate Complete research-pack ticket evidence', (t) 
     /behavior tests must include the exact generated contract set/);
   fs.copyFileSync(path.join(ROOT,
     'migration/packs/research-pack/ask/migration-contract.json'), contractPath);
+});
+
+test('source audit accepts a durably Completed research-pack candidate transition', (t) => {
+  const missingEvidence = fixtureRoot({
+    candidateCompletePacks: true,
+    completedCandidatePacks: true
+  });
+  const values = fixtureRoot({
+    candidateCompletePacks: true,
+    completedCandidatePacks: true,
+    copyEvidenceRef: true
+  });
+  t.after(() => fs.rmSync(missingEvidence.workspace, {
+    recursive: true, force: true
+  }));
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  copyResearchBehaviorTests(missingEvidence.root);
+  assert.throws(() => validateCandidateCompletePackEvidence(
+    missingEvidence.root,
+    readJson(missingEvidence.root, 'migration/source-disposition.json')
+  ), /Evidence ref is missing/);
+  const disposition = readJson(values.root, 'migration/source-disposition.json');
+  copyResearchBehaviorTests(values.root);
+  assert.equal(validateCandidateCompletePackEvidence(values.root, disposition), 12);
+
+  const askPath = path.join(values.root,
+    'docs/features/skill-toolkit-migration/requests/2026-07-15-wave2-ask-pack-ready.md');
+  fs.writeFileSync(askPath, fs.readFileSync(askPath, 'utf8')
+    .replace('Final pack audit', 'Changed final pack audit'));
+  assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
+    /Current request no longer matches durable completion evidence/);
+});
+
+test('source audit rejects matching durable research evidence with wrong phase hashes', (t) => {
+  for (const phase of ['payload', 'preflight', 'final']) {
+  const values = fixtureRoot({ candidateCompletePacks: true });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  copyResearchBehaviorTests(values.root);
+  const dispositionPath = 'migration/source-disposition.json';
+  const disposition = readJson(values.root, dispositionPath);
+  for (const row of disposition.skills) {
+    if (row.target_package === 'research-pack') {
+      row.delivery_state = row.source_name === 'ask' ? 'candidate' : 'planned';
+    }
+  }
+  writeJson(values.root, dispositionPath, disposition);
+  const askRow = disposition.skills.find((row) => row.source_name === 'ask');
+  const requestPath = askRow.promotion_request;
+  const requestAbsolute = path.join(values.root, requestPath);
+  const prior = fs.readFileSync(requestAbsolute, 'utf8');
+  const exact = /Payload `([0-9a-f]{64})`; preflight `([0-9a-f]{64})`\. Final pack audit `([0-9a-f]{64})` passed\./.exec(
+    fs.readFileSync(path.join(ROOT, requestPath), 'utf8')
+  );
+  assert.ok(exact);
+  const hashes = exact.slice(1);
+  hashes[['payload', 'preflight', 'final'].indexOf(phase)] = '0'.repeat(64);
+  const proposed = prior
+    .replace('> **Status**: Candidate Complete', '> **Status**: Completed')
+    .replace(/Payload `[0-9a-f]{64}`; preflight `[0-9a-f]{64}`\./,
+      `Payload \`${hashes[0]}\`; preflight \`${hashes[1]}\`. Final pack audit \`${hashes[2]}\` passed.`)
+    .replace(/^\| Acceptance \| Candidate Complete \|.*$/m,
+      '| Acceptance | Complete | Durable closure fixture. |');
+  const subjectState = recordPassingGates(values.root, `wrong-${phase}-subject`);
+  const subject = {
+    kind: 'dirty',
+    fingerprint: subjectState.worktree.fingerprint,
+    head_sha: git(values.root, ['rev-parse', 'HEAD']).toString().trim()
+  };
+  const acCount = (proposed.match(/^- \[x\] /gm) || []).length;
+  const pending = prepareRequestClosure(values.root, {
+    promotion_unit_id: askRow.promotion_unit_id,
+    request_path: requestPath,
+    proposed_request: proposed,
+    subject,
+    evidence: {
+      subject_review: {
+        binding: subject,
+        provider: 'codex',
+        evidence: {
+          gate: subjectState.gates.review.evidence,
+          native_results: subjectState.review_agents.completed,
+          external_results: [],
+          subject_bindings: []
+        }
+      },
+      verify: {
+        binding: subject,
+        provider: 'codex',
+        evidence: subjectState.gates.verify.evidence
+      },
+      ac: {
+        verdicts: Array.from({ length: acCount }, (_, index) => ({
+          ac: index + 1,
+          status: 'Complete',
+          confidence: 'High',
+          evidence: ['AGENTS.md:1']
+        }))
+      },
+      checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
+    },
+    recorded_at: '2026-07-15T09:00:00.000Z',
+    supersedes_record_sha256: null
+  });
+  applyRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256
+  });
+  recordPassingGates(values.root, `wrong-${phase}-docs`);
+  finalizeRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256,
+    recorded_at: '2026-07-15T09:01:00.000Z',
+    supersedes_record_sha256: null
+  });
+
+  assert.throws(() => validateCandidateCompletePackEvidence(
+    values.root, readJson(values.root, dispositionPath)
+  ), new RegExp(phase === 'payload'
+    ? 'payload evidence is stale or cross-unit'
+    : phase === 'preflight'
+      ? 'preflight evidence is stale or cross-unit'
+      : 'Completed final audit evidence is stale or cross-unit'));
+
+  recordPassingGates(values.root, `wrong-${phase}-pack-ready`);
+  const closure = auditEvidenceLedger(values.root, {
+    promotion_unit_id: askRow.promotion_unit_id,
+    kind: 'request-closure',
+    request_path: requestPath
+  }).selected;
+  recordPromotionEvidence(values.root, {
+    kind: 'pack-ready',
+    promotion_unit_id: askRow.promotion_unit_id,
+    request_closure_record_sha256: closure.record_sha256,
+    disposition_row: askRow,
+    payload_tree_sha256: hashPayloadTree(
+      values.root, 'migration/packs/research-pack/ask'
+    ),
+    reason: null,
+    recorded_at: '2026-07-15T09:02:00.000Z',
+    supersedes_record_sha256: null
+  });
+  const delivered = readJson(values.root, dispositionPath);
+  delivered.skills.find((row) => row.source_name === 'ask').delivery_state =
+    'pack-ready';
+  writeJson(values.root, dispositionPath, delivered);
+  assert.throws(() => auditSource({ root: values.root }),
+    new RegExp(`delivered ${phase === 'final' ? 'final audit' : phase} evidence is stale or cross-unit`));
+  }
 });
 
 test('source audit no-follow snapshots the trusted semantic registry', (t) => {

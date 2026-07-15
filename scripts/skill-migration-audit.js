@@ -1332,11 +1332,13 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
       assert(unitRows.every((row) => row.promotion_request === expected.request_path),
         `${promotionUnitId}: delivered rows disagree on promotion request`);
       let payloadRelative = null;
+      let targetNames = [];
+      let packages = [];
       if (kind === 'retirement') {
         expected.payload_tree_sha256 = null;
       } else {
-        const targetNames = sortedUnique(unitRows.map((row) => row.target_skill));
-        const packages = sortedUnique(unitRows.map((row) => row.target_package));
+        targetNames = sortedUnique(unitRows.map((row) => row.target_skill));
+        packages = sortedUnique(unitRows.map((row) => row.target_package));
         assert(targetNames.length === 1 && packages.length === 1,
           `${promotionUnitId}: delivered rows disagree on target/package`);
         payloadRelative = kind === 'promotion'
@@ -1348,10 +1350,39 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
           payloadHooks: options.payloadHooks,
           promotionUnitId,
           currentEvidenceOid: () => evidenceRefOid(root)
-        }, (payloadHash) => auditEvidenceLedger(root, {
-          ...expected,
-          payload_tree_sha256: payloadHash
-        }));
+        }, (payloadHash) => {
+          if (kind === 'pack-ready' && packages[0] === 'research-pack') {
+            const requestBytes = sourceSnapshots.get(expected.request_path);
+            assert(requestBytes,
+              `${expected.request_path}: delivered request trust snapshot is missing`);
+            const finalEvidence = /^\| Testing \| Complete \| .* Payload `([0-9a-f]{64})`; preflight `([0-9a-f]{64})`\. Final pack audit `([0-9a-f]{64})` passed\. \|$/m.exec(
+              requestBytes.toString('utf8')
+            );
+            assert(finalEvidence,
+              `${expected.request_path}: delivered research request must record exact final audit evidence`);
+            const validated = auditCandidate({
+              root,
+              candidate: payloadRelative,
+              target: targetNames[0],
+              mode: unitRows[0].target_mode || undefined,
+              internalEvidenceToken: CANDIDATE_COMPLETE_EVIDENCE,
+              internalTrustBytes: sourceSnapshots
+            });
+            assert(validated.payload_tree_sha256 === payloadHash,
+              `${promotionUnitId}: delivered research payload identity changed during final audit`);
+            assert(finalEvidence[1] === validated.payload_tree_sha256 &&
+              finalEvidence[1] === payloadHash,
+            `${expected.request_path}: delivered payload evidence is stale or cross-unit`);
+            assert(finalEvidence[2] === validated.preflight_audit_fingerprint,
+              `${expected.request_path}: delivered preflight evidence is stale or cross-unit`);
+            assert(finalEvidence[3] === validated.audit_fingerprint,
+              `${expected.request_path}: delivered final audit evidence is stale or cross-unit`);
+          }
+          return auditEvidenceLedger(root, {
+            ...expected,
+            payload_tree_sha256: payloadHash
+          });
+        });
       } else {
         auditEvidenceLedger(root, { ...expected });
       }
@@ -6110,13 +6141,29 @@ function validateCandidateCompletePackEvidence(root, disposition, options = {}) 
       captureContainedRegularFile(root, requestPath,
         'Candidate Complete request').bytes;
     const request = requestBytes.toString('utf8');
-    assert(/^> \*\*Status\*\*: Candidate Complete$/m.test(request),
-      `${requestPath}: research-pack candidate request must be Candidate Complete`);
+    const candidateComplete = /^> \*\*Status\*\*: Candidate Complete$/m.test(request);
+    const completed = /^> \*\*Status\*\*: Completed$/m.test(request);
+    assert(candidateComplete !== completed,
+      `${requestPath}: research-pack candidate request must have exactly one canonical Candidate Complete or Completed status`);
+    if (completed) {
+      for (const promotionUnitId of sortedUnique(targetRows.map((row) =>
+        row.promotion_unit_id
+      ))) {
+        auditEvidenceLedger(root, {
+          promotion_unit_id: promotionUnitId,
+          kind: 'request-closure',
+          request_path: requestPath
+        });
+      }
+    }
     assert(!/\$\{(?:payload|audit)\}/.test(request),
       `${requestPath}: unresolved candidate evidence placeholder`);
-    const evidence = /^\| Testing \| Complete \| .* Payload `([0-9a-f]{64})`; preflight `([0-9a-f]{64})`\. \|$/m.exec(request);
+    const evidencePattern = candidateComplete
+      ? /^\| Testing \| Complete \| .* Payload `([0-9a-f]{64})`; preflight `([0-9a-f]{64})`\. \|$/m
+      : /^\| Testing \| Complete \| .* Payload `([0-9a-f]{64})`; preflight `([0-9a-f]{64})`\. Final pack audit `([0-9a-f]{64})` passed\. \|$/m;
+    const evidence = evidencePattern.exec(request);
     assert(evidence,
-      `${requestPath}: Candidate Complete request must record exact payload and preflight evidence`);
+      `${requestPath}: research-pack candidate request must record exact phase evidence`);
     const relative = `migration/packs/research-pack/${target}`;
     const validated = auditCandidate({
       root,
@@ -6131,6 +6178,10 @@ function validateCandidateCompletePackEvidence(root, disposition, options = {}) 
       `${requestPath}: Candidate Complete payload evidence is stale or cross-unit`);
     assert(evidence[2] === validated.preflight_audit_fingerprint,
       `${requestPath}: Candidate Complete preflight evidence is stale or cross-unit`);
+    if (completed) {
+      assert(evidence[3] === validated.audit_fingerprint,
+        `${requestPath}: Completed final audit evidence is stale or cross-unit`);
+    }
   }
   return targets.length;
 }
