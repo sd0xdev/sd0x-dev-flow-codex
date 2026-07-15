@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "target_skill": "explain",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "explain/default",
+      "target_mode": null,
+      "source_names": [
+        "codex-explain"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Explain how this parser function works at an intermediate depth.",
+          "Give me a beginner-friendly explanation of the selected module.",
+          "Walk through this algorithm line by line and cite the code."
+        ],
+        "negative_boundaries": [
+          "Change the parser to support another format.",
+          "Investigate an intermittent production failure and determine its root cause.",
+          "Map the architecture and data flow of the entire subsystem."
+        ]
+      },
+      "behavior_tests": [
+        "test/explain-default-routing.test.js",
+        "test/explain-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Check the explanation against tests and caller expectations",
+          "Match beginner, intermediate, or expert depth to the request",
+          "Read the complete relevant unit plus its callers, types, tests"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

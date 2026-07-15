@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "target_skill": "issue-analyze",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "issue-analyze/default",
+      "target_mode": null,
+      "source_names": [
+        "issue-analyze"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Analyze this bug report and determine the most likely affected code path.",
+          "Classify this issue, investigate repository evidence, and recommend next steps.",
+          "Triage this review finding with an independent severity verdict."
+        ],
+        "negative_boundaries": [
+          "Fix the reported bug in production code.",
+          "Post the triage result to the issue tracker.",
+          "Survey industry-wide solutions without focusing on this repository issue."
+        ]
+      },
+      "behavior_tests": [
+        "test/issue-analyze-default-routing.test.js",
+        "test/issue-analyze-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "A Claude-origin finding goes to native Codex",
+          "Human review is mandatory before dismissing a credible P0 or P1 finding",
+          "a native-Codex finding goes to the configured Claude adapter"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

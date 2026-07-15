@@ -18,6 +18,13 @@ const {
   validateRoutingContract
 } = require('./skill-routing-test');
 const {
+  semanticTestSource,
+  PAYLOAD_VALIDATORS,
+  trustedSemanticContract,
+  TRUSTED_VALIDATORS,
+  validateSemanticContract
+} = require('./research-contract-test');
+const {
   auditEvidenceLedger,
   evidenceRefOid,
   hashPayloadTree
@@ -31,6 +38,7 @@ const {
 } = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
 
 const ROOT = path.resolve(__dirname, '..');
+const CANDIDATE_COMPLETE_EVIDENCE = Symbol('candidate-complete-evidence');
 const BYTEWISE = (left, right) => Buffer.from(left).compare(Buffer.from(right));
 const DISPOSITIONS = new Set(['keep', 'port', 'adapt', 'merge', 'optional', 'retire']);
 const PACKAGES = new Set([
@@ -191,6 +199,29 @@ function containedPath(root, relative, options = {}) {
     assert(fs.lstatSync(current).isDirectory(), `${label} must be a directory: ${relative}`);
   }
   return current;
+}
+
+function captureContainedRegularFile(root, relative, label = 'captured file') {
+  const absolute = containedPath(root, relative, { label, type: 'file' });
+  const noFollow = fs.constants.O_NOFOLLOW || 0;
+  const descriptor = fs.openSync(absolute, fs.constants.O_RDONLY | noFollow);
+  try {
+    const before = fs.fstatSync(descriptor, { bigint: true });
+    assert(before.isFile(), `${label} must be a regular file: ${relative}`);
+    const bytes = fs.readFileSync(descriptor);
+    const after = fs.fstatSync(descriptor, { bigint: true });
+    for (const field of ['dev', 'ino', 'size', 'mtimeNs', 'ctimeNs']) {
+      assert(before[field] === after[field],
+        `${label} changed while its bytes were captured: ${relative}`);
+    }
+    const current = containedPath(root, relative, { label, type: 'file' });
+    const pathStat = fs.lstatSync(current, { bigint: true });
+    assert(pathStat.dev === after.dev && pathStat.ino === after.ino,
+      `${label} path identity changed while its bytes were captured: ${relative}`);
+    return { bytes, identity: after };
+  } finally {
+    fs.closeSync(descriptor);
+  }
 }
 
 function readJson(root, relative, label) {
@@ -1230,6 +1261,24 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
   const sourceSnapshots = new Map();
   sourceSnapshots.set('migration/source-inventory.generated.json', inventoryRead.bytes);
   sourceSnapshots.set('migration/source-disposition.json', dispositionRead.bytes);
+  const semanticRegistryCapture = captureContainedRegularFile(root,
+    'scripts/research-semantic-contracts.json', 'trusted semantic registry');
+  try {
+    JSON.parse(semanticRegistryCapture.bytes.toString('utf8'));
+  } catch (error) {
+    throw new Error(`trusted semantic registry is not valid JSON: ${error.message}`);
+  }
+  sourceSnapshots.set('scripts/research-semantic-contracts.json',
+    semanticRegistryCapture.bytes);
+  for (const relative of [
+    'package.json',
+    ...sortedUnique(Object.values(TRUSTED_VALIDATORS))
+      .map((file) => `scripts/research-validators/${file}`)
+  ]) {
+    const capture = captureContainedRegularFile(root, relative,
+      'candidate audit trust input');
+    sourceSnapshots.set(relative, capture.bytes);
+  }
   const wave1Readiness = context.candidateSandbox
     ? { units: 0 }
     : validateWave1Readiness(root, disposition, {
@@ -1246,6 +1295,11 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     snapshotBindings: sourceSnapshots,
     manifestBinding: requestManifest
   });
+  if (!context.candidateSandbox) {
+    validateCandidateCompletePackEvidence(root, disposition, {
+      sourceSnapshots
+    });
+  }
   if (typeof options.beforeDeliveredEvidenceAudit === 'function') {
     options.beforeDeliveredEvidenceAudit();
   }
@@ -1708,16 +1762,25 @@ function candidateTree(root, relative) {
     }
   }
   visit(directory, '');
-  return { directory, files: files.sort(BYTEWISE) };
+  files.sort(BYTEWISE);
+  const bytes = new Map(files.map((file) => [
+    file,
+    captureContainedRegularFile(root, `${relative}/${file}`,
+      'candidate tree file').bytes
+  ]));
+  return { bytes, directory, files, relative, root };
+}
+
+function candidateFileBytes(tree, file) {
+  const bytes = tree.bytes?.get(file);
+  assert(Buffer.isBuffer(bytes), `candidate snapshot is missing file bytes: ${file}`);
+  return bytes;
 }
 
 function candidateTreeDigest(tree) {
-  const content = tree.files.map((file) => fs.readFileSync(
-    path.join(tree.directory, ...file.split('/'))
-  ));
   return sha256(Buffer.concat(tree.files.flatMap((file, index) => [
     Buffer.from(`${file}\0`),
-    content[index],
+    candidateFileBytes(tree, file),
     Buffer.from('\0')
   ])));
 }
@@ -1742,7 +1805,7 @@ function validateProcessNamespaces(code, current) {
   const allowed = new Set([
     'arch', 'argv', 'argv0', 'config', 'cpuUsage', 'cwd', 'debugPort', 'emitWarning',
     'env', 'execArgv', 'execPath', 'exitCode', 'features', 'hrtime', 'memoryUsage',
-    'moduleLoadList', 'nextTick', 'off', 'on', 'once', 'pid', 'platform', 'ppid',
+    'kill', 'moduleLoadList', 'nextTick', 'off', 'on', 'once', 'pid', 'platform', 'ppid',
     'release', 'resourceUsage', 'stderr', 'stdin', 'stdout', 'title', 'uptime',
     'version', 'versions'
   ]);
@@ -1754,6 +1817,14 @@ function validateProcessNamespaces(code, current) {
     });
   assert(!/\bprocess\b/.test(residual),
     `${current}: process namespace must only use direct audited member access`);
+  const killMembers = [...code.matchAll(/\bprocess\s*\.\s*kill\b/g)];
+  const killCalls = [...code.matchAll(/\bprocess\s*\.\s*kill\s*\(([^)]*)\)/g)];
+  assert(killMembers.length === killCalls.length,
+    `${current}: process.kill is limited to direct signal-0 calls`);
+  for (const match of killCalls) {
+    assert(/^\s*[A-Za-z_$][\w$]*\s*,\s*0\s*$/.test(match[1]),
+      `${current}: process.kill is limited to an identifier PID and signal 0`);
+  }
   const normalizedEnvironmentCode = code
     .replace(/\bprocess\s*\.\s*env\b/g, 'process.env')
     .replace(/process\.env\s*\.\s*([A-Za-z_$][\w$]*)/g, 'process.env.$1');
@@ -2384,7 +2455,7 @@ function validateCandidateResources(tree) {
   assert(javascriptFiles.length <= MAX_JAVASCRIPT_FILES_PER_CANDIDATE,
     `candidate contains more than ${MAX_JAVASCRIPT_FILES_PER_CANDIDATE} JavaScript files`);
   const javascriptBytes = javascriptFiles.reduce((total, file) =>
-    total + fs.statSync(path.join(tree.directory, ...file.split('/'))).size, 0);
+    total + candidateFileBytes(tree, file).length, 0);
   assert(javascriptBytes <= MAX_JAVASCRIPT_BYTES_PER_CANDIDATE,
     `candidate contains more than ${MAX_JAVASCRIPT_BYTES_PER_CANDIDATE} total JavaScript bytes`);
   assert(!tree.files.some((file) => path.posix.basename(file) === 'package.json'),
@@ -2393,9 +2464,8 @@ function validateCandidateResources(tree) {
   const queue = ['SKILL.md'];
   while (queue.length > 0) {
     const current = queue.shift();
-    const absolute = path.join(tree.directory, ...current.split('/'));
     if (current.endsWith('.md')) {
-      const markdown = fs.readFileSync(absolute, 'utf8');
+      const markdown = candidateFileBytes(tree, current).toString('utf8');
       for (const reference of localReferences(markdown)) {
         assert(!path.posix.isAbsolute(reference),
           `${current}: local reference escapes candidate: ${reference}`);
@@ -2413,7 +2483,7 @@ function validateCandidateResources(tree) {
       }
     }
     if (/\.(?:js|cjs|mjs)$/.test(current)) {
-      const code = fs.readFileSync(absolute, 'utf8');
+      const code = candidateFileBytes(tree, current).toString('utf8');
       try {
         execFileSync(process.execPath, [
           '--check', `--input-type=${current.endsWith('.mjs') ? 'module' : 'commonjs'}`, '-'
@@ -4368,10 +4438,15 @@ function pureMarkdownProhibition(line) {
 }
 
 function stripRoutingContracts(text) {
-  return text.replace(
-    /<!-- sd0x-routing-contract:v1 [^>]+ -->\s*```json[\s\S]*?```/g,
-    ''
-  );
+  return text
+    .replace(
+      /<!-- sd0x-active-semantic-contract:v1 [^>]+ -->[\s\S]*?<!-- sd0x-active-semantic-contract:end -->/g,
+      ''
+    )
+    .replace(
+      /<!-- sd0x-(?:routing|semantic)-contract:v1 [^>]+ -->\s*```json[\s\S]*?```/g,
+      ''
+    );
 }
 
 function literalArrayTokens(body, label) {
@@ -5872,8 +5947,24 @@ function observedOperations(records) {
   return [...operations].sort(BYTEWISE);
 }
 
-function validateBehaviorTests(root, target, targetPackageName, units, skillText) {
-  const packageJson = readJson(root, 'package.json', 'repository package').value;
+function trustedSkillDigestFromRegistry(registry, unit) {
+  const contract = registry[unit];
+  assert(contract && typeof contract === 'object' && !Array.isArray(contract),
+    `${unit}: trusted semantic contract is missing`);
+  assert(/^[0-9a-f]{64}$/.test(contract.skill_sha256),
+    `${unit}: trusted SKILL digest is missing`);
+  return contract.skill_sha256;
+}
+
+function validateBehaviorTests(root, target, targetPackageName, units, skillText, options = {}) {
+  const packageBytes = options.trustBytes?.get('package.json') ||
+    captureContainedRegularFile(root, 'package.json', 'repository package').bytes;
+  let packageJson;
+  try {
+    packageJson = JSON.parse(packageBytes.toString('utf8'));
+  } catch (error) {
+    throw new Error(`repository package is not valid JSON: ${error.message}`);
+  }
   assert(/node --test test\/\*\.test\.js/.test(packageJson.scripts?.check || ''),
     'repository check must execute root candidate behavior tests');
   containedPath(root, 'scripts/skill-routing-test.js', {
@@ -5882,57 +5973,166 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
   });
   const testOwners = new Map();
   const evidence = [];
+  const trustedValidator = TRUSTED_VALIDATORS[target];
+  if (trustedValidator) {
+    const payloadValidator = PAYLOAD_VALIDATORS[target];
+    const candidateScript = `scripts/${payloadValidator}`;
+    const trustedScript = `scripts/research-validators/${trustedValidator}`;
+    const selectedBytes = candidateFileBytes(options.candidateTree, candidateScript);
+    const trustedBytes = options.trustBytes?.get(trustedScript) ||
+      captureContainedRegularFile(root, trustedScript,
+        'trusted semantic validator').bytes;
+    assert(selectedBytes.equals(trustedBytes),
+      `${target}: payload validator must equal the trusted repository validator`);
+  }
   const registry = units.map((unit) => ({
     unit: unit.promotion_unit_id,
     routing: unit.routing
   }));
   for (const unit of units) {
-    assert(unit.behavior_tests.length === 1,
-      `${unit.promotion_unit_id}: exactly one generated routing behavior test is required`);
+    const routingPath = `test/${target}-${unit.target_mode || 'default'}-routing.test.js`;
+    const semanticPath = `test/${target}-${unit.target_mode || 'default'}-semantics.test.js`;
+    const expectedPaths = targetPackageName === 'research-pack'
+      ? [routingPath, semanticPath].sort(BYTEWISE)
+      : [routingPath];
+    assert(JSON.stringify(unit.behavior_tests) === JSON.stringify(expectedPaths),
+      `${unit.promotion_unit_id}: behavior tests must include the exact generated contract set`);
     validateRoutingContract(skillText, {
       target,
       unit: unit.promotion_unit_id,
       registry,
       routing: unit.routing
     });
+    if (targetPackageName === 'research-pack') {
+      validateSemanticContract(skillText, {
+        unit: unit.promotion_unit_id,
+        required: unit.semantic_requirements.required,
+        forbidden: unit.semantic_requirements.forbidden
+      }, {
+        trustedSkillSha256: trustedSkillDigestFromRegistry(
+          options.trustedSemanticRegistry, unit.promotion_unit_id
+        )
+      });
+    }
     for (const testPath of unit.behavior_tests) {
-      const expectedPath = `test/${target}-${unit.target_mode || 'default'}-routing.test.js`;
-      assert(testPath === expectedPath,
-        `${unit.promotion_unit_id}: routing behavior test path must be ${expectedPath}`);
       assert(!testOwners.has(testPath),
         `candidate behavior test cannot own multiple units: ${testPath}`);
       testOwners.set(testPath, unit.promotion_unit_id);
       assert(/^test\/[A-Za-z0-9._-]+\.test\.js$/.test(testPath),
         `candidate behavior test must be a root test/*.test.js file: ${testPath}`);
-      const absolute = containedPath(root, testPath, {
-        label: 'candidate behavior test',
-        type: 'file'
-      });
-      const bytes = fs.readFileSync(absolute);
+      const bytes = captureContainedRegularFile(root, testPath,
+        'candidate behavior test').bytes;
+      const priorCapture = options.capturedBehaviorTests?.get(testPath);
+      assert(!priorCapture || priorCapture.equals(bytes),
+        `${testPath}: candidate behavior test changed between unit captures`);
+      if (options.capturedBehaviorTests instanceof Map) {
+        options.capturedBehaviorTests.set(testPath, bytes);
+      }
+      const priorSnapshot = options.trustBytes?.get(testPath);
+      assert(!priorSnapshot || priorSnapshot.equals(bytes),
+        `${testPath}: candidate behavior test differs from its source snapshot`);
+      if (options.trustBytes instanceof Map) options.trustBytes.set(testPath, bytes);
       const code = bytes.toString('utf8');
-      const positiveHash = sha256(Buffer.from(JSON.stringify(unit.routing.positive_triggers)));
-      const negativeHash = sha256(Buffer.from(JSON.stringify(unit.routing.negative_boundaries)));
-      const expected = routingTestSource({
-        target,
-        targetPackage: targetPackageName,
-        unit: unit.promotion_unit_id,
-        registry,
-        routing: unit.routing
-      });
+      const isRouting = testPath === routingPath;
+      const expected = isRouting
+        ? routingTestSource({
+            target,
+            targetPackage: targetPackageName,
+            unit: unit.promotion_unit_id,
+            registry,
+            routing: unit.routing
+          })
+        : semanticTestSource({
+            target,
+            targetPackage: targetPackageName,
+            unit: unit.promotion_unit_id,
+            required: unit.semantic_requirements.required,
+            forbidden: unit.semantic_requirements.forbidden
+          });
       assert(code === expected,
-        `${testPath}: behavior test must equal the generated routing harness contract`);
-      evidence.push({
+        `${testPath}: behavior test must equal the exact generated contract`);
+      const record = {
         path: testPath,
         promotion_unit_id: unit.promotion_unit_id,
-        sha256: sha256(bytes),
-        positive_routing_sha256: positiveHash,
-        negative_routing_sha256: negativeHash
-      });
+        sha256: sha256(bytes)
+      };
+      if (isRouting) {
+        record.positive_routing_sha256 = sha256(Buffer.from(
+          JSON.stringify(unit.routing.positive_triggers)
+        ));
+        record.negative_routing_sha256 = sha256(Buffer.from(
+          JSON.stringify(unit.routing.negative_boundaries)
+        ));
+      } else {
+        record.semantic_contract_sha256 = sha256(Buffer.from(JSON.stringify(
+          unit.semantic_requirements
+        )));
+      }
+      evidence.push(record);
     }
   }
   assert(evidence.length > 0, 'candidate behavior_tests are required');
   evidence.sort((left, right) => BYTEWISE(left.path, right.path));
   return evidence;
+}
+
+function validateCandidateCompletePackEvidence(root, disposition, options = {}) {
+  const trustBytes = options.sourceSnapshots || new Map();
+  if (!trustBytes.has('scripts/research-semantic-contracts.json')) {
+    trustBytes.set('scripts/research-semantic-contracts.json',
+      captureContainedRegularFile(root, 'scripts/research-semantic-contracts.json',
+        'trusted semantic registry').bytes);
+  }
+  for (const relative of [
+    'package.json',
+    ...sortedUnique(Object.values(TRUSTED_VALIDATORS))
+      .map((file) => `scripts/research-validators/${file}`)
+  ]) {
+    if (!trustBytes.has(relative)) {
+      trustBytes.set(relative, captureContainedRegularFile(root, relative,
+        'candidate audit trust input').bytes);
+    }
+  }
+  const targets = sortedUnique(disposition.skills
+    .filter((row) => row.target_package === 'research-pack' &&
+      row.delivery_state === 'candidate')
+    .map((row) => row.target_skill));
+  for (const target of targets) {
+    const targetRows = disposition.skills.filter((row) =>
+      row.target_skill === target &&
+      ['candidate', 'pack-ready', 'promoted'].includes(row.delivery_state)
+    );
+    const requestPaths = sortedUnique(targetRows.map((row) => row.promotion_request));
+    assert(requestPaths.length === 1,
+      `${target}: Candidate Complete rows must share one request`);
+    const requestPath = requestPaths[0];
+    const requestBytes = trustBytes.get(requestPath) ||
+      captureContainedRegularFile(root, requestPath,
+        'Candidate Complete request').bytes;
+    const request = requestBytes.toString('utf8');
+    assert(/^> \*\*Status\*\*: Candidate Complete$/m.test(request),
+      `${requestPath}: research-pack candidate request must be Candidate Complete`);
+    assert(!/\$\{(?:payload|audit)\}/.test(request),
+      `${requestPath}: unresolved candidate evidence placeholder`);
+    const evidence = /^\| Testing \| Complete \| .* Payload `([0-9a-f]{64})`; preflight `([0-9a-f]{64})`\. \|$/m.exec(request);
+    assert(evidence,
+      `${requestPath}: Candidate Complete request must record exact payload and preflight evidence`);
+    const relative = `migration/packs/research-pack/${target}`;
+    const validated = auditCandidate({
+      root,
+      candidate: relative,
+      target,
+      afterCandidateTreeRead: options.afterCandidateTreeRead,
+      afterStaticValidation: options.afterStaticValidation,
+      internalEvidenceToken: CANDIDATE_COMPLETE_EVIDENCE,
+      internalTrustBytes: trustBytes
+    });
+    assert(evidence[1] === validated.payload_tree_sha256,
+      `${requestPath}: Candidate Complete payload evidence is stale or cross-unit`);
+    assert(evidence[2] === validated.preflight_audit_fingerprint,
+      `${requestPath}: Candidate Complete preflight evidence is stale or cross-unit`);
+  }
+  return targets.length;
 }
 
 function candidateAuditIdentity(details) {
@@ -5969,6 +6169,8 @@ function assertExistingLiveTargetUnmodified(root, target) {
 
 function auditCandidate(options = {}) {
   const root = path.resolve(options.root || ROOT);
+  const candidateCompleteEvidence =
+    options.internalEvidenceToken === CANDIDATE_COMPLETE_EVIDENCE;
   const candidateIdentity = repositoryIdentity(root);
   const relative = normalizeRelative(options.candidate, 'candidate path');
   assert(!relative.startsWith('migration/staging/'),
@@ -5985,17 +6187,30 @@ function auditCandidate(options = {}) {
   assert(pathTarget === target,
     'candidate directory name must equal --target');
 
-  const source = auditSourceTransaction({
-    root,
-    skipDeliveredEvidence: true,
-    aliasCapability: options.aliasCapability,
-    requestDag: options.requestDag,
-    beforeSourceSnapshotRevalidation: options.beforeSourceSnapshotRevalidation
-  }, candidateIdentity, { candidateSandbox: true });
-  assert(source.ok, 'source audit must pass before candidate audit');
-  if (typeof options.afterSourceAudit === 'function') options.afterSourceAudit();
+  const source = candidateCompleteEvidence ? null : auditSourceTransaction({
+      root,
+      skipDeliveredEvidence: true,
+      aliasCapability: options.aliasCapability,
+      requestDag: options.requestDag,
+      beforeSourceSnapshotRevalidation: options.beforeSourceSnapshotRevalidation
+    }, candidateIdentity, { candidateSandbox: true });
+  assert(!source || source.ok, 'source audit must pass before candidate audit');
+  if (source && typeof options.afterSourceAudit === 'function') options.afterSourceAudit();
+  const trustBytes = candidateCompleteEvidence
+    ? options.internalTrustBytes
+    : source?._transaction?.snapshots;
+  assert(trustBytes instanceof Map,
+    'candidate audit immutable trust snapshot is missing');
+  let trustedSemanticRegistry;
+  try {
+    trustedSemanticRegistry = JSON.parse(
+      trustBytes.get('scripts/research-semantic-contracts.json').toString('utf8')
+    );
+  } catch (error) {
+    throw new Error(`trusted semantic registry is not valid JSON: ${error.message}`);
+  }
   let finalGates = null;
-  if (phase !== 'preflight') {
+  if (phase !== 'preflight' && !candidateCompleteEvidence) {
     const state = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
     const current = state.refreshState(root);
     finalGates = {
@@ -6049,23 +6264,24 @@ function auditCandidate(options = {}) {
   assert(tree.files.includes('SKILL.md'), 'candidate is missing SKILL.md');
   assert(tree.files.includes('migration-contract.json'),
     'candidate is missing migration-contract.json');
-  const skillBytes = fs.readFileSync(path.join(tree.directory, 'SKILL.md'));
+  const skillBytes = candidateFileBytes(tree, 'SKILL.md');
   const skillText = skillBytes.toString('utf8');
   const frontmatter = parseFrontmatter(skillText);
   assert(frontmatter.name === target, 'frontmatter name must equal canonical target');
   let contract;
   try {
-    contract = JSON.parse(fs.readFileSync(
-      path.join(tree.directory, 'migration-contract.json'),
-      'utf8'
-    ));
+    contract = JSON.parse(candidateFileBytes(
+      tree, 'migration-contract.json'
+    ).toString('utf8'));
   } catch (error) {
     throw new Error(`candidate migration-contract.json is invalid: ${error.message}`);
   }
   assertExactKeys(contract,
     ['schema_version', 'target_skill', 'target_package', 'authorization', 'units'],
     'candidate contract');
-  assert(contract.schema_version === 1, 'candidate contract schema_version must be 1');
+  const expectedContractSchema = packages[0] === 'research-pack' ? 2 : 1;
+  assert(contract.schema_version === expectedContractSchema,
+    `candidate contract schema_version must be ${expectedContractSchema} for ${packages[0]}`);
   assert(contract.target_skill === target, 'candidate contract target_skill mismatch');
   assert(contract.target_package === packages[0], 'candidate contract target_package mismatch');
   assertExactKeys(contract.authorization, ['policy', 'sensitive_operations'],
@@ -6094,9 +6310,14 @@ function auditCandidate(options = {}) {
     'candidate contract units must exactly cover candidate/promoted target modes');
   let selectedContractUnit = null;
   for (const unit of contract.units) {
-    assertExactKeys(unit, [
+    const expectedUnitKeys = [
       'promotion_unit_id', 'target_mode', 'source_names', 'routing', 'behavior_tests'
-    ], `${unit.promotion_unit_id || 'unknown unit'} contract`);
+    ];
+    if (contract.target_package === 'research-pack') {
+      expectedUnitKeys.push('semantic_requirements');
+    }
+    assertExactKeys(unit, expectedUnitKeys,
+      `${unit.promotion_unit_id || 'unknown unit'} contract`);
     assertExactKeys(unit.routing, ['positive_triggers', 'negative_boundaries'],
       `${unit.promotion_unit_id || 'unknown unit'}.routing`);
     const unitRows = targetRows.filter((row) => row.promotion_unit_id === unit.promotion_unit_id);
@@ -6123,16 +6344,46 @@ function auditCandidate(options = {}) {
         typeof value === 'string' && value.trim() && value.length <= 256 && !/[\r\n\0]/.test(value)),
     `${unit.promotion_unit_id}: routing cases must be bounded single-line strings`);
     assertSortedUnique(unit.behavior_tests, `${unit.promotion_unit_id}.behavior_tests`);
+    if (contract.target_package === 'research-pack') {
+      assert(unit.semantic_requirements && typeof unit.semantic_requirements === 'object' &&
+        !Array.isArray(unit.semantic_requirements),
+      `${unit.promotion_unit_id}.semantic_requirements must be an object`);
+      assertExactKeys(unit.semantic_requirements, ['required', 'forbidden'],
+        `${unit.promotion_unit_id}.semantic_requirements`);
+      assertSortedUnique(unit.semantic_requirements.required,
+        `${unit.promotion_unit_id}.semantic_requirements.required`);
+      assertSortedUnique(unit.semantic_requirements.forbidden,
+        `${unit.promotion_unit_id}.semantic_requirements.forbidden`);
+      assert(unit.semantic_requirements.required.length > 0 &&
+        unit.semantic_requirements.required.every((value) =>
+          typeof value === 'string' && value.length > 0 && !/[\r\n\0]/.test(value)) &&
+        unit.semantic_requirements.forbidden.every((value) =>
+          typeof value === 'string' && value.length > 0 && !/[\r\n\0]/.test(value)),
+      `${unit.promotion_unit_id}: semantic requirements must be bounded strings`);
+      assert(canonicalJson(unit.semantic_requirements) ===
+        canonicalJson(trustedSemanticContract(unit.promotion_unit_id)),
+      `${unit.promotion_unit_id}: semantic requirements differ from the trusted registry`);
+    }
     if (unit.promotion_unit_id === units[0]) selectedContractUnit = unit;
   }
   assert(selectedContractUnit, `candidate contract is missing selected unit: ${units[0]}`);
+  const capturedBehaviorTests = new Map();
   const testEvidence = validateBehaviorTests(
     root,
     target,
     packages[0],
     contract.units,
-    skillText
+    skillText,
+    {
+      candidateTree: tree,
+      capturedBehaviorTests,
+      trustedSemanticRegistry,
+      trustBytes
+    }
   );
+  if (typeof options.afterStaticValidation === 'function') {
+    options.afterStaticValidation({ directory: tree.directory, target });
+  }
   for (const file of tree.files.filter((name) => name.startsWith('scripts/'))) {
     assert(['.js', '.cjs', '.mjs'].includes(path.posix.extname(file)),
       `candidate script has unsupported executable type: ${file}`);
@@ -6140,7 +6391,7 @@ function auditCandidate(options = {}) {
   const productionRecords = tree.files
     .filter((file) => file !== 'migration-contract.json')
     .map((file) => {
-      const bytes = fs.readFileSync(path.join(tree.directory, ...file.split('/')));
+      const bytes = candidateFileBytes(tree, file);
       if (bytes.includes(0)) return null;
       const text = bytes.toString('utf8');
       if (!Buffer.from(text).equals(bytes)) return null;
@@ -6152,7 +6403,7 @@ function auditCandidate(options = {}) {
     assert(!forbidden.test(candidateText), `candidate contains unsupported ${label}`);
   }
   for (const file of tree.files.filter((name) => name.endsWith('.md'))) {
-    validateMarkdownTables(fs.readFileSync(path.join(tree.directory, ...file.split('/')), 'utf8'), file);
+    validateMarkdownTables(candidateFileBytes(tree, file).toString('utf8'), file);
   }
 
   validateCandidateResources(tree);
@@ -6198,16 +6449,16 @@ function auditCandidate(options = {}) {
     rows: activeRows
   };
   const auditFingerprint = candidateAuditIdentity(identity);
-  if (phase !== 'preflight') {
+  const expectedPreflight = candidateAuditIdentity({
+    ...identity,
+    phase: 'preflight',
+    relative: `migration/candidates/${target}`
+  });
+  if (phase !== 'preflight' && !candidateCompleteEvidence) {
     assert(finalGates.review,
       'final audit requires current fingerprint review pass');
     assert(finalGates.verify,
       'final audit requires current fingerprint verify pass');
-    const expectedPreflight = candidateAuditIdentity({
-      ...identity,
-      phase: 'preflight',
-      relative: `migration/candidates/${target}`
-    });
     assert(options.preflightFingerprint === expectedPreflight,
       'final live audit requires the exact matching preflight fingerprint');
     assert(expectedPreflight !== auditFingerprint,
@@ -6221,9 +6472,16 @@ function auditCandidate(options = {}) {
       finalGates.state.isCurrentPass(completed, 'verify'),
     'final audit requires a current verify pass at completion');
   }
-  const completedIdentity = assertSourceTransaction(root, source._transaction, {
-    beforeRevalidation: options.beforeSourceTransactionRevalidation
-  });
+  for (const [testPath, bytes] of capturedBehaviorTests) {
+    assert(captureContainedRegularFile(root, testPath,
+      'candidate behavior test completion').bytes.equals(bytes),
+    `${testPath}: candidate behavior test changed during static validation`);
+  }
+  const completedIdentity = source
+    ? assertSourceTransaction(root, source._transaction, {
+        beforeRevalidation: options.beforeSourceTransactionRevalidation
+      })
+    : repositoryIdentity(root);
   const completedTree = candidateTree(root, relative);
   assert(JSON.stringify(completedTree.files) === JSON.stringify(tree.files),
     'candidate tree manifest changed while auditing');
@@ -6240,6 +6498,9 @@ function auditCandidate(options = {}) {
     promotion_unit_id: units[0],
     payload_tree_sha256: treeHash,
     audit_fingerprint: auditFingerprint,
+    ...(candidateCompleteEvidence
+      ? { preflight_audit_fingerprint: expectedPreflight }
+      : {}),
     behavior_tests: testEvidence,
     virtual_target: packages[0] === 'core'
       ? `plugin/sd0x-dev-flow-codex/skills/${target}`
@@ -6308,5 +6569,6 @@ module.exports = {
   validateAliasCapability,
   validateRequestDag,
   validateMarkdownTables,
+  validateCandidateCompletePackEvidence,
   validateWave1Readiness
 };

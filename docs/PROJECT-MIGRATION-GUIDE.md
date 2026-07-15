@@ -2,7 +2,7 @@
 
 <!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
 
-> 最後校準日期：2026-07-10  
+> 最後校準日期：2026-07-15
 > 來源版本：Claude plugin `sd0x-dev-flow` `3.0.12`  
 > Codex 版本：`sd0x-dev-flow-codex` `0.3.0`
 
@@ -84,7 +84,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 
 ### 非目標
 
-- 不逐一複製 Claude 版約 100 個 skills。
+- 不把 Claude 版約 100 個 skills bulk-copy 進 curated core；正式遷移以精簡 core、repository-only pack handoff 或有證據的 retirement 逐 unit 關閉。
 - 不保留 Claude-only 的 `allowed-tools`、`Task`、`AskUserQuestion` 或 `.claude/` 假設。
 - 不使用 nested Codex MCP 來模擬 Claude 的 agent nesting。
 - 不把 hooks 宣稱為 OS security boundary。
@@ -109,6 +109,13 @@ Codex core 目前刻意只包含：
 - Fingerprint state machine、deterministic verification、project setup、doctor 與 dev-link tooling。
 
 這是 curated core，不是遷移未完成的暫時缺漏。新增能力必須符合第 13 節的選擇準則。
+
+Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。2026-07-15 checkpoint：
+
+- Wave 1 的 10 個 units 已完成 durable closure：4 個進 curated core，6 個交付 planning-pack。
+- Wave 2 的 12 個 research units 已通過 candidate-level AC（12/12 preflights、125/125 focused tests 與 adversarial probes），exact accepted bytes 已移入 `migration/packs/research-pack/`，owner tickets 為 `Candidate Complete`。fresh final-fingerprint review、verification 與 R3 durable closure 尚未完成，因此 durable completion 仍是 10/100。
+- 因此目前 durable completion 仍是 10/100；Wave 3 不得在 Wave 2 durable closure 前宣稱完成。
+- `migration/packs/` 仍是 repository-only transferable payload，不進 plugin manifest、core discovery 或目前 release artifact。每個 later separate-plugin repository 必須自有 manifest、dependency declaration、installation tests、fingerprint-bound gates 與 release authorization。
 
 ## 4. Repository 結構
 

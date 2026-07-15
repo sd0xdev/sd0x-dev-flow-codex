@@ -1,0 +1,44 @@
+{
+  "schema_version": 2,
+  "target_skill": "deep-research",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "deep-research/default",
+      "target_mode": null,
+      "source_names": [
+        "deep-research"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Compare database migration strategies using official sources, repository constraints, and real-world evidence.",
+          "Conduct deep research on this technical decision from multiple independent source types.",
+          "Research the current landscape and produce a claim registry with conflicts and confidence."
+        ],
+        "negative_boundaries": [
+          "Answer a narrow repository question using one file.",
+          "Implement the recommended database migration strategy.",
+          "Trace only the internal execution path without external research."
+        ]
+      },
+      "behavior_tests": [
+        "test/deep-research-default-routing.test.js",
+        "test/deep-research-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Evidence is `{source_id, publisher_id, author_id, identity_binding_hash, independence_key, source_type, agent_role, locator, content_hash, relation, weight}`",
+          "Low is one inline shard, at most three fetched sources",
+          "Record a redacted trace `{dispatch_id, role, scope_hash, prompt_template_hash, input_artifact_hashes[], started_at, completed_at, evidence_count}`",
+          "Unknown, unverified, or mismatched declared identity is unresolved and contributes no cross-verification",
+          "net_score = max(0, support - refute)"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

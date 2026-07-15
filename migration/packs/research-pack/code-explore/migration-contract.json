@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "target_skill": "code-explore",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "code-explore/default",
+      "target_mode": null,
+      "source_names": [
+        "code-explore"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Map the architecture and execution flow for the authentication subsystem.",
+          "Show how a request travels from the HTTP handler to persistence.",
+          "Trace the data flow for invoice creation and identify the key files."
+        ],
+        "negative_boundaries": [
+          "Change the request handler to add invoice retries.",
+          "Find the commit that introduced this exact regression.",
+          "Give a quick answer about where one configuration constant is defined."
+        ]
+      },
+      "behavior_tests": [
+        "test/code-explore-default-routing.test.js",
+        "test/code-explore-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Record file and symbol evidence at every material hop",
+          "Start breadth-first",
+          "Stop after the requested architecture, execution flow, and data flow can be explained"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

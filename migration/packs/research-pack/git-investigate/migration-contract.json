@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "target_skill": "git-investigate",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "git-investigate/default",
+      "target_mode": null,
+      "source_names": [
+        "git-investigate"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Find when this validation branch was introduced and why.",
+          "Trace the history of this function across renames and cite the commits.",
+          "Use Git archaeology to identify the change that caused this regression."
+        ],
+        "negative_boundaries": [
+          "Commit the regression fix and push it.",
+          "Explain only how the current function works without historical context.",
+          "Map the architecture of the entire validation subsystem."
+        ]
+      },
+      "behavior_tests": [
+        "test/git-investigate-default-routing.test.js",
+        "test/git-investigate-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Correlation with a commit is not proof of causation",
+          "Never change the index, branch, worktree, references, remotes, or configuration",
+          "follow line attribution, path history across renames"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

@@ -135,6 +135,24 @@ test('Node.js runtime requirements stay aligned across CI and the shipped plugin
   assert.match(doctorSource, /check: 'node>=24'.*nodeMajor >= 24/);
 });
 
+test('CI and release budgets cover the aggregate repository check', () => {
+  const root = path.resolve(__dirname, '..');
+  const ci = fs.readFileSync(
+    path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8'
+  );
+  const release = fs.readFileSync(
+    path.join(root, '.github', 'workflows', 'release.yml'), 'utf8'
+  );
+  const timeout = (workflow) => Number(
+    /^\s*timeout-minutes:\s*(\d+)\s*$/m.exec(workflow)?.[1]
+  );
+
+  assert.ok(timeout(ci) >= 40);
+  assert.ok(timeout(release) >= 45);
+  assert.match(ci, /npm run check/);
+  assert.match(release, /npm run check/);
+});
+
 test('version setter updates package and plugin manifest together', (t) => {
   const values = fixture();
   t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));

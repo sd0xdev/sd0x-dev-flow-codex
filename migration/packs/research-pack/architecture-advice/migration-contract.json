@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "target_skill": "architecture-advice",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "architecture-advice/default",
+      "target_mode": null,
+      "source_names": [
+        "codex-architect"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Compare architecture options for introducing an event bus in this codebase.",
+          "Give an independent architecture second opinion on this proposed caching design.",
+          "Recommend a component boundary for the billing integration with repository evidence."
+        ],
+        "negative_boundaries": [
+          "Create the feature 3-architecture.md lifecycle document.",
+          "Implement the selected architecture in production code.",
+          "Write an implementation-ready technical specification and task breakdown."
+        ]
+      },
+      "behavior_tests": [
+        "test/architecture-advice-default-routing.test.js",
+        "test/architecture-advice-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Challenge the preferred option with the strongest counterexample",
+          "Develop at least two credible options independently",
+          "Keep repository and Git access read-only"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

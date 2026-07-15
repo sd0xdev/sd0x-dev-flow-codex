@@ -1,0 +1,42 @@
+{
+  "schema_version": 2,
+  "target_skill": "ask",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "ask/default",
+      "target_mode": null,
+      "source_names": [
+        "ask"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Answer what changed recently in this repository and cite the relevant commits.",
+          "Explain where the current feature stores its configuration using repository evidence.",
+          "Tell me which project rule applies to this file and show the source."
+        ],
+        "negative_boundaries": [
+          "Implement the configuration change in the repository.",
+          "Perform a comprehensive multi-source study of competing frameworks.",
+          "Trace the complete execution path across the whole application."
+        ]
+      },
+      "behavior_tests": [
+        "test/ask-default-routing.test.js",
+        "test/ask-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Before returning evidence, replace every high-confidence credential value with exact [REDACTED]",
+          "Never read `.env`, `credentials.*`, `*secret*`",
+          "Reject absolute paths, traversal, symlink escapes"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

@@ -28,6 +28,10 @@ const EVIDENCE_SCHEMA_VERSION = 2;
 const LEGACY_EVIDENCE_SCHEMA_VERSION = 1;
 const COMMIT_CLOSURE_REVIEW_SCHEMA_VERSION = 2;
 const REDACTOR_VERSION = 'sd0x-redactor-v1';
+const IMMUTABLE_EVIDENCE_GIT_COMMANDS = new Set([
+  'cat-file', 'diff-tree', 'ls-tree', 'merge-base', 'rev-list', 'show'
+]);
+let activeEvidenceAuditContext = null;
 
 function now() {
   return new Date().toISOString();
@@ -132,7 +136,11 @@ function redactEvidenceValue(value, root, key = '') {
 }
 
 function canonicalEvidenceBlob(cwd, value) {
-  const root = findRepoRoot(cwd);
+  const resolved = path.resolve(cwd);
+  const root = activeEvidenceAuditContext &&
+    resolved === activeEvidenceAuditContext.root
+    ? activeEvidenceAuditContext.root
+    : findRepoRoot(cwd);
   return canonicalJson({
     redactor_version: REDACTOR_VERSION,
     value: redactEvidenceValue(value, root)
@@ -154,6 +162,20 @@ function assertSafeExactBytes(root, bytes, label) {
 }
 
 function runEvidenceGit(root, args, options = {}) {
+  const resolvedRoot = path.resolve(root);
+  const cacheable = activeEvidenceAuditContext &&
+    resolvedRoot === activeEvidenceAuditContext.root &&
+    options.input === undefined &&
+    options.env === undefined &&
+    IMMUTABLE_EVIDENCE_GIT_COMMANDS.has(args[0]) &&
+    args.some((value) => /(?:^|[^a-f0-9])[a-f0-9]{40}(?:[^a-f0-9]|$)/.test(value));
+  const cacheKey = cacheable
+    ? JSON.stringify([args, options.encoding === null ? 'buffer' : 'utf8'])
+    : null;
+  if (cacheKey && activeEvidenceAuditContext.git.has(cacheKey)) {
+    const cached = activeEvidenceAuditContext.git.get(cacheKey);
+    return Buffer.isBuffer(cached) ? Buffer.from(cached) : cached;
+  }
   const env = {
     ...(options.env || process.env),
     GIT_CONFIG_GLOBAL: require('node:os').devNull,
@@ -182,6 +204,10 @@ function runEvidenceGit(root, args, options = {}) {
       ? result.stderr.toString('utf8')
       : String(result.stderr || '');
     throw new Error(stderr.trim() || `git ${args.join(' ')} failed`);
+  }
+  if (cacheKey) {
+    activeEvidenceAuditContext.git.set(cacheKey,
+      Buffer.isBuffer(result.stdout) ? Buffer.from(result.stdout) : result.stdout);
   }
   return result.stdout;
 }
@@ -2887,7 +2913,14 @@ function latestEvidenceRecord(root, kind, promotionUnitId, oid = evidenceRefOid(
 }
 
 function evidenceFileBytes(root, oid, filePath) {
-  return String(runEvidenceGit(root, ['show', `${oid}:${filePath}`]));
+  const cache = activeEvidenceAuditContext &&
+    path.resolve(root) === activeEvidenceAuditContext.root
+    ? activeEvidenceAuditContext.evidenceFiles
+    : null;
+  if (cache?.has(filePath)) return cache.get(filePath);
+  const bytes = String(runEvidenceGit(root, ['show', `${oid}:${filePath}`]));
+  if (cache) cache.set(filePath, bytes);
+  return bytes;
 }
 
 function validateEvidenceBlobAt(root, oid, record, name, field, paths = null) {
@@ -2918,7 +2951,7 @@ function validateEvidenceBlobAt(root, oid, record, name, field, paths = null) {
   return parsed.value;
 }
 
-function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
+function auditEvidenceLedgerTransaction(cwd, expected = {}, hooks = {}) {
   const root = findRepoRoot(cwd);
   const oid = evidenceRefOid(root);
   if (!oid) throw new Error('Evidence ref is missing');
@@ -3196,6 +3229,21 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
     records: records.size,
     selected: selected || null
   };
+}
+
+function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
+  const root = findRepoRoot(cwd);
+  const prior = activeEvidenceAuditContext;
+  activeEvidenceAuditContext = {
+    root: path.resolve(root),
+    git: new Map(),
+    evidenceFiles: new Map()
+  };
+  try {
+    return auditEvidenceLedgerTransaction(root, expected, hooks);
+  } finally {
+    activeEvidenceAuditContext = prior;
+  }
 }
 
 function pruneExternalReviewStarts(values, referenceTime = Date.now()) {

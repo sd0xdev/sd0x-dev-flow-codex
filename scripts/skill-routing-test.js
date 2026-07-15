@@ -162,6 +162,71 @@ function validateRoutingContract(skillText, spec) {
   return actual;
 }
 
+function validateRoutingRegistry(entries) {
+  assert.ok(Array.isArray(entries) && entries.length > 0,
+    'global routing registry is required');
+  const positives = new Map();
+  const negatives = new Map();
+  for (const entry of entries) {
+    assert.ok(entry && typeof entry.unit === 'string' && entry.routing,
+      'global routing registry entry is invalid');
+    for (const prompt of entry.routing.positive_triggers) {
+      if (!positives.has(prompt)) positives.set(prompt, []);
+      positives.get(prompt).push(entry.unit);
+    }
+    for (const prompt of entry.routing.negative_boundaries) {
+      if (!negatives.has(prompt)) negatives.set(prompt, []);
+      negatives.get(prompt).push(entry.unit);
+    }
+  }
+  for (const [prompt, owners] of positives) {
+    assert.equal(owners.length, 1,
+      `global positive routing prompt has multiple owners: ${prompt}`);
+    assert.equal(negatives.has(prompt), false,
+      `global routing prompt is both positive and negative: ${prompt}`);
+  }
+  return true;
+}
+
+function repositoryRoutingRegistry(root) {
+  const files = [];
+  const visit = (directory, depth) => {
+    if (!fs.existsSync(directory) || depth < 0) return;
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      assert.equal(entry.isSymbolicLink(), false,
+        `routing registry path must not be a symlink: ${path.join(directory, entry.name)}`);
+      const absolute = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute, depth - 1);
+      else if (entry.isFile() && entry.name === 'migration-contract.json') files.push(absolute);
+    }
+  };
+  visit(path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills'), 2);
+  visit(path.join(root, 'migration', 'candidates'), 2);
+  visit(path.join(root, 'migration', 'packs'), 3);
+  const entries = new Map();
+  for (const file of files.sort()) {
+    const contract = JSON.parse(fs.readFileSync(file, 'utf8'));
+    const relative = path.relative(root, file).split(path.sep).join('/');
+    const precedence = relative.startsWith('migration/candidates/') ? 2 : 1;
+    for (const unit of contract.units || []) {
+      const entry = { unit: unit.promotion_unit_id, routing: unit.routing };
+      const owners = entries.get(entry.unit) || { candidate: null, final: null };
+      if (precedence === 2) {
+        assert.ok(!owners.candidate,
+          `global routing registry has duplicate candidate owners for ${entry.unit}`);
+        owners.candidate = entry;
+      } else {
+        assert.ok(!owners.final,
+          `global routing registry has duplicate final owners for ${entry.unit}`);
+        owners.final = entry;
+      }
+      entries.set(entry.unit, owners);
+    }
+  }
+  return [...entries.values()].map((value) => value.candidate || value.final)
+    .sort((left, right) => left.unit.localeCompare(right.unit));
+}
+
 function routePrompt(skillText, spec, prompt) {
   validateRoutingContract(skillText, spec);
   if (spec.registry.some((entry) => entry.routing.negative_boundaries.includes(prompt))) {
@@ -174,6 +239,7 @@ function routePrompt(skillText, spec, prompt) {
 function defineRoutingContractTests(spec) {
   const selected = skillCandidate(process.cwd(), spec);
   const skillText = fs.readFileSync(selected.absolute, 'utf8');
+  validateRoutingRegistry(repositoryRoutingRegistry(process.cwd()));
   const actual = validateRoutingContract(skillText, spec);
   for (const [index, prompt] of actual.positive_triggers.entries()) {
     test(`positive routing ${spec.unit} case ${index + 1}: ${prompt}`, () => {
@@ -192,5 +258,7 @@ module.exports = {
   routingContractBlock,
   routingDescription,
   routingTestSource,
+  repositoryRoutingRegistry,
+  validateRoutingRegistry,
   validateRoutingContract
 };
