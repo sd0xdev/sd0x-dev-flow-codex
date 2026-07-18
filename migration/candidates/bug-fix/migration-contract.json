@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target_skill": "bug-fix",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "bug-fix/default",
+      "target_mode": null,
+      "source_names": [
+        "bug-fix"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Correct the invoice rounding regression and add a test that proves the root cause.",
+          "Fix the failing request parser after reproducing the error and tracing its execution path.",
+          "Resolve this production behavior discrepancy with the narrowest tested code change."
+        ],
+        "negative_boundaries": [
+          "Diagnose why the parser fails but do not change any files.",
+          "Implement a new invoice discount feature from the approved specification.",
+          "Review the current diff without modifying production code."
+        ]
+      },
+      "behavior_tests": [
+        "test/bug-fix-default-routing.test.js"
+      ]
+    }
+  ]
+}

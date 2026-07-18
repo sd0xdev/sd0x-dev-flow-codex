@@ -72,6 +72,7 @@ const AUTHORIZATION_BLOCK = `<!-- sd0x-authorization-policy:v1:start -->\n${AUTH
 const CLEAN_GIT_OS_DECLARATION = "const os = require('node:os');";
 const CLEAN_GIT_PROCESS_DECLARATION = "const nodeProcess = require('node:process');";
 const CLEAN_GIT_ENV_DECLARATION = "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });";
+const CLOSED_GIT_ENV_DECLARATION = "const CLOSED_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' });";
 const GIT_ENVIRONMENT_PATTERN = /\b(?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))\b/;
 const GIT_ENVIRONMENT_QUOTED_KEY_PATTERN = /['"](?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))['"]\s*\]?\s*:/;
 const ENVIRONMENT_MUTATION_PATTERN = /\bdelete\s*\(?\s*process\.env\b|\b(?:Object\.assign|Object\.defineProperty|Reflect\.(?:deleteProperty|set))\s*\(\s*process\.env\b|(?:\+\+|--)\s*\(?\s*process\.env(?:\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])|\bprocess\.env(?:\s*|\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])[\s)\]}]*(?:=(?!=)|\+=|-=|\*=|\*\*=|\/=|%=|<<=|>>=|>>>=|&=|\^=|\|=|\?\?=|&&=|\|\|=|\+\+|--)|[\[{][^\]}\n]*process\.env[^\]}\n]*[\]}]\s*=/;
@@ -80,6 +81,22 @@ const FRONTMATTER_FIELDS = new Set(['name', 'description']);
 const ALIAS_CAPABILITY_PATH = 'migration/alias-capability.json';
 const ALIAS_REGISTRY_DUMP_PATH = 'migration/evidence/alias-registry-dump.json';
 const WAVE1_READINESS_PATH = 'migration/evidence/wave1-delivery-readiness.json';
+const SUPPLEMENTAL_BEHAVIOR_REGISTRY_PATH = 'scripts/supplemental-behavior-tests.json';
+const SUPPLEMENTAL_BUILTINS = new Set([
+  'node:assert/strict', 'node:child_process', 'node:events', 'node:fs', 'node:os',
+  'node:path', 'node:test'
+]);
+const PINNED_SUPPLEMENTAL_MODULES = new Map([
+  [
+    'test/debug-probe-policy.test.js',
+    'd60136497da790bf8a851d12f2237acb39b0af36422303bda2b2df4fa98dc6e1'
+  ],
+  [
+    'scripts/debug-probe/probe-spawn.js',
+    '1f22d9572bd399d92c9595afea9e4307a2ab3f4bf3ba40ad13100322e80549d2'
+  ]
+]);
+const ACTIVE_CANDIDATE_MOVE_WINDOW = Symbol('active-candidate-move-window');
 const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
 const CORE_TARGETS = Object.freeze([
   'bug-fix',
@@ -1008,6 +1025,15 @@ function validateDistribution(root, disposition) {
       const packRelative = `migration/packs/${row.target_package}/${row.target_skill}`;
       containedPath(root, packRelative, { label: 'pack-ready payload', type: 'directory' });
     }
+    if (['pack-ready', 'promoted'].includes(row.delivery_state)) {
+      const candidate = physicalDirectoryState(
+        root,
+        `migration/candidates/${row.target_skill}`,
+        'delivered candidate residue'
+      );
+      assert(!candidate.populated,
+        `${row.source_name}: delivered target cannot retain a populated candidate directory`);
+    }
   }
   const approvedLiveNames = new Set([...CORE_TARGETS, ...GRANDFATHERED_LIVE_TARGETS]);
   for (const liveName of liveNames) {
@@ -1592,6 +1618,29 @@ function auditIdentityTestEvidence(contract, bytesForPath) {
         )))
       });
     }
+    assert(!contractUnit.supplemental_behavior_tests || contract.schema_version === 3,
+      `${contractUnit.promotion_unit_id}: supplemental behavior tests require schema v3`);
+    for (const testPath of contractUnit.supplemental_behavior_tests || []) {
+      const bytes = bytesForPath(testPath);
+      const supplementalModules = collectSupplementalModuleGraph(
+        testPath,
+        bytes,
+        (relative) => {
+          try {
+            return bytesForPath(relative);
+          } catch {
+            return null;
+          }
+        }
+      );
+      testEvidence.push({
+        path: testPath,
+        promotion_unit_id: contractUnit.promotion_unit_id,
+        sha256: sha256(bytes),
+        supplemental: true,
+        supplemental_modules: supplementalModules
+      });
+    }
   }
   return testEvidence.sort((left, right) => BYTEWISE(left.path, right.path));
 }
@@ -1800,6 +1849,29 @@ function candidateTree(root, relative) {
       'candidate tree file').bytes
   ]));
   return { bytes, directory, files, relative, root };
+}
+
+function physicalDirectoryState(root, relative, label) {
+  const absolute = path.join(root, ...relative.split('/'));
+  const stat = lstatIfPresent(absolute);
+  if (!stat) return { exists: false, populated: false };
+  assert(stat.isDirectory() && !stat.isSymbolicLink(),
+    `${label} must be a real directory: ${relative}`);
+  const directory = containedPath(root, relative, { label, type: 'directory' });
+  let populated = false;
+  const visit = (current) => {
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const child = path.join(current, entry.name);
+      assert(!entry.isSymbolicLink(), `${label} contains a symlink: ${child}`);
+      if (entry.isDirectory()) visit(child);
+      else {
+        assert(entry.isFile(), `${label} contains a non-regular entry: ${child}`);
+        populated = true;
+      }
+    }
+  };
+  visit(directory);
+  return { exists: true, populated };
 }
 
 function candidateFileBytes(tree, file) {
@@ -2695,7 +2767,11 @@ function gitInvocation(tokens) {
   let index = 0;
   const safeFlags = new Set([
     '--glob-pathspecs', '--icase-pathspecs', '--literal-pathspecs', '--no-pager',
-    '--no-replace-objects', '--noglob-pathspecs'
+    '--no-optional-locks', '--no-replace-objects', '--noglob-pathspecs'
+  ]);
+  const safeInlineConfiguration = new Set([
+    'core.fsmonitor=false', 'core.hooksPath=/dev/null', 'pager.rev-parse=false',
+    'submodule.recurse=false'
   ]);
   const valueOptions = new Set([
     '-C', '--git-dir', '--work-tree', '--namespace', '--super-prefix'
@@ -2703,7 +2779,14 @@ function gitInvocation(tokens) {
   while (index < tokens.length && tokens[index].startsWith('-')) {
     const token = tokens[index];
     const optionName = token.split('=', 1)[0];
-    if (token === '-c' || token.startsWith('-c') || optionName === '--config-env') {
+    if (token === '-c') {
+      index += 1;
+      assert(index < tokens.length && safeInlineConfiguration.has(tokens[index]),
+        'candidate contains unsupported Git inline configuration');
+      index += 1;
+      continue;
+    }
+    if (token.startsWith('-c') || optionName === '--config-env') {
       throw new Error('candidate contains unsupported Git inline configuration');
     }
     if (safeFlags.has(token)) index += 1;
@@ -4511,7 +4594,7 @@ function literalJavaScriptStringValue(literal, label) {
 
 function literalSubprocessArgumentCalls(text) {
   const calls = [];
-  const pattern = /\b(?:execFile|spawn)(?:Sync)?\s*\(\s*(['"])([^'"]+)\1\s*,\s*\[/g;
+  const pattern = /\b(?:execFile|spawn)(?:Sync)?\s*\(\s*(?:(['"])([^'"]+)\1|(TRUSTED_GIT_EXECUTABLE))\s*,\s*\[/g;
   let match;
   while ((match = pattern.exec(text))) {
     const start = pattern.lastIndex;
@@ -4530,7 +4613,10 @@ function literalSubprocessArgumentCalls(text) {
       else if (character === ']' && --depth === 0) break;
     }
     if (depth === 0) {
-      calls.push({ executable: path.posix.basename(match[2]), body: text.slice(start, cursor) });
+      calls.push({
+        executable: match[3] ? 'git' : path.posix.basename(match[2]),
+        body: text.slice(start, cursor)
+      });
       pattern.lastIndex = cursor + 1;
     }
   }
@@ -5149,16 +5235,20 @@ function validateChildProcessUsage(text, recordPath) {
     const identifier = String.raw`[A-Za-z_$][\w$]*`;
     const assignment = String.raw`(?:(?:(?:const|let|var)\s+${identifier}|${identifier})\s*=\s*|return\s+)?`;
     const literalArray = String.raw`\[(?:\s*${literal}\s*,?)*\]`;
-    const options = String.raw`\{\s*cwd:\s*${identifier}\s*,\s*encoding:\s*${literal}\s*,(?:\s*input:\s*${identifier}\s*,)?(?:\s*env:\s*CLEAN_GIT_ENV\s*,)?\s*stdio:\s*${literalArray}\s*\}`;
+    const options = String.raw`\{\s*cwd:\s*${identifier}\s*,\s*encoding:\s*${literal}\s*,(?:\s*input:\s*${identifier}\s*,)?(?:\s*env:\s*(?:CLEAN_GIT_ENV|CLOSED_GIT_ENV)\s*,)?\s*stdio:\s*${literalArray}\s*\}`;
     const fileCall = new RegExp(
       `^${assignment}${escaped}\\(\\s*${literal}\\s*,\\s*${literalArray}\\s*(?:,\\s*${options}\\s*)?\\)\\s*;?$`
     );
     const ancestryCall = new RegExp(
       `^${escaped}\\(\\s*['"]git['"]\\s*,\\s*\\[\\s*['"]merge-base['"]\\s*,\\s*['"]--is-ancestor['"]\\s*,\\s*value\\s*,\\s*['"]HEAD['"]\\s*\\]\\s*,\\s*${options}\\s*\\)\\s*;?$`
     );
+    const trustedGitCall = new RegExp(
+      `^${assignment}${escaped}\\(\\s*TRUSTED_GIT_EXECUTABLE\\s*,\\s*${literalArray}\\s*,\\s*${options}\\s*\\)\\s*;?$`
+    );
     const shellCall = new RegExp(`^${assignment}${escaped}\\(\\s*${literal}\\s*\\)\\s*;?$`);
     const valid = /^(?:execFile|execFileSync|spawn|spawnSync)$/.test(api)
-      ? fileCall.test(line) || ancestryCall.test(line)
+      ? fileCall.test(line) || ancestryCall.test(line) ||
+        (recordPath === 'scripts/probe-spawn.js' && trustedGitCall.test(line))
       : shellCall.test(line);
     assert(valid, `${recordPath}: child-process call must use one closed literal form`);
     if (/\benv\s*:\s*CLEAN_GIT_ENV\b/.test(line)) {
@@ -5198,6 +5288,28 @@ function validateChildProcessUsage(text, recordPath) {
       assert(!/\brequire\b/.test(maskJavaScriptStrings(requireBindings)),
         `${recordPath}: canonical clean Git environment require provider cannot be shadowed`);
     }
+    if (/\benv\s*:\s*CLOSED_GIT_ENV\b/.test(line)) {
+      const providerSource = stripJavaScriptComments(text, recordPath);
+      const providerSyntax = maskJavaScriptStringsForCapabilities(providerSource);
+      const osSyntax = maskJavaScriptStringsForCapabilities(CLEAN_GIT_OS_DECLARATION);
+      const environmentSyntax = maskJavaScriptStringsForCapabilities(
+        CLOSED_GIT_ENV_DECLARATION
+      );
+      assert(providerSyntax.split(osSyntax).length === 2 &&
+        providerSyntax.split(environmentSyntax).length === 2,
+      `${recordPath}: closed Git environment must use the canonical frozen declaration`);
+      const remainingBindings = maskJavaScriptStrings(providerSyntax
+        .replace(osSyntax, '')
+        .replace(environmentSyntax, '')
+      ).replace(/\benv\s*:\s*CLOSED_GIT_ENV\b/g, '');
+      assert(!/\b(?:CLOSED_GIT_ENV|nodeProcess|os)\b/.test(remainingBindings),
+        `${recordPath}: closed Git environment providers cannot be shadowed or aliased`);
+      const osImports = providerSyntax.match(
+        /\brequire\s*\(\s*['"](?:node:)?os['"]\s*\)|\bfrom\s*['"](?:node:)?os['"]|\bimport\s*(?:\(\s*)?['"](?:node:)?os['"]/g
+      ) || [];
+      assert(osImports.length === 1 && !/['"](?:node:)?process['"]/.test(providerSyntax),
+        `${recordPath}: closed Git environment must have only its direct os provider`);
+    }
     if (ancestryCall.test(line)) {
       assert(text.includes("const COMMIT_RE = new RegExp('^[0-9a-f]{40}$', 'i');") &&
         /function implementationBaseError\(root, value\) \{\s*if \(!COMMIT_RE\.test\(value\)\) return 'invalid-implementation-base';/.test(text),
@@ -5227,9 +5339,9 @@ function observedOperations(records) {
     const javascriptCapabilityText = ['.js', '.cjs', '.mjs'].includes(extension)
       ? maskJavaScriptStringsForCapabilities(javascriptCommentFreeText)
       : text;
-    const gitEnvironmentSource = text.includes(CLEAN_GIT_ENV_DECLARATION)
-      ? text.replace(CLEAN_GIT_ENV_DECLARATION, '')
-      : text;
+    const gitEnvironmentSource = text
+      .replace(CLEAN_GIT_ENV_DECLARATION, '')
+      .replace(CLOSED_GIT_ENV_DECLARATION, '');
     const gitEnvironmentCommentFree = isInstructionText
       ? gitEnvironmentSource
       : stripJavaScriptComments(gitEnvironmentSource, record.path);
@@ -5921,9 +6033,15 @@ function observedOperations(records) {
       /\b(?:execFile|spawn)(?:Sync)?\s*\(\s*([^,\n]+)/g
     )];
     for (const start of subprocessStarts) {
-      assert(/^['"][^'"]+['"]$/.test(start[1].trim()),
+      const argument = start[1].trim();
+      const trustedGit = record.path === 'scripts/probe-spawn.js' &&
+        argument === 'TRUSTED_GIT_EXECUTABLE' &&
+        text.includes('const TRUSTED_GIT_EXECUTABLE = trustedGitExecutable();');
+      assert(trustedGit || /^['"][^'"]+['"]$/.test(argument),
         `${record.path}: dynamic subprocess executable cannot be audited`);
-      const executable = path.posix.basename(start[1].trim().slice(1, -1));
+      const executable = trustedGit
+        ? 'git'
+        : path.posix.basename(argument.slice(1, -1));
       assert(['git', 'gh'].includes(executable),
         `${record.path}: unsupported subprocess executable: ${executable}`);
     }
@@ -5931,7 +6049,8 @@ function observedOperations(records) {
     const gitCalls = argumentCalls.filter((call) => call.executable === 'git');
     const hasGitSubprocess = subprocessStarts.some((start) => {
       const literal = start[1].trim();
-      return path.posix.basename(literal.slice(1, -1)) === 'git';
+      return literal === 'TRUSTED_GIT_EXECUTABLE' ||
+        path.posix.basename(literal.slice(1, -1)) === 'git';
     });
     if (hasGitSubprocess) {
       assert(gitCalls.length > 0,
@@ -5978,6 +6097,55 @@ function observedOperations(records) {
   return [...operations].sort(BYTEWISE);
 }
 
+function validateCandidateOperationRecords(records, declaredOperations) {
+  const observed = observedOperations(records);
+  for (const operation of observed) {
+    assert(declaredOperations.includes(operation),
+      `candidate uses undeclared operation: ${operation}; observed=${JSON.stringify(observed)}`);
+  }
+  return observed;
+}
+
+function auditCandidateStatic(options = {}) {
+  const root = path.resolve(options.root || ROOT);
+  const relative = normalizeRelative(options.candidate, 'candidate path');
+  const target = options.target;
+  assert(typeof relative === 'string' && relative.length > 0,
+    'candidate operation audit requires candidate path');
+  assert(typeof target === 'string' && target.length > 0,
+    'candidate operation audit requires target');
+  const disposition = readJson(
+    root, 'migration/source-disposition.json', 'source disposition'
+  ).value;
+  const rows = disposition.skills.filter((row) =>
+    row.target_skill === target && row.delivery_state === 'candidate');
+  assert(rows.length > 0, `${target}: candidate operation audit has no active rows`);
+  const tree = candidateTree(root, relative);
+  const records = tree.files
+    .filter((file) => file !== 'migration-contract.json')
+    .map((file) => {
+      const bytes = candidateFileBytes(tree, file);
+      if (bytes.includes(0)) return null;
+      const text = bytes.toString('utf8');
+      if (!Buffer.from(text).equals(bytes)) return null;
+      return { path: file, text };
+    })
+    .filter(Boolean);
+  const candidateText = records.map(instructionText).join('\n');
+  for (const [label, forbidden] of FORBIDDEN_ASSUMPTIONS) {
+    assert(!forbidden.test(candidateText), `candidate contains unsupported ${label}`);
+  }
+  for (const file of tree.files.filter((name) => name.endsWith('.md'))) {
+    validateMarkdownTables(candidateFileBytes(tree, file).toString('utf8'), file);
+  }
+  validateCandidateResources(tree);
+  const declaredOperations = sortedUnique(rows.flatMap((row) => row.operations));
+  return {
+    ok: true,
+    observed_operations: validateCandidateOperationRecords(records, declaredOperations)
+  };
+}
+
 function trustedSkillDigestFromRegistry(registry, unit) {
   const contract = registry[unit];
   assert(contract && typeof contract === 'object' && !Array.isArray(contract),
@@ -5985,6 +6153,309 @@ function trustedSkillDigestFromRegistry(registry, unit) {
   assert(/^[0-9a-f]{64}$/.test(contract.skill_sha256),
     `${unit}: trusted SKILL digest is missing`);
   return contract.skill_sha256;
+}
+
+function validateSupplementalSubprocesses(code, current, tokens) {
+  assert(!/\b(?:exec|execSync|execFile|spawnSync|fork)\b/.test(tokens),
+    `${current}: supplemental behavior module contains unsupported subprocess capability`);
+  const imports = [...code.matchAll(
+    /\bconst\s*\{\s*(execFileSync|spawn)\s*\}\s*=\s*require\(\s*['"](?:node:)?child_process['"]\s*\)\s*;/g
+  )].map((match) => ({
+    api: match[1],
+    start: match.index,
+    end: match.index + match[0].length
+  }));
+  const calls = [];
+  for (const match of tokens.matchAll(/\b(execFileSync|spawn)\b/g)) {
+    if (imports.some((record) => match.index >= record.start && match.index < record.end)) continue;
+    const prior = tokens.charAt(match.index - 1);
+    const suffix = tokens.slice(match.index + match[1].length);
+    assert(!/[A-Za-z0-9_$.'"\]]/.test(prior) && /^\s*\(/.test(suffix),
+      `${current}: supplemental behavior module contains aliased subprocess capability`);
+    const open = match.index + match[0].length + suffix.indexOf('(');
+    const close = matchingJavaScriptDelimiter(code, open);
+    assert(close > open, `${current}: supplemental subprocess call cannot be audited`);
+    calls.push({ api: match[1], arguments: splitTopLevelJavaScriptItems(
+      code.slice(open + 1, close)
+    ) });
+  }
+  assert(calls.length === 0 || imports.length > 0,
+    `${current}: supplemental subprocess provider is missing`);
+  const closedEnvironment = "const CLOSED_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' });";
+  assert(calls.length === 0 || code.split(closedEnvironment).length === 2,
+    `${current}: supplemental subprocess environment is not exact`);
+  for (const call of calls) {
+    assert(call.arguments.length >= 3 &&
+      /\benv\s*:\s*CLOSED_GIT_ENV\b/.test(call.arguments[2]),
+      `${current}: supplemental subprocess arguments cannot be audited`);
+    const executableArgument = call.arguments[0].trim();
+    if (executableArgument === 'TRUSTED_GIT_EXECUTABLE') {
+      assert([
+        'scripts/debug-probe/probe-spawn.js'
+      ].includes(current) &&
+        code.includes('const TRUSTED_GIT_EXECUTABLE = trustedGitExecutable();'),
+      `${current}: supplemental trusted Git resolver binding is not exact`);
+    } else {
+      const executable = literalJavaScriptStringValue(executableArgument,
+        `${current}: supplemental subprocess executable`);
+      assert(executable === '/usr/bin/git',
+        `${current}: supplemental subprocess executable must be exact`);
+    }
+    const argv = call.arguments[1].trim();
+    assert(argv.startsWith('[') && matchingJavaScriptDelimiter(argv, 0) === argv.length - 1,
+      `${current}: supplemental subprocess argv must be one closed array`);
+    const tokens = literalArrayTokens(argv.slice(1, -1),
+      `${current}: supplemental git subprocess`);
+    const allowed = [
+      [
+        '--no-optional-locks', '-c', 'core.hooksPath=/dev/null', '-c',
+        'core.fsmonitor=false', '-c', 'submodule.recurse=false', '-c',
+        'pager.rev-parse=false', 'rev-parse', '--verify',
+        'refs/sd0x-debug-probe/missing'
+      ]
+    ];
+    assert(allowed.some((expected) => JSON.stringify(expected) === JSON.stringify(tokens)),
+      `${current}: supplemental git subprocess argv is not trusted`);
+  }
+}
+
+function validateSupplementalNodeTest(code, current, tokens, required) {
+  const imports = [...code.matchAll(
+    /\bconst\s+test\s*=\s*require\(\s*(['"])node:test\1\s*\)\s*;/g
+  )].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length
+  }));
+  const nodeTestSpecifiers = [...code.matchAll(
+    /\b(?:require|import)\s*\(\s*(['"])node:test\1\s*\)|\bfrom\s*(['"])node:test\2/g
+  )];
+  if (nodeTestSpecifiers.length === 0) {
+    assert(!required,
+      `${current}: supplemental entrypoint must bind node:test exactly`);
+    return;
+  }
+  assert(required,
+    `${current}: supplemental node:test is only permitted in the entrypoint`);
+  assert(imports.length === 1 && nodeTestSpecifiers.length === 1,
+    `${current}: supplemental node:test binding must be exact`);
+  const assertImports = [...code.matchAll(
+    /\bconst\s+assert\s*=\s*require\(\s*(['"])node:assert\/strict\1\s*\)\s*;/g
+  )].map((match) => ({
+    start: match.index,
+    end: match.index + match[0].length
+  }));
+  const assertSpecifiers = [...code.matchAll(
+    /\b(?:require|import)\s*\(\s*(['"])node:assert\/strict\1\s*\)|\bfrom\s*(['"])node:assert\/strict\2/g
+  )];
+  assert(assertImports.length === 1 && assertSpecifiers.length === 1,
+    `${current}: supplemental assert binding must be exact`);
+  const assertMethods = new Set([
+    'deepEqual', 'doesNotMatch', 'equal', 'match', 'notEqual', 'ok', 'throws'
+  ]);
+  for (const match of tokens.matchAll(/\bassert\b/g)) {
+    if (assertImports.some((record) => match.index >= record.start && match.index < record.end)) {
+      continue;
+    }
+    const prior = tokens.charAt(match.index - 1);
+    const suffix = tokens.slice(match.index + match[0].length);
+    const call = /^\s*\.\s*([A-Za-z_$][\w$]*)\s*\(/.exec(suffix);
+    assert(!/[A-Za-z0-9_$.'"\]]/.test(prior) && call && assertMethods.has(call[1]),
+      `${current}: supplemental assert use must be a direct strict-assert call`);
+  }
+  assert(!/\.\s*(?:skip|todo)\s*\(/.test(tokens),
+    `${current}: supplemental tests cannot register skipped or todo cases`);
+  let registrations = 0;
+  for (const match of tokens.matchAll(/\btest\b/g)) {
+    if (imports.some((record) => match.index >= record.start && match.index < record.end)) {
+      continue;
+    }
+    const prior = tokens.charAt(match.index - 1);
+    if (prior === '.') continue;
+    const suffix = tokens.slice(match.index + match[0].length);
+    assert(!/[A-Za-z0-9_$'"\]]/.test(prior) && /^\s*\(/.test(suffix),
+      `${current}: supplemental node:test use must be a direct test registration`);
+    const registration = /^test\s*\(\s*(?:"(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*')\s*,\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>\s*\{/.exec(
+      code.slice(match.index)
+    );
+    assert(registration,
+      `${current}: supplemental test registration must have an exact title and callback`);
+    try {
+      execFileSync(process.execPath, ['--check', '--input-type=module', '-'], {
+        env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+        input: `${code.slice(0, match.index)}export {};\n${code.slice(match.index)}`,
+        stdio: 'pipe'
+      });
+    } catch {
+      throw new Error(
+        `${current}: supplemental test registration must be unconditional and top-level`
+      );
+    }
+    const callbackOffset = match.index + registration[0].length;
+    const callbackTail = tokens.slice(callbackOffset);
+    const callbackClose = /^\}\);\s*$/m.exec(callbackTail);
+    assert(callbackClose,
+      `${current}: supplemental test callback must use the closed block form`);
+    const callbackTokens = callbackTail.slice(0, callbackClose.index);
+    const callbackRaw = code.slice(callbackOffset, callbackOffset + callbackClose.index);
+    let reachableAssertion = false;
+    for (const assertion of callbackTokens.matchAll(
+      /^  assert\s*\.\s*(?:deepEqual|doesNotMatch|equal|match|notEqual|ok|throws)\s*\(/gm
+    )) {
+      try {
+        execFileSync(process.execPath, ['--check', '--input-type=module', '-'], {
+          env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+          input: `${callbackRaw.slice(0, assertion.index)}export {};\n`,
+          stdio: 'pipe'
+        });
+        reachableAssertion = true;
+        break;
+      } catch {
+        continue;
+      }
+    }
+    assert(reachableAssertion,
+      `${current}:${code.slice(0, match.index).split('\n').length}: supplemental test callback must contain an unconditional strict assertion`);
+    registrations += 1;
+  }
+  assert(registrations > 0,
+    `${current}: supplemental node:test binding must register at least one direct test`);
+}
+
+function validateSupplementalProcessUse(current, tokens) {
+  for (const match of tokens.matchAll(/\bprocess\b/g)) {
+    const prior = tokens.charAt(match.index - 1);
+    const suffix = tokens.slice(match.index + match[0].length);
+    const allowed = /^\s*\.\s*cwd\s*\(/.test(suffix) ||
+      /^\s*\.\s*platform(?=\s*[,)=;?:])/.test(suffix) ||
+      /^\s*\.\s*env\s*\.\s*PATH(?=\s*(?:[=;,)?:]|===|!==))/.test(suffix);
+    assert(!/[A-Za-z0-9_$.'"\]]/.test(prior) && allowed,
+      `${current}: supplemental process use is not permitted`);
+  }
+}
+
+function collectSupplementalModuleGraph(entryPath, entryBytes, readModule) {
+  const queue = [{ path: entryPath, bytes: entryBytes }];
+  const visited = new Set();
+  const evidence = [];
+  const javascriptProbeBudget = { used: 0 };
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (visited.has(current.path)) continue;
+    visited.add(current.path);
+    const code = current.bytes.toString('utf8');
+    const pinnedDigest = PINNED_SUPPLEMENTAL_MODULES.get(current.path);
+    assert(!pinnedDigest || sha256(current.bytes) === pinnedDigest,
+      `${current.path}: supplemental trusted module differs from its pinned implementation`);
+    assert(!code.includes('`'),
+      `${current.path}: supplemental template-literal code cannot be audited`);
+    try {
+      execFileSync(process.execPath, [
+        '--check', `--input-type=${current.path.endsWith('.mjs') ? 'module' : 'commonjs'}`, '-'
+      ], {
+        env: { ...process.env, NODE_OPTIONS: '', NODE_PATH: '' },
+        input: code,
+        stdio: 'pipe'
+      });
+    } catch (error) {
+      const detail = String(error.stderr || error.message || '').trim().split('\n')[0];
+      throw new Error(`${current.path}: supplemental JavaScript syntax check failed${detail ? `: ${detail}` : ''}`);
+    }
+    const lexical = code;
+    const requireTokens = maskJavaScriptStringsPreservingComments(code);
+    assert(!/\\(?:x[0-9a-fA-F]{2}|u(?:\{[0-9a-fA-F]+\}|[0-9a-fA-F]{4}))/.test(requireTokens),
+      `${current.path}: supplemental behavior module contains escaped loader tokens`);
+    assert(!/\b(?:require|import|from)\s*\/[*\/]/.test(requireTokens),
+      `${current.path}: supplemental behavior module contains commented code loading`);
+    assert(!/\b(?:eval|Function|AsyncFunction|GeneratorFunction|compileFunction|createRequire|getBuiltinModule)\b|['"](?:node:)?(?:vm|module)['"]|\bmodule\s*(?:\.|\[)\s*(?:_load|require)\b/.test(lexical),
+      `${current.path}: supplemental behavior module contains dynamic code loading`);
+    assert(!/\b(?:arguments|globalThis|global|constructor|Reflect|Proxy|getPrototypeOf|getOwnPropertyDescriptor|__proto__|callee|caller|mainModule|_compile|binding)\b/.test(requireTokens),
+      `${current.path}: supplemental behavior module contains reflective code loading`);
+    assert(!hasDynamicMemberAccess(code, current.path.endsWith('.mjs'), javascriptProbeBudget),
+      `${current.path}: supplemental behavior module contains dynamic member access`);
+    validateSupplementalSubprocesses(code, current.path, requireTokens);
+    validateSupplementalProcessUse(current.path, requireTokens);
+    validateSupplementalNodeTest(
+      code, current.path, requireTokens, current.path === entryPath
+    );
+    assert(!/\[\s*(?:['"]require['"]|['"]import['"])\s*\]|\brequire\s*(?:\.|\[)/.test(lexical),
+      `${current.path}: supplemental behavior module contains aliased code loading`);
+    for (const match of requireTokens.matchAll(/\bmodule\b/g)) {
+      const prior = requireTokens.charAt(match.index - 1);
+      const suffix = requireTokens.slice(match.index + 'module'.length);
+      assert(!/[A-Za-z0-9_$.'"\]]/.test(prior) && /^\s*\.\s*exports\b/.test(suffix),
+        `${current.path}: supplemental behavior module contains aliased code loading`);
+    }
+    for (const match of requireTokens.matchAll(/\brequire\b/g)) {
+      const prior = requireTokens.charAt(match.index - 1);
+      const suffix = requireTokens.slice(match.index + 'require'.length);
+      assert(!/[A-Za-z0-9_$.'"\]]/.test(prior) && /^\s*\(/.test(suffix),
+        `${current.path}: supplemental behavior module contains aliased code loading`);
+    }
+    const specifiers = [];
+    for (const match of lexical.matchAll(/\b(?:require|import)\s*\(\s*([^)]*)\)/g)) {
+      const argument = match[1].trim();
+      const literal = /^(?:"(?:\\.|[^"\\\r\n])*"|'(?:\\.|[^'\\\r\n])*')$/.exec(argument);
+      assert(literal,
+        `${current.path}: supplemental behavior module contains computed code loading`);
+      specifiers.push(literalJavaScriptStringValue(argument,
+        `${current.path}: supplemental behavior import`));
+    }
+    for (const match of lexical.matchAll(/\b(?:import|export)\s+(?:[^'"]*?\s+from\s+)?(['"][^'"\r\n]+['"])/g)) {
+      specifiers.push(literalJavaScriptStringValue(match[1],
+        `${current.path}: supplemental behavior import`));
+    }
+    let usesFilesystem = false;
+    for (const specifier of specifiers) {
+      if (!specifier.startsWith('.')) {
+        assert(SUPPLEMENTAL_BUILTINS.has(specifier),
+          `${current.path}: supplemental behavior module has an unsupported built-in or external dependency: ${specifier}`);
+        if (specifier === 'node:fs') usesFilesystem = true;
+        continue;
+      }
+      const normalized = path.posix.normalize(path.posix.join(
+        path.posix.dirname(current.path), specifier
+      ));
+      assert(normalized !== '..' && !normalized.startsWith('../') &&
+        !/^migration\/(?:candidates|packs)(?:\/|$)/.test(normalized),
+      `${current.path}: supplemental behavior test cannot load candidate or pack code`);
+      const candidates = path.posix.extname(normalized)
+        ? [normalized]
+        : [`${normalized}.js`, `${normalized}.cjs`, `${normalized}.mjs`];
+      let resolved = null;
+      let bytes = null;
+      for (const relative of candidates) {
+        const selected = readModule(relative);
+        if (!selected) continue;
+        resolved = relative;
+        bytes = selected;
+        break;
+      }
+      assert(resolved && /\.(?:js|cjs|mjs)$/.test(resolved),
+        `${current.path}: supplemental behavior local module is missing or unsupported: ${specifier}`);
+      evidence.push({ path: resolved, sha256: sha256(bytes) });
+      queue.push({ path: resolved, bytes });
+    }
+    assert(!usesFilesystem || pinnedDigest,
+      `${current.path}: supplemental node:fs requires a pinned supplemental module`);
+  }
+  return [...new Map(evidence
+    .filter((record) => record.path !== entryPath)
+    .map((record) => [record.path, record])).values()]
+    .sort((left, right) => BYTEWISE(left.path, right.path));
+}
+
+function validateSupplementalModuleGraph(root, entryPath, entryBytes, options = {}) {
+  return collectSupplementalModuleGraph(entryPath, entryBytes, (relative) => {
+    const absolute = path.join(root, ...relative.split('/'));
+    if (!fs.existsSync(absolute)) return null;
+    const bytes = captureContainedRegularFile(root, relative,
+      'supplemental behavior local module').bytes;
+    const prior = options.trustBytes?.get(relative);
+    assert(!prior || prior.equals(bytes),
+      `${relative}: supplemental behavior local module differs from its source snapshot`);
+    if (options.trustBytes instanceof Map) options.trustBytes.set(relative, bytes);
+    return bytes;
+  });
 }
 
 function validateBehaviorTests(root, target, targetPackageName, units, skillText, options = {}) {
@@ -6004,6 +6475,28 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
   });
   const testOwners = new Map();
   const evidence = [];
+  let supplementalRegistry = null;
+  if (units.some((unit) => unit.supplemental_behavior_tests)) {
+    const registryBytes = options.trustBytes?.get(SUPPLEMENTAL_BEHAVIOR_REGISTRY_PATH) ||
+      captureContainedRegularFile(root, SUPPLEMENTAL_BEHAVIOR_REGISTRY_PATH,
+        'supplemental behavior registry').bytes;
+    if (options.trustBytes instanceof Map) {
+      options.trustBytes.set(SUPPLEMENTAL_BEHAVIOR_REGISTRY_PATH, registryBytes);
+    }
+    try {
+      supplementalRegistry = JSON.parse(registryBytes.toString('utf8'));
+    } catch (error) {
+      throw new Error(`supplemental behavior registry is not valid JSON: ${error.message}`);
+    }
+    assertExactKeys(supplementalRegistry, ['schema_version', 'units'],
+      'supplemental behavior registry');
+    assert(supplementalRegistry.schema_version === 1 &&
+      supplementalRegistry.units && typeof supplementalRegistry.units === 'object' &&
+      !Array.isArray(supplementalRegistry.units),
+    'supplemental behavior registry schema is invalid');
+    assertSortedUnique(Object.keys(supplementalRegistry.units),
+      'supplemental behavior registry units');
+  }
   const trustedValidator = TRUSTED_VALIDATORS[target];
   if (trustedValidator) {
     const payloadValidator = PAYLOAD_VALIDATORS[target];
@@ -6100,6 +6593,46 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
         )));
       }
       evidence.push(record);
+    }
+    for (const testPath of unit.supplemental_behavior_tests || []) {
+      assert(!testOwners.has(testPath),
+        `candidate behavior test cannot own multiple units: ${testPath}`);
+      testOwners.set(testPath, unit.promotion_unit_id);
+      assert(/^test\/[A-Za-z0-9._-]+\.test\.js$/.test(testPath),
+        `candidate supplemental behavior test must be a root test/*.test.js file: ${testPath}`);
+      const bytes = captureContainedRegularFile(root, testPath,
+        'candidate supplemental behavior test').bytes;
+      const priorCapture = options.capturedBehaviorTests?.get(testPath);
+      assert(!priorCapture || priorCapture.equals(bytes),
+        `${testPath}: candidate supplemental behavior test changed between unit captures`);
+      if (options.capturedBehaviorTests instanceof Map) {
+        options.capturedBehaviorTests.set(testPath, bytes);
+      }
+      const priorSnapshot = options.trustBytes?.get(testPath);
+      assert(!priorSnapshot || priorSnapshot.equals(bytes),
+        `${testPath}: candidate supplemental behavior test differs from its source snapshot`);
+      if (options.trustBytes instanceof Map) options.trustBytes.set(testPath, bytes);
+      const marker = `'use strict';\n// sd0x-migration-supplemental-test target=${target} unit=${unit.promotion_unit_id}\n`;
+      const code = bytes.toString('utf8');
+      assert(code.startsWith(marker),
+        `${testPath}: supplemental behavior test must declare its exact target and unit`);
+      const trusted = supplementalRegistry?.units?.[unit.promotion_unit_id];
+      assert(trusted && typeof trusted === 'object' && !Array.isArray(trusted),
+        `${unit.promotion_unit_id}: supplemental behavior test is absent from the trusted registry`);
+      assertExactKeys(trusted, ['path', 'sha256'],
+        `${unit.promotion_unit_id} supplemental behavior registry entry`);
+      assert(trusted.path === testPath && trusted.sha256 === sha256(bytes),
+        `${testPath}: supplemental behavior test differs from the trusted registry`);
+      const supplementalModules = validateSupplementalModuleGraph(root, testPath, bytes, {
+        trustBytes: options.trustBytes
+      });
+      evidence.push({
+        path: testPath,
+        promotion_unit_id: unit.promotion_unit_id,
+        sha256: sha256(bytes),
+        supplemental: true,
+        supplemental_modules: supplementalModules
+      });
     }
   }
   assert(evidence.length > 0, 'candidate behavior_tests are required');
@@ -6222,6 +6755,8 @@ function auditCandidate(options = {}) {
   const root = path.resolve(options.root || ROOT);
   const candidateCompleteEvidence =
     options.internalEvidenceToken === CANDIDATE_COMPLETE_EVIDENCE;
+  const activeCandidateMoveWindow =
+    options.internalMoveWindowToken === ACTIVE_CANDIDATE_MOVE_WINDOW;
   const candidateIdentity = repositoryIdentity(root);
   const relative = normalizeRelative(options.candidate, 'candidate path');
   assert(!relative.startsWith('migration/staging/'),
@@ -6232,11 +6767,20 @@ function auditCandidate(options = {}) {
   assert(candidateMatch || liveMatch || packMatch,
     'candidate path must be one exact candidate, core-live, or pack-final skill directory');
   const phase = liveMatch ? 'final' : packMatch ? 'pack-final' : 'preflight';
+  assert(!activeCandidateMoveWindow || phase !== 'preflight',
+    'active candidate move-window audit requires a moved payload');
   const target = options.target;
   assert(/^[a-z0-9][a-z0-9-]*$/.test(target || ''), '--target canonical skill is required');
   const pathTarget = packMatch ? packMatch[2] : (candidateMatch || liveMatch)[1];
   assert(pathTarget === target,
     'candidate directory name must equal --target');
+  if (phase !== 'preflight') {
+    assert(!physicalDirectoryState(
+      root,
+      `migration/candidates/${target}`,
+      'moved candidate residue'
+    ).populated, 'moved payload cannot retain a populated candidate directory');
+  }
 
   const source = candidateCompleteEvidence ? null : auditSourceTransaction({
       root,
@@ -6261,7 +6805,7 @@ function auditCandidate(options = {}) {
     throw new Error(`trusted semantic registry is not valid JSON: ${error.message}`);
   }
   let finalGates = null;
-  if (phase !== 'preflight' && !candidateCompleteEvidence) {
+  if (phase !== 'preflight' && !candidateCompleteEvidence && !activeCandidateMoveWindow) {
     const state = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
     const current = state.refreshState(root);
     finalGates = {
@@ -6330,9 +6874,13 @@ function auditCandidate(options = {}) {
   assertExactKeys(contract,
     ['schema_version', 'target_skill', 'target_package', 'authorization', 'units'],
     'candidate contract');
-  const expectedContractSchema = packages[0] === 'research-pack' ? 2 : 1;
-  assert(contract.schema_version === expectedContractSchema,
-    `candidate contract schema_version must be ${expectedContractSchema} for ${packages[0]}`);
+  if (packages[0] === 'research-pack') {
+    assert(contract.schema_version === 2,
+      `candidate contract schema_version must be 2 for ${packages[0]}`);
+  } else {
+    assert([1, 3].includes(contract.schema_version),
+      `candidate contract schema_version must be 1 or 3 for ${packages[0]}`);
+  }
   assert(contract.target_skill === target, 'candidate contract target_skill mismatch');
   assert(contract.target_package === packages[0], 'candidate contract target_package mismatch');
   assertExactKeys(contract.authorization, ['policy', 'sensitive_operations'],
@@ -6364,6 +6912,9 @@ function auditCandidate(options = {}) {
     const expectedUnitKeys = [
       'promotion_unit_id', 'target_mode', 'source_names', 'routing', 'behavior_tests'
     ];
+    if (contract.schema_version === 3) {
+      expectedUnitKeys.push('supplemental_behavior_tests');
+    }
     if (contract.target_package === 'research-pack') {
       expectedUnitKeys.push('semantic_requirements');
     }
@@ -6395,6 +6946,12 @@ function auditCandidate(options = {}) {
         typeof value === 'string' && value.trim() && value.length <= 256 && !/[\r\n\0]/.test(value)),
     `${unit.promotion_unit_id}: routing cases must be bounded single-line strings`);
     assertSortedUnique(unit.behavior_tests, `${unit.promotion_unit_id}.behavior_tests`);
+    if (contract.schema_version === 3) {
+      assertSortedUnique(unit.supplemental_behavior_tests,
+        `${unit.promotion_unit_id}.supplemental_behavior_tests`);
+      assert(unit.supplemental_behavior_tests.length > 0,
+        `${unit.promotion_unit_id}.supplemental_behavior_tests cannot be empty`);
+    }
     if (contract.target_package === 'research-pack') {
       assert(unit.semantic_requirements && typeof unit.semantic_requirements === 'object' &&
         !Array.isArray(unit.semantic_requirements),
@@ -6460,11 +7017,7 @@ function auditCandidate(options = {}) {
   validateCandidateResources(tree);
 
   const declaredOperations = sortedUnique(activeRows.flatMap((row) => row.operations));
-  const observed = observedOperations(productionRecords);
-  for (const operation of observed) {
-    assert(declaredOperations.includes(operation),
-      `candidate uses undeclared operation: ${operation}; observed=${JSON.stringify(observed)}`);
-  }
+  const observed = validateCandidateOperationRecords(productionRecords, declaredOperations);
   const observedSensitive = observed.filter((operation) => SENSITIVE_OPERATIONS.has(operation));
   assert(JSON.stringify(contract.authorization.sensitive_operations) ===
     JSON.stringify(observedSensitive),
@@ -6505,7 +7058,7 @@ function auditCandidate(options = {}) {
     phase: 'preflight',
     relative: `migration/candidates/${target}`
   });
-  if (phase !== 'preflight' && !candidateCompleteEvidence) {
+  if (phase !== 'preflight' && !candidateCompleteEvidence && !activeCandidateMoveWindow) {
     assert(finalGates.review,
       'final audit requires current fingerprint review pass');
     assert(finalGates.verify,
@@ -6533,6 +7086,13 @@ function auditCandidate(options = {}) {
         beforeRevalidation: options.beforeSourceTransactionRevalidation
       })
     : repositoryIdentity(root);
+  if (phase !== 'preflight') {
+    assert(!physicalDirectoryState(
+      root,
+      `migration/candidates/${target}`,
+      'moved candidate residue completion'
+    ).populated, 'moved candidate residue changed during final audit');
+  }
   const completedTree = candidateTree(root, relative);
   assert(JSON.stringify(completedTree.files) === JSON.stringify(tree.files),
     'candidate tree manifest changed while auditing');
@@ -6549,6 +7109,9 @@ function auditCandidate(options = {}) {
     promotion_unit_id: units[0],
     payload_tree_sha256: treeHash,
     audit_fingerprint: auditFingerprint,
+    ...(activeCandidateMoveWindow
+      ? { preflight_audit_fingerprint: expectedPreflight, move_window: true }
+      : {}),
     ...(candidateCompleteEvidence
       ? { preflight_audit_fingerprint: expectedPreflight }
       : {}),
@@ -6559,10 +7122,320 @@ function auditCandidate(options = {}) {
   };
 }
 
+function renderedMarkdownLines(markdown) {
+  const records = [];
+  let fence = null;
+  let htmlComment = false;
+  let htmlCommentBlock = false;
+  let htmlBlockEnd = null;
+  const rawHtmlBlocks = new Set([
+    'address', 'article', 'aside', 'base', 'basefont', 'blockquote', 'body',
+    'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dialog', 'dir',
+    'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form',
+    'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header',
+    'hr', 'html', 'iframe', 'legend', 'li', 'link', 'main', 'menu', 'menuitem',
+    'nav', 'noframes', 'ol', 'optgroup', 'option', 'p', 'param', 'search',
+    'section', 'summary', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead',
+    'title', 'tr', 'track', 'ul'
+  ]);
+  const endsHtmlBlock = (state, line) => state.kind === 'blank'
+    ? /^[ \t]*$/.test(line)
+    : state.kind === 'tag'
+      ? new RegExp(`</${state.tag}>`, 'i').test(line)
+      : line.includes(state.token);
+  for (const raw of markdown.replace(/\r\n?/g, '\n').split('\n')) {
+    if (fence) {
+      const closing = new RegExp(
+        `^ {0,3}${fence.character}{${fence.length},}[ \\t]*$`
+      );
+      if (closing.test(raw)) fence = null;
+      records.push({ rendered: false, text: '' });
+      continue;
+    }
+    if (htmlBlockEnd) {
+      if (endsHtmlBlock(htmlBlockEnd, raw)) htmlBlockEnd = null;
+      records.push({ rendered: false, text: '' });
+      continue;
+    }
+    if (htmlCommentBlock) {
+      if (raw.includes('-->')) htmlCommentBlock = false;
+      records.push({ rendered: false, text: '' });
+      continue;
+    }
+    if (htmlComment) {
+      if (raw.includes('-->')) htmlComment = false;
+      records.push({ rendered: false, text: '' });
+      continue;
+    }
+    if (/^ {0,3}<!--/.test(raw)) {
+      if (!raw.includes('-->')) htmlCommentBlock = true;
+      records.push({ rendered: false, text: '' });
+      continue;
+    }
+    let cursor = 0;
+    let visible = '';
+    while (cursor < raw.length) {
+      const open = raw.indexOf('<!--', cursor);
+      if (open < 0) {
+        visible += raw.slice(cursor);
+        break;
+      }
+      visible += raw.slice(cursor, open);
+      const close = raw.indexOf('-->', open + 4);
+      if (close < 0) {
+        htmlComment = true;
+        cursor = raw.length;
+      } else {
+        cursor = close + 3;
+      }
+    }
+    const opening = /^ {0,3}(`{3,}|~{3,})/.exec(visible);
+    if (opening) {
+      fence = { character: opening[1][0], length: opening[1].length };
+      records.push({ rendered: false, text: '' });
+    } else if (/^(?: {4}|\t)/.test(visible)) {
+      records.push({ rendered: false, text: '' });
+    } else {
+      const typeOne = /^ {0,3}<(script|pre|style|textarea)(?:\s|>|$)/i.exec(visible);
+      const typeSix = /^ {0,3}<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s|\/?>|$)/.exec(visible);
+      const genericOpen = /^ {0,3}<[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z_:][A-Za-z0-9_.:-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*\s*\/?>\s*$/.test(visible);
+      const genericClose = /^ {0,3}<\/[A-Za-z][A-Za-z0-9-]*\s*>\s*$/.test(visible);
+      let openedHtmlBlock = null;
+      if (typeOne) {
+        openedHtmlBlock = { kind: 'tag', tag: typeOne[1].toLowerCase() };
+      } else if (/^ {0,3}<\?/.test(visible)) {
+        openedHtmlBlock = { kind: 'token', token: '?>' };
+      } else if (/^ {0,3}<!\[CDATA\[/.test(visible)) {
+        openedHtmlBlock = { kind: 'token', token: ']]>' };
+      } else if (/^ {0,3}<![A-Z]/.test(visible)) {
+        openedHtmlBlock = { kind: 'token', token: '>' };
+      } else if ((typeSix && rawHtmlBlocks.has(typeSix[1].toLowerCase())) ||
+                 genericOpen || genericClose) {
+        openedHtmlBlock = { kind: 'blank' };
+      }
+      if (openedHtmlBlock) {
+        if (openedHtmlBlock.kind === 'blank' ||
+            !endsHtmlBlock(openedHtmlBlock, visible)) {
+          htmlBlockEnd = openedHtmlBlock;
+        }
+        records.push({ rendered: false, text: '' });
+      } else {
+        records.push({ rendered: true, text: visible });
+      }
+    }
+  }
+  return records;
+}
+
+function requestProgressHash(request, phase, label, requestPath) {
+  const lines = renderedMarkdownLines(request);
+  const headings = lines.reduce((matches, line, index) => {
+    if (line.rendered && line.text === '## Progress') matches.push(index);
+    return matches;
+  }, []);
+  assert(headings.length === 1,
+    `${requestPath}: candidate evidence requires one Progress section`);
+  const start = headings[0] + 1;
+  let end = lines.length;
+  for (let index = start; index < lines.length; index += 1) {
+    if (lines[index].rendered && /^#{1,2}\s+/.test(lines[index].text)) {
+      end = index;
+      break;
+    }
+  }
+  const progress = lines.slice(start, end);
+  const tableHeaders = [];
+  for (let index = 0; index < progress.length; index += 1) {
+    if (progress[index].rendered &&
+        progress[index].text === '| Phase | Status | Note |' &&
+        progress[index + 1]?.rendered &&
+        /^\|(?:\s*:?-+:?\s*\|){3}$/.test(progress[index + 1].text)) {
+      tableHeaders.push(index);
+    }
+  }
+  assert(tableHeaders.length === 1,
+    `${requestPath}: candidate evidence requires one canonical Progress table`);
+  const rows = [];
+  for (let index = tableHeaders[0] + 2; index < progress.length; index += 1) {
+    if (!progress[index].rendered ||
+        !/^\|.*\|$/.test(progress[index].text)) break;
+    const cells = progress[index].text.slice(1, -1).split('|')
+      .map((cell) => cell.trim());
+    assert(cells.length === 3,
+      `${requestPath}: canonical Progress rows require Phase, Status, and Note`);
+    if (cells[0] === phase && cells[1] === 'Complete') rows.push(cells[2]);
+  }
+  assert(rows.length === 1,
+    `${requestPath}: candidate evidence requires one Complete ${phase} progress row`);
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const matches = [...rows[0].matchAll(new RegExp(
+    `\\b${escaped} ` + '`([0-9a-f]{64})`', 'g'
+  ))];
+  assert(matches.length === 1,
+    `${requestPath}: candidate evidence requires one ${label} hash in ${phase}`);
+  return matches[0][1];
+}
+
+function validateCandidateRequestEvidence(request, result, requestPath) {
+  const payload = requestProgressHash(request, 'Development', 'payload', requestPath);
+  const preflight = requestProgressHash(request, 'Testing', 'Preflight', requestPath);
+  assert(payload === result.payload_tree_sha256,
+    `${requestPath}: candidate payload evidence mismatch for ${result.promotion_unit_id}`);
+  assert(preflight === (result.preflight_audit_fingerprint || result.audit_fingerprint),
+    `${requestPath}: candidate preflight evidence mismatch for ${result.promotion_unit_id}`);
+  return { payload_tree_sha256: payload, preflight_audit_fingerprint: preflight };
+}
+
+function selectActiveCandidatePayload(options) {
+  const {
+    promotionUnitId,
+    targetPackage,
+    candidatePath,
+    targetPath,
+    candidatePopulated,
+    targetPopulated
+  } = options;
+  if (targetPackage !== 'core') {
+    assert(candidatePopulated !== targetPopulated,
+      `${promotionUnitId}: candidate and final pack require exactly one populated payload`);
+  } else {
+    assert(candidatePopulated || targetPopulated,
+      `${promotionUnitId}: core candidate has no populated payload`);
+  }
+  return candidatePopulated ? candidatePath : targetPath;
+}
+
+function auditActiveCandidates(options = {}) {
+  const root = path.resolve(options.root || ROOT);
+  const transactionIdentity = canonicalJson(repositoryIdentity(root));
+  const assertTransactionIdentity = (phase) => {
+    assert(canonicalJson(repositoryIdentity(root)) === transactionIdentity,
+      `active candidate repository identity changed ${phase}`);
+  };
+  const disposition = readJson(
+    root, 'migration/source-disposition.json', 'source disposition'
+  ).value;
+  const rows = disposition.skills.filter((row) => row.delivery_state === 'candidate');
+  const units = new Map();
+  for (const row of rows) {
+    const grouped = units.get(row.promotion_unit_id) || [];
+    grouped.push(row);
+    units.set(row.promotion_unit_id, grouped);
+  }
+  const evidence = [];
+  const immutableUnits = [];
+  for (const promotionUnitId of [...units.keys()].sort(BYTEWISE)) {
+    assertTransactionIdentity(`before ${promotionUnitId}`);
+    const unitRows = units.get(promotionUnitId);
+    const targets = sortedUnique(unitRows.map((row) => row.target_skill));
+    const modes = sortedUnique(unitRows.map((row) => row.target_mode || 'default'));
+    const requests = sortedUnique(unitRows.map((row) => row.promotion_request));
+    assert(targets.length === 1 && modes.length === 1 && requests.length === 1,
+      `${promotionUnitId}: candidate rows disagree on target, mode, or request`);
+    const target = targets[0];
+    const packages = sortedUnique(unitRows.map((row) => row.target_package));
+    assert(packages.length === 1,
+      `${promotionUnitId}: candidate rows disagree on target package`);
+    const candidatePath = `migration/candidates/${target}`;
+    const targetPath = packages[0] === 'core'
+      ? `plugin/sd0x-dev-flow-codex/skills/${target}`
+      : `migration/packs/${packages[0]}/${target}`;
+    const candidatePopulated = physicalDirectoryState(
+      root, candidatePath, 'active candidate'
+    ).populated;
+    const targetPopulated = physicalDirectoryState(
+      root, targetPath, 'active candidate target'
+    ).populated;
+    const payloadPath = selectActiveCandidatePayload({
+      promotionUnitId,
+      targetPackage: packages[0],
+      candidatePath,
+      targetPath,
+      candidatePopulated,
+      targetPopulated
+    });
+    containedPath(root, payloadPath, {
+      label: candidatePopulated ? 'active candidate' : 'active candidate move-window payload',
+      type: 'directory'
+    });
+    const result = auditCandidate({
+      root,
+      candidate: payloadPath,
+      target,
+      mode: modes[0],
+      ...(candidatePopulated
+        ? {}
+        : { internalMoveWindowToken: ACTIVE_CANDIDATE_MOVE_WINDOW })
+    });
+    assert(result.promotion_unit_id === promotionUnitId,
+      `${promotionUnitId}: active candidate audit returned a different unit`);
+    const requestPath = requests[0];
+    assert(typeof requestPath === 'string' && requestPath.length > 0,
+      `${promotionUnitId}: active candidate request is missing`);
+    const requestBytes = captureContainedRegularFile(
+      root, requestPath, 'active candidate request'
+    ).bytes;
+    const request = requestBytes.toString('utf8');
+    evidence.push({
+      promotion_unit_id: promotionUnitId,
+      target,
+      lifecycle: result.move_window ? 'move-window' : 'preflight',
+      request_path: requestPath,
+      ...validateCandidateRequestEvidence(request, result, requestPath)
+    });
+    immutableUnits.push({
+      candidate: payloadPath,
+      payload_tree_sha256: result.payload_tree_sha256,
+      request_path: requestPath,
+      request_sha256: sha256(requestBytes),
+      behavior_tests: result.behavior_tests.flatMap((entry) => [
+        { path: entry.path, sha256: entry.sha256 },
+        ...(entry.supplemental_modules || [])
+      ])
+    });
+    if (typeof options.afterActiveCandidate === 'function') {
+      options.afterActiveCandidate({
+        promotion_unit_id: promotionUnitId,
+        request_path: requestPath,
+        target
+      });
+    }
+    assertTransactionIdentity(`after ${promotionUnitId}`);
+  }
+  assertTransactionIdentity('before completion revalidation');
+  for (const unit of immutableUnits) {
+    const completedTree = candidateTree(root, unit.candidate);
+    assert(candidateTreeDigest(completedTree) === unit.payload_tree_sha256,
+      `${unit.candidate}: active candidate tree changed before completion`);
+    const completedRequest = captureContainedRegularFile(
+      root, unit.request_path, 'active candidate request completion'
+    ).bytes;
+    assert(sha256(completedRequest) === unit.request_sha256,
+      `${unit.request_path}: active candidate request changed before completion`);
+    for (const behaviorTest of unit.behavior_tests) {
+      const completedTest = captureContainedRegularFile(
+        root, behaviorTest.path, 'active candidate behavior test completion'
+      ).bytes;
+      assert(sha256(completedTest) === behaviorTest.sha256,
+        `${behaviorTest.path}: active candidate behavior test changed before completion`);
+    }
+    if (typeof options.afterActiveCandidateCompletion === 'function') {
+      options.afterActiveCandidateCompletion({ candidate: unit.candidate });
+    }
+  }
+  assertTransactionIdentity('after completion revalidation');
+  return {
+    ok: true,
+    mode: 'audit-active-candidates',
+    candidates: evidence.length,
+    units: evidence
+  };
+}
+
 function parseArguments(argv) {
   const [mode, ...rest] = argv;
-  assert(['audit-source', 'audit-candidate'].includes(mode),
-    'usage: skill-migration-audit.js <audit-source|audit-candidate> ...');
+  assert(['audit-source', 'audit-candidate', 'audit-active-candidates'].includes(mode),
+    'usage: skill-migration-audit.js <audit-source|audit-candidate|audit-active-candidates> ...');
   const options = {};
   if (mode === 'audit-candidate') {
     options.candidate = rest.shift();
@@ -6580,9 +7453,11 @@ function parseArguments(argv) {
   for (const [key, value] of Object.entries(options)) {
     assert(value, `missing value for --${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`);
   }
-  if (mode === 'audit-source') {
+  if (mode === 'audit-source' || mode === 'audit-active-candidates') {
     assert(!options.target && !options.preflightFingerprint,
-      'audit-source does not accept candidate arguments');
+      `${mode} does not accept candidate arguments`);
+    assert(!options.compare || mode === 'audit-source',
+      'audit-active-candidates does not accept --compare');
   } else {
     assert(!options.compare, 'audit-candidate does not accept --compare');
   }
@@ -6593,7 +7468,9 @@ function main(argv = process.argv.slice(2)) {
   const parsed = parseArguments(argv);
   const result = parsed.mode === 'audit-source'
     ? auditSource(parsed.options)
-    : auditCandidate(parsed.options);
+    : parsed.mode === 'audit-active-candidates'
+      ? auditActiveCandidates(parsed.options)
+      : auditCandidate(parsed.options);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
   if (!result.ok) process.exitCode = 1;
 }
@@ -6609,17 +7486,22 @@ if (require.main === module) {
 
 module.exports = {
   BOUNDARY_MARKER,
+  auditActiveCandidates,
   auditCandidate,
+  auditCandidateStatic,
   auditDeliveredPayload,
   auditSource,
   compareCheckout,
   parseArguments,
   parseFrontmatter,
   validateDisposition,
+  validateDistribution,
   validateInventory,
   validateAliasCapability,
   validateRequestDag,
   validateMarkdownTables,
+  selectActiveCandidatePayload,
+  validateCandidateRequestEvidence,
   validateCandidateCompletePackEvidence,
   validateWave1Readiness
 };

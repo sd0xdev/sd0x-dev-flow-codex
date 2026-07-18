@@ -134,17 +134,24 @@
       "source_name": "bug-fix",
       "disposition": "keep",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "bug-fix",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "bug-fix",
       "promotion_unit_id": "bug-fix/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-bug-fix-promotion.md",
       "license_status": "approved",
       "rationale": "Retain the existing canonical workflow and adapt only at shared runtime boundaries."
     },
@@ -359,17 +366,24 @@
       "source_name": "codex-implement",
       "disposition": "merge",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "feature-dev",
       "target_mode": null,
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "feature-dev",
       "promotion_unit_id": "feature-dev/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-feature-dev-promotion.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -485,17 +499,24 @@
       "source_name": "codex-test-gen",
       "disposition": "adapt",
       "target_package": "development-pack",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "test-gen",
       "target_mode": null,
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "test-gen",
       "promotion_unit_id": "test-gen/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-test-gen-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -599,17 +620,23 @@
       "source_name": "debug",
       "disposition": "adapt",
       "target_package": "development-pack",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "debug",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "debug",
       "promotion_unit_id": "debug/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-debug-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -803,17 +830,24 @@
       "source_name": "feature-dev",
       "disposition": "keep",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "feature-dev",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "feature-dev",
       "promotion_unit_id": "feature-dev/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-feature-dev-promotion.md",
       "license_status": "approved",
       "rationale": "Retain the existing canonical workflow and adapt only at shared runtime boundaries."
     },
@@ -1209,17 +1243,23 @@
       "source_name": "post-dev-test",
       "disposition": "adapt",
       "target_package": "development-pack",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "post-dev-test",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "post-dev-test",
       "promotion_unit_id": "post-dev-test/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-post-dev-test-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1461,17 +1501,24 @@
       "source_name": "refactor",
       "disposition": "adapt",
       "target_package": "development-pack",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "refactor",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "refactor",
       "promotion_unit_id": "refactor/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-refactor-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1701,17 +1748,24 @@
       "source_name": "simplify",
       "disposition": "adapt",
       "target_package": "development-pack",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "simplify",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "simplify",
       "promotion_unit_id": "simplify/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-simplify-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1834,17 +1888,23 @@
       "source_name": "test-deep",
       "disposition": "adapt",
       "target_package": "development-pack",
-      "delivery_state": "planned",
+      "delivery_state": "candidate",
       "target_skill": "test-deep",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 3,
       "routing_owner": "test-deep",
       "promotion_unit_id": "test-deep/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-test-deep-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
