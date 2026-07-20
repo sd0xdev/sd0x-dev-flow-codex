@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: In Progress
+> **Status**: Candidate Complete
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -41,17 +41,17 @@ The source `debug` workflow needs a Codex-native diagnostic owner in the develop
 - [x] Contract closes provenance, routing, capabilities, operations, and read-only authority boundaries.
 - [x] Trusted routing tests distinguish diagnosis from bug fixing, feature implementation, and review.
 - [x] Candidate preflight binds exact payload, generated routing test, and supplemental probe-harness identity.
-- [ ] Accepted bytes move only to `migration/packs/development-pack/debug/` and pass final pack audit.
-- [ ] Runtime closure records exact pack-ready evidence for `debug/default`.
+- [x] Accepted bytes move only to `migration/packs/development-pack/debug/` and pass final pack audit.
+- [x] R3 transaction inputs are ready to bind the Completed request and exact pack-ready evidence for `debug/default` after docs review and fresh deterministic verification.
 
 ## Progress
 
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | Pinned diagnostic workflow and read-only mutation boundary inspected. |
-| Development | Complete | Codex-native schema-v3 candidate and trusted-bound default-deny probe runner prepared; payload `41c2bb8a18e6b2efdfb2242d1753f7176682470567f19030c9395f4024f82794`. |
-| Testing | Complete | Preflight `a3db7a58e6cab0a602372d97184185593e35dc93080dd2155a356e1335d01264`; routing 6/6 and probe-policy 15/15 passed. |
-| Acceptance | Pending | |
+| Development | Complete | Exact accepted bytes moved from `migration/candidates/` to `migration/packs/development-pack/debug/`; payload `3be8e58dee32838dd3cce7afbae0d4948ba7e4a124c8581d5eed15a3627e922f`. |
+| Testing | Complete | Preflight `1b304a17e569db55ae45a0b1185bae1ea3cde4b6774928423baeb4dc15638a12`; routing 6/6 and probe-policy 16/16 passed. Final pack audit `b63c7eb16503dcbeb7ab2697919f34075e677abc35067988774cddd94197ae73` passed. |
+| Acceptance | Candidate Complete | Final pack audit and subject gates passed; runtime-owned R3 closure and pack-ready evidence remain pending. |
 
 ## References
 

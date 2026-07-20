@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: In Progress
+> **Status**: Candidate Complete
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -42,17 +42,17 @@ Source behaviors from `feature-dev` and the mapping-only `codex-implement` alias
 - [x] `codex-implement` remains mapping-only and does not become a discovered skill entrypoint.
 - [x] Trusted routing tests distinguish implementation requests from diagnosis-only, review-only, and test-only work.
 - [x] Candidate preflight binds exact payload and behavioral-test identity before promotion.
-- [ ] Final core payload passes source audit as the sole routing owner.
-- [ ] Runtime closure binds the Completed request and promotion evidence to the final fingerprint.
+- [x] Final core payload passes source audit as the sole routing owner.
+- [x] R3 transaction inputs are ready to bind the Completed request and promotion evidence to the final fingerprint after docs review and fresh deterministic verification.
 
 ## Progress
 
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | Existing core, canonical source, and mapping-only alias behavior reconciled. |
-| Development | Complete | Merged candidate and schema-v1 contract prepared; payload `3706ae5ac13693f25c2a66701d79c66f5dc12690d90bee3cbe360062dd392908`. |
-| Testing | Complete | Preflight `263166adc304f7f716d68c088773721d3b63d3a936c7f70a2f597610bc7404da`; routing 6/6 passed. |
-| Acceptance | Pending | |
+| Development | Complete | Exact accepted bytes moved from `migration/candidates/` to the core payload; payload `3706ae5ac13693f25c2a66701d79c66f5dc12690d90bee3cbe360062dd392908`. |
+| Testing | Complete | Preflight `263166adc304f7f716d68c088773721d3b63d3a936c7f70a2f597610bc7404da`; routing 6/6 passed. Final audit `5cfbfeb042df1cb163995335be706b2640ebf27c80691d506ab97fda87ab548b` passed. |
+| Acceptance | Candidate Complete | Final audit and subject gates passed; runtime-owned R3 closure and promotion evidence remain pending. |
 
 ## References
 

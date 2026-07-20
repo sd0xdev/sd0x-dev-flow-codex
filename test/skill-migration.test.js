@@ -6491,6 +6491,26 @@ test('audit CLI returns structured success and fails unknown modes', () => {
 test('active candidate audit binds non-routing payload bytes to request evidence', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const candidatesRoot = path.join(values.root, 'migration', 'candidates');
+  fs.mkdirSync(candidatesRoot, { recursive: true });
+  for (const target of ['bug-fix', 'feature-dev']) {
+    const candidate = path.join(candidatesRoot, target);
+    fs.rmSync(candidate, { recursive: true, force: true });
+    fs.renameSync(
+      path.join(values.root, 'plugin', 'sd0x-dev-flow-codex', 'skills', target),
+      candidate
+    );
+  }
+  for (const target of [
+    'debug', 'post-dev-test', 'refactor', 'simplify', 'test-deep', 'test-gen'
+  ]) {
+    const candidate = path.join(candidatesRoot, target);
+    fs.rmSync(candidate, { recursive: true, force: true });
+    fs.renameSync(
+      path.join(values.root, 'migration', 'packs', 'development-pack', target),
+      candidate
+    );
+  }
   fs.copyFileSync(
     path.join(ROOT, 'migration', 'source-disposition.json'),
     path.join(values.root, 'migration', 'source-disposition.json')

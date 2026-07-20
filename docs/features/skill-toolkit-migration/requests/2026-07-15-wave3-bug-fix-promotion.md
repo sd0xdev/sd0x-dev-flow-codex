@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: In Progress
+> **Status**: Candidate Complete
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -40,17 +40,17 @@ The existing Codex-native `bug-fix` workflow must become the audited canonical o
 - [x] Contract records the exact `bug-fix/default` provenance, routing cases, capabilities, operations, and authority boundary.
 - [x] Trusted routing tests prove positive ownership and exclusions from feature development and review-only work.
 - [x] Candidate preflight binds exact payload and behavioral-test identity before promotion.
-- [ ] Final core payload passes source audit and remains the only discovered owner of `bug-fix/default`.
-- [ ] Runtime closure binds the Completed request and promotion evidence to the final fingerprint.
+- [x] Final core payload passes source audit and remains the only discovered owner of `bug-fix/default`.
+- [x] R3 transaction inputs are ready to bind the Completed request and promotion evidence to the final fingerprint after docs review and fresh deterministic verification.
 
 ## Progress
 
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | Existing core and pinned source boundaries reconciled. |
-| Development | Complete | Candidate payload and schema-v1 contract prepared; payload `a4d4e8963e26f89953d6b19318374f1f04d29f8745a772da80ccca0dace044a9`. |
-| Testing | Complete | Preflight `d9c9650522e047ec40833de6c8148c28dc74efe1cd2e9707f26ace06c60d5140`; routing 6/6 passed. |
-| Acceptance | Pending | |
+| Development | Complete | Exact accepted bytes moved from `migration/candidates/` to the core payload; payload `a4d4e8963e26f89953d6b19318374f1f04d29f8745a772da80ccca0dace044a9`. |
+| Testing | Complete | Preflight `d9c9650522e047ec40833de6c8148c28dc74efe1cd2e9707f26ace06c60d5140`; routing 6/6 passed. Final audit `7cc697812a5617ce115cd9c9e08c7c9c3541856e5b5f71dee8baa137a4485bee` passed. |
+| Acceptance | Candidate Complete | Final audit and subject gates passed; runtime-owned R3 closure and promotion evidence remain pending. |
 
 ## References
 

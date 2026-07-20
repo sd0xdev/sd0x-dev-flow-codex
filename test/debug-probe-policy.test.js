@@ -311,6 +311,28 @@ test('debug redaction handles escaped, unterminated, and whitespace secrets fail
   assert.equal(unquoted, 'password=[REDACTED]\nvisible diagnostic');
 });
 
+test('debug redaction covers separated API key labels and preserves boundaries', () => {
+  const cases = [
+    ['API Key: arbitrary-sensitive-value', 'API Key: [REDACTED]'],
+    ['api-key=hyphen-sensitive-value', 'api-key=[REDACTED]'],
+    ['X-API-Key: header-sensitive-value', 'X-API-Key: [REDACTED]'],
+    ['{"api-key":"json-sensitive-value","status":"ok"}',
+      '{"api-key":"[REDACTED]","status":"ok"}'],
+    ['before\nX-API-Key: line-sensitive-value\nafter',
+      'before\nX-API-Key: [REDACTED]\nafter']
+  ];
+  for (const [input, expected] of cases) {
+    assert.equal(policy.redactOutput(input), expected);
+  }
+  for (const diagnostic of [
+    'capillary key=benign',
+    'notapi key: diagnostic',
+    'API response missing key: diagnostic'
+  ]) {
+    assert.equal(policy.redactOutput(diagnostic), diagnostic);
+  }
+});
+
 test('debug redaction preserves diagnostics around complete private-key blocks', () => {
   const output = policy.redactOutput([
     'before',

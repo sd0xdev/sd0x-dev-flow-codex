@@ -1,14 +1,37 @@
 ---
 name: feature-dev
-description: Implement a non-trivial feature end to end with scoped exploration, explicit acceptance criteria, incremental edits, independent review, and deterministic verification. Use when the user asks to build or extend behavior rather than make a tiny isolated edit.
+description: "Route feature-dev using exact migration registry [{\"unit\":\"feature-dev/default\",\"routing\":{\"positive_triggers\":[\"Build the approved notification preference feature end to end.\",\"Extend the billing API with the specified refund behavior and tests.\",\"Implement this non-trivial capability from the technical specification.\"],\"negative_boundaries\":[\"Diagnose the failing refund test without implementing a correction.\",\"Generate focused tests for the existing billing behavior only.\",\"Review the notification preference diff without changing it.\"]}}]."
 ---
 
 # Develop a Feature
 
-1. Inspect the concrete execution path and repository guidance before proposing architecture.
-2. State scope, acceptance criteria, risks, and the smallest coherent implementation plan.
-3. Implement incrementally, preserving existing conventions and unrelated user changes.
-4. Add or update tests that prove behavior rather than implementation details.
-5. Run `$sd0x-dev-flow-codex:review` until the configured primary subagent and independent Codex test perspective are clean.
-6. Run `$sd0x-dev-flow-codex:verify`. If verification causes fixes, repeat review first.
-7. Finish with changed behavior, evidence, and any genuine residual risk.
+Deliver one coherent capability from repository evidence through acceptance and fingerprint-bound gates.
+
+## Workflow
+
+1. Read repository guidance, the approved request or specification, the affected execution path, and nearby tests. Resolve material scope ambiguity before changing behavior.
+2. State the in-scope behavior, explicit acceptance criteria, dependencies, risks, and the smallest dependency-ordered implementation plan.
+3. Implement one logical slice at a time. Inspect each diff, preserve unrelated user changes, and follow existing architecture unless the accepted scope requires a documented change.
+4. Add or update behavior-focused tests for successful, failure, and meaningful boundary cases. Keep test design proportional to risk.
+5. Complete focused checks after each slice and the repository-defined deterministic checks after integration.
+6. Complete the sd0x review workflow until both configured independent perspectives are clean, then complete deterministic verification. Any fix creates a new fingerprint and requires review again.
+
+## Boundaries and result
+
+The compatibility source name `codex-implement` maps to this canonical owner and does not create another entrypoint. Report delivered behavior, acceptance evidence, changed files, executed checks, and genuine residual risks.
+
+<!-- sd0x-routing-contract:v1 unit=feature-dev/default -->
+```json
+{
+  "positive_triggers": [
+    "Build the approved notification preference feature end to end.",
+    "Extend the billing API with the specified refund behavior and tests.",
+    "Implement this non-trivial capability from the technical specification."
+  ],
+  "negative_boundaries": [
+    "Diagnose the failing refund test without implementing a correction.",
+    "Generate focused tests for the existing billing behavior only.",
+    "Review the notification preference diff without changing it."
+  ]
+}
+```

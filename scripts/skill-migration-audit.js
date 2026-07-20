@@ -89,7 +89,7 @@ const SUPPLEMENTAL_BUILTINS = new Set([
 const PINNED_SUPPLEMENTAL_MODULES = new Map([
   [
     'test/debug-probe-policy.test.js',
-    'd60136497da790bf8a851d12f2237acb39b0af36422303bda2b2df4fa98dc6e1'
+    '5f7020b49d420b498d0e589a26f32f7caa2d3c0a25e3fd3c4eb40094ed247be4'
   ],
   [
     'scripts/debug-probe/probe-spawn.js',

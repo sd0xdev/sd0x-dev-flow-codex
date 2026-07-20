@@ -2,7 +2,7 @@
 
 const { MAX_OUTPUT_BYTES } = require('./probe-policy.js');
 
-const SECRET_LABELS = '(?:api\\w*key|access\\w*token|auth\\w*token|token|password|secret|session\\w*|jwt|cookie|set-cookie|aws\\w*(?:key|secret))';
+const SECRET_LABELS = '(?:api\\w*key|\\b(?:x[ ._-]+)?api[ ._-]+key\\b|access\\w*token|auth\\w*token|token|password|secret|session\\w*|jwt|cookie|set-cookie|aws\\w*(?:key|secret))';
 const COMPLETE_PRIVATE_KEY = new RegExp(
   '-----BEGIN ((?:\\w| )*PRIVATE KEY(?:\\w| )*)-----[\\s\\S]*?-----END \\1-----',
   'gi'
