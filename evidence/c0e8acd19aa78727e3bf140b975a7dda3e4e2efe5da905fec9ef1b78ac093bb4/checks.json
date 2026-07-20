@@ -1,0 +1,1 @@
+{"redactor_version":"sd0x-redactor-v1","value":{"commands":[{"argv":["npx","--yes","--package=@openai/codex@0.144.4","--","node","scripts/skill-migration-audit.js","audit-source"],"exit_code":0},{"argv":["npm","run","check"],"exit_code":0}]}}
