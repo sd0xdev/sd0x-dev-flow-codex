@@ -3351,6 +3351,38 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
   }
 }
 
+function latestCompletionEvidence(cwd) {
+  const root = findRepoRoot(cwd);
+  const audit = auditEvidenceLedger(root);
+  const byUnit = new Map();
+  for (const record of evidenceRecordsAt(root, audit.oid)) {
+    if (!['promotion', 'pack-ready', 'retirement'].includes(record.kind)) continue;
+    if (!byUnit.has(record.promotion_unit_id)) {
+      byUnit.set(record.promotion_unit_id, []);
+    }
+    byUnit.get(record.promotion_unit_id).push(record);
+  }
+  if (evidenceRefOid(root) !== audit.oid) {
+    throw new Error('Evidence ref changed while completion owners were selected');
+  }
+  const latest = [...byUnit.values()].map((records) => {
+    // The ledger audit proves completion timestamps advance in commit order.
+    records.sort((left, right) =>
+      Date.parse(left.recorded_at) - Date.parse(right.recorded_at)
+    );
+    const record = records.at(-1);
+    const prior = records.at(-2) || null;
+    return {
+      ...record,
+      prior_completion_record_sha256: prior?.record_sha256 || null,
+      prior_completion_request_path: prior?.request_path || null
+    };
+  });
+  return latest.sort((left, right) =>
+    Buffer.from(left.promotion_unit_id).compare(Buffer.from(right.promotion_unit_id))
+  );
+}
+
 function pruneExternalReviewStarts(values, referenceTime = Date.now()) {
   if (!Array.isArray(values)) return [];
   const cutoff = referenceTime - EXTERNAL_REVIEW_START_RETENTION_MS;
@@ -5093,6 +5125,7 @@ module.exports = {
   hasSetupDeferral,
   hasSessionActivationFailure,
   hashPayloadTree,
+  latestCompletionEvidence,
   isCurrentPass,
   isSessionActive,
   markSetupDeferral,

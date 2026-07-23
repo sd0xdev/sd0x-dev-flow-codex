@@ -53,6 +53,7 @@ const {
   auditEvidenceLedger,
   finalizeRequestClosure,
   hashPayloadTree,
+  latestCompletionEvidence,
   markGate,
   prepareRequestClosure,
   recordPromotionEvidence,
@@ -332,7 +333,7 @@ test('current repository passes the source, distribution, and request-DAG audit'
   assert.equal(result.external_dependencies, 36);
   assert.equal(result.requests, requestDocumentCount(ROOT));
   assert.equal(result.alias_policy, 'mapping-only');
-  assert.equal(result.alias_codex_version, 'codex-cli 0.144.4');
+  assert.equal(result.alias_codex_version, 'codex-cli 0.145.0');
   assert.equal(result.readiness_units, 9);
 });
 
@@ -681,8 +682,8 @@ test('all research-pack SKILL bytes are trusted semantic authority', () => {
   }
 });
 
-test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t) => {
-  const values = fixtureRoot();
+test('Wave 1 readiness is an immutable subject checkpoint, not current delivery evidence', (t) => {
+  const values = fixtureRoot({ copyEvidenceRef: true });
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   const disposition = readJson(values.root, 'migration/source-disposition.json');
   assert.deepEqual(validateWave1Readiness(values.root, disposition), { units: 9 });
@@ -692,7 +693,7 @@ test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t)
   readiness.units['create-request/default'].payload_tree_sha256 = '0'.repeat(64);
   writeJson(values.root, readinessPath, readiness);
   assert.throws(() => validateWave1Readiness(values.root, disposition),
-    /readiness payload hash is stale/);
+    /readiness payload differs from reviewed subject/);
 
   writeJson(values.root, readinessPath,
     readJson(ROOT, 'migration/evidence/wave1-delivery-readiness.json'));
@@ -707,6 +708,273 @@ test('Wave 1 readiness evidence is subject-bound and rejects payload drift', (t)
     'post-subject payload drift'], { stdio: 'ignore' });
   assert.throws(() => validateWave1Readiness(values.root, disposition),
     /readiness payload differs from reviewed subject/);
+
+  writeJson(values.root, readinessPath,
+    readJson(ROOT, 'migration/evidence/wave1-delivery-readiness.json'));
+  assert.deepEqual(validateWave1Readiness(values.root, disposition), { units: 9 });
+  const active = readJson(values.root, 'migration/source-disposition.json');
+  for (const row of active.skills) {
+    if (row.promotion_unit_id === 'create-request/default') {
+      row.delivery_state = 'planned';
+    }
+  }
+  writeJson(values.root, 'migration/source-disposition.json', active);
+  assert.throws(() => auditSource({ root: values.root }),
+    /current readiness unit is outside candidate\/delivered evidence/);
+  for (const row of active.skills) {
+    if (row.promotion_unit_id === 'create-request/default') {
+      row.delivery_state = 'candidate';
+    }
+  }
+  writeJson(values.root, 'migration/source-disposition.json', active);
+  const currentOwnerPath = path.join(values.root,
+    'docs/features/skill-toolkit-migration/requests/2026-07-23-create-request-recovery-repromotion.md');
+  const currentOwner = fs.readFileSync(currentOwnerPath, 'utf8');
+  fs.writeFileSync(currentOwnerPath, currentOwner
+    .replace(/^> \*\*Depends On\*\*:.*\n/m, ''));
+  assert.throws(() => auditSource({ root: values.root }),
+    /replacement gate owner lacks latest durable lineage/);
+  fs.writeFileSync(currentOwnerPath, currentOwner);
+  for (const row of active.skills) {
+    if (row.promotion_unit_id === 'create-request/default') {
+      row.delivery_state = 'promoted';
+    }
+  }
+  writeJson(values.root, 'migration/source-disposition.json', active);
+  fs.writeFileSync(currentOwnerPath,
+    currentOwner.replace('> **Status**: Candidate Complete', '> **Status**: Completed'));
+  assert.throws(() => auditSource({ root: values.root }),
+    /Evidence completion mismatch for (?:disposition_row_sha256|request_path)/);
+  fs.writeFileSync(currentOwnerPath, currentOwner);
+  for (const row of active.skills) {
+    if (row.promotion_unit_id === 'create-request/default') {
+      row.delivery_state = 'candidate';
+    }
+  }
+  for (const row of active.skills) {
+    if (row.delivery_state === 'candidate' &&
+        row.promotion_unit_id !== 'create-request/default') {
+      row.delivery_state = 'planned';
+    }
+  }
+  writeJson(values.root, 'migration/source-disposition.json', active);
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /candidate payload evidence mismatch/);
+});
+
+test('durable owner revisions preserve prior requests and chain every successor', (t) => {
+  const values = fixtureRoot({ copyEvidenceRef: true });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const dispositionPath = 'migration/source-disposition.json';
+  const disposition = readJson(values.root, dispositionPath);
+  const row = disposition.skills.find((entry) =>
+    entry.promotion_unit_id === 'create-request/default'
+  );
+  const requestPath = row.promotion_request;
+  const requestAbsolute = path.join(values.root, requestPath);
+  const candidateRequest = fs.readFileSync(requestAbsolute, 'utf8');
+  const completedRequest = candidateRequest.replace(
+    '> **Status**: Candidate Complete', '> **Status**: Completed'
+  );
+  const priorPromotion = auditEvidenceLedger(values.root, {
+    promotion_unit_id: row.promotion_unit_id,
+    kind: 'promotion'
+  }).selected;
+  const priorClosure = auditEvidenceLedger(values.root, {
+    promotion_unit_id: row.promotion_unit_id,
+    kind: 'request-closure'
+  }).selected;
+  const priorRequestAbsolute = path.join(values.root, priorPromotion.request_path);
+  const priorRequestBytes = fs.readFileSync(priorRequestAbsolute);
+  const subjectState = recordPassingGates(values.root, 'owner-revision-subject');
+  const subject = {
+    kind: 'dirty',
+    fingerprint: subjectState.worktree.fingerprint,
+    head_sha: git(values.root, ['rev-parse', 'HEAD']).toString().trim()
+  };
+  const acCount = (completedRequest.match(/^- \[x\] /gm) || []).length;
+  const pending = prepareRequestClosure(values.root, {
+    promotion_unit_id: row.promotion_unit_id,
+    request_path: requestPath,
+    proposed_request: completedRequest,
+    subject,
+    evidence: {
+      subject_review: {
+        binding: subject,
+        provider: 'codex',
+        evidence: {
+          gate: subjectState.gates.review.evidence,
+          native_results: subjectState.review_agents.completed,
+          external_results: [],
+          subject_bindings: []
+        }
+      },
+      verify: {
+        binding: subject,
+        provider: 'codex',
+        evidence: subjectState.gates.verify.evidence
+      },
+      ac: {
+        verdicts: Array.from({ length: acCount }, (_, index) => ({
+          ac: index + 1,
+          status: 'Complete',
+          confidence: 'High',
+          evidence: ['AGENTS.md:1']
+        }))
+      },
+      checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
+    },
+    recorded_at: '2026-07-23T09:00:00.000Z',
+    supersedes_record_sha256: priorClosure.pending_record_sha256
+  });
+  applyRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256
+  });
+  recordPassingGates(values.root, 'owner-revision-docs');
+  const closure = finalizeRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256,
+    recorded_at: '2026-07-23T09:01:00.000Z',
+    supersedes_record_sha256: priorClosure.record_sha256
+  });
+  row.delivery_state = 'promoted';
+  writeJson(values.root, dispositionPath, disposition);
+  recordPassingGates(values.root, 'owner-revision-promotion');
+  const successorPromotion = recordPromotionEvidence(values.root, {
+    kind: 'promotion',
+    promotion_unit_id: row.promotion_unit_id,
+    request_closure_record_sha256: closure.record_sha256,
+    disposition_row: row,
+    payload_tree_sha256: hashPayloadTree(
+      values.root, 'plugin/sd0x-dev-flow-codex/skills/create-request'
+    ),
+    reason: null,
+    recorded_at: '2026-07-23T09:02:00.000Z',
+    supersedes_record_sha256: priorPromotion.record_sha256
+  });
+  assert.deepEqual(fs.readFileSync(priorRequestAbsolute), priorRequestBytes);
+  assert.equal(latestCompletionEvidence(values.root).find((record) =>
+    record.promotion_unit_id === row.promotion_unit_id
+  ).request_path, requestPath);
+  assert.equal(auditSource({ root: values.root }).ok, true);
+
+  const secondRequest = writeRequest(
+    values.root, '2026-07-23-fixture-create-request-second-revision.md'
+  );
+  const secondAbsolute = path.join(values.root, secondRequest);
+  const secondCandidate = fs.readFileSync(secondAbsolute, 'utf8')
+    .replace('> **Status**: Pending', '> **Status**: Candidate Complete')
+    .replace('> **Priority**: P1',
+      `> **Priority**: P1\n> **Depends On**: [Prior owner](./${path.basename(requestPath)})`)
+    .replace('- [ ] Fixture evidence passes.', '- [x] Fixture evidence passes.');
+  fs.writeFileSync(secondAbsolute, secondCandidate);
+  row.delivery_state = 'candidate';
+  row.promotion_request = secondRequest;
+  writeJson(values.root, dispositionPath, disposition);
+  assert.equal(auditSource({ root: values.root }).ok, true);
+  fs.writeFileSync(secondAbsolute, secondCandidate
+    .replace(/^> \*\*Depends On\*\*:.*\n/m, ''));
+  assert.throws(() => auditSource({ root: values.root }),
+    /replacement gate owner lacks latest durable lineage/);
+  fs.writeFileSync(secondAbsolute, secondCandidate);
+
+  const ask = disposition.skills.find((entry) =>
+    entry.promotion_unit_id === 'ask/default'
+  );
+  const priorAsk = {
+    delivery_state: ask.delivery_state,
+    promotion_request: ask.promotion_request
+  };
+  const askReplacement = writeRequest(
+    values.root, '2026-07-23-fixture-ask-owner-revision.md'
+  );
+  const askAbsolute = path.join(values.root, askReplacement);
+  fs.writeFileSync(askAbsolute, fs.readFileSync(askAbsolute, 'utf8')
+    .replace('> **Status**: Pending', '> **Status**: Candidate Complete')
+    .replace('- [ ] Fixture evidence passes.', '- [x] Fixture evidence passes.'));
+  ask.delivery_state = 'candidate';
+  ask.promotion_request = askReplacement;
+  writeJson(values.root, dispositionPath, disposition);
+  assert.throws(() => auditSource({ root: values.root }),
+    /ask\/default: replacement gate owner lacks latest durable lineage/);
+  ask.delivery_state = priorAsk.delivery_state;
+  ask.promotion_request = priorAsk.promotion_request;
+
+  const invalidSecondCandidate = secondCandidate
+    .replace(/^> \*\*Depends On\*\*:.*\n/m, '');
+  fs.writeFileSync(secondAbsolute, invalidSecondCandidate);
+  writeJson(values.root, dispositionPath, disposition);
+  const secondSubjectState = recordPassingGates(
+    values.root, 'second-owner-revision-subject'
+  );
+  const secondSubject = {
+    kind: 'dirty',
+    fingerprint: secondSubjectState.worktree.fingerprint,
+    head_sha: git(values.root, ['rev-parse', 'HEAD']).toString().trim()
+  };
+  const secondCompleted = invalidSecondCandidate.replace(
+    '> **Status**: Candidate Complete', '> **Status**: Completed'
+  );
+  const secondPending = prepareRequestClosure(values.root, {
+    promotion_unit_id: row.promotion_unit_id,
+    request_path: secondRequest,
+    proposed_request: secondCompleted,
+    subject: secondSubject,
+    evidence: {
+      subject_review: {
+        binding: secondSubject,
+        provider: 'codex',
+        evidence: {
+          gate: secondSubjectState.gates.review.evidence,
+          native_results: secondSubjectState.review_agents.completed,
+          external_results: [],
+          subject_bindings: []
+        }
+      },
+      verify: {
+        binding: secondSubject,
+        provider: 'codex',
+        evidence: secondSubjectState.gates.verify.evidence
+      },
+      ac: {
+        verdicts: [{
+          ac: 1,
+          status: 'Complete',
+          confidence: 'High',
+          evidence: ['AGENTS.md:1']
+        }]
+      },
+      checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
+    },
+    recorded_at: '2026-07-23T09:03:00.000Z',
+    supersedes_record_sha256: pending.record_sha256
+  });
+  applyRequestClosure(values.root, {
+    pending_record_sha256: secondPending.record_sha256
+  });
+  recordPassingGates(values.root, 'second-owner-revision-docs');
+  const secondClosure = finalizeRequestClosure(values.root, {
+    pending_record_sha256: secondPending.record_sha256,
+    recorded_at: '2026-07-23T09:04:00.000Z',
+    supersedes_record_sha256: closure.record_sha256
+  });
+  row.delivery_state = 'promoted';
+  writeJson(values.root, dispositionPath, disposition);
+  recordPassingGates(values.root, 'second-owner-revision-promotion');
+  recordPromotionEvidence(values.root, {
+    kind: 'promotion',
+    promotion_unit_id: row.promotion_unit_id,
+    request_closure_record_sha256: secondClosure.record_sha256,
+    disposition_row: row,
+    payload_tree_sha256: hashPayloadTree(
+      values.root, 'plugin/sd0x-dev-flow-codex/skills/create-request'
+    ),
+    reason: null,
+    recorded_at: '2026-07-23T09:05:00.000Z',
+    supersedes_record_sha256: successorPromotion.record_sha256
+  });
+  assert.deepEqual(fs.readFileSync(requestAbsolute), Buffer.from(completedRequest));
+  assert.throws(() => auditSource({ root: values.root }),
+    /replacement gate owner lacks latest durable lineage/);
 });
 
 test('Wave 1 readiness requires the exact reviewed Candidate Complete unit set', (t) => {
@@ -772,35 +1040,7 @@ test('Wave 1 readiness derives audit fingerprints from reviewed inputs', (t) => 
   );
   driftedArchitecture.rationale += ' reviewed-subject drift';
   writeJson(values.root, dispositionPath, disposition);
-  assert.throws(() => validateWave1Readiness(values.root, disposition),
-    /current audit inputs differ from reviewed subject/);
-  const requestPaths = [...new Set(Object.values(
-    readJson(values.root, readinessPath).units
-  ).map((unit) => unit.request_path))];
-  for (const requestPath of requestPaths) {
-    const request = fs.readFileSync(path.join(values.root, requestPath), 'utf8')
-      .replace('> **Status**: Completed', '> **Status**: Candidate Complete');
-    fs.writeFileSync(path.join(values.root, requestPath), request);
-  }
-  git(values.root, ['add', dispositionPath, ...requestPaths]);
-  git(values.root, ['-c', 'commit.gpgSign=false', 'commit', '-m',
-    'change reviewed disposition inputs'], { stdio: 'ignore' });
-  const changedSubject = readJson(values.root, readinessPath);
-  changedSubject.implementation_subject.head_sha = git(values.root, ['rev-parse', 'HEAD'])
-    .toString('utf8').trim();
-  changedSubject.implementation_subject.tree_sha =
-    git(values.root, ['rev-parse', 'HEAD^{tree}']).toString('utf8').trim();
-  const subject = changedSubject.implementation_subject;
-  changedSubject.review.subject_sha256 = crypto.createHash('sha256').update(JSON.stringify({
-    base_sha: subject.base_sha,
-    head_sha: subject.head_sha,
-    kind: subject.kind,
-    tree_sha: subject.tree_sha
-  }) + '\n').digest('hex');
-  writeJson(values.root, readinessPath, changedSubject);
-  assert.throws(() => validateWave1Readiness(
-    values.root, readJson(values.root, dispositionPath)
-  ), /readiness audit fingerprints differ from reviewed subject/);
+  assert.deepEqual(validateWave1Readiness(values.root, disposition), { units: 9 });
 });
 
 test('Wave 1 readiness independently binds canonical behavior-test bytes', (t) => {
@@ -837,7 +1077,7 @@ test('alias capability evidence locks every compatibility alias to mapping-only'
   const result = validateAliasCapability(ROOT, disposition);
   assert.deepEqual(result, {
     decision: 'mapping-only',
-    codex_version: 'codex-cli 0.144.4'
+    codex_version: 'codex-cli 0.145.0'
   });
   const aliases = disposition.skills.filter((row) => row.alias_candidate);
   assert.equal(aliases.length, disposition.compatibility_alias_candidates.length);
@@ -894,7 +1134,7 @@ test('alias probe deterministically reproduces normalized evidence', () => {
     'test/fixtures/alias-capability/plugin/skills/r4-alias-probe/SKILL.md');
   const properties = (names) => Object.fromEntries(names.map((name) => [name, {}]));
   const generated = buildDump({
-    codexVersion: 'codex-cli 0.144.4',
+    codexVersion: dump.codex_version,
     fixture: {
       manifestRelative: dump.fixture.manifest_path,
       manifestBytes: fs.readFileSync(manifestPath),
@@ -945,7 +1185,9 @@ test('alias probe orchestration checks fake Codex output and cleanup failures', 
     if (behavior.cliFailure && args[0] === behavior.cliFailure) {
       throw new Error('fixture CLI failure');
     }
-    if (args[0] === '--version') return 'codex-cli 0.144.4\n';
+    if (args[0] === '--version') {
+      return `${readJson(ROOT, 'migration/evidence/alias-registry-dump.json').codex_version}\n`;
+    }
     if (args[0] === 'app-server') {
       const output = args[args.indexOf('--out') + 1];
       const directory = path.join(output, 'v2');
@@ -1295,7 +1537,9 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   const pluginManifestPath = path.join(values.root,
     'plugin/sd0x-dev-flow-codex/.codex-plugin/plugin.json');
   const ownerRequestPath = path.join(values.root,
-    'docs/features/skill-toolkit-migration/requests/2026-07-14-alias-capability-codex-0-144-4-refresh.md');
+    'docs/features/skill-toolkit-migration/requests/2026-07-23-alias-capability-codex-0-145-0-refresh.md');
+  const historicalOwnerPath = path.join(values.root,
+    'docs/features/skill-toolkit-migration/requests/2026-07-23-alias-capability-codex-0-144-6-refresh.md');
   const dispositionPath = path.join(values.root, 'migration/source-disposition.json');
   const originals = new Map([
     [decisionPath, fs.readFileSync(decisionPath)],
@@ -1304,6 +1548,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     [fixtureSkillPath, fs.readFileSync(fixtureSkillPath)],
     [pluginManifestPath, fs.readFileSync(pluginManifestPath)],
     [ownerRequestPath, fs.readFileSync(ownerRequestPath)],
+    [historicalOwnerPath, fs.readFileSync(historicalOwnerPath)],
     [dispositionPath, fs.readFileSync(dispositionPath)]
   ]);
   const restore = () => {
@@ -1350,10 +1595,35 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   assert.throws(() => auditSource({ root: values.root }), /alias capability owner request is missing/);
   candidateRejects(/alias capability owner request is missing/);
   restore();
+  fs.appendFileSync(historicalOwnerPath, '\nhistorical owner drift\n');
+  assert.throws(() => auditSource({ root: values.root }),
+    /historical alias capability owner request hash mismatch/);
+  candidateRejects(/historical alias capability owner request hash mismatch/);
+  restore();
+  const truncatedOwnerHistory = readJson(
+    values.root, 'migration/alias-capability.json'
+  );
+  truncatedOwnerHistory.owner_history = truncatedOwnerHistory.owner_history.slice(-1);
+  writeJson(values.root, 'migration/alias-capability.json', truncatedOwnerHistory);
+  syncAliasOwnerRequest(values.root, truncatedOwnerHistory);
+  assert.throws(() => auditSource({ root: values.root }),
+    /owner history must match the complete canonical R4 owner chain/);
+  candidateRejects(/owner history must match the complete canonical R4 owner chain/);
+  restore();
+  const missingMiddleOwnerHistory = readJson(
+    values.root, 'migration/alias-capability.json'
+  );
+  missingMiddleOwnerHistory.owner_history.splice(1, 1);
+  writeJson(values.root, 'migration/alias-capability.json', missingMiddleOwnerHistory);
+  syncAliasOwnerRequest(values.root, missingMiddleOwnerHistory);
+  assert.throws(() => auditSource({ root: values.root }),
+    /owner history must match the complete canonical R4 owner chain/);
+  candidateRejects(/owner history must match the complete canonical R4 owner chain/);
+  restore();
   fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
-    .replace('"codex_version":"codex-cli 0.144.4"',
-      '"codex_version":"codex-cli 0.144.5"') +
-    '\nCodex version: `codex-cli 0.144.4`; Tested at: `2026-07-14T21:38:33+08:00`\n');
+    .replace('"codex_version":"codex-cli 0.145.0"',
+      '"codex_version":"codex-cli 0.145.1"') +
+    '\nCodex version: `codex-cli 0.145.0`; Tested at: `2026-07-23T17:08:50+08:00`\n');
   assert.throws(() => auditSource({ root: values.root }),
     /owner evidence does not match the decision artifact/);
   candidateRejects(/owner evidence does not match the decision artifact/);
@@ -1385,7 +1655,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   candidateRejects(/owner request must have complete acceptance criteria/);
   restore();
   const ownerMutationOptions = () => ({
-    codexVersion: 'codex-cli 0.144.4',
+    codexVersion: 'codex-cli 0.145.0',
     afterOwnerRequestRead({ ownerRequestPath: capturedPath }) {
       fs.writeFileSync(capturedPath, fs.readFileSync(capturedPath, 'utf8')
         .replace(/^<!-- sd0x-alias-capability-owner:v1 [^\r\n]+ -->\n?/m, ''));
@@ -1409,7 +1679,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   }), /owner request changed while validating capability/);
   restore();
   const splitDecisionOptions = () => ({
-    codexVersion: 'codex-cli 0.144.4',
+    codexVersion: 'codex-cli 0.145.0',
     afterDecisionRead() {
       const mutated = readJson(values.root, 'migration/alias-capability.json');
       mutated.reproduce_argv[0] = 'CODEX_HOME=~/.codex codex --version';
@@ -1447,7 +1717,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   };
   assert.throws(() => auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.144.4' },
+    aliasCapability: { codexVersion: 'codex-cli 0.145.0' },
     requestDag: lateOwnerMutationOptions()
   }), /request differs from its prior source snapshot/);
   restore();
@@ -1455,7 +1725,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.144.4' },
+    aliasCapability: { codexVersion: 'codex-cli 0.145.0' },
     requestDag: lateOwnerMutationOptions()
   }), /request differs from its prior source snapshot/);
   restore();
@@ -1481,13 +1751,13 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   syncAliasOwnerRequest(values.root, invalidMappingDecision);
   assert.throws(() => auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.145.0' }
   }), /mapping-only decision cannot claim a registry exclusion mechanism/);
   assert.throws(() => auditCandidate({
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.145.0' }
   }), /mapping-only decision cannot claim a registry exclusion mechanism/);
   restore();
 
@@ -1512,7 +1782,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   writeJson(values.root, 'migration/source-disposition.json', disposition);
   syncAliasOwnerRequest(values.root, decision);
   assert.throws(() => validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.144.4'
+    codexVersion: 'codex-cli 0.145.0'
   }), /manual-only registry evidence is missing or ambiguous/);
   dump.observations.repository_probe.neutral_catalog_has_alias = false;
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', dump);
@@ -1521,10 +1791,10 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   writeJson(values.root, 'migration/alias-capability.json', decision);
   syncAliasOwnerRequest(values.root, decision);
   assert.deepEqual(validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.144.4'
+    codexVersion: 'codex-cli 0.145.0'
   }), {
     decision: 'manual-only',
-    codex_version: 'codex-cli 0.144.4'
+    codex_version: 'codex-cli 0.145.0'
   });
   prepareRow(values.root, 'architecture', { capabilities: ['core'] });
   const manualCandidate = writeCandidate(values.root, {
@@ -1537,12 +1807,13 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: manualCandidate,
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.145.0' }
   }).ok, true);
-  assert.throws(() => auditSource({
+  assert.equal(auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
-  }), /readiness behavior test hash is stale/);
+    aliasCapability: { codexVersion: 'codex-cli 0.145.0' },
+    skipDeliveredEvidence: true
+  }).ok, true);
 
   const consistentDecision = structuredClone(decision);
   const consistentDump = structuredClone(dump);
@@ -1575,13 +1846,13 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     writeJson(values.root, 'migration/alias-capability.json', candidateDecision);
     syncAliasOwnerRequest(values.root, candidateDecision);
     assert.throws(() => validateAliasCapability(values.root, disposition, {
-      codexVersion: 'codex-cli 0.144.4'
+      codexVersion: 'codex-cli 0.145.0'
     }), pattern, name);
     assert.throws(() => auditCandidate({
       root: values.root,
       candidate: manualCandidate,
       target: 'architecture',
-      aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+      aliasCapability: { codexVersion: 'codex-cli 0.145.0' }
     }), pattern, `${name}-candidate`);
   }
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', consistentDump);
@@ -1606,7 +1877,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.144.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.145.0' }
   }), /stale for Codex version/);
 });
 
@@ -6549,7 +6820,18 @@ test('active candidate audit binds non-routing payload bytes to request evidence
 
   const baseline = auditActiveCandidates({ root: values.root });
   assert.equal(baseline.ok, true);
-  assert.equal(baseline.candidates, 8);
+  assert.equal(baseline.candidates, 9);
+  assert.deepEqual(baseline.units.map((unit) => unit.promotion_unit_id), [
+    'bug-fix/default',
+    'create-request/default',
+    'debug/default',
+    'feature-dev/default',
+    'post-dev-test/default',
+    'refactor/default',
+    'simplify/default',
+    'test-deep/default',
+    'test-gen/default'
+  ]);
 
   const debugRequest = path.join(values.root, 'docs', 'features',
     'skill-toolkit-migration', 'requests', '2026-07-15-wave3-debug-pack-ready.md');

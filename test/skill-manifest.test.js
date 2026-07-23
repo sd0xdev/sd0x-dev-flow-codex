@@ -174,7 +174,7 @@ test('tracked disposition closes package, routing, mode, alias, and rationale fi
   assert.deepEqual(disposition.compatibility_alias_candidates, ALIAS_CANDIDATES);
   assert.deepEqual(disposition.alias_policy_decision, {
     policy: 'mapping-only',
-    codex_version: 'codex-cli 0.144.4',
+    codex_version: 'codex-cli 0.145.0',
     evidence: 'migration/alias-capability.json',
     rationale: 'The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only.'
   });

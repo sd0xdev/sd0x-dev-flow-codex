@@ -26,7 +26,7 @@
   ],
   "alias_policy_decision": {
     "policy": "mapping-only",
-    "codex_version": "codex-cli 0.144.4",
+    "codex_version": "codex-cli 0.145.0",
     "evidence": "migration/alias-capability.json",
     "rationale": "The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only."
   },
@@ -578,7 +578,7 @@
       "source_name": "create-request",
       "disposition": "adapt",
       "target_package": "core",
-      "delivery_state": "promoted",
+      "delivery_state": "candidate",
       "target_skill": "create-request",
       "target_mode": null,
       "alias_candidate": false,
@@ -594,7 +594,7 @@
       "wave": 1,
       "routing_owner": "create-request",
       "promotion_unit_id": "create-request/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-create-request-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-23-create-request-recovery-repromotion.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },

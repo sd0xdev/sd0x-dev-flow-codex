@@ -27,7 +27,8 @@ const {
 const {
   auditEvidenceLedger,
   evidenceRefOid,
-  hashPayloadTree
+  hashPayloadTree,
+  latestCompletionEvidence
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   snapshot: snapshotWorktree
@@ -80,6 +81,20 @@ const SHELL_GIT_ENV_MUTATION_PATTERN = /\b[A-Z_][A-Z0-9_]*(?:\[[^\]\n]+\])?\s*(?
 const FRONTMATTER_FIELDS = new Set(['name', 'description']);
 const ALIAS_CAPABILITY_PATH = 'migration/alias-capability.json';
 const ALIAS_REGISTRY_DUMP_PATH = 'migration/evidence/alias-registry-dump.json';
+const ALIAS_CAPABILITY_CANONICAL_OWNER_HISTORY = Object.freeze([
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-07-10-skill-alias-capability-r4.md',
+    sha256: 'f5484fb1478539f307ae0d27b2d7cd936fbfb5f48338df28951c3e682f01930e'
+  }),
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-07-14-alias-capability-codex-0-144-4-refresh.md',
+    sha256: 'f4fa86534711a75dacfe02b8a330ab8ffa4ee05eef6f5bbabc024fafe0b56f7d'
+  }),
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-07-23-alias-capability-codex-0-144-6-refresh.md',
+    sha256: '30f3b7b9a7721cd405be6925846972521296166018f60f92cac0b873462e086b'
+  })
+]);
 const WAVE1_READINESS_PATH = 'migration/evidence/wave1-delivery-readiness.json';
 const SUPPLEMENTAL_BEHAVIOR_REGISTRY_PATH = 'scripts/supplemental-behavior-tests.json';
 const SUPPLEMENTAL_BUILTINS = new Set([
@@ -520,7 +535,7 @@ function validateWave1Readiness(root, disposition, options = {}) {
     ], `${promotionUnitId} Wave 1 readiness unit`);
     assert(/^[a-z0-9][a-z0-9-]*\/(?:default|deep)$/.test(promotionUnitId),
       `${promotionUnitId}: readiness promotion unit is invalid`);
-    const rows = disposition.skills.filter((row) =>
+    const rows = reviewedDisposition.skills.filter((row) =>
       row.promotion_unit_id === promotionUnitId
     );
     const deliveryStates = unit.target_package === 'core'
@@ -532,13 +547,19 @@ function validateWave1Readiness(root, disposition, options = {}) {
       row.target_package === unit.target_package &&
       row.promotion_request === unit.request_path),
     `${promotionUnitId}: readiness unit differs from Wave 1 disposition`);
+    const currentRows = disposition.skills.filter((row) =>
+      row.promotion_unit_id === promotionUnitId
+    );
+    assert(currentRows.length > 0 && currentRows.every((row) =>
+      row.wave === 1 && deliveryStates.has(row.delivery_state) &&
+      row.target_skill === unit.target_skill &&
+      row.target_package === unit.target_package),
+    `${promotionUnitId}: current readiness unit is outside candidate/delivered evidence`);
     const expectedPayloadPath = unit.target_package === 'core'
       ? `plugin/sd0x-dev-flow-codex/skills/${unit.target_skill}`
       : `migration/packs/${unit.target_package}/${unit.target_skill}`;
     assert(unit.payload_path === expectedPayloadPath,
     `${promotionUnitId}: readiness payload path is invalid`);
-    assert(hashPayloadTree(root, unit.payload_path) === unit.payload_tree_sha256,
-      `${promotionUnitId}: readiness payload hash is stale`);
     assert(hashPayloadTreeAtCommit(root, subject.head_sha, unit.payload_path) ===
       unit.payload_tree_sha256,
     `${promotionUnitId}: readiness payload differs from reviewed subject`);
@@ -553,20 +574,9 @@ function validateWave1Readiness(root, disposition, options = {}) {
     assert(unit.behavior_test_path ===
       `test/${unit.target_skill}-${targetMode}-routing.test.js`,
     `${promotionUnitId}: readiness behavior test path is invalid`);
-    const behavior = containedPath(root, unit.behavior_test_path, {
-      label: `${promotionUnitId} readiness behavior test`, type: 'file'
-    });
-    assert(sha256(fs.readFileSync(behavior)) === unit.behavior_test_sha256,
-      `${promotionUnitId}: readiness behavior test hash is stale`);
     assert(sha256(gitBlobAtPath(root, subject.head_sha, unit.behavior_test_path)) ===
       unit.behavior_test_sha256,
     `${promotionUnitId}: readiness behavior test differs from reviewed subject`);
-    const currentAudit = candidateAuditIdentitiesFromCurrent(
-      root, disposition, unit, promotionUnitId
-    );
-    assert(currentAudit.preflight === expectedAudit.preflight &&
-      currentAudit.final === expectedAudit.final,
-    `${promotionUnitId}: current audit inputs differ from reviewed subject`);
   }
   return { units: Object.keys(readiness.units).length };
 }
@@ -612,9 +622,10 @@ function validateAliasCapability(root, disposition, options = {}) {
     'schema_version', 'decision', 'codex_version', 'registry_mechanism', 'alias',
     'manual_invocation', 'auto_route_excluded', 'registry_dump_path',
     'registry_dump_hash', 'fixture_manifest_path', 'fixture_manifest_hash',
-    'plugin_fingerprint', 'owner_request_path', 'reproduce_argv', 'tested_at', 'rationale'
+    'plugin_fingerprint', 'owner_request_path', 'owner_history',
+    'reproduce_argv', 'tested_at', 'rationale'
   ], 'alias capability decision');
-  assert(decision.schema_version === 1, 'alias capability schema_version must be 1');
+  assert(decision.schema_version === 2, 'alias capability schema_version must be 2');
   assert(['mapping-only', 'manual-only'].includes(decision.decision),
     'alias capability decision must be mapping-only or manual-only');
   assert(/^codex-cli \d+\.\d+\.\d+(?:[-+][A-Za-z0-9.-]+)?$/.test(decision.codex_version),
@@ -633,6 +644,22 @@ function validateAliasCapability(root, disposition, options = {}) {
   assert(/^docs\/features\/skill-toolkit-migration\/requests\/\d{4}-\d{2}-\d{2}-alias-capability-[a-z0-9-]+\.md$/.test(
     decision.owner_request_path),
   'alias capability owner request path is invalid');
+  assert(Array.isArray(decision.owner_history) && decision.owner_history.length > 0,
+    'alias capability owner history is required');
+  assert(canonicalJson(decision.owner_history) ===
+    canonicalJson(ALIAS_CAPABILITY_CANONICAL_OWNER_HISTORY),
+  'alias capability owner history must match the complete canonical R4 owner chain');
+  const ownerHistoryPaths = new Set();
+  for (const entry of decision.owner_history) {
+    assertExactKeys(entry, ['path', 'sha256'], 'alias capability owner history entry');
+    assert(/^docs\/features\/skill-toolkit-migration\/requests\/\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$/.test(
+      entry.path) && entry.path !== decision.owner_request_path &&
+      !ownerHistoryPaths.has(entry.path),
+    'alias capability owner history path is invalid or duplicated');
+    assert(/^[0-9a-f]{64}$/.test(entry.sha256),
+      'alias capability owner history hash is invalid');
+    ownerHistoryPaths.add(entry.path);
+  }
   assert(Array.isArray(decision.reproduce_argv) && decision.reproduce_argv.length >= 3 &&
     decision.reproduce_argv.every((command) => typeof command === 'string' && command.length > 0),
   'alias capability reproduce_argv must contain reproducible commands');
@@ -753,6 +780,40 @@ function validateAliasCapability(root, disposition, options = {}) {
       `${decision.decision} alias evidence is stale for Codex version: ${runtimeVersion}`);
   }
 
+  const ownerHistorySnapshots = [];
+  let priorOwnerPath = null;
+  for (const entry of decision.owner_history) {
+    const historicalPath = containedPath(root, entry.path, {
+      label: 'historical alias capability owner request', type: 'file'
+    });
+    const historicalBytes = fs.readFileSync(historicalPath);
+    assert(sha256(historicalBytes) === entry.sha256,
+      `${entry.path}: historical alias capability owner request hash mismatch`);
+    const historicalMarkdown = historicalBytes.toString('utf8');
+    const historicalRecord = parseRequestContent(
+      historicalMarkdown, historicalPath, root
+    );
+    assert(['candidate complete', 'completed'].includes(
+      historicalRecord.status.toLowerCase()
+    ) && historicalRecord.parse_errors.length === 0 &&
+      historicalRecord.total > 0 &&
+      historicalRecord.checked === historicalRecord.total,
+    `${entry.path}: historical alias capability owner is not acceptance-ready`);
+    if (priorOwnerPath) {
+      const dependencies = metadataLinks(markdownField(
+        historicalMarkdown, 'Depends On'
+      )).map((link) => resolveRequestLink(root, entry.path, link));
+      assert(dependencies.includes(priorOwnerPath),
+        `${entry.path}: historical alias capability owner chain is broken`);
+    }
+    ownerHistorySnapshots.push({
+      relative: entry.path,
+      absolute: historicalPath,
+      bytes: historicalBytes
+    });
+    priorOwnerPath = entry.path;
+  }
+
   const ownerRequestPath = containedPath(root, decision.owner_request_path, {
     label: 'alias capability owner request', type: 'file'
   });
@@ -767,6 +828,10 @@ function validateAliasCapability(root, disposition, options = {}) {
   assert(ownerRecord.parse_errors.length === 0 && ownerRecord.total > 0 &&
     ownerRecord.checked === ownerRecord.total,
     'alias capability owner request must have complete acceptance criteria');
+  const ownerDependencies = metadataLinks(markdownField(ownerRequest, 'Depends On'))
+    .map((link) => resolveRequestLink(root, decision.owner_request_path, link));
+  assert(ownerDependencies.includes(priorOwnerPath),
+    'alias capability owner request does not extend the immutable owner history');
   const ownerEvidenceMatches = Array.from(ownerRequest.matchAll(
     /^<!-- sd0x-alias-capability-owner:v1 ([^\r\n]+) -->$/gm
   ));
@@ -790,6 +855,9 @@ function validateAliasCapability(root, disposition, options = {}) {
   if (options.snapshotBindings instanceof Map) {
     options.snapshotBindings.set(ALIAS_CAPABILITY_PATH, decisionRead.bytes);
     options.snapshotBindings.set(decision.owner_request_path, ownerRequestBytes);
+    for (const snapshot of ownerHistorySnapshots) {
+      options.snapshotBindings.set(snapshot.relative, snapshot.bytes);
+    }
   }
 
   if (decision.decision === 'mapping-only') {
@@ -818,6 +886,10 @@ function validateAliasCapability(root, disposition, options = {}) {
   });
   assert(fs.readFileSync(currentOwnerRequestPath).equals(ownerRequestBytes),
     'alias capability owner request changed while validating capability');
+  for (const snapshot of ownerHistorySnapshots) {
+    assert(fs.readFileSync(snapshot.absolute).equals(snapshot.bytes),
+      `${snapshot.relative}: historical alias capability owner changed while validating capability`);
+  }
   assert(fs.readFileSync(decisionRead.filePath).equals(decisionRead.bytes),
     'alias capability decision changed while validating capability');
   return { decision: decision.decision, codex_version: decision.codex_version };
@@ -1225,6 +1297,29 @@ function validateRequestDag(root, disposition, options = {}) {
         `${row.source_name}: delivered promotion owner must be Completed`);
     }
   }
+  if (options.durableOwnersByUnit instanceof Map) {
+    for (const [unit, completion] of options.durableOwnersByUnit) {
+      const currentOwner = ownerByUnit.get(unit);
+      if (!currentOwner) continue;
+      const deliveredSuccessor = currentOwner === completion.request_path;
+      const priorOwner = deliveredSuccessor
+        ? completion.prior_completion_request_path
+        : completion.request_path;
+      if (!priorOwner || currentOwner === priorOwner) continue;
+      const currentRows = disposition.skills.filter((row) =>
+        row.promotion_unit_id === unit
+      );
+      const provisional = currentRows.length > 0 &&
+        currentRows.every((row) => row.delivery_state === 'candidate');
+      const expectedStatus = provisional && !deliveredSuccessor
+        ? 'candidate complete'
+        : 'completed';
+      assert(records.get(currentOwner)?.status === expectedStatus &&
+          records.get(priorOwner)?.status === 'completed' &&
+          records.get(currentOwner)?.dependencies.includes(priorOwner),
+      `${unit}: replacement gate owner lacks latest durable lineage`);
+    }
+  }
   for (const record of records.values()) {
     for (const dependency of record.dependencies) {
       if (!unitByOwner.has(dependency)) continue;
@@ -1310,6 +1405,11 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     : validateWave1Readiness(root, disposition, {
       snapshotBindings: sourceSnapshots
     });
+  const durableOwnersByUnit = sourceEvidenceOid
+    ? new Map(latestCompletionEvidence(root).map((record) => [
+      record.promotion_unit_id, record
+    ]))
+    : new Map();
   const requestManifest = {};
   const aliasCapability = validateAliasCapability(root, disposition, {
     ...(options.aliasCapability || {}),
@@ -1319,7 +1419,8 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     ...(options.requestDag || {}),
     expectedSnapshots: sourceSnapshots,
     snapshotBindings: sourceSnapshots,
-    manifestBinding: requestManifest
+    manifestBinding: requestManifest,
+    durableOwnersByUnit
   });
   if (!context.candidateSandbox) {
     validateCandidateCompletePackEvidence(root, disposition, {
