@@ -5529,6 +5529,24 @@ test('deep research schema-v2 payload and normative specification stay synchroni
     .includes(evidenceSchema));
 });
 
+test('successful-apply closure recovery guidance stays synchronized', () => {
+  const documents = [
+    'docs/PROJECT-MIGRATION-GUIDE.md',
+    'docs/features/skill-toolkit-migration/2-tech-spec.md',
+    'plugin/sd0x-dev-flow-codex/skills/create-request/references/request-format.md'
+  ].map((relative) => fs.readFileSync(path.join(ROOT, relative), 'utf8'));
+  for (const document of documents) {
+    assert.match(document, /exact-success exception/);
+    assert.match(document, /operator-inspected hash/);
+    assert.match(document, /prior.{0,40}unknown.{0,40}replacement bytes/is);
+    assert.match(document, /restart/);
+    assert.match(document, /post-rename identity/);
+    assert.match(document, /without overwrite|no-overwrite/);
+    assert.match(document, /[Ff]inalized pending/);
+    assert.match(document, /terminal/);
+  }
+});
+
 test('trusted routing harness rejects candidate and pack symlink paths', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));

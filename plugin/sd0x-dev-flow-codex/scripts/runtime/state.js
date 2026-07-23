@@ -1836,6 +1836,15 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
     pending.promotion_unit_id)?.record_sha256 !== pending.record_sha256) {
     throw new Error('Closure recover pending record is superseded or stale');
   }
+  const assertPendingNotFinalized = () => {
+    const closure = latestEvidenceRecord(
+      root, 'request-closure', pending.promotion_unit_id
+    );
+    if (closure?.pending_record_sha256 === pending.record_sha256) {
+      throw new Error('Closure recover pending record is already finalized');
+    }
+  };
+  assertPendingNotFinalized();
   const paths = String(runEvidenceGit(root, [
     'ls-tree', '-r', '--name-only', pendingResult.oid
   ])).trim().split('\n').filter(Boolean);
@@ -1856,6 +1865,7 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
             pending.promotion_unit_id)?.record_sha256 !== pending.record_sha256) {
         throw new Error('Closure recover evidence changed before recovery');
       }
+      assertPendingNotFinalized();
     };
     assertCurrentPending();
     const requestAbsolute = path.join(root, ...pending.request_path.split('/'));
@@ -1917,7 +1927,8 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
           !/^[a-f0-9-]{36}$/.test(recovery.nonce || '') ||
           !Number.isInteger(recovery.original_mode) ||
           recovery.original_mode < 0 || recovery.original_mode > 0o7777 ||
-          !['prepared', 'displaced', 'installed'].includes(recovery.phase)) {
+          !['prepared', 'displaced', 'installed', 'rollback-installed']
+            .includes(recovery.phase)) {
         throw new Error('Closure recovery journal does not match the pending request');
       }
       assertSha256(recovery.expected_current_sha256,
@@ -1972,6 +1983,51 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
     const finishRecovery = (recoveryState, journal) => {
       const { recovery, priorTemporary, displacedBackup } = recoveryState;
       assertRecoveryDirectory();
+      const reinstallDisplacedWithoutOverwrite = (displaced, cause, detail = null) => {
+        let rollbackError = null;
+        try {
+          if (!fs.existsSync(requestAbsolute)) {
+            assertRecoveryDirectory();
+            fs.linkSync(displacedBackup, requestAbsolute);
+            fsyncDirectory(path.dirname(requestAbsolute));
+            if (typeof hooks.afterRecoveryRollbackLink === 'function') {
+              hooks.afterRecoveryRollbackLink({
+                request: requestAbsolute,
+                displaced: displacedBackup
+              });
+            }
+          }
+          const reinstalled = readRegular(
+            requestAbsolute, 'Closure recovery reinstalled request'
+          );
+          if (!reinstalled ||
+              !sameNodeIdentity(reinstalled.stat, displaced.stat)) {
+            throw new Error(
+              'Closure recovery live path was occupied during rollback'
+            );
+          }
+          recovery.phase = 'rollback-installed';
+          writeDurableRuntimeMarker(recoveryJournalPath, recovery);
+          fs.rmSync(priorTemporary, { force: true });
+          fsyncDirectory(recoveryDirectory);
+          assertRecoveryDirectory();
+          removeDurableRuntimeMarker(recoveryJournalPath);
+        } catch (rollback) {
+          rollbackError = rollback;
+        }
+        if (rollbackError) {
+          throw new Error(
+            `Closure recover ${cause} and remains journaled: ${
+              detail ? `${detail}; ` : ''
+            }${rollbackError.message}`
+          );
+        }
+        throw new Error(
+          `Closure recover ${cause}; current bytes were reinstalled without overwrite${
+            detail ? `: ${detail}` : ''
+          }`
+        );
+      };
       if (options.action === 'abandon') {
         const current = readRegular(requestAbsolute, 'Closure recovery request');
         if (!current || sha256(current.bytes) !== options.expected_current_sha256) {
@@ -2005,6 +2061,24 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
         'Closure recovery displaced backup');
       let current = readRegular(requestAbsolute, 'Closure recovery request');
       let prior = readRegular(priorTemporary, 'Closure recovery prior temporary');
+      if (displaced && current &&
+          sameNodeIdentity(displaced.stat, current.stat) &&
+          recovery.phase !== 'installed') {
+        if (sha256(displaced.bytes) !== sha256(current.bytes)) {
+          throw new Error(
+            'Closure recovery rollback bytes changed and remain journaled'
+          );
+        }
+        recovery.phase = 'rollback-installed';
+        writeDurableRuntimeMarker(recoveryJournalPath, recovery);
+        fs.rmSync(priorTemporary, { force: true });
+        fsyncDirectory(recoveryDirectory);
+        assertRecoveryDirectory();
+        removeDurableRuntimeMarker(recoveryJournalPath);
+        throw new Error(
+          'Closure recover rollback completed after restart; current bytes remain installed without overwrite'
+        );
+      }
       if (!displaced) {
         if (!current || !prior ||
             sha256(current.bytes) !== recovery.expected_current_sha256 ||
@@ -2017,9 +2091,31 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
         assertCurrentPending();
         assertPathNodeIdentities(requestParentIdentities, 'Closure recover parent');
         assertRecoveryDirectory();
+        if (typeof hooks.beforeRecoveryRename === 'function') {
+          hooks.beforeRecoveryRename({
+            request: requestAbsolute,
+            displaced: displacedBackup
+          });
+        }
         fs.renameSync(requestAbsolute, displacedBackup);
         fsyncDirectory(path.dirname(requestAbsolute));
         fsyncDirectory(recoveryDirectory);
+        displaced = readRegular(displacedBackup,
+          'Closure recovery displaced backup');
+        current = null;
+        if (!displaced ||
+            sha256(displaced.bytes) !== recovery.expected_current_sha256 ||
+            journal.dev !== displaced.stat.dev.toString() ||
+            journal.ino !== displaced.stat.ino.toString()) {
+          if (!displaced) {
+            throw new Error(
+              'Closure recovery displaced backup is unavailable and remains journaled'
+            );
+          }
+          reinstallDisplacedWithoutOverwrite(
+            displaced, 'displaced bytes or identity changed'
+          );
+        }
         if (typeof hooks.afterRecoveryRename === 'function') {
           hooks.afterRecoveryRename({
             request: requestAbsolute,
@@ -2035,13 +2131,15 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
             displaced: displacedBackup
           });
         }
-        displaced = readRegular(displacedBackup,
-          'Closure recovery displaced backup');
-        current = null;
       }
       if (sha256(displaced.bytes) !== recovery.expected_current_sha256 ||
           (journal && (journal.dev !== displaced.stat.dev.toString() ||
             journal.ino !== displaced.stat.ino.toString()))) {
+        if (recovery.phase === 'prepared') {
+          reinstallDisplacedWithoutOverwrite(
+            displaced, 'displaced bytes or identity changed'
+          );
+        }
         throw new Error('Closure recovery displaced bytes or identity changed');
       }
       if (!current) {
@@ -2059,35 +2157,8 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
             hooks.afterRecoveryLink({ request: requestAbsolute });
           }
         } catch (error) {
-          let rollbackError = null;
-          try {
-            if (!fs.existsSync(requestAbsolute)) {
-              assertRecoveryDirectory();
-              fs.linkSync(displacedBackup, requestAbsolute);
-              fsyncDirectory(path.dirname(requestAbsolute));
-            }
-            const reinstalled = readRegular(
-              requestAbsolute, 'Closure recovery reinstalled request'
-            );
-            if (!reinstalled ||
-                !sameNodeIdentity(reinstalled.stat, displaced.stat)) {
-              throw new Error(
-                'Closure recovery live path was occupied during rollback'
-              );
-            }
-            fs.rmSync(priorTemporary, { force: true });
-            assertRecoveryDirectory();
-            removeDurableRuntimeMarker(recoveryJournalPath);
-          } catch (rollback) {
-            rollbackError = rollback;
-          }
-          if (rollbackError) {
-            throw new Error(
-              `Closure recover prior install failed and remains journaled: ${error.message}; ${rollbackError.message}`
-            );
-          }
-          throw new Error(
-            `Closure recover could not install prior bytes; current bytes were reinstalled without overwrite: ${error.message}`
+          reinstallDisplacedWithoutOverwrite(
+            displaced, 'prior install failed', error.message
           );
         }
         assertRecoveryDirectory();
@@ -2146,7 +2217,7 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
     const identities = capturePathIdentities(root, request.relative, 'file');
     let descriptor;
     try {
-      const journal = readJournal();
+      let journal = readJournal(false);
       descriptor = fs.openSync(request.absolute,
         (options.action === 'restore-prior'
           ? fs.constants.O_RDWR : fs.constants.O_RDONLY) |
@@ -2155,12 +2226,35 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
       if (!sameNodeIdentity(identity, identities.at(-1).stat)) {
         throw new Error('Closure recover opened a different request identity');
       }
+      const currentHash = sha256(readAllSync(descriptor));
+      if (!journal) {
+        if (options.action !== 'restore-prior' ||
+            currentHash !== pending.proposed_request_content_sha256) {
+          throw new Error('Closure recover requires a regular apply journal');
+        }
+        if (currentHash !== options.expected_current_sha256) {
+          throw new Error('Closure recover request bytes differ from operator expectation');
+        }
+        assertCurrentPending();
+        assertPathIdentities(identities, 'Closure recover exact applied request');
+        writeDurableRuntimeMarker(journalPath, {
+          schema_version: 1,
+          pending_record_sha256: pending.record_sha256,
+          request_path: pending.request_path,
+          prior_sha256: pending.prior_request_content_sha256,
+          proposed_sha256: pending.proposed_request_content_sha256,
+          dev: identity.dev.toString(),
+          ino: identity.ino.toString(),
+          recorded_at: now()
+        });
+        journal = readJournal();
+      }
       if (options.action === 'restore-prior' &&
           (journal.dev !== identity.dev.toString() ||
            journal.ino !== identity.ino.toString())) {
         throw new Error('Closure recover journal does not match the request identity');
       }
-      if (sha256(readAllSync(descriptor)) !== options.expected_current_sha256) {
+      if (currentHash !== options.expected_current_sha256) {
         throw new Error('Closure recover request bytes differ from operator expectation');
       }
       if (typeof hooks.beforeMutation === 'function') {

@@ -152,10 +152,22 @@ Resolve the runtime CLI relative to the installed skill as
    `{pending_record_sha256,action:"restore-prior",expected_current_sha256}` to
    restore the exact persisted prior bytes before replay, or `action:"abandon"`
    with the same operator-inspected current hash to remove runtime recovery ownership
-   without changing the request. Never infer either action. Restore requires the
-   journaled inode; it atomically displaces the current file into the returned
+   without changing the request. Never infer either action. Restore normally requires
+   the journaled inode. After an exact successful apply has removed that journal, an
+   explicit `restore-prior` exact-success exception may recreate a runtime-owned
+   journal only when the current bytes and operator-inspected hash both equal the
+   pending proposal; prior, unknown, or replacement bytes still fail closed. The
+   synthesized journal and any prepared recovery journal are restart-safe. Restore
+   atomically displaces the current
+   file into the returned
    `.sd0x/closure-recovery/` backup before installing prior bytes, so a last-moment
-   edit is retained. Abandon also supports an editor's atomic-save replacement inode.
+   edit is retained; if post-rename identity validation fails, those displaced bytes
+   are reinstalled at the live path without overwrite and remain operator-recoverable.
+   A crash after that rollback link is recognized on restart and finishes metadata
+   cleanup without changing the live bytes. A finalized pending is terminal for
+   recovery, including pre-existing journals; create a superseding closure revision
+   instead of rolling durable completion or promotion evidence backward.
+   Abandon also supports an editor's atomic-save replacement inode.
    Complete the ordinary two-perspective docs review on that new fingerprint. The
    runtime closure finalize operation then accepts only
    `pending_record_sha256`, `recorded_at`, and

@@ -944,6 +944,183 @@ test('closure apply preserves unowned edits and restores every failed write stag
   ))), true);
 });
 
+test('successful closure apply can be restored after docs review rejects its bytes', (t) => {
+  const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
+  let recordedSecond = 55;
+  const applied = () => {
+    const root = repository();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const request = path.join(root, requestPath);
+    const priorBytes = fs.readFileSync(request);
+    const pending = prepareRequestClosure(root, {
+      promotion_unit_id: 'fixture/default',
+      request_path: requestPath,
+      proposed_request: completedRequestBytes(root),
+      subject: dirtySubject(root),
+      evidence: passingClosureEvidence(root),
+      recorded_at: `2026-07-12T01:03:${recordedSecond++}.000Z`,
+      supersedes_record_sha256: null
+    });
+    applyRequestClosure(root, {
+      pending_record_sha256: pending.record_sha256
+    });
+    return {
+      root,
+      request,
+      priorBytes,
+      pending,
+      proposedBytes: fs.readFileSync(request),
+      applyJournal: resolveRuntimeMetadataPath(root, path.join(
+        'closure-apply-journals', `${pending.record_sha256}.json`
+      )),
+      recoveryJournal: path.join(root, '.sd0x', 'closure-recovery',
+        `${pending.record_sha256}.json`)
+    };
+  };
+
+  const authorization = applied();
+  assert.equal(fs.existsSync(authorization.applyJournal), false);
+  assert.throws(() => recoverRequestClosure(authorization.root, {
+    pending_record_sha256: authorization.pending.record_sha256,
+    action: 'abandon',
+    expected_current_sha256: sha256(authorization.proposedBytes)
+  }), /requires a regular apply journal/);
+  assert.equal(fs.existsSync(authorization.applyJournal), false);
+  assert.throws(() => recoverRequestClosure(authorization.root, {
+    pending_record_sha256: authorization.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: '0'.repeat(64)
+  }), /differ from operator expectation/);
+  assert.equal(fs.existsSync(authorization.applyJournal), false);
+  const unknownBytes = Buffer.from('atomic replacement after successful apply\n');
+  fs.writeFileSync(authorization.request, unknownBytes);
+  assert.throws(() => recoverRequestClosure(authorization.root, {
+    pending_record_sha256: authorization.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: sha256(unknownBytes)
+  }), /requires a regular apply journal/);
+  assert.deepEqual(fs.readFileSync(authorization.request), unknownBytes);
+  assert.equal(fs.existsSync(authorization.applyJournal), false);
+
+  const restart = applied();
+  assert.throws(() => recoverRequestClosure(restart.root, {
+    pending_record_sha256: restart.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: sha256(restart.proposedBytes)
+  }, {
+    afterRecoveryPrepared() {
+      throw new Error('restart after synthesized recovery journal');
+    }
+  }), /restart after synthesized recovery journal/);
+  assert.equal(fs.existsSync(restart.applyJournal), true);
+  assert.equal(fs.existsSync(restart.recoveryJournal), true);
+  assert.deepEqual(fs.readFileSync(restart.request), restart.proposedBytes);
+  const restored = recoverRequestClosure(restart.root, {
+    pending_record_sha256: restart.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: sha256(restart.proposedBytes)
+  });
+  assert.deepEqual(fs.readFileSync(restart.request), restart.priorBytes);
+  assert.deepEqual(fs.readFileSync(path.join(restart.root,
+    restored.displaced_backup_path)), restart.proposedBytes);
+  assert.equal(fs.existsSync(restart.applyJournal), false);
+  assert.equal(fs.existsSync(restart.recoveryJournal), false);
+
+  const race = applied();
+  const replacementBytes = Buffer.from('atomic save before recovery rename\n');
+  assert.throws(() => recoverRequestClosure(race.root, {
+    pending_record_sha256: race.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: sha256(race.proposedBytes)
+  }, {
+    beforeRecoveryRename({ request }) {
+      const replacement = `${request}.replacement`;
+      fs.writeFileSync(replacement, replacementBytes);
+      fs.renameSync(replacement, request);
+    }
+  }), /displaced bytes or identity changed; current bytes were reinstalled without overwrite/);
+  assert.deepEqual(fs.readFileSync(race.request), replacementBytes);
+  assert.equal(fs.existsSync(race.applyJournal), true);
+  assert.equal(fs.existsSync(race.recoveryJournal), false);
+  const displaced = fs.readdirSync(path.join(
+    race.root, '.sd0x', 'closure-recovery'
+  )).filter((name) => name.endsWith('.displaced'));
+  assert.equal(displaced.length, 1);
+  assert.deepEqual(fs.readFileSync(path.join(
+    race.root, '.sd0x', 'closure-recovery', displaced[0]
+  )), replacementBytes);
+  const abandoned = recoverRequestClosure(race.root, {
+    pending_record_sha256: race.pending.record_sha256,
+    action: 'abandon',
+    expected_current_sha256: sha256(replacementBytes)
+  });
+  assert.equal(abandoned.displaced_backup_path, null);
+  assert.deepEqual(fs.readFileSync(race.request), replacementBytes);
+  assert.equal(fs.existsSync(race.applyJournal), false);
+});
+
+test('closure recovery rejects finalized and promoted pending records', (t) => {
+  const root = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
+  const request = path.join(root, requestPath);
+  const subject = dirtySubject(root);
+  const pending = prepareRequestClosure(root, {
+    promotion_unit_id: 'fixture/default',
+    request_path: requestPath,
+    proposed_request: completedRequestBytes(root),
+    subject,
+    evidence: passingClosureEvidence(root, subject),
+    recorded_at: '2026-07-12T01:03:59.000Z',
+    supersedes_record_sha256: null
+  });
+  applyRequestClosure(root, {
+    pending_record_sha256: pending.record_sha256
+  });
+  const completedBytes = fs.readFileSync(request);
+  recordCleanReview(root);
+  const closure = finalizeRequestClosure(root, {
+    pending_record_sha256: pending.record_sha256,
+    recorded_at: '2026-07-12T01:04:00.000Z',
+    supersedes_record_sha256: null
+  });
+  const applyJournal = resolveRuntimeMetadataPath(root, path.join(
+    'closure-apply-journals', `${pending.record_sha256}.json`
+  ));
+  const recoveryJournal = path.join(root, '.sd0x', 'closure-recovery',
+    `${pending.record_sha256}.json`);
+  const assertRejectedWithoutMutation = () => {
+    const evidenceOid = evidenceGit(root, ['rev-parse', EVIDENCE_REF]);
+    assert.throws(() => recoverRequestClosure(root, {
+      pending_record_sha256: pending.record_sha256,
+      action: 'restore-prior',
+      expected_current_sha256: sha256(completedBytes)
+    }), /already finalized/);
+    assert.deepEqual(fs.readFileSync(request), completedBytes);
+    assert.equal(fs.existsSync(applyJournal), false);
+    assert.equal(fs.existsSync(recoveryJournal), false);
+    assert.equal(evidenceGit(root, ['rev-parse', EVIDENCE_REF]), evidenceOid);
+  };
+  assertRejectedWithoutMutation();
+
+  let state = recordCleanReview(root);
+  state = recordVerification(root, 'pass', {
+    runner: 'sd0x-deterministic-v1',
+    commands: [{ command: 'node --test', exit_code: 0 }]
+  }, state.worktree.fingerprint, 'codex');
+  recordPromotionEvidence(root, {
+    kind: 'promotion',
+    promotion_unit_id: 'fixture/default',
+    request_closure_record_sha256: closure.record_sha256,
+    disposition_row: fixtureDisposition(),
+    payload_tree_sha256: payloadTreeSha(root),
+    reason: null,
+    recorded_at: '2026-07-12T01:04:01.000Z',
+    supersedes_record_sha256: null
+  });
+  assertRejectedWithoutMutation();
+});
+
 test('closure recovery resumes crash cuts and rolls back a failed prior install', (t) => {
   const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
   let recordedMinute = 4;
@@ -1092,6 +1269,52 @@ test('closure recovery resumes crash cuts and rolls back a failed prior install'
   assert.equal(fs.readdirSync(path.join(
     failedLink.root, '.sd0x', 'closure-recovery'
   )).filter((name) => name.endsWith('.displaced')).length, 2);
+
+  const rollbackCrash = interrupted();
+  assert.throws(() => recoverRequestClosure(rollbackCrash.root, {
+    pending_record_sha256: rollbackCrash.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: sha256(rollbackCrash.observedBytes)
+  }, {
+    linkPrior() { throw new Error('injected rollback crash setup'); },
+    afterRecoveryRollbackLink() {
+      throw new Error('crash after rollback link');
+    }
+  }), /crash after rollback link/);
+  const rollbackMarker = JSON.parse(fs.readFileSync(
+    rollbackCrash.recoveryJournal, 'utf8'
+  ));
+  const rollbackBackup = path.join(
+    rollbackCrash.root, '.sd0x', 'closure-recovery',
+    `${rollbackCrash.pending.record_sha256}.${rollbackMarker.nonce}.displaced`
+  );
+  assert.deepEqual(fs.readFileSync(rollbackCrash.request),
+    rollbackCrash.observedBytes);
+  assert.deepEqual(fs.readFileSync(rollbackBackup),
+    rollbackCrash.observedBytes);
+  assert.equal(fs.statSync(rollbackCrash.request, { bigint: true }).ino,
+    fs.statSync(rollbackBackup, { bigint: true }).ino);
+  assert.throws(() => recoverRequestClosure(rollbackCrash.root, {
+    pending_record_sha256: rollbackCrash.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: sha256(rollbackCrash.observedBytes)
+  }), /rollback completed after restart/);
+  assert.deepEqual(fs.readFileSync(rollbackCrash.request),
+    rollbackCrash.observedBytes);
+  assert.deepEqual(fs.readFileSync(rollbackBackup),
+    rollbackCrash.observedBytes);
+  assert.equal(fs.existsSync(rollbackCrash.applyJournal), true);
+  assert.equal(fs.existsSync(rollbackCrash.recoveryJournal), false);
+  const resumedRollback = recoverRequestClosure(rollbackCrash.root, {
+    pending_record_sha256: rollbackCrash.pending.record_sha256,
+    action: 'restore-prior',
+    expected_current_sha256: sha256(rollbackCrash.observedBytes)
+  });
+  assert.deepEqual(fs.readFileSync(rollbackCrash.request),
+    rollbackCrash.priorBytes);
+  assert.deepEqual(fs.readFileSync(path.join(
+    rollbackCrash.root, resumedRollback.displaced_backup_path
+  )), rollbackCrash.observedBytes);
 
   const collision = interrupted();
   const editorBytes = Buffer.from('editor-created live bytes during prior link\n');
