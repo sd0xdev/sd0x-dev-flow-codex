@@ -136,6 +136,81 @@ function childTestEnvironment() {
   return env;
 }
 
+test('migration fixtures reject command-scope Git configuration overrides', () => {
+  const script = [
+    "const fs = require('node:fs');",
+    "const path = require('node:path');",
+    "const { commit, git } = require('./test/helpers/git');",
+    "const { fixtureRoot } = require('./test/helpers/migration-fixture');",
+    'const values = fixtureRoot();',
+    'try {',
+    "  fs.writeFileSync(path.join(values.root, 'fixture-commit.txt'), 'fixture\\n');",
+    "  git(values.root, ['add', 'fixture-commit.txt']);",
+    "  commit(values.root, 'fixture identity');",
+    '  process.stdout.write(JSON.stringify({',
+    "    email: git(values.root, ['config', 'user.email'], { encoding: 'utf8' }).trim(),",
+    "    name: git(values.root, ['config', 'user.name'], { encoding: 'utf8' }).trim(),",
+    "    hooksPath: git(values.root, ['config', 'core.hooksPath'], { encoding: 'utf8' }).trim(),",
+    "    localEmail: git(values.root, ['config', '--local', 'user.email'],",
+    "      { encoding: 'utf8' }).trim(),",
+    "    localHooksPath: git(values.root, ['config', '--local', 'core.hooksPath'],",
+    "      { encoding: 'utf8' }).trim(),",
+    "    author: git(values.root, ['show', '-s', '--format=%an <%ae>', 'HEAD'],",
+    "      { encoding: 'utf8' }).trim(),",
+    "    committer: git(values.root, ['show', '-s', '--format=%cn <%ce>', 'HEAD'],",
+    "      { encoding: 'utf8' }).trim()",
+    '  }));',
+    '} finally {',
+    '  fs.rmSync(values.workspace, { recursive: true, force: true });',
+    '}'
+  ].join('\n');
+  const externalWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-git-config-'));
+  const externalConfig = path.join(externalWorkspace, 'ambient.gitconfig');
+  const externalBytes = '[user]\n\temail = external@example.com\n';
+  fs.writeFileSync(externalConfig, externalBytes);
+  try {
+    for (const hostile of [
+      {
+        GIT_CONFIG_COUNT: '3',
+        GIT_CONFIG_KEY_0: 'user.email',
+        GIT_CONFIG_VALUE_0: 'hostile@example.com',
+        GIT_CONFIG_KEY_1: 'user.name',
+        GIT_CONFIG_VALUE_1: 'Hostile',
+        GIT_CONFIG_KEY_2: 'core.hooksPath',
+        GIT_CONFIG_VALUE_2: '/tmp/hostile-hooks'
+      },
+      {
+        GIT_CONFIG_PARAMETERS:
+          "'user.email=parameters@example.com' 'user.name=Parameters' " +
+          "'core.hooksPath=/tmp/parameters-hooks'",
+        GIT_AUTHOR_NAME: 'Ambient Author',
+        GIT_AUTHOR_EMAIL: 'ambient-author@example.com',
+        GIT_COMMITTER_NAME: 'Ambient Committer',
+        GIT_COMMITTER_EMAIL: 'ambient-committer@example.com'
+      },
+      { GIT_CONFIG: externalConfig }
+    ]) {
+      const result = spawnSync(process.execPath, ['-e', script], {
+        cwd: ROOT,
+        encoding: 'utf8',
+        env: { ...process.env, ...hostile }
+      });
+      assert.equal(result.status, 0, result.stderr || result.stdout);
+      const actual = JSON.parse(result.stdout);
+      assert.equal(actual.email, 'test@example.com');
+      assert.equal(actual.name, 'Test');
+      assert.match(actual.hooksPath, /\.git\/sd0x-test-hooks$/);
+      assert.equal(actual.localEmail, 'test@example.com');
+      assert.match(actual.localHooksPath, /\.git\/sd0x-test-hooks$/);
+      assert.equal(actual.author, 'Test <test@example.com>');
+      assert.equal(actual.committer, 'Test <test@example.com>');
+    }
+    assert.equal(fs.readFileSync(externalConfig, 'utf8'), externalBytes);
+  } finally {
+    fs.rmSync(externalWorkspace, { recursive: true, force: true });
+  }
+});
+
 function withAuthorizationBlock(skill, extra = '') {
   return skill.replace(/^(---\n[\s\S]*?\n---\n)/,
     `$1\n${AUTHORIZATION_BLOCK}\n${extra}`);

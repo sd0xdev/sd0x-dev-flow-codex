@@ -8,9 +8,14 @@ const { execFileSync } = require('node:child_process');
 function isolateGitEnvironment() {
   process.env.GIT_CONFIG_GLOBAL = os.devNull;
   process.env.GIT_CONFIG_NOSYSTEM = '1';
+  delete process.env.GIT_CONFIG;
   delete process.env.GIT_CONFIG_COUNT;
+  delete process.env.GIT_CONFIG_PARAMETERS;
   for (const key of Object.keys(process.env)) {
-    if (/^GIT_CONFIG_(?:KEY|VALUE)_\d+$/.test(key)) delete process.env[key];
+    if (/^GIT_CONFIG_(?:KEY|VALUE)_\d+$/.test(key) ||
+        /^GIT_(?:AUTHOR|COMMITTER)_(?:NAME|EMAIL|DATE)$/.test(key)) {
+      delete process.env[key];
+    }
   }
 }
 
@@ -23,9 +28,8 @@ function git(root, args, options = {}) {
   });
 }
 
-function initRepository(root) {
+function configureRepository(root) {
   isolateGitEnvironment();
-  git(root, ['init', '-b', 'main'], { stdio: 'ignore' });
   git(root, ['config', 'user.email', 'test@example.com']);
   git(root, ['config', 'user.name', 'Test']);
   git(root, ['config', 'commit.gpgSign', 'false']);
@@ -41,6 +45,12 @@ function initRepository(root) {
   return root;
 }
 
+function initRepository(root) {
+  isolateGitEnvironment();
+  git(root, ['init', '-b', 'main'], { stdio: 'ignore' });
+  return configureRepository(root);
+}
+
 function commit(root, message) {
   git(root, ['-c', 'commit.gpgSign=false', 'commit', '-m', message], {
     stdio: 'ignore'
@@ -49,6 +59,7 @@ function commit(root, message) {
 
 module.exports = {
   commit,
+  configureRepository,
   git,
   initRepository,
   isolateGitEnvironment

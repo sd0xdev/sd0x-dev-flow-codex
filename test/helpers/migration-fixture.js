@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { configureRepository, isolateGitEnvironment } = require('./git');
 
 const ROOT = path.resolve(__dirname, '../..');
 
@@ -26,9 +27,11 @@ function writeJson(root, relative, value) {
 function fixtureRoot(options = {}) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-migration-audit-'));
   const root = path.join(workspace, 'repo');
+  isolateGitEnvironment();
   execFileSync('git', ['clone', '--no-local', '--quiet', ROOT, root], {
-    env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' }
+    env: process.env
   });
+  configureRepository(root);
   if (options.copyEvidenceRef) {
     const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
     execFileSync('git', ['fetch', '--quiet', ROOT, `${evidenceRef}:${evidenceRef}`], {
