@@ -15,6 +15,7 @@ Add behavior-focused tests for an identified coverage gap using the repository's
 4. Add tests in the repository's established location and style. Reuse safe helpers and isolate external state.
 5. Start with the new tests directly, then continue with the nearest affected suite. Record the exact commands and exit statuses.
 6. If the implementation itself is incorrect, stop and report the discrepancy instead of weakening expectations to fit current output.
+7. Complete the repository-required review workflow, then deterministic verification, before claiming completion. Any fix after review creates a new fingerprint and requires review again.
 
 ## Result
 

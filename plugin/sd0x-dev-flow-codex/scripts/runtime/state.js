@@ -14,6 +14,9 @@ const {
   snapshot,
   snapshotProjection
 } = require('./worktree');
+const {
+  canonicalRequestStatus
+} = require('./request-metadata');
 
 const SCHEMA_VERSION = 8;
 const LOCK_WAIT_MS = 5_000;
@@ -599,7 +602,7 @@ function requestDefinition(markdown) {
 function completedRequest(markdown) {
   const acceptance = /^## Acceptance Criteria\s*$\n([\s\S]*)/m.exec(String(markdown))?.[1]
     ?.split(/^##\s/m, 1)[0] || '';
-  return /^>\s*\*\*Status\*\*:\s*Completed\s*$/m.test(String(markdown)) &&
+  return canonicalRequestStatus(markdown)?.toLowerCase() === 'completed' &&
     requestDefinition(markdown).criteria.every((criterion) => criterion.length > 0) &&
     !/^\s*-\s*\[\s\]/m.test(acceptance);
 }
@@ -3351,6 +3354,61 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
   }
 }
 
+function auditRequestClosures(cwd, expectations, hooks = {}) {
+  const root = findRepoRoot(cwd);
+  if (!Array.isArray(expectations) || expectations.length === 0) {
+    throw new Error('Request closure audit requires at least one expectation');
+  }
+  const prior = activeEvidenceAuditContext;
+  activeEvidenceAuditContext = {
+    root: path.resolve(root),
+    git: new Map(),
+    evidenceFiles: new Map()
+  };
+  try {
+    const audit = auditEvidenceLedgerTransaction(root, {}, hooks);
+    const latestRevision = new Map();
+    for (const record of evidenceRecordsAt(root, audit.oid)) {
+      const key = `${record.kind}\0${record.promotion_unit_id}`;
+      const current = latestRevision.get(key);
+      if (!current || Date.parse(record.recorded_at) > Date.parse(current.recorded_at)) {
+        latestRevision.set(key, record);
+      }
+    }
+    const selected = expectations.map((expected) => {
+      if (!expected || expected.kind !== 'request-closure' ||
+          typeof expected.promotion_unit_id !== 'string') {
+        throw new Error('Batch request closure expectations require kind=request-closure and promotion_unit_id');
+      }
+      const closure = latestRevision.get(
+        `request-closure\0${expected.promotion_unit_id}`
+      ) || null;
+      if (!closure) {
+        throw new Error(`Evidence has no request closure for ${expected.promotion_unit_id}`);
+      }
+      const pending = latestRevision.get(
+        `request-closure-pending\0${expected.promotion_unit_id}`
+      );
+      if (closure.pending_record_sha256 !== pending?.record_sha256) {
+        throw new Error('Selected request closure is superseded');
+      }
+      for (const [field, value] of Object.entries(expected)) {
+        if (field === 'promotion_unit_id') continue;
+        if (closure[field] !== value) {
+          throw new Error(`Evidence completion mismatch for ${field}`);
+        }
+      }
+      return closure;
+    });
+    if (evidenceRefOid(root) !== audit.oid) {
+      throw new Error('Evidence ref changed while request closures were selected');
+    }
+    return { ...audit, selected };
+  } finally {
+    activeEvidenceAuditContext = prior;
+  }
+}
+
 function latestCompletionEvidence(cwd) {
   const root = findRepoRoot(cwd);
   const audit = auditEvidenceLedger(root);
@@ -5109,6 +5167,7 @@ module.exports = {
   activationFailurePath,
   attestCommitClosureReview,
   auditEvidenceLedger,
+  auditRequestClosures,
   appendEvidenceRevision,
   applyRequestClosure,
   applySnapshot,

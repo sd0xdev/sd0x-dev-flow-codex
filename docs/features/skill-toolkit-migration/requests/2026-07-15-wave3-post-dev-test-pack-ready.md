@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -50,7 +50,7 @@ The source `post-dev-test` workflow needs a bounded development-pack owner for s
 | Analysis | Complete | Pinned test workflow and formal-verify boundary inspected. |
 | Development | Complete | Exact accepted bytes moved from `migration/candidates/` to `migration/packs/development-pack/post-dev-test/`; payload `1b5bc220a0c9efecbd48d8087096bb19d8ac533b3ae2e2cdb80a9b8379b80635`. |
 | Testing | Complete | Preflight `e2413dce13307c61a6788b7a0dce07735ee595a2242640f6d98586f3edfa83e1`; routing 6/6 passed. Final pack audit `eb49cea3b9e0136a15692877da57ce8fa42e66646fd6f204df76725e5f9a2bf6` passed. |
-| Acceptance | Candidate Complete | Final pack audit and subject gates passed; runtime-owned R3 closure and pack-ready evidence remain pending. |
+| Acceptance | Complete | Independent AC verification, subject-bound review, deterministic verification, and final pack audit passed. The runtime-owned R3 closure and pack-ready evidence bind this exact Completed request. |
 
 ## References
 

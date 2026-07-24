@@ -594,6 +594,55 @@ test('request closure prepare and finalize bind proposal, projection, and two re
     recorded_at: '2026-07-12T01:00:00.000Z',
     supersedes_record_sha256: null
   };
+  const completedMarkdown = completedRequestBytes(root).toString('utf8');
+  for (const duplicateStatus of [
+    `${completedMarkdown}\n> **Status**: Candidate Complete\n`,
+    `${completedMarkdown.replace(
+      '> **Status**: Completed', '> **Status**: Candidate Complete'
+    )}\n> **Status**: Completed\n`,
+    `${completedMarkdown}\n\`\`\`text\n<!--\n\`\`\`\n> **Status**: Candidate Complete\n`,
+    `${completedMarkdown}\nparagraph\n<foo>\n> **Status**: Candidate Complete\n`,
+    completedMarkdown.replace(
+      '> **Status**: Completed',
+      '> **Status**: Completed <!-- note -->'
+    ),
+    completedMarkdown.replace(
+      '> **Status**: Completed',
+      '> **Status**: Com<!-- note -->pleted'
+    )
+  ]) {
+    assert.throws(() => prepareRequestClosure(root, {
+      ...prepareInput,
+      proposed_request: duplicateStatus
+    }), /exactly one canonical Status metadata field/);
+  }
+  for (const hiddenStatus of [
+    completedMarkdown.replace(
+      '> **Status**: Completed',
+      '```markdown\n> **Status**: Completed\n```'
+    ),
+    completedMarkdown.replace(
+      '> **Status**: Completed',
+      '<!--\n> **Status**: Completed\n-->'
+    ),
+    completedMarkdown.replace(
+      '> **Status**: Completed',
+      '```markdown\n````not-a-closing-fence\n> **Status**: Completed\n```'
+    ),
+    completedMarkdown.replace(
+      '> **Status**: Completed',
+      '<script>\n> **Status**: Completed\n</script>'
+    ),
+    completedMarkdown.replace(
+      '> **Status**: Completed',
+      '> ```markdown\n> **Status**: Completed\n> ```'
+    )
+  ]) {
+    assert.throws(() => prepareRequestClosure(root, {
+      ...prepareInput,
+      proposed_request: hiddenStatus
+    }), /exactly one canonical Status metadata field/);
+  }
   const pending = prepareRequestClosure(root, prepareInput);
   assert.equal(pending.record.kind, 'request-closure-pending');
   const replayedPrepare = prepareRequestClosure(root, prepareInput);
@@ -619,6 +668,11 @@ test('request closure prepare and finalize bind proposal, projection, and two re
     closure.record);
   assert.equal(auditEvidenceLedger(root).ok, true);
   const closedRequest = fs.readFileSync(path.join(root, requestPath));
+  fs.appendFileSync(path.join(root, requestPath),
+    '\n> **Status**: Candidate Complete\n');
+  assert.throws(() => auditEvidenceLedger(root),
+    /Current request no longer matches durable completion evidence/);
+  fs.writeFileSync(path.join(root, requestPath), closedRequest);
   fs.appendFileSync(path.join(root, requestPath), '\npost-closure edit\n');
   assert.throws(() => auditEvidenceLedger(root),
     /Current request no longer matches durable completion evidence/);

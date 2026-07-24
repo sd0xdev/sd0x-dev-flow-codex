@@ -26,6 +26,7 @@ const {
 } = require('./research-contract-test');
 const {
   auditEvidenceLedger,
+  auditRequestClosures,
   evidenceRefOid,
   hashPayloadTree,
   latestCompletionEvidence
@@ -37,6 +38,10 @@ const {
   markdownField,
   parseRequestContent
 } = require('../plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool');
+const {
+  canonicalRequestStatus,
+  renderedMarkdownLines
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/request-metadata');
 
 const ROOT = path.resolve(__dirname, '..');
 const CANDIDATE_COMPLETE_EVIDENCE = Symbol('candidate-complete-evidence');
@@ -6778,9 +6783,10 @@ function validateCandidateCompletePackEvidence(root, disposition, options = {}) 
       captureContainedRegularFile(root, requestPath,
         'Candidate Complete request').bytes;
     const request = requestBytes.toString('utf8');
-    const candidateComplete = /^> \*\*Status\*\*: Candidate Complete$/m.test(request);
-    const completed = /^> \*\*Status\*\*: Completed$/m.test(request);
-    assert(candidateComplete !== completed,
+    const requestStatus = canonicalRequestStatus(request)?.toLowerCase() || null;
+    const candidateComplete = requestStatus === 'candidate complete';
+    const completed = requestStatus === 'completed';
+    assert(candidateComplete || completed,
       `${requestPath}: research-pack candidate request must have exactly one canonical Candidate Complete or Completed status`);
     if (completed) {
       for (const promotionUnitId of sortedUnique(targetRows.map((row) =>
@@ -7226,111 +7232,6 @@ function auditCandidate(options = {}) {
   };
 }
 
-function renderedMarkdownLines(markdown) {
-  const records = [];
-  let fence = null;
-  let htmlComment = false;
-  let htmlCommentBlock = false;
-  let htmlBlockEnd = null;
-  const rawHtmlBlocks = new Set([
-    'address', 'article', 'aside', 'base', 'basefont', 'blockquote', 'body',
-    'caption', 'center', 'col', 'colgroup', 'dd', 'details', 'dialog', 'dir',
-    'div', 'dl', 'dt', 'fieldset', 'figcaption', 'figure', 'footer', 'form',
-    'frame', 'frameset', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'head', 'header',
-    'hr', 'html', 'iframe', 'legend', 'li', 'link', 'main', 'menu', 'menuitem',
-    'nav', 'noframes', 'ol', 'optgroup', 'option', 'p', 'param', 'search',
-    'section', 'summary', 'table', 'tbody', 'td', 'tfoot', 'th', 'thead',
-    'title', 'tr', 'track', 'ul'
-  ]);
-  const endsHtmlBlock = (state, line) => state.kind === 'blank'
-    ? /^[ \t]*$/.test(line)
-    : state.kind === 'tag'
-      ? new RegExp(`</${state.tag}>`, 'i').test(line)
-      : line.includes(state.token);
-  for (const raw of markdown.replace(/\r\n?/g, '\n').split('\n')) {
-    if (fence) {
-      const closing = new RegExp(
-        `^ {0,3}${fence.character}{${fence.length},}[ \\t]*$`
-      );
-      if (closing.test(raw)) fence = null;
-      records.push({ rendered: false, text: '' });
-      continue;
-    }
-    if (htmlBlockEnd) {
-      if (endsHtmlBlock(htmlBlockEnd, raw)) htmlBlockEnd = null;
-      records.push({ rendered: false, text: '' });
-      continue;
-    }
-    if (htmlCommentBlock) {
-      if (raw.includes('-->')) htmlCommentBlock = false;
-      records.push({ rendered: false, text: '' });
-      continue;
-    }
-    if (htmlComment) {
-      if (raw.includes('-->')) htmlComment = false;
-      records.push({ rendered: false, text: '' });
-      continue;
-    }
-    if (/^ {0,3}<!--/.test(raw)) {
-      if (!raw.includes('-->')) htmlCommentBlock = true;
-      records.push({ rendered: false, text: '' });
-      continue;
-    }
-    let cursor = 0;
-    let visible = '';
-    while (cursor < raw.length) {
-      const open = raw.indexOf('<!--', cursor);
-      if (open < 0) {
-        visible += raw.slice(cursor);
-        break;
-      }
-      visible += raw.slice(cursor, open);
-      const close = raw.indexOf('-->', open + 4);
-      if (close < 0) {
-        htmlComment = true;
-        cursor = raw.length;
-      } else {
-        cursor = close + 3;
-      }
-    }
-    const opening = /^ {0,3}(`{3,}|~{3,})/.exec(visible);
-    if (opening) {
-      fence = { character: opening[1][0], length: opening[1].length };
-      records.push({ rendered: false, text: '' });
-    } else if (/^(?: {4}|\t)/.test(visible)) {
-      records.push({ rendered: false, text: '' });
-    } else {
-      const typeOne = /^ {0,3}<(script|pre|style|textarea)(?:\s|>|$)/i.exec(visible);
-      const typeSix = /^ {0,3}<\/?([A-Za-z][A-Za-z0-9-]*)(?:\s|\/?>|$)/.exec(visible);
-      const genericOpen = /^ {0,3}<[A-Za-z][A-Za-z0-9-]*(?:\s+[A-Za-z_:][A-Za-z0-9_.:-]*(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s"'=<>`]+))?)*\s*\/?>\s*$/.test(visible);
-      const genericClose = /^ {0,3}<\/[A-Za-z][A-Za-z0-9-]*\s*>\s*$/.test(visible);
-      let openedHtmlBlock = null;
-      if (typeOne) {
-        openedHtmlBlock = { kind: 'tag', tag: typeOne[1].toLowerCase() };
-      } else if (/^ {0,3}<\?/.test(visible)) {
-        openedHtmlBlock = { kind: 'token', token: '?>' };
-      } else if (/^ {0,3}<!\[CDATA\[/.test(visible)) {
-        openedHtmlBlock = { kind: 'token', token: ']]>' };
-      } else if (/^ {0,3}<![A-Z]/.test(visible)) {
-        openedHtmlBlock = { kind: 'token', token: '>' };
-      } else if ((typeSix && rawHtmlBlocks.has(typeSix[1].toLowerCase())) ||
-                 genericOpen || genericClose) {
-        openedHtmlBlock = { kind: 'blank' };
-      }
-      if (openedHtmlBlock) {
-        if (openedHtmlBlock.kind === 'blank' ||
-            !endsHtmlBlock(openedHtmlBlock, visible)) {
-          htmlBlockEnd = openedHtmlBlock;
-        }
-        records.push({ rendered: false, text: '' });
-      } else {
-        records.push({ rendered: true, text: visible });
-      }
-    }
-  }
-  return records;
-}
-
 function requestProgressRows(request, phase, requestPath) {
   const lines = renderedMarkdownLines(request);
   const headings = lines.reduce((matches, line, index) => {
@@ -7393,7 +7294,7 @@ function requestProgressHash(request, phase, label, requestPath, options = {}) {
   return matches[0][1];
 }
 
-function validateCandidateRequestEvidence(request, result, requestPath) {
+function validateCandidateRequestEvidence(request, result, requestPath, options = {}) {
   const payload = requestProgressHash(request, 'Development', 'payload', requestPath);
   const preflight = requestProgressHash(request, 'Testing', 'Preflight', requestPath);
   assert(payload === result.payload_tree_sha256,
@@ -7412,7 +7313,28 @@ function validateCandidateRequestEvidence(request, result, requestPath) {
   const exemptAcceptance = ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS.get(
     result.promotion_unit_id
   );
-  const expectedAcceptance = exemptAcceptance || 'Candidate Complete';
+  const requestStatus = canonicalRequestStatus(request)?.toLowerCase() || null;
+  let expectedAcceptance = exemptAcceptance || 'Candidate Complete';
+  if (!exemptAcceptance && acceptanceRows[0].status === 'Complete') {
+    assert(requestStatus === 'completed',
+      `${requestPath}: candidate evidence has unsupported Acceptance status`);
+    assert(options.root,
+      `${requestPath}: Completed candidate acceptance requires durable closure evidence`);
+    const closureExpectation = {
+      promotion_unit_id: result.promotion_unit_id,
+      kind: 'request-closure',
+      request_path: requestPath
+    };
+    if (Array.isArray(options.closureExpectations)) {
+      options.closureExpectations.push(closureExpectation);
+    } else {
+      auditRequestClosures(options.root, [closureExpectation]);
+    }
+    expectedAcceptance = 'Complete';
+  } else if (!exemptAcceptance) {
+    assert(requestStatus === 'candidate complete',
+      `${requestPath}: candidate evidence has unsupported Acceptance status`);
+  }
   assert(acceptanceRows[0].status === expectedAcceptance,
     `${requestPath}: candidate evidence has unsupported Acceptance status`);
   const finalAudit = requestProgressHash(
@@ -7454,9 +7376,12 @@ function selectActiveCandidatePayload(options) {
 function auditActiveCandidates(options = {}) {
   const root = path.resolve(options.root || ROOT);
   const transactionIdentity = canonicalJson(repositoryIdentity(root));
+  const transactionEvidenceOid = evidenceRefOid(root);
   const assertTransactionIdentity = (phase) => {
     assert(canonicalJson(repositoryIdentity(root)) === transactionIdentity,
       `active candidate repository identity changed ${phase}`);
+    assert(evidenceRefOid(root) === transactionEvidenceOid,
+      `active candidate evidence ref changed ${phase}`);
   };
   const disposition = readJson(
     root, 'migration/source-disposition.json', 'source disposition'
@@ -7470,6 +7395,7 @@ function auditActiveCandidates(options = {}) {
   }
   const evidence = [];
   const immutableUnits = [];
+  const closureExpectations = [];
   for (const promotionUnitId of [...units.keys()].sort(BYTEWISE)) {
     assertTransactionIdentity(`before ${promotionUnitId}`);
     const unitRows = units.get(promotionUnitId);
@@ -7527,7 +7453,10 @@ function auditActiveCandidates(options = {}) {
       target,
       lifecycle: result.move_window ? 'move-window' : 'preflight',
       request_path: requestPath,
-      ...validateCandidateRequestEvidence(request, result, requestPath)
+      ...validateCandidateRequestEvidence(request, result, requestPath, {
+        root,
+        closureExpectations
+      })
     });
     immutableUnits.push({
       candidate: payloadPath,
@@ -7547,6 +7476,17 @@ function auditActiveCandidates(options = {}) {
       });
     }
     assertTransactionIdentity(`after ${promotionUnitId}`);
+  }
+  if (closureExpectations.length > 0) {
+    assertTransactionIdentity('before request closure audit');
+    const closureAudit = auditRequestClosures(
+      root,
+      closureExpectations,
+      options.evidenceAuditHooks || {}
+    );
+    assert(closureAudit.oid === transactionEvidenceOid,
+      'active candidate request closure audit used a different evidence ref');
+    assertTransactionIdentity('after request closure audit');
   }
   assertTransactionIdentity('before completion revalidation');
   for (const unit of immutableUnits) {

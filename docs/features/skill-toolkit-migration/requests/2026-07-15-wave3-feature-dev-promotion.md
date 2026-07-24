@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -52,7 +52,7 @@ Source behaviors from `feature-dev` and the mapping-only `codex-implement` alias
 | Analysis | Complete | Existing core, canonical source, and mapping-only alias behavior reconciled. |
 | Development | Complete | Exact accepted bytes moved from `migration/candidates/` to the core payload; payload `3706ae5ac13693f25c2a66701d79c66f5dc12690d90bee3cbe360062dd392908`. |
 | Testing | Complete | Preflight `263166adc304f7f716d68c088773721d3b63d3a936c7f70a2f597610bc7404da`; routing 6/6 passed. Final audit `5cfbfeb042df1cb163995335be706b2640ebf27c80691d506ab97fda87ab548b` passed. |
-| Acceptance | Candidate Complete | Final audit and subject gates passed; runtime-owned R3 closure and promotion evidence remain pending. |
+| Acceptance | Complete | Independent AC verification, subject-bound review, deterministic verification, and final core audit passed. The runtime-owned R3 closure and promotion evidence bind this exact Completed request. |
 
 ## References
 
