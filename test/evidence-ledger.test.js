@@ -9,6 +9,7 @@ const test = require('node:test');
 const { execFileSync } = require('node:child_process');
 const {
   EVIDENCE_REF,
+  EVIDENCE_SUBJECT_REF_PREFIX,
   attestCommitClosureReview,
   appendEvidenceRevision,
   applyRequestClosure,
@@ -284,6 +285,28 @@ function recordCleanReview(root) {
   });
 }
 
+function commitClosureSubjectAndEvidence(root) {
+  git(root, ['add', 'app.js']);
+  commit(root, 'implementation for anchored closure');
+  const subject = {
+    kind: 'commit',
+    base_sha: requestImplementationBase(root),
+    head_sha: String(git(root, ['rev-parse', 'HEAD'])).trim(),
+    tree_sha: String(git(root, ['rev-parse', 'HEAD^{tree}'])).trim()
+  };
+  beginCommitClosureReview(root, subject);
+  let state = recordCleanReview(root);
+  state = recordVerification(root, 'pass', {
+    runner: 'sd0x-deterministic-v1',
+    commands: [{ command: 'node --test', exit_code: 0 }]
+  }, state.worktree.fingerprint, 'codex');
+  const attestation = attestCommitClosureReview(root, subject);
+  const evidence = passingCommitClosureEvidence(subject);
+  evidence.subject_review.evidence = attestation.review_evidence;
+  evidence.verify.evidence = attestation.verify_evidence;
+  return { subject, evidence };
+}
+
 function evidenceGit(root, args, options = {}) {
   return execFileSync('git', args, {
     cwd: root,
@@ -291,6 +314,17 @@ function evidenceGit(root, args, options = {}) {
     input: options.input,
     env: options.env || process.env
   }).trim();
+}
+
+function subjectRef(headSha) {
+  return `${EVIDENCE_SUBJECT_REF_PREFIX}${headSha}`;
+}
+
+function fetchEvidenceRefs(root, remote) {
+  evidenceGit(root, [
+    'fetch', remote, `${EVIDENCE_REF}:${EVIDENCE_REF}`,
+    `${EVIDENCE_SUBJECT_REF_PREFIX}*:${EVIDENCE_SUBJECT_REF_PREFIX}*`
+  ]);
 }
 
 function record(root, details = {}) {
@@ -2423,6 +2457,8 @@ test('clean commit closure binds base, HEAD, tree, and a clean projection', (t) 
   });
   assert.equal(pending.record.non_request_projection_sha256, 'clean');
   assert.equal(pending.record.implementation_base_sha, subject.base_sha);
+  assert.equal(evidenceGit(root, ['rev-parse', subjectRef(subject.head_sha)]),
+    subject.head_sha);
   fs.writeFileSync(path.join(root, requestPath), completedRequestBytes(subject.base_sha));
   recordCleanReview(root);
   const closure = finalizeRequestClosure(root, {
@@ -2431,6 +2467,135 @@ test('clean commit closure binds base, HEAD, tree, and a clean projection', (t) 
     supersedes_record_sha256: null
   });
   assert.equal(closure.record.pending_record_sha256, pending.record_sha256);
+});
+
+test('commit subject history requires transferable anchors after branch-independent fetch',
+  (t) => {
+    const root = repository();
+    const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-subject-clone-'));
+    const bundleClone = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-subject-bundle-'));
+    const bundlePath = path.join(os.tmpdir(),
+      `sd0x-subject-${crypto.randomUUID()}.bundle`);
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    t.after(() => fs.rmSync(clone, { recursive: true, force: true }));
+    t.after(() => fs.rmSync(bundleClone, { recursive: true, force: true }));
+    t.after(() => fs.rmSync(bundlePath, { force: true }));
+    git(root, ['add', 'app.js']);
+    commit(root, 'implementation on disposable branch');
+    const subject = {
+      kind: 'commit',
+      base_sha: requestImplementationBase(root),
+      head_sha: String(git(root, ['rev-parse', 'HEAD'])).trim(),
+      tree_sha: String(git(root, ['rev-parse', 'HEAD^{tree}'])).trim()
+    };
+    beginCommitClosureReview(root, subject);
+    let state = recordCleanReview(root);
+    state = recordVerification(root, 'pass', {
+      runner: 'sd0x-deterministic-v1',
+      commands: [{ command: 'node --test', exit_code: 0 }]
+    }, state.worktree.fingerprint, 'codex');
+    const attestation = attestCommitClosureReview(root, subject);
+    const evidence = passingCommitClosureEvidence(subject);
+    evidence.subject_review.evidence = attestation.review_evidence;
+    evidence.verify.evidence = attestation.verify_evidence;
+    const pending = prepareRequestClosure(root, {
+      promotion_unit_id: 'fixture/default',
+      request_path: 'docs/features/fixture/requests/2026-07-12-fixture.md',
+      proposed_request: completedRequestBytes(subject.base_sha),
+      subject,
+      evidence,
+      recorded_at: '2026-07-12T01:45:00.000Z',
+      supersedes_record_sha256: null
+    });
+    git(root, ['branch', 'stable', subject.base_sha]);
+    fs.rmSync(clone, { recursive: true });
+    git(path.dirname(clone), [
+      'clone', '--quiet', '--no-local', '--single-branch', '--branch', 'stable',
+      root, clone
+    ]);
+    evidenceGit(clone, ['fetch', 'origin', `${EVIDENCE_REF}:${EVIDENCE_REF}`]);
+    assert.throws(() => readEvidenceRecord(clone, pending.record_sha256),
+      /subject anchor is unavailable/);
+    fetchEvidenceRefs(clone, 'origin');
+    assert.equal(evidenceGit(clone, ['rev-parse', subjectRef(subject.head_sha)]),
+      subject.head_sha);
+    assert.equal(readEvidenceRecord(clone, pending.record_sha256).record.record_sha256,
+      pending.record_sha256);
+    const subjectRefs = String(evidenceGit(root, [
+      'for-each-ref', '--format=%(refname)', EVIDENCE_SUBJECT_REF_PREFIX
+    ])).trim().split('\n').filter(Boolean);
+    evidenceGit(root, [
+      'bundle', 'create', bundlePath, EVIDENCE_REF, ...subjectRefs
+    ]);
+    initRepository(bundleClone);
+    fetchEvidenceRefs(bundleClone, bundlePath);
+    assert.equal(readEvidenceRecord(bundleClone, pending.record_sha256)
+      .record.record_sha256, pending.record_sha256);
+  });
+
+test('existing subject anchors are verified inside append and audit transactions', (t) => {
+  const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
+  for (const mutation of ['delete', 'retarget']) {
+    const root = repository();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const { subject, evidence } = commitClosureSubjectAndEvidence(root);
+    const anchor = subjectRef(subject.head_sha);
+    evidenceGit(root, [
+      'update-ref', anchor, subject.head_sha, '0'.repeat(40)
+    ]);
+    assert.throws(() => prepareRequestClosure(root, {
+      promotion_unit_id: 'fixture/default',
+      request_path: requestPath,
+      proposed_request: completedRequestBytes(subject.base_sha),
+      subject,
+      evidence,
+      recorded_at: '2026-07-12T01:45:00.000Z',
+      supersedes_record_sha256: null
+    }, {
+      beforeSubjectRefTransaction({ ref, expected_oid: expectedOid, exists }) {
+        assert.equal(ref, anchor);
+        assert.equal(expectedOid, subject.head_sha);
+        assert.equal(exists, true);
+        if (mutation === 'delete') {
+          evidenceGit(root, ['update-ref', '-d', anchor, subject.head_sha]);
+        } else {
+          evidenceGit(root, [
+            'update-ref', anchor, subject.base_sha, subject.head_sha
+          ]);
+        }
+      }
+    }), /cannot lock ref|reference is missing|failed/);
+    assert.throws(() => evidenceGit(root, [
+      'rev-parse', '--verify', '--quiet', EVIDENCE_REF
+    ]));
+    if (mutation === 'retarget') {
+      assert.equal(evidenceGit(root, ['rev-parse', anchor]), subject.base_sha);
+    }
+  }
+
+  const auditRoot = repository();
+  t.after(() => fs.rmSync(auditRoot, { recursive: true, force: true }));
+  const { subject, evidence } = commitClosureSubjectAndEvidence(auditRoot);
+  const pending = prepareRequestClosure(auditRoot, {
+    promotion_unit_id: 'fixture/default',
+    request_path: requestPath,
+    proposed_request: completedRequestBytes(subject.base_sha),
+    subject,
+    evidence,
+    recorded_at: '2026-07-12T01:45:00.000Z',
+    supersedes_record_sha256: null
+  });
+  const anchor = subjectRef(subject.head_sha);
+  assert.throws(() => auditEvidenceLedger(auditRoot, {}, {
+    beforeSubjectAnchorRevalidation() {
+      evidenceGit(auditRoot, [
+        'update-ref', anchor, subject.base_sha, subject.head_sha
+      ]);
+    }
+  }), /subject anchor changed while evidence was audited/);
+  assert.equal(evidenceGit(auditRoot, ['rev-parse', EVIDENCE_REF]), pending.oid);
+  assert.throws(() => readEvidenceRecord(auditRoot, pending.record_sha256),
+    /subject anchor is unavailable or invalid/);
 });
 
 test('clean commit closure fails closed for the Claude provider', (t) => {

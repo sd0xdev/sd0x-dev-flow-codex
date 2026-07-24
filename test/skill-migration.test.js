@@ -7541,13 +7541,21 @@ test('active candidate audit binds non-routing payload bytes to request evidence
 
 });
 
-test('CI fetches full history required by request base-SHA ancestry checks', () => {
-  const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
-  assert.match(workflow, /uses: actions\/checkout@[^\n]+\n\s+with:\n\s+fetch-depth: 0/);
-  const fetch = workflow.indexOf(
-    '+refs/sd0x-dev-flow-codex/evidence/v1:refs/sd0x-dev-flow-codex/evidence/v1'
-  );
-  const check = workflow.indexOf('npm run check');
-  assert.ok(fetch >= 0 && check > fetch,
-    'CI must fetch the exact evidence ref before npm run check');
+test('CI and release fetch transferable evidence and subject history refs', () => {
+  for (const relative of [
+    '.github/workflows/ci.yml',
+    '.github/workflows/release.yml'
+  ]) {
+    const workflow = fs.readFileSync(path.join(ROOT, relative), 'utf8');
+    assert.match(workflow, /uses: actions\/checkout@[^\n]+\n\s+with:\n\s+fetch-depth: 0/);
+    const evidenceFetch = workflow.indexOf(
+      '+refs/sd0x-dev-flow-codex/evidence/v1:refs/sd0x-dev-flow-codex/evidence/v1'
+    );
+    const subjectFetch = workflow.indexOf(
+      '+refs/sd0x-dev-flow-codex/subjects/*:refs/sd0x-dev-flow-codex/subjects/*'
+    );
+    const check = workflow.indexOf('npm run check');
+    assert.ok(evidenceFetch >= 0 && subjectFetch > evidenceFetch && check > subjectFetch,
+      `${relative} must fetch evidence and subject refs before npm run check`);
+  }
 });

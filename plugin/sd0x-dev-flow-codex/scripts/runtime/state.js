@@ -27,6 +27,7 @@ const SESSION_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const EXTERNAL_REVIEW_START_RETENTION_MS = 35 * 60 * 1000;
 const MAX_EXTERNAL_REVIEW_STARTS = 64;
 const EVIDENCE_REF = 'refs/sd0x-dev-flow-codex/evidence/v1';
+const EVIDENCE_SUBJECT_REF_PREFIX = 'refs/sd0x-dev-flow-codex/subjects/';
 const EVIDENCE_SCHEMA_VERSION = 2;
 const LEGACY_EVIDENCE_SCHEMA_VERSION = 1;
 const COMMIT_CLOSURE_REVIEW_SCHEMA_VERSION = 2;
@@ -225,6 +226,53 @@ function evidenceRefOid(root) {
   }
 }
 
+function evidenceSubjectRef(headSha) {
+  if (!/^[a-f0-9]{40}$/.test(headSha || '')) {
+    throw new Error('Commit closure subject HEAD is invalid');
+  }
+  return `${EVIDENCE_SUBJECT_REF_PREFIX}${headSha}`;
+}
+
+function evidenceSubjectRefOid(root, headSha) {
+  const ref = evidenceSubjectRef(headSha);
+  try {
+    return String(runEvidenceGit(root, [
+      'rev-parse', '--verify', '--quiet', ref
+    ])).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function advanceEvidenceRef(root, commitOid, oldOid, subject, env, hooks = {}) {
+  const commands = ['start'];
+  if (subject?.kind === 'commit') {
+    const subjectRef = evidenceSubjectRef(subject.head_sha);
+    const anchoredOid = evidenceSubjectRefOid(root, subject.head_sha);
+    if (anchoredOid && anchoredOid !== subject.head_sha) {
+      throw new Error('Commit closure subject anchor points to an unexpected object');
+    }
+    commands.push(anchoredOid
+      ? `verify ${subjectRef} ${subject.head_sha}`
+      : `create ${subjectRef} ${subject.head_sha}`);
+    if (typeof hooks.beforeSubjectRefTransaction === 'function') {
+      hooks.beforeSubjectRefTransaction({
+        ref: subjectRef,
+        expected_oid: subject.head_sha,
+        exists: Boolean(anchoredOid)
+      });
+    }
+  }
+  commands.push(oldOid
+    ? `update ${EVIDENCE_REF} ${commitOid} ${oldOid}`
+    : `create ${EVIDENCE_REF} ${commitOid}`);
+  commands.push('prepare', 'commit', '');
+  runEvidenceGit(root, ['update-ref', '--stdin'], {
+    env,
+    input: commands.join('\n')
+  });
+}
+
 function evidenceRecordHash(record) {
   const withoutHash = { ...record };
   delete withoutHash.record_sha256;
@@ -251,7 +299,7 @@ function appendEvidenceRevisionUnlocked(cwd, record, blobs = {}, options = {}) {
         ? supplied.value
         : supplied
     ])
-  ), root);
+  ), root, { requireSubjectAnchor: false });
   const recordSha = evidenceRecordHash(record);
   if (record.record_sha256 !== recordSha) {
     throw new Error('Evidence record_sha256 does not match canonical record bytes');
@@ -355,9 +403,7 @@ function appendEvidenceRevisionUnlocked(cwd, record, blobs = {}, options = {}) {
     if (oldOid) commitArgs.push('-p', oldOid);
     commitArgs.push('-m', `sd0x evidence: ${record.kind} ${recordSha}`);
     const commitOid = String(runEvidenceGit(root, commitArgs, { env })).trim();
-    runEvidenceGit(root, [
-      'update-ref', EVIDENCE_REF, commitOid, oldOid || '0'.repeat(40)
-    ], { env });
+    advanceEvidenceRef(root, commitOid, oldOid, record.subject, env, options);
     return { ref: EVIDENCE_REF, old_oid: oldOid, oid: commitOid, record_sha256: recordSha };
   } finally {
     fs.rmSync(indexPath, { force: true });
@@ -1302,9 +1348,13 @@ function validateGateEvidenceEnvelope(value, binding, label, expectedProvider = 
   }
 }
 
-function validateEvidenceBlobSemantics(record, blobs, root = null) {
+function validateEvidenceBlobSemantics(record, blobs, root = null, options = {}) {
   if (record.kind === 'request-closure-pending') {
     if (record.subject.kind === 'commit' && root) {
+      if (options.requireSubjectAnchor !== false &&
+          evidenceSubjectRefOid(root, record.subject.head_sha) !== record.subject.head_sha) {
+        throw new Error('Commit closure subject anchor is unavailable or invalid');
+      }
       let tree;
       try {
         tree = String(runEvidenceGit(root, [
@@ -1622,7 +1672,8 @@ function prepareRequestClosure(cwd, options, hooks = {}) {
       };
     } else {
       result = appendEvidenceRevisionUnlocked(root, record, blobs, {
-        expected_old_oid: expectedOldOid
+        expected_old_oid: expectedOldOid,
+        beforeSubjectRefTransaction: hooks.beforeSubjectRefTransaction
       });
     }
     return state;
@@ -3324,6 +3375,20 @@ function auditEvidenceLedgerTransaction(cwd, expected = {}, hooks = {}) {
         sha256(canonicalJson(requestDefinition(bytes.toString('utf8')))) !==
           selected.ac_definition_sha256 || !completedRequest(bytes.toString('utf8'))) {
       throw new Error('Current request no longer matches durable completion evidence');
+    }
+  }
+  if (typeof hooks.beforeSubjectAnchorRevalidation === 'function') {
+    hooks.beforeSubjectAnchorRevalidation();
+  }
+  const subjectHeads = new Set([...records.values()]
+    .filter((record) =>
+      record.kind === 'request-closure-pending' &&
+      record.subject.kind === 'commit'
+    )
+    .map((record) => record.subject.head_sha));
+  for (const headSha of subjectHeads) {
+    if (evidenceSubjectRefOid(root, headSha) !== headSha) {
+      throw new Error('Commit closure subject anchor changed while evidence was audited');
     }
   }
   if (evidenceRefOid(root) !== oid) {
@@ -5164,6 +5229,7 @@ function summarize(state, options = {}) {
 
 module.exports = {
   EVIDENCE_REF,
+  EVIDENCE_SUBJECT_REF_PREFIX,
   activationFailurePath,
   attestCommitClosureReview,
   auditEvidenceLedger,

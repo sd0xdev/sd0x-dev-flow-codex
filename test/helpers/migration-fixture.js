@@ -34,7 +34,11 @@ function fixtureRoot(options = {}) {
   configureRepository(root);
   if (options.copyEvidenceRef) {
     const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
-    execFileSync('git', ['fetch', '--quiet', ROOT, `${evidenceRef}:${evidenceRef}`], {
+    const subjectRefs = 'refs/sd0x-dev-flow-codex/subjects/*';
+    execFileSync('git', [
+      'fetch', '--quiet', ROOT, `${evidenceRef}:${evidenceRef}`,
+      `${subjectRefs}:${subjectRefs}`
+    ], {
       cwd: root,
       env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' }
     });
