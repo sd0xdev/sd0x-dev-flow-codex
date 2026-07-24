@@ -482,14 +482,22 @@ Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向�
 主要命令：
 
 ```bash
-git fetch --no-tags origin +refs/sd0x-dev-flow-codex/evidence/v1:refs/sd0x-dev-flow-codex/evidence/v1
+git fetch --no-tags origin \
+  +refs/sd0x-dev-flow-codex/evidence/v1:refs/sd0x-dev-flow-codex/evidence/v1 \
+  '+refs/sd0x-dev-flow-codex/subjects/*:refs/sd0x-dev-flow-codex/subjects/*'
 npm run check
 ```
 
 已進入 `pack-ready|promoted|retired`，或正處於 durable `request-closure` 到
 completion record 之間的 repository，必須先 provision 上述 transferable evidence
-ref。一般 branch/tag 的 `fetch-depth: 0` 不會自動取得 custom ref；CI 與 release
-workflow 會明確 fetch，缺少 ref 時 source audit 會 fail closed。
+ref 與 commit-subject anchor refs。每個 commit 型 closure subject 都由 runtime 以
+`refs/sd0x-dev-flow-codex/subjects/<head_sha>` 綁住 exact HEAD，且 subject ref 與
+evidence ref 在同一個 local Git ref transaction 內建立或驗證並前進；audit 回傳前
+也會對本輪觀察到的全部 anchors 做 uncached revalidation。這些 anchors 讓
+base→HEAD history 在 squash merge 或 feature branch 刪除後仍可傳輸；缺少或指向
+不同 object 時 audit fail closed。一般 branch/tag 的 `fetch-depth: 0` 不會自動取得
+custom refs；CI、release、clone import 與離線 bundle 都必須明確搬移 evidence ref
+及全部 subject refs。
 
 目前 suite 會先遞迴 syntax-check 所有 shipped JavaScript entrypoints，再執行下列測試群組；案例數以 `npm run check` 的即時輸出為準，不在文件寫死：
 
