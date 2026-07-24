@@ -387,6 +387,22 @@ test('version setter rejects stale alias owner evidence before changing any sour
   assertSourceBytes(prior);
 });
 
+test('version setter refuses to mutate a Completed alias owner request', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const owner = aliasOwnerRecord(values.root);
+  fs.writeFileSync(owner.ownerPath, owner.ownerRequest.replace(
+    '# Alias Owner',
+    '# Alias Owner\n\n> **Status**: Completed'
+  ));
+  const prior = versionSourceBytes(values.root, values.pluginRoot);
+
+  assert.equal(checkRelease(values.root).version, '0.1.0');
+  assert.throws(() => setVersion('2.3.4', values.root),
+    /Completed; create and bind a replacement owner ticket/);
+  assertSourceBytes(prior);
+});
+
 test('release preflight validates every alias owner evidence field exactly', (t) => {
   const mutations = [
     ['codex_version', 'codex-cli 9.9.9'],

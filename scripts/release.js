@@ -5,6 +5,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawnSync } = require('node:child_process');
+const {
+  canonicalRequestStatus
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/request-metadata');
 
 const ROOT = path.resolve(__dirname, '..');
 const PLUGIN_NAME = 'sd0x-dev-flow-codex';
@@ -384,6 +387,8 @@ function setVersion(version, root = ROOT, hooks = {}) {
   const aliasCapabilityBytes = fs.readFileSync(paths.aliasCapabilityPath);
   const aliasCapability = JSON.parse(aliasCapabilityBytes);
   const owner = aliasOwnerBinding(root, aliasCapability, aliasCapabilityBytes);
+  assert(canonicalRequestStatus(owner.request)?.toLowerCase() !== 'completed',
+    'alias capability owner request is Completed; create and bind a replacement owner ticket before changing the version');
   const manifest = readJson(paths.manifestPath);
   const migrationGuide = fs.readFileSync(paths.migrationGuidePath, 'utf8');
   const documentedVersion =
