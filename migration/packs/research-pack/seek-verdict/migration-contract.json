@@ -1,0 +1,43 @@
+{
+  "schema_version": 2,
+  "target_skill": "seek-verdict",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "seek-verdict/default",
+      "target_mode": null,
+      "source_names": [
+        "seek-verdict"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Get an independent verdict on whether this review finding is valid.",
+          "Seek a blind second opinion on this suspected security issue.",
+          "Verify whether dismissing this defect is justified using fresh context."
+        ],
+        "negative_boundaries": [
+          "Fix the defect after assessing it.",
+          "Post the verdict to the pull request.",
+          "Run the primary code review for the entire dirty worktree."
+        ]
+      },
+      "behavior_tests": [
+        "test/seek-verdict-default-routing.test.js",
+        "test/seek-verdict-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "A P0/P1 candidate binds `finding_key + fingerprint + dismissal_evidence_hash`",
+          "Counter persistence is limited to Git metadata or the .sd0x directory",
+          "confidence ≥ 0.95 and 4 independent evidence",
+          "one model may not impersonate both roles"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

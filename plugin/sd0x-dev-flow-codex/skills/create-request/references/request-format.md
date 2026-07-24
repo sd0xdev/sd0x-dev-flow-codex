@@ -9,14 +9,14 @@ Use this reference for create and update modes.
 
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: {YYYY-MM-DD}
-> **Implementation Base SHA**: `{40-character Git SHA}`
+> **Implementation Base SHA**: `{40-character lowercase hexadecimal commit identifier}`
 > **Status**: Pending
 > **Priority**: {P0|P1|P2}
-> **Depends On**: [Title](./request.md) <!-- omit when none -->
-> **Superseded By**: [Replacement](./replacement.md) <!-- required only on Superseded tickets -->
-> **Supersedes**: [Previous](./previous.md) <!-- required on the replacement ticket -->
-> **Tech Spec**: [Title](../2-tech-spec.md) <!-- canonical filename may vary -->
-> **Requirements**: [Title](../1-requirements.md) <!-- omit when absent -->
+> **Depends On**: rendered relative Markdown link to the dependency request <!-- omit when none -->
+> **Superseded By**: rendered relative Markdown link to the replacement request <!-- required only on Superseded tickets -->
+> **Supersedes**: rendered relative Markdown link to the previous request <!-- required on the replacement ticket -->
+> **Tech Spec**: rendered relative Markdown link to the canonical tech spec
+> **Requirements**: rendered relative Markdown link to `1-requirements.md` <!-- omit when absent -->
 
 ## Background
 
@@ -54,12 +54,12 @@ Use this reference for create and update modes.
 
 ## References
 
-- [Tech Spec](../2-tech-spec.md)
+- Tech Spec: rendered relative Markdown link to the canonical tech spec
 ```
 
 ## Invariants
 
-- Location: `docs/features/<feature>/requests/YYYY-MM-DD-<slug>.md`.
+- Location: `docs/features/{feature}/requests/YYYY-MM-DD-{slug}.md`.
 - One ticket owns one concern layer and no more than eight ACs.
 - `Implementation Base SHA` is required for new tickets. Never invent a base for a
   legacy ticket; ask for an exact base or keep completion inconclusive.
@@ -70,7 +70,7 @@ Use this reference for create and update modes.
   replacement has `Supersedes`, both links name contained sibling request files,
   and they point to each other.
 - Quality gates may be ACs only when the target repository actually defines them.
-- Related paths are repo-relative and must not escape through `..` or symlinks.
+- Related paths are repo-relative and must not use parent-directory traversal or symlinks.
 
 ## Cross-links
 
@@ -93,23 +93,22 @@ Resolve the runtime CLI relative to the installed skill as
 `<skill-directory>/../../scripts/runtime/cli.js`. A verified update reaches
 `Completed` only through this transaction:
 
-1. Keep the request non-Completed. Run the ordinary two-perspective review and,
-   for code/config subjects, deterministic verify on the exact implementation
+1. Keep the request non-Completed. An ordinary two-perspective review and, for
+   code/config subjects, deterministic verification must bind the exact implementation
    fingerprint.
 2. Render the exact proposed request bytes with `Status: Completed` and every AC
    checked. Build a prepare input whose closed fields are
    `promotion_unit_id`, `request_path`, `proposed_request`, `subject`, `evidence`,
    `recorded_at`, and `supersedes_record_sha256`.
 3. Bind a dirty subject as `{kind,fingerprint,head_sha}`. For a clean committed
-   subject `{kind:"commit",base_sha,head_sha,tree_sha}`, first run `closure
-   commit-review-begin --input-file <subject-json>`; this also opens the
+   subject `{kind:"commit",base_sha,head_sha,tree_sha}`, the runtime
+   commit-review-begin operation consumes the subject JSON and also opens the
    fingerprint/epoch-bound collaboration round. Dispatch the configured two
    reviewers with the returned subject hash explicitly against `base_sha..head_sha`,
    require every terminal response to end with the returned
    `Commit-Subject-SHA256: <hash>` line, import that round, record the review gate,
-   run deterministic verify against the
-   clean HEAD, then run `closure
-   commit-review-attest --input-file <subject-json>`. Caller-authored reviewer hashes
+   complete deterministic verification against the clean HEAD, and submit the same
+   subject JSON to the runtime commit-review-attest operation. Caller-authored reviewer hashes
    are never commit evidence. This clean-commit transaction currently requires the
    Codex review provider; a Claude-configured repository must stay fail-closed until
    an equivalent subject-bound Claude range adapter exists.
@@ -134,12 +133,12 @@ Resolve the runtime CLI relative to the installed skill as
    audited only so a schema-v2 pending can explicitly supersede them; they cannot be
    newly applied or finalized. Recovery remains available for a legacy apply journal
    that already exists.
-5. Run `node "<runtime-cli>" closure prepare --input-file <json>`. Preserve the
+5. The runtime closure prepare operation consumes the JSON input file. Preserve its
    returned pending record hash; do not edit any non-request path after prepare.
    The request path and every ancestor must remain regular, repository-contained,
    and free of symlinks; any path swap or worktree drift aborts finalization.
-6. Run `node "<runtime-cli>" closure apply --input
-   '{"pending_record_sha256":"<hash>"}'`; only this runtime-owned operation may write
+6. The runtime closure apply operation consumes only the pending record hash; only
+   this runtime-owned operation may write
    the proposed request bytes. It revalidates the pending ref/path/projection and
    writes through the captured no-follow request descriptor with an inode-bound,
    durable apply journal and complete-write loop. Pre-existing or write-boundary
@@ -149,17 +148,29 @@ Resolve the runtime CLI relative to the installed skill as
    runtime ownership context for explicit recovery instead of authorizing overwrite.
    Exact proposed success replays idempotently.
    If apply reports journaled unknown bytes after an interruption, stop and obtain an
-   operator decision. Run `closure recover` with
+   operator decision. The runtime closure recovery operation accepts
    `{pending_record_sha256,action:"restore-prior",expected_current_sha256}` to
    restore the exact persisted prior bytes before replay, or `action:"abandon"`
    with the same operator-inspected current hash to remove runtime recovery ownership
-   without changing the request. Never infer either action. Restore requires the
-   journaled inode; it atomically displaces the current file into the returned
+   without changing the request. Never infer either action. Restore normally requires
+   the journaled inode. After an exact successful apply has removed that journal, an
+   explicit `restore-prior` exact-success exception may recreate a runtime-owned
+   journal only when the current bytes and operator-inspected hash both equal the
+   pending proposal; prior, unknown, or replacement bytes still fail closed. The
+   synthesized journal and any prepared recovery journal are restart-safe. Restore
+   atomically displaces the current
+   file into the returned
    `.sd0x/closure-recovery/` backup before installing prior bytes, so a last-moment
-   edit is retained. Abandon also supports an editor's atomic-save replacement inode.
-   Run the ordinary two-perspective docs review on that new fingerprint, then run
-   `node "<runtime-cli>" closure finalize
-   --input-file <json>` with only `pending_record_sha256`, `recorded_at`, and
+   edit is retained; if post-rename identity validation fails, those displaced bytes
+   are reinstalled at the live path without overwrite and remain operator-recoverable.
+   A crash after that rollback link is recognized on restart and finishes metadata
+   cleanup without changing the live bytes. A finalized pending is terminal for
+   recovery, including pre-existing journals; create a superseding closure revision
+   instead of rolling durable completion or promotion evidence backward.
+   Abandon also supports an editor's atomic-save replacement inode.
+   Complete the ordinary two-perspective docs review on that new fingerprint. The
+   runtime closure finalize operation then accepts only
+   `pending_record_sha256`, `recorded_at`, and
    `supersedes_record_sha256`.
 
 Prepare/apply/recover/finalize are restart-safe through the evidence ref. Never hand-edit the ref,

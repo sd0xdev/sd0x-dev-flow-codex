@@ -1,6 +1,6 @@
 ---
 name: create-request
-description: Create, update, batch-sync, or scan date-prefixed single-task request tickets under docs/features/*/requests/. Use for breaking a tech spec into execution tickets, tracking acceptance-criteria progress, finding incomplete or stale requests, or independently verifying one ticket's acceptance criteria. Do not use for feature-wide requirements, technical design, or implementation.
+description: "Route create-request using exact migration registry [{\"unit\":\"create-request/default\",\"routing\":{\"positive_triggers\":[\"Create a date-prefixed execution request from the approved technical specification.\",\"Scan incomplete request tickets and show the stale work dashboard.\",\"Update this request ticket from implementation evidence and verify its acceptance criteria.\"],\"negative_boundaries\":[\"Analyze the feature-wide problem and write prioritized requirements.\",\"Design the system architecture, risks, work breakdown, and testing strategy.\",\"Implement the approved request and modify production code.\"]}}]."
 ---
 
 # Manage Request Tickets
@@ -14,18 +14,14 @@ for roughly three days of work.
 - Create: the user asks for a new ticket and does not identify an existing request.
 - Update: the user identifies one request or asks to sync the current request.
 - Update all: the user explicitly asks for a batch sync. Never infer this mutation.
-- Status: the user asks for a dashboard, incomplete work, or stale requests. This is
-  read-only.
-- Verify AC: `--verify-ac` modifies only one request and is incompatible with update
-  all.
+- Status: the user asks for a dashboard, incomplete work, or stale requests; this mode is read-only.
+- Verify AC: independent AC verification modifies only one request and is incompatible
+  with update all.
 
-Resolve this skill's installed directory from this `SKILL.md`. Run its deterministic
-helper from the target repository before reading or writing request documents:
-
-```bash
-node "<skill-directory>/scripts/request-tool.js" resolve [--feature <key>] [--path <repo-relative-path>]
-node "<skill-directory>/scripts/request-tool.js" scan
-```
+The [deterministic request helper](scripts/request-tool.js) in this installed skill is
+the only resolver. Its resolver mode accepts an optional feature key or canonical
+repository-relative path; its scan mode returns the incomplete-work dashboard.
+Resolve or scan before reading or writing request documents.
 
 Read [references/request-format.md](references/request-format.md) before every create
 or update. It owns both the ticket format and the durable closure transaction.
@@ -36,16 +32,15 @@ to the same slug. The helper is query-only and never creates directories or file
 
 ## Create
 
-1. Resolve the feature from an explicit path/key; an existing feature named by a
-   `feat/`, `feature/`, `fix/`, or `docs/` branch prefix; a uniquely changed feature
-   path; or a single feature directory, in that order.
+1. Resolution precedence is explicit input, a feature matching a supported branch
+   prefix, one uniquely changed feature, and finally one available feature directory.
 2. Read the parent tech spec and, when present, requirements document. Read
    [references/request-format.md](references/request-format.md) before rendering.
 3. Derive a single-task scope, related files, dependencies, and evidence-oriented ACs.
    If the task mixes layers, spans independent areas, exceeds eight ACs, or is larger
    than about three days, propose focused sibling tickets before writing.
-4. Record the current `git rev-parse HEAD` as `Implementation Base SHA`. Use
-   `YYYY-MM-DD-kebab-case-title.md`; refuse collisions instead of overwriting.
+4. Record the current HEAD commit identifier as `Implementation Base SHA`. Name the
+   file `YYYY-MM-DD-kebab-case-title.md` and refuse collisions instead of overwriting.
 5. Create only after clear user intent to create a local ticket. Preserve bidirectional
    links with the parent tech spec and requirements document when they exist.
 
@@ -63,8 +58,9 @@ to the same slug. The helper is query-only and never creates directories or file
 5. Preserve user-authored sections and unrelated edits. Re-run the resolver before
    writing and refuse the edit if the target or non-request subject drifted.
 
-For `--verify-ac`, start a fresh, isolated, read-only Codex subagent with only the raw
-AC list, related paths, repository root, implementation base, and subject snapshot.
+For independent AC verification, start a fresh, isolated, read-only Codex subagent.
+Its bounded context contains only the raw AC list, related paths, repository root,
+implementation base, and subject snapshot.
 Bound it to 60 seconds. Require one structured result per AC with `Complete`,
 `Partial`, `Not Found`, or `Inconclusive`; `High`, `Medium`, or `Low` confidence; and
 repo-relative `file:line` evidence for every `Complete`. Timeout, cancellation,
@@ -72,9 +68,8 @@ unavailability, malformed output, missing evidence, or subject drift makes affec
 ACs inconclusive and prevents `Completed`.
 
 All-Complete, High-confidence verification may propose `Completed`, but never write
-that transition directly. Use the bundled runtime's `closure prepare`, then its
-runtime-owned `closure apply` to safely write the exact proposed bytes, run the
-ordinary docs review, then use `closure finalize`. Follow the byte and evidence
+that transition directly. The bundled runtime owns closure preparation, the durable
+application of exact proposed bytes, and finalization after ordinary docs review. Follow the byte and evidence
 contract in the reference. If apply leaves a journal with unknown bytes, stop for an
 explicit operator choice before invoking `closure recover restore-prior|abandon`;
 bind that choice to the operator-inspected `expected_current_sha256` and never choose
@@ -84,9 +79,10 @@ at `Candidate Complete`.
 
 ## Update all
 
-Run `scan`, then inspect each incomplete ticket independently. A batch may mark
+The helper's incomplete-work dashboard is the batch starting point. Each ticket stays
+independent. A batch may mark
 evidenced ACs and move `Pending` to `In Progress` or `Candidate Complete`; it must
-never write `Completed`, use `--verify-ac`, or treat docs-only commits as
+never write `Completed`, perform independent AC verification, or treat docs-only commits as
 implementation evidence. Keep parse failures as per-file errors and continue with
 unrelated valid tickets. Report before/after status and AC counts for every file.
 
@@ -104,3 +100,19 @@ After any write, follow the target repository's documentation review and verific
 rules. A ticket's status is not evidence that its implementation or the current
 worktree passed a gate. Never modify Git metadata, stage, commit, push, or publish as
 an implied part of request management.
+
+<!-- sd0x-routing-contract:v1 unit=create-request/default -->
+```json
+{
+  "positive_triggers": [
+    "Create a date-prefixed execution request from the approved technical specification.",
+    "Scan incomplete request tickets and show the stale work dashboard.",
+    "Update this request ticket from implementation evidence and verify its acceptance criteria."
+  ],
+  "negative_boundaries": [
+    "Analyze the feature-wide problem and write prioritized requirements.",
+    "Design the system architecture, risks, work breakdown, and testing strategy.",
+    "Implement the approved request and modify production code."
+  ]
+}
+```

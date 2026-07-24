@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "units": {
+    "debug/default": {
+      "path": "test/debug-probe-policy.test.js",
+      "sha256": "5f7020b49d420b498d0e589a26f32f7caa2d3c0a25e3fd3c4eb40094ed247be4"
+    }
+  }
+}

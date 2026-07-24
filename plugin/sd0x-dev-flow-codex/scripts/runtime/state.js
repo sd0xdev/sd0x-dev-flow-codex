@@ -28,6 +28,10 @@ const EVIDENCE_SCHEMA_VERSION = 2;
 const LEGACY_EVIDENCE_SCHEMA_VERSION = 1;
 const COMMIT_CLOSURE_REVIEW_SCHEMA_VERSION = 2;
 const REDACTOR_VERSION = 'sd0x-redactor-v1';
+const IMMUTABLE_EVIDENCE_GIT_COMMANDS = new Set([
+  'cat-file', 'diff-tree', 'ls-tree', 'merge-base', 'rev-list', 'show'
+]);
+let activeEvidenceAuditContext = null;
 
 function now() {
   return new Date().toISOString();
@@ -132,7 +136,11 @@ function redactEvidenceValue(value, root, key = '') {
 }
 
 function canonicalEvidenceBlob(cwd, value) {
-  const root = findRepoRoot(cwd);
+  const resolved = path.resolve(cwd);
+  const root = activeEvidenceAuditContext &&
+    resolved === activeEvidenceAuditContext.root
+    ? activeEvidenceAuditContext.root
+    : findRepoRoot(cwd);
   return canonicalJson({
     redactor_version: REDACTOR_VERSION,
     value: redactEvidenceValue(value, root)
@@ -154,6 +162,20 @@ function assertSafeExactBytes(root, bytes, label) {
 }
 
 function runEvidenceGit(root, args, options = {}) {
+  const resolvedRoot = path.resolve(root);
+  const cacheable = activeEvidenceAuditContext &&
+    resolvedRoot === activeEvidenceAuditContext.root &&
+    options.input === undefined &&
+    options.env === undefined &&
+    IMMUTABLE_EVIDENCE_GIT_COMMANDS.has(args[0]) &&
+    args.some((value) => /(?:^|[^a-f0-9])[a-f0-9]{40}(?:[^a-f0-9]|$)/.test(value));
+  const cacheKey = cacheable
+    ? JSON.stringify([args, options.encoding === null ? 'buffer' : 'utf8'])
+    : null;
+  if (cacheKey && activeEvidenceAuditContext.git.has(cacheKey)) {
+    const cached = activeEvidenceAuditContext.git.get(cacheKey);
+    return Buffer.isBuffer(cached) ? Buffer.from(cached) : cached;
+  }
   const env = {
     ...(options.env || process.env),
     GIT_CONFIG_GLOBAL: require('node:os').devNull,
@@ -182,6 +204,10 @@ function runEvidenceGit(root, args, options = {}) {
       ? result.stderr.toString('utf8')
       : String(result.stderr || '');
     throw new Error(stderr.trim() || `git ${args.join(' ')} failed`);
+  }
+  if (cacheKey) {
+    activeEvidenceAuditContext.git.set(cacheKey,
+      Buffer.isBuffer(result.stdout) ? Buffer.from(result.stdout) : result.stdout);
   }
   return result.stdout;
 }
@@ -231,7 +257,12 @@ function appendEvidenceRevisionUnlocked(cwd, record, blobs = {}, options = {}) {
   if ((options.expected_old_oid || null) !== oldOid) {
     throw new Error('Evidence ref compare-and-swap expectation is stale');
   }
-  if (oldOid) auditEvidenceLedger(root);
+  if (oldOid) auditEvidenceLedger(root, {}, {
+    supersedingRequestUnit: record.kind === 'request-closure-pending' &&
+      record.supersedes_record_sha256
+      ? record.promotion_unit_id
+      : null
+  });
   const priorRecords = oldOid ? evidenceRecordsAt(root, oldOid) : [];
   const latestPrior = (kind) => priorRecords.filter((entry) =>
     entry.kind === kind && entry.promotion_unit_id === record.promotion_unit_id
@@ -1500,7 +1531,11 @@ function prepareRequestClosure(cwd, options, hooks = {}) {
   };
   record.record_sha256 = evidenceRecordHash(record);
   const currentEvidenceOid = evidenceRefOid(root);
-  if (currentEvidenceOid) auditEvidenceLedger(root);
+  if (currentEvidenceOid) auditEvidenceLedger(root, {}, {
+    supersedingRequestUnit: options.supersedes_record_sha256
+      ? options.promotion_unit_id
+      : null
+  });
   const existingRecord = currentEvidenceOid
     ? evidenceRecordsAt(root, currentEvidenceOid).find((entry) =>
       entry.record_sha256 === record.record_sha256
@@ -1801,6 +1836,15 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
     pending.promotion_unit_id)?.record_sha256 !== pending.record_sha256) {
     throw new Error('Closure recover pending record is superseded or stale');
   }
+  const assertPendingNotFinalized = () => {
+    const closure = latestEvidenceRecord(
+      root, 'request-closure', pending.promotion_unit_id
+    );
+    if (closure?.pending_record_sha256 === pending.record_sha256) {
+      throw new Error('Closure recover pending record is already finalized');
+    }
+  };
+  assertPendingNotFinalized();
   const paths = String(runEvidenceGit(root, [
     'ls-tree', '-r', '--name-only', pendingResult.oid
   ])).trim().split('\n').filter(Boolean);
@@ -1821,6 +1865,7 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
             pending.promotion_unit_id)?.record_sha256 !== pending.record_sha256) {
         throw new Error('Closure recover evidence changed before recovery');
       }
+      assertPendingNotFinalized();
     };
     assertCurrentPending();
     const requestAbsolute = path.join(root, ...pending.request_path.split('/'));
@@ -1882,7 +1927,8 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
           !/^[a-f0-9-]{36}$/.test(recovery.nonce || '') ||
           !Number.isInteger(recovery.original_mode) ||
           recovery.original_mode < 0 || recovery.original_mode > 0o7777 ||
-          !['prepared', 'displaced', 'installed'].includes(recovery.phase)) {
+          !['prepared', 'displaced', 'installed', 'rollback-installed']
+            .includes(recovery.phase)) {
         throw new Error('Closure recovery journal does not match the pending request');
       }
       assertSha256(recovery.expected_current_sha256,
@@ -1937,6 +1983,51 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
     const finishRecovery = (recoveryState, journal) => {
       const { recovery, priorTemporary, displacedBackup } = recoveryState;
       assertRecoveryDirectory();
+      const reinstallDisplacedWithoutOverwrite = (displaced, cause, detail = null) => {
+        let rollbackError = null;
+        try {
+          if (!fs.existsSync(requestAbsolute)) {
+            assertRecoveryDirectory();
+            fs.linkSync(displacedBackup, requestAbsolute);
+            fsyncDirectory(path.dirname(requestAbsolute));
+            if (typeof hooks.afterRecoveryRollbackLink === 'function') {
+              hooks.afterRecoveryRollbackLink({
+                request: requestAbsolute,
+                displaced: displacedBackup
+              });
+            }
+          }
+          const reinstalled = readRegular(
+            requestAbsolute, 'Closure recovery reinstalled request'
+          );
+          if (!reinstalled ||
+              !sameNodeIdentity(reinstalled.stat, displaced.stat)) {
+            throw new Error(
+              'Closure recovery live path was occupied during rollback'
+            );
+          }
+          recovery.phase = 'rollback-installed';
+          writeDurableRuntimeMarker(recoveryJournalPath, recovery);
+          fs.rmSync(priorTemporary, { force: true });
+          fsyncDirectory(recoveryDirectory);
+          assertRecoveryDirectory();
+          removeDurableRuntimeMarker(recoveryJournalPath);
+        } catch (rollback) {
+          rollbackError = rollback;
+        }
+        if (rollbackError) {
+          throw new Error(
+            `Closure recover ${cause} and remains journaled: ${
+              detail ? `${detail}; ` : ''
+            }${rollbackError.message}`
+          );
+        }
+        throw new Error(
+          `Closure recover ${cause}; current bytes were reinstalled without overwrite${
+            detail ? `: ${detail}` : ''
+          }`
+        );
+      };
       if (options.action === 'abandon') {
         const current = readRegular(requestAbsolute, 'Closure recovery request');
         if (!current || sha256(current.bytes) !== options.expected_current_sha256) {
@@ -1970,6 +2061,24 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
         'Closure recovery displaced backup');
       let current = readRegular(requestAbsolute, 'Closure recovery request');
       let prior = readRegular(priorTemporary, 'Closure recovery prior temporary');
+      if (displaced && current &&
+          sameNodeIdentity(displaced.stat, current.stat) &&
+          recovery.phase !== 'installed') {
+        if (sha256(displaced.bytes) !== sha256(current.bytes)) {
+          throw new Error(
+            'Closure recovery rollback bytes changed and remain journaled'
+          );
+        }
+        recovery.phase = 'rollback-installed';
+        writeDurableRuntimeMarker(recoveryJournalPath, recovery);
+        fs.rmSync(priorTemporary, { force: true });
+        fsyncDirectory(recoveryDirectory);
+        assertRecoveryDirectory();
+        removeDurableRuntimeMarker(recoveryJournalPath);
+        throw new Error(
+          'Closure recover rollback completed after restart; current bytes remain installed without overwrite'
+        );
+      }
       if (!displaced) {
         if (!current || !prior ||
             sha256(current.bytes) !== recovery.expected_current_sha256 ||
@@ -1982,9 +2091,31 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
         assertCurrentPending();
         assertPathNodeIdentities(requestParentIdentities, 'Closure recover parent');
         assertRecoveryDirectory();
+        if (typeof hooks.beforeRecoveryRename === 'function') {
+          hooks.beforeRecoveryRename({
+            request: requestAbsolute,
+            displaced: displacedBackup
+          });
+        }
         fs.renameSync(requestAbsolute, displacedBackup);
         fsyncDirectory(path.dirname(requestAbsolute));
         fsyncDirectory(recoveryDirectory);
+        displaced = readRegular(displacedBackup,
+          'Closure recovery displaced backup');
+        current = null;
+        if (!displaced ||
+            sha256(displaced.bytes) !== recovery.expected_current_sha256 ||
+            journal.dev !== displaced.stat.dev.toString() ||
+            journal.ino !== displaced.stat.ino.toString()) {
+          if (!displaced) {
+            throw new Error(
+              'Closure recovery displaced backup is unavailable and remains journaled'
+            );
+          }
+          reinstallDisplacedWithoutOverwrite(
+            displaced, 'displaced bytes or identity changed'
+          );
+        }
         if (typeof hooks.afterRecoveryRename === 'function') {
           hooks.afterRecoveryRename({
             request: requestAbsolute,
@@ -2000,13 +2131,15 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
             displaced: displacedBackup
           });
         }
-        displaced = readRegular(displacedBackup,
-          'Closure recovery displaced backup');
-        current = null;
       }
       if (sha256(displaced.bytes) !== recovery.expected_current_sha256 ||
           (journal && (journal.dev !== displaced.stat.dev.toString() ||
             journal.ino !== displaced.stat.ino.toString()))) {
+        if (recovery.phase === 'prepared') {
+          reinstallDisplacedWithoutOverwrite(
+            displaced, 'displaced bytes or identity changed'
+          );
+        }
         throw new Error('Closure recovery displaced bytes or identity changed');
       }
       if (!current) {
@@ -2024,35 +2157,8 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
             hooks.afterRecoveryLink({ request: requestAbsolute });
           }
         } catch (error) {
-          let rollbackError = null;
-          try {
-            if (!fs.existsSync(requestAbsolute)) {
-              assertRecoveryDirectory();
-              fs.linkSync(displacedBackup, requestAbsolute);
-              fsyncDirectory(path.dirname(requestAbsolute));
-            }
-            const reinstalled = readRegular(
-              requestAbsolute, 'Closure recovery reinstalled request'
-            );
-            if (!reinstalled ||
-                !sameNodeIdentity(reinstalled.stat, displaced.stat)) {
-              throw new Error(
-                'Closure recovery live path was occupied during rollback'
-              );
-            }
-            fs.rmSync(priorTemporary, { force: true });
-            assertRecoveryDirectory();
-            removeDurableRuntimeMarker(recoveryJournalPath);
-          } catch (rollback) {
-            rollbackError = rollback;
-          }
-          if (rollbackError) {
-            throw new Error(
-              `Closure recover prior install failed and remains journaled: ${error.message}; ${rollbackError.message}`
-            );
-          }
-          throw new Error(
-            `Closure recover could not install prior bytes; current bytes were reinstalled without overwrite: ${error.message}`
+          reinstallDisplacedWithoutOverwrite(
+            displaced, 'prior install failed', error.message
           );
         }
         assertRecoveryDirectory();
@@ -2111,7 +2217,7 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
     const identities = capturePathIdentities(root, request.relative, 'file');
     let descriptor;
     try {
-      const journal = readJournal();
+      let journal = readJournal(false);
       descriptor = fs.openSync(request.absolute,
         (options.action === 'restore-prior'
           ? fs.constants.O_RDWR : fs.constants.O_RDONLY) |
@@ -2120,12 +2226,35 @@ function recoverRequestClosure(cwd, options, hooks = {}) {
       if (!sameNodeIdentity(identity, identities.at(-1).stat)) {
         throw new Error('Closure recover opened a different request identity');
       }
+      const currentHash = sha256(readAllSync(descriptor));
+      if (!journal) {
+        if (options.action !== 'restore-prior' ||
+            currentHash !== pending.proposed_request_content_sha256) {
+          throw new Error('Closure recover requires a regular apply journal');
+        }
+        if (currentHash !== options.expected_current_sha256) {
+          throw new Error('Closure recover request bytes differ from operator expectation');
+        }
+        assertCurrentPending();
+        assertPathIdentities(identities, 'Closure recover exact applied request');
+        writeDurableRuntimeMarker(journalPath, {
+          schema_version: 1,
+          pending_record_sha256: pending.record_sha256,
+          request_path: pending.request_path,
+          prior_sha256: pending.prior_request_content_sha256,
+          proposed_sha256: pending.proposed_request_content_sha256,
+          dev: identity.dev.toString(),
+          ino: identity.ino.toString(),
+          recorded_at: now()
+        });
+        journal = readJournal();
+      }
       if (options.action === 'restore-prior' &&
           (journal.dev !== identity.dev.toString() ||
            journal.ino !== identity.ino.toString())) {
         throw new Error('Closure recover journal does not match the request identity');
       }
-      if (sha256(readAllSync(descriptor)) !== options.expected_current_sha256) {
+      if (currentHash !== options.expected_current_sha256) {
         throw new Error('Closure recover request bytes differ from operator expectation');
       }
       if (typeof hooks.beforeMutation === 'function') {
@@ -2878,7 +3007,14 @@ function latestEvidenceRecord(root, kind, promotionUnitId, oid = evidenceRefOid(
 }
 
 function evidenceFileBytes(root, oid, filePath) {
-  return String(runEvidenceGit(root, ['show', `${oid}:${filePath}`]));
+  const cache = activeEvidenceAuditContext &&
+    path.resolve(root) === activeEvidenceAuditContext.root
+    ? activeEvidenceAuditContext.evidenceFiles
+    : null;
+  if (cache?.has(filePath)) return cache.get(filePath);
+  const bytes = String(runEvidenceGit(root, ['show', `${oid}:${filePath}`]));
+  if (cache) cache.set(filePath, bytes);
+  return bytes;
 }
 
 function validateEvidenceBlobAt(root, oid, record, name, field, paths = null) {
@@ -2909,7 +3045,7 @@ function validateEvidenceBlobAt(root, oid, record, name, field, paths = null) {
   return parsed.value;
 }
 
-function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
+function auditEvidenceLedgerTransaction(cwd, expected = {}, hooks = {}) {
   const root = findRepoRoot(cwd);
   const oid = evidenceRefOid(root);
   if (!oid) throw new Error('Evidence ref is missing');
@@ -3124,14 +3260,35 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
       }
     }
   }
+  for (const [key, closure] of latestRevision) {
+    if (!key.startsWith('request-closure\0')) continue;
+    const unit = key.slice('request-closure\0'.length);
+    if (hooks.supersedingRequestUnit === unit) continue;
+    const pending = latestRevision.get(`request-closure-pending\0${unit}`);
+    if (pending?.record_sha256 !== closure.pending_record_sha256) continue;
+    const request = readBoundRegularFile(root, closure.request_path, {
+      beforeRead: hooks.beforeRequestRead
+    });
+    const bytes = request.bytes;
+    if (sha256(bytes) !== closure.request_content_sha256 ||
+        sha256(canonicalJson(requestDefinition(bytes.toString('utf8')))) !==
+          closure.ac_definition_sha256 || !completedRequest(bytes.toString('utf8'))) {
+      throw new Error('Current request no longer matches durable completion evidence');
+    }
+  }
+  const selectsRequestClosure = expected.kind === 'request-closure';
   const selected = expected.promotion_unit_id
-    ? [...seenRecords.values()].filter((record) =>
-        record.promotion_unit_id === expected.promotion_unit_id &&
-        ['promotion', 'pack-ready', 'retirement'].includes(record.kind)
-      ).at(-1)
+    ? selectsRequestClosure
+      ? latestRevision.get(`request-closure\0${expected.promotion_unit_id}`) || null
+      : [...seenRecords.values()].filter((record) =>
+          record.promotion_unit_id === expected.promotion_unit_id &&
+          ['promotion', 'pack-ready', 'retirement'].includes(record.kind)
+        ).at(-1)
     : null;
   if (expected.promotion_unit_id && !selected) {
-    throw new Error(`Evidence has no completion record for ${expected.promotion_unit_id}`);
+    throw new Error(selectsRequestClosure
+      ? `Evidence has no request closure for ${expected.promotion_unit_id}`
+      : `Evidence has no completion record for ${expected.promotion_unit_id}`);
   }
   if (selected) {
     const currentClosure = latestRevision.get(
@@ -3140,7 +3297,13 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
     const currentPending = latestRevision.get(
       `request-closure-pending\0${selected.promotion_unit_id}`
     );
-    if (currentClosure?.record_sha256 !== selected.request_closure_record_sha256 ||
+    if (selectsRequestClosure) {
+      if (currentClosure?.record_sha256 !== selected.record_sha256 ||
+          selected.pending_record_sha256 !== currentPending?.record_sha256) {
+        throw new Error('Selected request closure is superseded');
+      }
+    } else if (currentClosure?.record_sha256 !==
+        selected.request_closure_record_sha256 ||
         currentClosure?.pending_record_sha256 !== currentPending?.record_sha256) {
       throw new Error('Selected completion references a superseded request closure');
     }
@@ -3171,6 +3334,53 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
     records: records.size,
     selected: selected || null
   };
+}
+
+function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
+  const root = findRepoRoot(cwd);
+  const prior = activeEvidenceAuditContext;
+  activeEvidenceAuditContext = {
+    root: path.resolve(root),
+    git: new Map(),
+    evidenceFiles: new Map()
+  };
+  try {
+    return auditEvidenceLedgerTransaction(root, expected, hooks);
+  } finally {
+    activeEvidenceAuditContext = prior;
+  }
+}
+
+function latestCompletionEvidence(cwd) {
+  const root = findRepoRoot(cwd);
+  const audit = auditEvidenceLedger(root);
+  const byUnit = new Map();
+  for (const record of evidenceRecordsAt(root, audit.oid)) {
+    if (!['promotion', 'pack-ready', 'retirement'].includes(record.kind)) continue;
+    if (!byUnit.has(record.promotion_unit_id)) {
+      byUnit.set(record.promotion_unit_id, []);
+    }
+    byUnit.get(record.promotion_unit_id).push(record);
+  }
+  if (evidenceRefOid(root) !== audit.oid) {
+    throw new Error('Evidence ref changed while completion owners were selected');
+  }
+  const latest = [...byUnit.values()].map((records) => {
+    // The ledger audit proves completion timestamps advance in commit order.
+    records.sort((left, right) =>
+      Date.parse(left.recorded_at) - Date.parse(right.recorded_at)
+    );
+    const record = records.at(-1);
+    const prior = records.at(-2) || null;
+    return {
+      ...record,
+      prior_completion_record_sha256: prior?.record_sha256 || null,
+      prior_completion_request_path: prior?.request_path || null
+    };
+  });
+  return latest.sort((left, right) =>
+    Buffer.from(left.promotion_unit_id).compare(Buffer.from(right.promotion_unit_id))
+  );
 }
 
 function pruneExternalReviewStarts(values, referenceTime = Date.now()) {
@@ -4915,6 +5125,7 @@ module.exports = {
   hasSetupDeferral,
   hasSessionActivationFailure,
   hashPayloadTree,
+  latestCompletionEvidence,
   isCurrentPass,
   isSessionActive,
   markSetupDeferral,

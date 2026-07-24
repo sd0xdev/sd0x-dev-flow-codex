@@ -1,0 +1,43 @@
+{
+  "schema_version": 2,
+  "target_skill": "deep-explore",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "deep-explore/default",
+      "target_mode": null,
+      "source_names": [
+        "deep-explore"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Deeply explore how authorization works across this repository.",
+          "Map a large subsystem in multiple passes and identify hidden cross-cutting behavior.",
+          "Perform a multi-wave codebase exploration with a completeness assessment."
+        ],
+        "negative_boundaries": [
+          "Answer where one constant is defined.",
+          "Implement the authorization changes after exploration.",
+          "Research external standards and community practices for authorization."
+        ]
+      },
+      "behavior_tests": [
+        "test/deep-explore-default-routing.test.js",
+        "test/deep-explore-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Stop complete only when score is at least 80 and critical_open equals zero",
+          "Wave three is allowed only for a cross-cutting critical gap, findings more than 70% concentrated in one subsystem, or a high-risk auth/security/migration domain",
+          "Zero findings score 70",
+          "score = round(100 × (0.7 × (1 - novelty_rate) + 0.3 × is_zero(critical_open)))"
+        ],
+        "forbidden": []
+      }
+    }
+  ]
+}

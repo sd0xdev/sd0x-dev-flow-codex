@@ -1,0 +1,62 @@
+{
+  "architecture-advice/default": {
+    "skill_sha256": "6ce72de504f31363e3b704963bf2a583ce5e7be2b2429d9c41f74c01d2823e00",
+    "required": ["Challenge the preferred option with the strongest counterexample", "Develop at least two credible options independently", "Keep repository and Git access read-only"],
+    "forbidden": []
+  },
+  "ask/default": {
+    "skill_sha256": "03b663055d1988329e0aa6ca5a24700adf92af7d6de947eb902280ddc62627d3",
+    "required": ["Before returning evidence, replace every high-confidence credential value with exact [REDACTED]", "Never read `.env`, `credentials.*`, `*secret*`", "Reject absolute paths, traversal, symlink escapes"],
+    "forbidden": []
+  },
+  "brainstorm/default": {
+    "skill_sha256": "dc658fb2f15d249e8e634d37a58a10f3a0064e0633d3865b6daca8e41a475868",
+    "required": ["Apply precedence `divergent → conditional → pure → pareto`", "Conduct at most five attack/rebuttal rounds", "Every attack record is `{attack_id, target_claim_id, novelty_key, argument, evidence_refs[], proposed_by, validity}`", "one model may not impersonate both positions"],
+    "forbidden": ["at most three rounds"]
+  },
+  "code-explore/default": {
+    "skill_sha256": "f436375e23b7cf5d96b7798d34dfb303a598f1545feeb54b11952a7b22e1aeaf",
+    "required": ["Record file and symbol evidence at every material hop", "Start breadth-first", "Stop after the requested architecture, execution flow, and data flow can be explained"],
+    "forbidden": []
+  },
+  "code-investigate/default": {
+    "skill_sha256": "b50beff55b8882f96c12b1824effb547189f620dff2d15be7aafd4e2c60e154d",
+    "required": ["A configured Claude adapter receives the same neutral question and scope", "Native Codex develops Position A", "one model may not impersonate both positions"],
+    "forbidden": []
+  },
+  "deep-explore/default": {
+    "skill_sha256": "94230e6eb731c22baf24bf837422636ae6a1556abc2ac3e3eaa2d5109f1b025f",
+    "required": ["Stop complete only when score is at least 80 and critical_open equals zero", "Wave three is allowed only for a cross-cutting critical gap, findings more than 70% concentrated in one subsystem, or a high-risk auth/security/migration domain", "Zero findings score 70", "score = round(100 × (0.7 × (1 - novelty_rate) + 0.3 × is_zero(critical_open)))"],
+    "forbidden": []
+  },
+  "deep-research/default": {
+    "skill_sha256": "70687d396ef2dc27e2c8ab6e0152c5eccd7e84cff22260640eb9c3eb2cb30caf",
+    "required": ["Evidence is `{source_id, publisher_id, author_id, identity_binding_hash, independence_key, source_type, agent_role, locator, content_hash, relation, weight}`", "Low is one inline shard, at most three fetched sources", "Record a redacted trace `{dispatch_id, role, scope_hash, prompt_template_hash, input_artifact_hashes[], started_at, completed_at, evidence_count}`", "Unknown, unverified, or mismatched declared identity is unresolved and contributes no cross-verification", "net_score = max(0, support - refute)"],
+    "forbidden": []
+  },
+  "explain/default": {
+    "skill_sha256": "3184c9afc93f32fec2c4f61c888a06e592de9e095c25c437a6426283e82f6376",
+    "required": ["Check the explanation against tests and caller expectations", "Match beginner, intermediate, or expert depth to the request", "Read the complete relevant unit plus its callers, types, tests"],
+    "forbidden": []
+  },
+  "fp-brief/default": {
+    "skill_sha256": "f4ea1201f5118cb263761df776f364bcde4bb053c783962a352db7aafe7eb507",
+    "required": ["Build an assumptions register", "Construct the reasoning chain from premises to conclusion", "Test decision sensitivity"],
+    "forbidden": []
+  },
+  "git-investigate/default": {
+    "skill_sha256": "2edf2b172b8359c463e800b43081873a4885315090a81c05dfddf7b95fd9f912",
+    "required": ["Correlation with a commit is not proof of causation", "Never change the index, branch, worktree, references, remotes, or configuration", "follow line attribution, path history across renames"],
+    "forbidden": []
+  },
+  "issue-analyze/default": {
+    "skill_sha256": "9d2e36669d0e61566ffd22466d863fa491895c29b7c052e98312390c85a4675f",
+    "required": ["A Claude-origin finding goes to native Codex", "Human review is mandatory before dismissing a credible P0 or P1 finding", "a native-Codex finding goes to the configured Claude adapter"],
+    "forbidden": []
+  },
+  "seek-verdict/default": {
+    "skill_sha256": "d225cf8092684d9723304b48367e0df31f1ea82cf587843f8a7f6c824b39542d",
+    "required": ["A P0/P1 candidate binds `finding_key + fingerprint + dismissal_evidence_hash`", "Counter persistence is limited to Git metadata or the .sd0x directory", "confidence ≥ 0.95 and 4 independent evidence", "one model may not impersonate both roles"],
+    "forbidden": []
+  }
+}

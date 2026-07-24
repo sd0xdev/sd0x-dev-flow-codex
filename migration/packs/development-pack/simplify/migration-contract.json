@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target_skill": "simplify",
+  "target_package": "development-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "simplify/default",
+      "target_mode": null,
+      "source_names": [
+        "simplify"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Reduce duplication in this single helper without changing its behavior.",
+          "Simplify this small function by flattening unnecessary nesting.",
+          "Streamline the named code path with the smallest behavior-preserving edit."
+        ],
+        "negative_boundaries": [
+          "Design a replacement architecture for the entire billing subsystem.",
+          "Implement a new helper capability and expose it through the API.",
+          "Refactor several modules around a new responsibility boundary."
+        ]
+      },
+      "behavior_tests": [
+        "test/simplify-default-routing.test.js"
+      ]
+    }
+  ]
+}

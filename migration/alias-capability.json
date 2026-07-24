@@ -1,21 +1,36 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "decision": "mapping-only",
-  "codex_version": "codex-cli 0.144.1",
+  "codex_version": "codex-cli 0.145.0",
   "registry_mechanism": null,
   "alias": "r4-alias-probe",
   "manual_invocation": true,
   "auto_route_excluded": false,
   "registry_dump_path": "migration/evidence/alias-registry-dump.json",
-  "registry_dump_hash": "58b7de071098ab70cfc562f0b29027abba7c0b1c92771c7831c4d702335b6201",
+  "registry_dump_hash": "3d1715ea2340c6b994a978aeee033a44c4dbdcf79978eb29049b693c581f5d74",
   "fixture_manifest_path": "test/fixtures/alias-capability/plugin/.codex-plugin/plugin.json",
   "fixture_manifest_hash": "7834bc05d6cb26d033604afe7c1b9b7ff2448bca48d939946b2b9474107c3ad2",
-  "plugin_fingerprint": "1273c312e39bfa7587bfa3b78ea921d5832b9e91f991e6931311576d88a9c17b",
+  "plugin_fingerprint": "2cd87ce5afc4475c54ea5a35bbf7549447fe1a3a5a243abf8233f16fc36c4a8d",
+  "owner_request_path": "docs/features/skill-toolkit-migration/requests/2026-07-23-alias-capability-codex-0-145-0-refresh.md",
+  "owner_history": [
+    {
+      "path": "docs/features/skill-toolkit-migration/requests/2026-07-10-skill-alias-capability-r4.md",
+      "sha256": "f5484fb1478539f307ae0d27b2d7cd936fbfb5f48338df28951c3e682f01930e"
+    },
+    {
+      "path": "docs/features/skill-toolkit-migration/requests/2026-07-14-alias-capability-codex-0-144-4-refresh.md",
+      "sha256": "f4fa86534711a75dacfe02b8a330ab8ffa4ee05eef6f5bbabc024fafe0b56f7d"
+    },
+    {
+      "path": "docs/features/skill-toolkit-migration/requests/2026-07-23-alias-capability-codex-0-144-6-refresh.md",
+      "sha256": "30f3b7b9a7721cd405be6925846972521296166018f60f92cac0b873462e086b"
+    }
+  ],
   "reproduce_argv": [
     "CODEX_HOME=$PWD/.codex-dev-home codex --version",
     "CODEX_HOME=$PWD/.codex-dev-home codex app-server generate-json-schema --experimental --out <temporary-directory>",
     "CODEX_HOME=$PWD/.codex-dev-home npm run migration:alias:probe"
   ],
-  "tested_at": "2026-07-13T09:55:57+08:00",
+  "tested_at": "2026-07-23T17:08:50+08:00",
   "rationale": "Codex supports explicit and implicit skill invocation, but its versioned registry schema exposes no flag or API that preserves explicit invocation while excluding a skill from implicit routing. Prompt sampling cannot close that proof gap."
 }

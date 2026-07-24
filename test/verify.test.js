@@ -119,7 +119,7 @@ test('build-only Node repositories run the build as their project check', (t) =>
   assert.equal(result.evidence.commands.at(-1).command, 'npm run build');
 });
 
-test('Windows resolves package runners through their command shims', () => {
+test('package commands keep the timeout and Windows runner shim', () => {
   for (const runner of ['npm', 'yarn', 'pnpm']) {
     assert.equal(commandForPlatform(runner, 'win32'), `${runner}.cmd`);
   }
@@ -138,6 +138,7 @@ test('Windows resolves package runners through their command shims', () => {
   assert.equal(observed.command, 'npm.cmd');
   assert.deepEqual(observed.args, ['run', 'check']);
   assert.equal(observed.options.shell, true);
+  assert.equal(observed.options.timeout, 30 * 60 * 1000);
 });
 
 test('verification records successful deterministic evidence', (t) => {

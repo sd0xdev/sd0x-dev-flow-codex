@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target_skill": "test-deep",
+  "target_package": "development-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "test-deep/default",
+      "target_mode": null,
+      "source_names": [
+        "test-deep"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Build a risk-led test matrix for this cross-service change and execute it progressively.",
+          "Investigate these test failures across unit, integration, and end-to-end layers.",
+          "Run deep context-aware testing for this change and triage every unresolved failure."
+        ],
+        "negative_boundaries": [
+          "Generate a missing unit test for one known function.",
+          "Record the authoritative repository verification gate for this fingerprint.",
+          "Run only the focused tests for the feature I just implemented."
+        ]
+      },
+      "behavior_tests": [
+        "test/test-deep-default-routing.test.js"
+      ]
+    }
+  ]
+}

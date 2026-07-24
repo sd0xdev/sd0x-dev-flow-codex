@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "target_skill": "brainstorm",
+  "target_package": "research-pack",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "brainstorm/default",
+      "target_mode": null,
+      "source_names": [
+        "codex-brainstorm"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Brainstorm competing designs for offline synchronization and challenge each one.",
+          "Explore solution options adversarially until they converge or clearly diverge.",
+          "Stress-test our proposed migration strategy with independent positions."
+        ],
+        "negative_boundaries": [
+          "Explain this function line by line.",
+          "Implement the selected offline synchronization design.",
+          "Research the full market landscape with a multi-source evidence report."
+        ]
+      },
+      "behavior_tests": [
+        "test/brainstorm-default-routing.test.js",
+        "test/brainstorm-default-semantics.test.js"
+      ],
+      "semantic_requirements": {
+        "required": [
+          "Apply precedence `divergent → conditional → pure → pareto`",
+          "Conduct at most five attack/rebuttal rounds",
+          "Every attack record is `{attack_id, target_claim_id, novelty_key, argument, evidence_refs[], proposed_by, validity}`",
+          "one model may not impersonate both positions"
+        ],
+        "forbidden": [
+          "at most three rounds"
+        ]
+      }
+    }
+  ]
+}

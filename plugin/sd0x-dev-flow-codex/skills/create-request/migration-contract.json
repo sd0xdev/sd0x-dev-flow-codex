@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "target_skill": "create-request",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "create-request/default",
+      "target_mode": null,
+      "source_names": [
+        "create-request"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Create a date-prefixed execution request from the approved technical specification.",
+          "Scan incomplete request tickets and show the stale work dashboard.",
+          "Update this request ticket from implementation evidence and verify its acceptance criteria."
+        ],
+        "negative_boundaries": [
+          "Analyze the feature-wide problem and write prioritized requirements.",
+          "Design the system architecture, risks, work breakdown, and testing strategy.",
+          "Implement the approved request and modify production code."
+        ]
+      },
+      "behavior_tests": [
+        "test/create-request-default-routing.test.js"
+      ]
+    }
+  ]
+}

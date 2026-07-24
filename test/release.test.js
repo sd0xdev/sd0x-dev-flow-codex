@@ -24,6 +24,42 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function aliasOwnerRecord(root) {
+  const aliasPath = path.join(root, 'migration', 'alias-capability.json');
+  const aliasCapability = JSON.parse(fs.readFileSync(aliasPath));
+  const ownerPath = path.join(root, ...aliasCapability.owner_request_path.split('/'));
+  const ownerRequest = fs.readFileSync(ownerPath, 'utf8');
+  const marker = /^<!-- sd0x-alias-capability-owner:v1 ([^\r\n]+) -->$/m.exec(
+    ownerRequest
+  );
+  return {
+    aliasPath,
+    aliasCapability,
+    ownerPath,
+    ownerRequest,
+    marker: marker[0],
+    evidence: JSON.parse(marker[1])
+  };
+}
+
+function writeAliasOwnerEvidence(root, update) {
+  const record = aliasOwnerRecord(root);
+  const evidence = update({ ...record.evidence }, record);
+  fs.writeFileSync(record.ownerPath, record.ownerRequest.replace(
+    record.marker,
+    `<!-- sd0x-alias-capability-owner:v1 ${JSON.stringify(evidence)} -->`
+  ));
+}
+
+function syncAliasOwnerDecisionHash(root) {
+  writeAliasOwnerEvidence(root, (evidence, record) => ({
+    ...evidence,
+    decision_sha256: crypto.createHash('sha256')
+      .update(fs.readFileSync(record.aliasPath))
+      .digest('hex')
+  }));
+}
+
 function syncAliasFingerprint(root, pluginRoot) {
   const manifestPath = path.join(pluginRoot, '.codex-plugin', 'plugin.json');
   const aliasPath = path.join(root, 'migration', 'alias-capability.json');
@@ -32,14 +68,19 @@ function syncAliasFingerprint(root, pluginRoot) {
     .update(fs.readFileSync(manifestPath))
     .digest('hex');
   writeJson(aliasPath, aliasCapability);
+  syncAliasOwnerDecisionHash(root);
 }
 
 function versionSourceBytes(root, pluginRoot) {
+  const aliasCapability = JSON.parse(fs.readFileSync(
+    path.join(root, 'migration', 'alias-capability.json')
+  ));
   return [
     path.join(root, 'package.json'),
     path.join(pluginRoot, '.codex-plugin', 'plugin.json'),
     path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
-    path.join(root, 'migration', 'alias-capability.json')
+    path.join(root, 'migration', 'alias-capability.json'),
+    path.join(root, ...aliasCapability.owner_request_path.split('/'))
   ].map((filePath) => [filePath, fs.readFileSync(filePath)]);
 }
 
@@ -81,11 +122,32 @@ function fixture() {
     }
   });
   const manifestPath = path.join(pluginRoot, '.codex-plugin', 'plugin.json');
-  writeJson(path.join(root, 'migration', 'alias-capability.json'), {
+  const ownerRelative =
+    'docs/features/skill-toolkit-migration/requests/2026-07-24-alias-owner.md';
+  const aliasPath = path.join(root, 'migration', 'alias-capability.json');
+  writeJson(aliasPath, {
+    codex_version: 'codex-cli 0.145.0',
+    decision: 'mapping-only',
+    registry_mechanism: null,
+    tested_at: '2026-07-24T00:00:00Z',
     plugin_fingerprint: crypto.createHash('sha256')
       .update(fs.readFileSync(manifestPath))
-      .digest('hex')
+      .digest('hex'),
+    owner_request_path: ownerRelative
   });
+  const ownerPath = path.join(root, ...ownerRelative.split('/'));
+  fs.mkdirSync(path.dirname(ownerPath), { recursive: true });
+  fs.writeFileSync(ownerPath,
+    '# Alias Owner\n\n' +
+    `<!-- sd0x-alias-capability-owner:v1 ${JSON.stringify({
+      codex_version: 'codex-cli 0.145.0',
+      decision: 'mapping-only',
+      decision_sha256: crypto.createHash('sha256')
+        .update(fs.readFileSync(aliasPath))
+        .digest('hex'),
+      registry_mechanism: null,
+      tested_at: '2026-07-24T00:00:00Z'
+    })} -->\n`);
   writeJson(path.join(pluginRoot, '.mcp.json'), {});
   writeJson(path.join(pluginRoot, 'hooks', 'hooks.json'), {});
   fs.mkdirSync(path.join(pluginRoot, 'skills'), { recursive: true });
@@ -135,6 +197,24 @@ test('Node.js runtime requirements stay aligned across CI and the shipped plugin
   assert.match(doctorSource, /check: 'node>=24'.*nodeMajor >= 24/);
 });
 
+test('CI and release budgets cover the aggregate repository check', () => {
+  const root = path.resolve(__dirname, '..');
+  const ci = fs.readFileSync(
+    path.join(root, '.github', 'workflows', 'ci.yml'), 'utf8'
+  );
+  const release = fs.readFileSync(
+    path.join(root, '.github', 'workflows', 'release.yml'), 'utf8'
+  );
+  const timeout = (workflow) => Number(
+    /^\s*timeout-minutes:\s*(\d+)\s*$/m.exec(workflow)?.[1]
+  );
+
+  assert.ok(timeout(ci) >= 40);
+  assert.ok(timeout(release) >= 45);
+  assert.match(ci, /npm run check/);
+  assert.match(release, /npm run check/);
+});
+
 test('version setter updates package and plugin manifest together', (t) => {
   const values = fixture();
   t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
@@ -163,17 +243,31 @@ test('version setter updates package and plugin manifest together', (t) => {
     ))).plugin_fingerprint,
     crypto.createHash('sha256').update(fs.readFileSync(manifestPath)).digest('hex')
   );
+  const aliasPath = path.join(values.root, 'migration', 'alias-capability.json');
+  const ownerPath = path.join(values.root, 'docs', 'features',
+    'skill-toolkit-migration', 'requests', '2026-07-24-alias-owner.md');
+  const ownerEvidence = JSON.parse(
+    /sd0x-alias-capability-owner:v1 ([^\r\n]+) -->/.exec(
+      fs.readFileSync(ownerPath, 'utf8')
+    )[1]
+  );
+  assert.equal(
+    ownerEvidence.decision_sha256,
+    crypto.createHash('sha256').update(fs.readFileSync(aliasPath)).digest('hex')
+  );
 });
 
 test('version setter rolls back every source after each install boundary fails', (t) => {
-  for (const failAt of [0, 1, 2, 3]) {
+  for (const failAt of [0, 1, 2, 3, 4]) {
     const values = fixture();
     t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+    const prior = versionSourceBytes(values.root, values.pluginRoot);
     assert.throws(() => setVersion('2.3.4', values.root, {
       beforeInstall({ index }) {
         if (index === failAt) throw new Error(`injected install failure ${failAt}`);
       }
     }), new RegExp(`injected install failure ${failAt}`));
+    assertSourceBytes(prior);
     assert.equal(
       JSON.parse(fs.readFileSync(path.join(values.root, 'package.json'))).version,
       '0.1.0'
@@ -265,6 +359,126 @@ test('release check rejects a stale alias capability plugin fingerprint', (t) =>
   aliasCapability.plugin_fingerprint = '0'.repeat(64);
   writeJson(aliasPath, aliasCapability);
   assert.throws(() => checkRelease(values.root), /alias capability plugin fingerprint/);
+});
+
+test('release check rejects stale alias capability owner evidence', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const ownerPath = path.join(values.root, 'docs', 'features',
+    'skill-toolkit-migration', 'requests', '2026-07-24-alias-owner.md');
+  fs.writeFileSync(ownerPath, fs.readFileSync(ownerPath, 'utf8')
+    .replace(/[0-9a-f]{64}/, '0'.repeat(64)));
+
+  assert.throws(() => checkRelease(values.root),
+    /owner evidence does not match the decision artifact/);
+});
+
+test('version setter rejects stale alias owner evidence before changing any source', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const ownerPath = path.join(values.root, 'docs', 'features',
+    'skill-toolkit-migration', 'requests', '2026-07-24-alias-owner.md');
+  fs.writeFileSync(ownerPath, fs.readFileSync(ownerPath, 'utf8')
+    .replace(/[0-9a-f]{64}/, '0'.repeat(64)));
+  const prior = versionSourceBytes(values.root, values.pluginRoot);
+
+  assert.throws(() => setVersion('2.3.4', values.root),
+    /owner evidence does not match the decision artifact/);
+  assertSourceBytes(prior);
+});
+
+test('release preflight validates every alias owner evidence field exactly', (t) => {
+  const mutations = [
+    ['codex_version', 'codex-cli 9.9.9'],
+    ['decision', 'manual-only'],
+    ['registry_mechanism', 'implicitInvocationDisabled'],
+    ['tested_at', '2026-07-24T01:00:00Z']
+  ];
+  for (const [field, value] of mutations) {
+    const values = fixture();
+    t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+    writeAliasOwnerEvidence(values.root, (evidence) => ({
+      ...evidence,
+      [field]: value
+    }));
+    const prior = versionSourceBytes(values.root, values.pluginRoot);
+
+    assert.throws(() => checkRelease(values.root),
+      /owner evidence does not match the decision artifact/);
+    assert.throws(() => setVersion('2.3.4', values.root),
+      /owner evidence does not match the decision artifact/);
+    assertSourceBytes(prior);
+  }
+
+  const extraField = fixture();
+  t.after(() => fs.rmSync(extraField.root, { recursive: true, force: true }));
+  writeAliasOwnerEvidence(extraField.root, (evidence) => ({
+    ...evidence,
+    unexpected: true
+  }));
+  const prior = versionSourceBytes(extraField.root, extraField.pluginRoot);
+  assert.throws(() => checkRelease(extraField.root),
+    /owner evidence fields or decision hash are invalid/);
+  assert.throws(() => setVersion('2.3.4', extraField.root),
+    /owner evidence fields or decision hash are invalid/);
+  assertSourceBytes(prior);
+});
+
+test('release preflight rejects traversing and symlinked alias owner paths', (t) => {
+  const cases = [
+    {
+      pattern: /normalized repository-relative path/,
+      configure(values) {
+        const aliasPath = path.join(values.root, 'migration', 'alias-capability.json');
+        const aliasCapability = JSON.parse(fs.readFileSync(aliasPath));
+        const outsideName = `${path.basename(values.root)}-alias-owner.md`;
+        const outsidePath = path.join(path.dirname(values.root), outsideName);
+        fs.writeFileSync(outsidePath, 'outside owner\n');
+        t.after(() => fs.rmSync(outsidePath, { force: true }));
+        aliasCapability.owner_request_path = `../${outsideName}`;
+        writeJson(aliasPath, aliasCapability);
+      }
+    },
+    {
+      pattern: /must not traverse symlinks/,
+      configure(values) {
+        const target = path.join(values.root, 'owner-target');
+        fs.mkdirSync(target);
+        fs.writeFileSync(path.join(target, 'alias-owner.md'), 'linked owner\n');
+        const link = path.join(values.root, 'docs', 'linked-owner');
+        fs.symlinkSync(target, link, 'dir');
+        const aliasPath = path.join(values.root, 'migration', 'alias-capability.json');
+        const aliasCapability = JSON.parse(fs.readFileSync(aliasPath));
+        aliasCapability.owner_request_path = 'docs/linked-owner/alias-owner.md';
+        writeJson(aliasPath, aliasCapability);
+      }
+    },
+    {
+      pattern: /must not traverse symlinks/,
+      configure(values) {
+        const aliasPath = path.join(values.root, 'migration', 'alias-capability.json');
+        const aliasCapability = JSON.parse(fs.readFileSync(aliasPath));
+        const priorOwner = path.join(
+          values.root, ...aliasCapability.owner_request_path.split('/')
+        );
+        const link = path.join(values.root, 'docs', 'alias-owner-link.md');
+        fs.symlinkSync(priorOwner, link);
+        aliasCapability.owner_request_path = 'docs/alias-owner-link.md';
+        writeJson(aliasPath, aliasCapability);
+      }
+    }
+  ];
+
+  for (const scenario of cases) {
+    const values = fixture();
+    t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+    scenario.configure(values);
+    const prior = versionSourceBytes(values.root, values.pluginRoot);
+
+    assert.throws(() => checkRelease(values.root), scenario.pattern);
+    assert.throws(() => setVersion('2.3.4', values.root), scenario.pattern);
+    assertSourceBytes(prior);
+  }
 });
 
 test('version setter rejects stale alias evidence before changing any source', (t) => {

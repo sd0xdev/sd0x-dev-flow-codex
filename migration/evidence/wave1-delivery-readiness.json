@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "wave": 1,
+  "implementation_subject": {
+    "kind": "commit",
+    "base_sha": "8e3efb425e3848cb537beda2101d16014114fe3d",
+    "head_sha": "5d3e1f20e439c1d5faf5a9eaf0584696f352eef1",
+    "tree_sha": "e679e363100334cfbdc4618a14b6b04211684cb8"
+  },
+  "review": {
+    "provider": "codex",
+    "agents": [
+      "sd0x_codex_primary_reviewer",
+      "sd0x_test_reviewer"
+    ],
+    "findings": 0,
+    "subject_sha256": "ab4a8ac9c3c2cf6c3cbc42d58c5e29ff2a306ad8498ec8006f5ea6478e6d2210",
+    "attested_at": "2026-07-14T16:23:13.683Z"
+  },
+  "verify": {
+    "runner": "sd0x-deterministic-v1",
+    "command": "npm run check",
+    "exit_code": 0,
+    "tests": 390,
+    "duration_ms": 885347,
+    "recorded_at": "2026-07-14T16:23:03.591Z"
+  },
+  "reload": {
+    "commands": [
+      "npm run dev:local:unlink",
+      "npm run dev:local:link",
+      "npm run dev:local:status"
+    ],
+    "exit_codes": [
+      0,
+      0,
+      0
+    ],
+    "local_home": true,
+    "final_state": "linked",
+    "copied_files": 13,
+    "linked_files": 32,
+    "user_home_touched": false,
+    "recorded_at": "2026-07-14T16:35:36.861Z"
+  },
+  "units": {
+    "architecture/default": {
+      "target_skill": "architecture",
+      "target_package": "planning-pack",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-architecture-pack-ready.md",
+      "payload_path": "migration/packs/planning-pack/architecture",
+      "payload_tree_sha256": "3f387bee80432cfb95c55f4e222526fcfb727807f7941ab9ea62671978f481d0",
+      "preflight_audit_fingerprint": "1210c392ae37316e2cf79d543fb083ab8db0425453e642c06d3a455812f1757f",
+      "final_audit_fingerprint": "13c22176043f89e58ac441c6d0e2ab3b3c601d1b9c3dedee2265ccefa497ae59",
+      "behavior_test_path": "test/architecture-default-routing.test.js",
+      "behavior_test_sha256": "276d877b5699e5eae5c15769c73870237bd0369c92f6e8166f611468f30c8148"
+    },
+    "create-request/default": {
+      "target_skill": "create-request",
+      "target_package": "core",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-create-request-promotion.md",
+      "payload_path": "plugin/sd0x-dev-flow-codex/skills/create-request",
+      "payload_tree_sha256": "312aae1ad28799e84845939ae695b1cdc6d7da5eacc95a6e2a97a94d9cf91c26",
+      "preflight_audit_fingerprint": "de3fd31182c64399a6ac6d812bf35c7cf4de26c49df2a769889fa61a7cf661b0",
+      "final_audit_fingerprint": "824370f8f04cb191e29a26f854b08e66b87b666c67d2fcf37516217952e6c027",
+      "behavior_test_path": "test/create-request-default-routing.test.js",
+      "behavior_test_sha256": "778dea62932582448564eabd3f415885d26c6a3e8f25f840fb9dfde364f5e42e"
+    },
+    "feasibility-study/default": {
+      "target_skill": "feasibility-study",
+      "target_package": "planning-pack",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-feasibility-study-pack-ready.md",
+      "payload_path": "migration/packs/planning-pack/feasibility-study",
+      "payload_tree_sha256": "b512fad7c72d024c36926581b7b452c19ea4705f65d2785fb33ca66e7c85c066",
+      "preflight_audit_fingerprint": "ea29962a22e209cdd3f7374327e4c7f85e5e7b04b7592dcca31b25e682faccc2",
+      "final_audit_fingerprint": "e3319b210da11f14bb0dcfb2b63e47c1657cc02997a64d6cdac610a9a19c9450",
+      "behavior_test_path": "test/feasibility-study-default-routing.test.js",
+      "behavior_test_sha256": "bf65ec1b0d4471f242374db7589aeea6e6ad06e3aca16684f88346259d167a84"
+    },
+    "necessity-audit/default": {
+      "target_skill": "necessity-audit",
+      "target_package": "planning-pack",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-necessity-audit-pack-ready.md",
+      "payload_path": "migration/packs/planning-pack/necessity-audit",
+      "payload_tree_sha256": "c8f46ae7ef60bea4dc667b4f1b0ac93c75b6ccec9a3c4e6675f9f15ddbf25f08",
+      "preflight_audit_fingerprint": "c8d81199f0e5a80469a7e388a5abe72441254c1cbebe53ed8dccf07894ff2f3b",
+      "final_audit_fingerprint": "9adf016dcd9214de90b5710e2484f77d24e416f9c90cafc6b03425b779885fc3",
+      "behavior_test_path": "test/necessity-audit-default-routing.test.js",
+      "behavior_test_sha256": "ca61bdfa4d01120f3dd7343acb6c07ec88a7a94c77719d05c6f49a91d55550f4"
+    },
+    "plan-review/default": {
+      "target_skill": "plan-review",
+      "target_package": "planning-pack",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-plan-review-pack-ready.md",
+      "payload_path": "migration/packs/planning-pack/plan-review",
+      "payload_tree_sha256": "9fc9b391ea0a598109ac49cc1756fe6ac4810997baeeec4882d39ca41db8d72d",
+      "preflight_audit_fingerprint": "2570963a3f20d6a7326d279371e18946641c2c430642e5ca8967a8c8c608ece6",
+      "final_audit_fingerprint": "6dafa6ed26c7263288bfacfd3f78084a0b602552a256328dcdb9484af420fb19",
+      "behavior_test_path": "test/plan-review-default-routing.test.js",
+      "behavior_test_sha256": "a107544c0319b10b1c60a01c0a6249c5bd4167e19a3825ddf53e59a7909852b8"
+    },
+    "request-tracking/default": {
+      "target_skill": "request-tracking",
+      "target_package": "planning-pack",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-request-tracking-pack-ready.md",
+      "payload_path": "migration/packs/planning-pack/request-tracking",
+      "payload_tree_sha256": "359bf28c280057e78e0a678c2c61b8bc4d34fbf94064699a3ab1852f2064e728",
+      "preflight_audit_fingerprint": "1e7c95b23804faf785ecc6c44b000616d62069254206e459a3eb05292ab0da95",
+      "final_audit_fingerprint": "5ad5752f272b8565b2aef5ae41388ed8dd35a220a92786d510c1ccc54dd943c0",
+      "behavior_test_path": "test/request-tracking-default-routing.test.js",
+      "behavior_test_sha256": "32bacdf197a63f916841bea1158b494c8275ecd042b96cb9e7bbf13cba98aaa9"
+    },
+    "review-spec/default": {
+      "target_skill": "review-spec",
+      "target_package": "planning-pack",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-review-spec-pack-ready.md",
+      "payload_path": "migration/packs/planning-pack/review-spec",
+      "payload_tree_sha256": "3cde1526283525dd7cf0104adf918b5cd580451e4fa03c6f0cf6e0b99c47a218",
+      "preflight_audit_fingerprint": "98779fd97b2827a2ad318004dca52778f746873080130204bf6a52e83d75dc68",
+      "final_audit_fingerprint": "efa53d5f06c61301a956226f5fcc2b29fb9b659c41dc14ac0c7b35bc2b7b7c7b",
+      "behavior_test_path": "test/review-spec-default-routing.test.js",
+      "behavior_test_sha256": "5d76d4123be3bdc294b2bc4d5f995f32551c6d9268f4750d2ab162dbe1aff727"
+    },
+    "tech-spec/default": {
+      "target_skill": "tech-spec",
+      "target_package": "core",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-tech-spec-promotion.md",
+      "payload_path": "plugin/sd0x-dev-flow-codex/skills/tech-spec",
+      "payload_tree_sha256": "d110dcf425607c0cfe15080b19b90119a22208325b424952f4de2d02ebaf81c7",
+      "preflight_audit_fingerprint": "9460fdf87ec2cec08a0931837be532bf1a1dea3063f6f58492a6c8ca2b539088",
+      "final_audit_fingerprint": "aba7fafd829468a56c84ac019d3ff1ac9b5d8481fd328cecde7bba97e268556b",
+      "behavior_test_path": "test/tech-spec-default-routing.test.js",
+      "behavior_test_sha256": "29a8b93d00bd656f81420402eff0ebe5e3c40527e517f768337d6326249b9799"
+    },
+    "tech-spec/deep": {
+      "target_skill": "tech-spec",
+      "target_package": "core",
+      "request_path": "docs/features/skill-toolkit-migration/requests/2026-07-14-wave1-tech-spec-deep-promotion.md",
+      "payload_path": "plugin/sd0x-dev-flow-codex/skills/tech-spec",
+      "payload_tree_sha256": "d110dcf425607c0cfe15080b19b90119a22208325b424952f4de2d02ebaf81c7",
+      "preflight_audit_fingerprint": "0d099c19d451442d94305e59a1d277f2641eff2c73b15f8af644d7c7a686d13c",
+      "final_audit_fingerprint": "30521a63f7d931f84c5f102a9ca1bc72f98186cc01b36c242ef1b1d30d5b74b9",
+      "behavior_test_path": "test/tech-spec-deep-routing.test.js",
+      "behavior_test_sha256": "09ac4a21b754734e4979c6444d4ac8a6abc9e1339f2f6a1c69b2d00e2e4b0392"
+    }
+  }
+}
