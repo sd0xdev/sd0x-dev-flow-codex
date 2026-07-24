@@ -162,9 +162,10 @@ npm run check
 npm run release:check
 ```
 
-`version:set` 會同時更新 root `package.json` 與 distributable plugin manifest。`release:check` 會檢查：
+`version:set` 會以單一可回復 transaction 同步更新 root `package.json`、distributable plugin manifest、migration guide、alias capability fingerprint 與 current alias owner evidence。`release:check` 會檢查：
 
 - 兩處版本完全一致且符合 SemVer。
+- Alias capability 的 plugin fingerprint 與 current owner decision hash 都和更新後 bytes 一致。
 - 公開 repository、marketplace name、plugin selector 與相對 payload path 正確。
 - manifest 引用的 skills、MCP、hooks 與 license 都存在。
 - 唯一 distributable `plugin/sd0x-dev-flow-codex/` 不含 symlink。

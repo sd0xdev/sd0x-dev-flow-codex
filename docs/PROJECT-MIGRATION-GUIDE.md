@@ -4,7 +4,7 @@
 
 > 最後校準日期：2026-07-15
 > 來源版本：Claude plugin `sd0x-dev-flow` `3.0.12`  
-> Codex 版本：`sd0x-dev-flow-codex` `0.3.0`
+> Codex 版本：`sd0x-dev-flow-codex` `0.3.1`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 

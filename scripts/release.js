@@ -148,6 +148,68 @@ function sha256Bytes(bytes) {
   return crypto.createHash('sha256').update(bytes).digest('hex');
 }
 
+function containedRegularFile(root, relative, label) {
+  assert(typeof relative === 'string' && relative.length > 0 &&
+    !relative.includes('\\') && !path.posix.isAbsolute(relative) &&
+    path.posix.normalize(relative) === relative &&
+    relative !== '..' && !relative.startsWith('../'),
+  `${label} must be a normalized repository-relative path`);
+  let current = path.resolve(root);
+  for (const segment of relative.split('/')) {
+    current = path.join(current, segment);
+    const stat = fs.lstatSync(current);
+    assert(!stat.isSymbolicLink(), `${label} must not traverse symlinks`);
+  }
+  assert(fs.statSync(current).isFile(), `${label} must be a regular file`);
+  return current;
+}
+
+function aliasOwnerBinding(root, aliasCapability, aliasCapabilityBytes) {
+  const ownerPath = containedRegularFile(
+    root,
+    aliasCapability.owner_request_path,
+    'alias capability owner request'
+  );
+  const ownerBytes = fs.readFileSync(ownerPath);
+  const ownerRequest = ownerBytes.toString('utf8');
+  const matches = Array.from(ownerRequest.matchAll(
+    /^<!-- sd0x-alias-capability-owner:v1 ([^\r\n]+) -->$/gm
+  ));
+  assert(matches.length === 1,
+    'alias capability owner request must contain exactly one evidence record');
+  let evidence;
+  try {
+    evidence = JSON.parse(matches[0][1]);
+  } catch (error) {
+    throw new Error(`alias capability owner evidence is not valid JSON: ${error.message}`);
+  }
+  const expectedEvidenceKeys = [
+    'codex_version',
+    'decision',
+    'decision_sha256',
+    'registry_mechanism',
+    'tested_at'
+  ];
+  assert(evidence && typeof evidence === 'object' && !Array.isArray(evidence) &&
+    JSON.stringify(Object.keys(evidence).sort()) ===
+      JSON.stringify(expectedEvidenceKeys.sort()) &&
+    /^[0-9a-f]{64}$/.test(evidence.decision_sha256),
+  'alias capability owner evidence fields or decision hash are invalid');
+  assert(evidence.codex_version === aliasCapability.codex_version &&
+    evidence.decision === aliasCapability.decision &&
+    evidence.registry_mechanism === aliasCapability.registry_mechanism &&
+    evidence.tested_at === aliasCapability.tested_at &&
+    evidence.decision_sha256 === sha256Bytes(aliasCapabilityBytes),
+  'alias capability owner evidence does not match the decision artifact');
+  return {
+    path: ownerPath,
+    bytes: ownerBytes,
+    request: ownerRequest,
+    marker: matches[0][0],
+    evidence
+  };
+}
+
 function runGit(root, args) {
   const result = spawnSync('git', args, {
     cwd: root,
@@ -260,7 +322,8 @@ function symbolicLinks(directory) {
 function checkRelease(root = ROOT) {
   const paths = releasePaths(root);
   const packageJson = readJson(paths.packagePath);
-  const aliasCapability = readJson(paths.aliasCapabilityPath);
+  const aliasCapabilityBytes = fs.readFileSync(paths.aliasCapabilityPath);
+  const aliasCapability = JSON.parse(aliasCapabilityBytes);
   const marketplace = readJson(paths.marketplacePath);
   const manifest = readJson(paths.manifestPath);
   const migrationGuide = fs.readFileSync(paths.migrationGuidePath, 'utf8');
@@ -277,6 +340,7 @@ function checkRelease(root = ROOT) {
     aliasCapability.plugin_fingerprint === sha256(paths.manifestPath),
     'alias capability plugin fingerprint must match the plugin manifest'
   );
+  aliasOwnerBinding(root, aliasCapability, aliasCapabilityBytes);
   assert(manifest.repository === REPOSITORY_URL, `manifest repository must be ${REPOSITORY_URL}`);
   assert(manifest.homepage === REPOSITORY_URL, `manifest homepage must be ${REPOSITORY_URL}`);
   assert(manifest.interface?.websiteURL === REPOSITORY_URL, `manifest websiteURL must be ${REPOSITORY_URL}`);
@@ -317,7 +381,9 @@ function setVersion(version, root = ROOT, hooks = {}) {
   checkRelease(root);
   const paths = releasePaths(root);
   const packageJson = readJson(paths.packagePath);
-  const aliasCapability = readJson(paths.aliasCapabilityPath);
+  const aliasCapabilityBytes = fs.readFileSync(paths.aliasCapabilityPath);
+  const aliasCapability = JSON.parse(aliasCapabilityBytes);
+  const owner = aliasOwnerBinding(root, aliasCapability, aliasCapabilityBytes);
   const manifest = readJson(paths.manifestPath);
   const migrationGuide = fs.readFileSync(paths.migrationGuidePath, 'utf8');
   const documentedVersion =
@@ -332,6 +398,16 @@ function setVersion(version, root = ROOT, hooks = {}) {
   manifest.version = version;
   const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
   aliasCapability.plugin_fingerprint = sha256Bytes(manifestBytes);
+  const updatedAliasCapabilityBytes =
+    Buffer.from(`${JSON.stringify(aliasCapability, null, 2)}\n`);
+  const updatedOwnerEvidence = {
+    ...owner.evidence,
+    decision_sha256: sha256Bytes(updatedAliasCapabilityBytes)
+  };
+  const updatedOwnerRequest = owner.request.replace(
+    owner.marker,
+    `<!-- sd0x-alias-capability-owner:v1 ${JSON.stringify(updatedOwnerEvidence)} -->`
+  );
   const updatedGuide = migrationGuide.replace(
     documentedVersion,
     `> Codex 版本：\`sd0x-dev-flow-codex\` \`${version}\``
@@ -348,7 +424,11 @@ function setVersion(version, root = ROOT, hooks = {}) {
     { path: paths.migrationGuidePath, bytes: updatedGuide },
     {
       path: paths.aliasCapabilityPath,
-      bytes: `${JSON.stringify(aliasCapability, null, 2)}\n`
+      bytes: updatedAliasCapabilityBytes
+    },
+    {
+      path: owner.path,
+      bytes: updatedOwnerRequest
     }
   ], hooks);
   return checkRelease(root);
