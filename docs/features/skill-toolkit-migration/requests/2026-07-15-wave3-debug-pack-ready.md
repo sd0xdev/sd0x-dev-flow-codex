@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -51,7 +51,7 @@ The source `debug` workflow needs a Codex-native diagnostic owner in the develop
 | Analysis | Complete | Pinned diagnostic workflow and read-only mutation boundary inspected. |
 | Development | Complete | Exact accepted bytes moved from `migration/candidates/` to `migration/packs/development-pack/debug/`; payload `3be8e58dee32838dd3cce7afbae0d4948ba7e4a124c8581d5eed15a3627e922f`. |
 | Testing | Complete | Preflight `1b304a17e569db55ae45a0b1185bae1ea3cde4b6774928423baeb4dc15638a12`; routing 6/6 and probe-policy 16/16 passed. Final pack audit `b63c7eb16503dcbeb7ab2697919f34075e677abc35067988774cddd94197ae73` passed. |
-| Acceptance | Candidate Complete | Final pack audit and subject gates passed; runtime-owned R3 closure and pack-ready evidence remain pending. |
+| Acceptance | Complete | Independent AC verification, subject-bound review, deterministic verification, and final pack audit passed. The runtime-owned R3 closure and pack-ready evidence bind this exact Completed request. |
 
 ## References
 

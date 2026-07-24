@@ -13,6 +13,9 @@ const {
   buildReleaseArchives,
   checkRelease,
   expectedReleaseAssets,
+  migrationDeliveryCheckpoint,
+  migrationDeliveryMarker,
+  migrationDeliverySummary,
   releasePlan,
   setVersion,
   verifyReleaseAssets
@@ -98,9 +101,41 @@ function fixture() {
     version: '0.1.0',
     private: true
   });
+  const disposition = {
+    skills: [
+      {
+        source_name: 'create-request',
+        promotion_unit_id: 'create-request/default',
+        wave: 1,
+        delivery_state: 'candidate'
+      },
+      {
+        source_name: 'codex-implement',
+        promotion_unit_id: 'feature-dev/default',
+        wave: 3,
+        delivery_state: 'promoted'
+      },
+      {
+        source_name: 'feature-dev',
+        promotion_unit_id: 'feature-dev/default',
+        wave: 3,
+        delivery_state: 'promoted'
+      },
+      {
+        source_name: 'debug',
+        promotion_unit_id: 'debug/default',
+        wave: 3,
+        delivery_state: 'pack-ready'
+      }
+    ]
+  };
+  writeJson(path.join(root, 'migration', 'source-disposition.json'), disposition);
+  const checkpoint = migrationDeliveryCheckpoint(disposition);
   fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
   fs.writeFileSync(path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
-    '> Codex 版本：`sd0x-dev-flow-codex` `0.1.0`\n');
+    '> Codex 版本：`sd0x-dev-flow-codex` `0.1.0`\n\n' +
+    `${migrationDeliverySummary(checkpoint)}\n` +
+    `${migrationDeliveryMarker(checkpoint)}\n`);
   writeJson(path.join(root, '.agents', 'plugins', 'marketplace.json'), {
     name: MARKETPLACE_NAME,
     plugins: [{
@@ -169,6 +204,23 @@ test('current repository satisfies the public release contract', () => {
   assert.equal(result.selector, `${PLUGIN_NAME}@${MARKETPLACE_NAME}`);
   assert.match(result.version, /^\d+\.\d+\.\d+/);
   assert.equal(documentedVersion, result.version);
+});
+
+test('migration guide delivery checkpoint matches the current registry', () => {
+  const root = path.resolve(__dirname, '..');
+  const result = checkRelease(root);
+  assert.deepEqual(result.migrationDelivery, {
+    rows: 100,
+    units: 95,
+    delivered: 29,
+    pending: 66,
+    waves: {
+      1: { delivered: 9, total: 10 },
+      2: { delivered: 12, total: 12 },
+      3: { delivered: 8, total: 8 }
+    },
+    create_request_state: 'candidate'
+  });
 });
 
 test('Node.js runtime requirements stay aligned across CI and the shipped plugin', () => {
@@ -351,6 +403,19 @@ test('release check rejects a stale migration-guide version', (t) => {
   assert.throws(() => checkRelease(values.root), /migration guide and package versions/);
 });
 
+test('release check rejects a stale visible migration delivery checkpoint', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const guidePath = path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md');
+  const guide = fs.readFileSync(guidePath, 'utf8');
+  fs.writeFileSync(guidePath, guide.replace(
+    '`create-request/default` = `candidate`',
+    '`create-request/default` = `promoted`'
+  ));
+  assert.throws(() => checkRelease(values.root),
+    /visible delivery checkpoint must match the current registry/);
+});
+
 test('release check rejects a stale alias capability plugin fingerprint', (t) => {
   const values = fixture();
   t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
@@ -384,6 +449,22 @@ test('version setter rejects stale alias owner evidence before changing any sour
 
   assert.throws(() => setVersion('2.3.4', values.root),
     /owner evidence does not match the decision artifact/);
+  assertSourceBytes(prior);
+});
+
+test('version setter refuses to mutate a Completed alias owner request', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const owner = aliasOwnerRecord(values.root);
+  fs.writeFileSync(owner.ownerPath, owner.ownerRequest.replace(
+    '# Alias Owner',
+    '# Alias Owner\n\n> **Status**: Completed'
+  ));
+  const prior = versionSourceBytes(values.root, values.pluginRoot);
+
+  assert.equal(checkRelease(values.root).version, '0.1.0');
+  assert.throws(() => setVersion('2.3.4', values.root),
+    /Completed; create and bind a replacement owner ticket/);
   assertSourceBytes(prior);
 });
 

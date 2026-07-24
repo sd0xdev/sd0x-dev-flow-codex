@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -50,7 +50,7 @@ The existing Codex-native `bug-fix` workflow must become the audited canonical o
 | Analysis | Complete | Existing core and pinned source boundaries reconciled. |
 | Development | Complete | Exact accepted bytes moved from `migration/candidates/` to the core payload; payload `a4d4e8963e26f89953d6b19318374f1f04d29f8745a772da80ccca0dace044a9`. |
 | Testing | Complete | Preflight `d9c9650522e047ec40833de6c8148c28dc74efe1cd2e9707f26ace06c60d5140`; routing 6/6 passed. Final audit `7cc697812a5617ce115cd9c9e08c7c9c3541856e5b5f71dee8baa137a4485bee` passed. |
-| Acceptance | Candidate Complete | Final audit and subject gates passed; runtime-owned R3 closure and promotion evidence remain pending. |
+| Acceptance | Complete | Independent AC verification, subject-bound review, deterministic verification, and final core audit passed. The runtime-owned R3 closure and promotion evidence bind this exact Completed request. |
 
 ## References
 

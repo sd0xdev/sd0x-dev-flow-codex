@@ -15,6 +15,7 @@ Remove incidental complexity from one well-defined target while preserving its i
 4. Keep the edit small enough to review as one behavior-preserving change. Exclude new features, architecture replacement, and unrelated cleanup.
 5. Repeat the same focused checks after the change, then any proportionate checks required by affected callers.
 6. Review the diff for altered error behavior, ordering, state, public interfaces, or weakened tests.
+7. Complete the repository-required review workflow, then deterministic verification, before claiming completion. Any fix after review creates a new fingerprint and requires review again.
 
 ## Result
 

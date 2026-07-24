@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-15
 > **Implementation Base SHA**: `2ff44f74eed09ab5fb8cde12b3d7cb5c223d0aed`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -48,9 +48,9 @@ The source `simplify` workflow needs a development-pack owner for reducing unnec
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | Pinned simplification behavior and behavior-preservation boundary inspected. |
-| Development | Complete | Exact accepted bytes moved from `migration/candidates/` to `migration/packs/development-pack/simplify/`; payload `633e9504406a8c47eb203cca12cafacac7b2e2e1a0c709aff19f0cf6961e7e08`. |
-| Testing | Complete | Preflight `94ba3c124c5ec22c2a269527d52898f538cab502629aa5114a06cfa2eae85bc7`; routing 6/6 passed. Final pack audit `5388011d2c4b5fd331f3c25f5ca785c2b956c55d95153150eced0c5f00ffd4b6` passed. |
-| Acceptance | Candidate Complete | Final pack audit and subject gates passed; runtime-owned R3 closure and pack-ready evidence remain pending. |
+| Development | Complete | Exact accepted bytes moved from `migration/candidates/` to `migration/packs/development-pack/simplify/`; payload `de315b0bb975de377516d0db99f5f21cd8add36f5c49efb308fe19d8bc5a03d6`. |
+| Testing | Complete | Preflight `3074a3823a0732268650ab133b0b69ff37b865a1fe6953063b8124c924d84bbe`; routing 6/6 passed. Final pack audit `09a197d6b7a3bbe60f251c7733b6d61685c9f4b5f587204f08d90ba6b382da02` passed. |
+| Acceptance | Complete | Independent AC verification, subject-bound review, deterministic verification, and final pack audit passed. The runtime-owned R3 closure and pack-ready evidence bind this exact Completed request. |
 
 ## References
 

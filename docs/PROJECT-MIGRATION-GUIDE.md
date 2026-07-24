@@ -2,9 +2,9 @@
 
 <!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
 
-> 最後校準日期：2026-07-15
+> 最後校準日期：2026-07-25
 > 來源版本：Claude plugin `sd0x-dev-flow` `3.0.12`  
-> Codex 版本：`sd0x-dev-flow-codex` `0.3.1`
+> Codex 版本：`sd0x-dev-flow-codex` `0.3.2`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -110,11 +110,14 @@ Codex core 目前刻意只包含：
 
 這是 curated core，不是遷移未完成的暫時缺漏。新增能力必須符合第 13 節的選擇準則。
 
-Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。2026-07-15 checkpoint：
+Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。2026-07-25 checkpoint：
 
-- Wave 1 的 10 個 units 已完成 durable closure：4 個進 curated core，6 個交付 planning-pack。
+- Registry checkpoint：29/95 canonical units delivered；66 pending；Wave 1 9/10、Wave 2 12/12、Wave 3 8/8 delivered；`create-request/default` = `candidate`。
+<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=29 pending=66 wave3=8/8 create-request=candidate -->
+- Wave 1 的 10 個 units 均已有 durable closure 歷史；目前 overlay 有 9 個 delivered units，`create-request/default` 因 recovery re-promotion 保持 `candidate`，且不得用舊 completion evidence 冒充這次 replacement 已完成。
 - Wave 2 的 12 個 research units 已完成 12/12 preflights、125/125 focused tests、adversarial probes、final-fingerprint review/verification、R3 durable request closures 與 exact `pack-ready` evidence；accepted bytes 位於 `migration/packs/research-pack/`，owner tickets 為 `Completed`。
-- 因此目前 durable completion 是 22/100；Wave 3 可從仍為 `planned` 的 units 繼續，但不得把 repository-only packs 宣稱為已發布的 separate plugins。
+- Wave 3 的 8 個 development units 已完成 8/8 durable closure：`bug-fix/default`、`feature-dev/default` 已進 curated core，另外 6 個 units 已交付 development-pack。
+- `release:check` 會從 `migration/source-disposition.json` 重算上方可見 checkpoint 與 machine marker，防止只更新版本卻發布過期進度。
 - `migration/packs/` 仍是 repository-only transferable payload，不進 plugin manifest、core discovery 或目前 release artifact。每個 later separate-plugin repository 必須自有 manifest、dependency declaration、installation tests、fingerprint-bound gates 與 release authorization。
 
 ## 4. Repository 結構

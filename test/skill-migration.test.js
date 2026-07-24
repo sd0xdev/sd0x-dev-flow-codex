@@ -51,8 +51,10 @@ const {
 const {
   applyRequestClosure,
   auditEvidenceLedger,
+  auditRequestClosures,
   finalizeRequestClosure,
   hashPayloadTree,
+  isCurrentPass,
   latestCompletionEvidence,
   markGate,
   prepareRequestClosure,
@@ -412,6 +414,219 @@ test('current repository passes the source, distribution, and request-DAG audit'
   assert.equal(result.readiness_units, 9);
 });
 
+test('Wave 3 delivery overlay follows all eight durable completion records', (t) => {
+  const values = fixtureRoot({ copyEvidenceRef: true });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
+  const closureCheckpoint = '3b437aad7280f2e9737bb8c9658616b762a0388b';
+  const dispositionPath = 'migration/source-disposition.json';
+  const units = [
+    {
+      id: 'bug-fix/default',
+      target: 'bug-fix',
+      sources: ['bug-fix'],
+      kind: 'promotion',
+      final: 'promoted',
+      closure: 'b915eefc5a238784f78e8c27c70dc8eda6c366f507846e8d4a323fbe293d7851'
+    },
+    {
+      id: 'debug/default',
+      target: 'debug',
+      sources: ['debug'],
+      kind: 'pack-ready',
+      final: 'pack-ready',
+      closure: '9078a93668d61857a5e4f7fa1492a369745715a810647cf6e857a381603b64b5'
+    },
+    {
+      id: 'feature-dev/default',
+      target: 'feature-dev',
+      sources: ['codex-implement', 'feature-dev'],
+      kind: 'promotion',
+      final: 'promoted',
+      closure: 'fd213aeea78b9812439251d381cd8428e2dc468f4d375a48466e89241dca3e95'
+    },
+    {
+      id: 'post-dev-test/default',
+      target: 'post-dev-test',
+      sources: ['post-dev-test'],
+      kind: 'pack-ready',
+      final: 'pack-ready',
+      closure: '37748257075b0567d69bf0e4a087c303a14ed38401ad075c36adbf42dc8be057'
+    },
+    {
+      id: 'refactor/default',
+      target: 'refactor',
+      sources: ['refactor'],
+      kind: 'pack-ready',
+      final: 'pack-ready',
+      closure: '879c7801646bdc4a891d00d1c029c433d58dfbef6c862d52d4c2166ea8898b4d'
+    },
+    {
+      id: 'simplify/default',
+      target: 'simplify',
+      sources: ['simplify'],
+      kind: 'pack-ready',
+      final: 'pack-ready',
+      closure: '5707c404abb9ad40dbd078660ee9e0174f1695c2f0ca56de469dc0cd1094ac93'
+    },
+    {
+      id: 'test-deep/default',
+      target: 'test-deep',
+      sources: ['test-deep'],
+      kind: 'pack-ready',
+      final: 'pack-ready',
+      closure: '2a8147e4f47fe6ee5b84f2c471c052532e60d0b010b09d391b73fc281aef07de'
+    },
+    {
+      id: 'test-gen/default',
+      target: 'test-gen',
+      sources: ['codex-test-gen'],
+      kind: 'pack-ready',
+      final: 'pack-ready',
+      closure: '5c0adf5400ce4e4511f7d5e9ca314f5a2513a30414c5318c5318b9b80af8603e'
+    },
+  ];
+  const repositoryDisposition = readJson(ROOT, dispositionPath);
+  const completionByUnit = new Map(latestCompletionEvidence(ROOT)
+    .filter((record) => units.some((unit) =>
+      unit.id === record.promotion_unit_id
+    ))
+    .map((record) => [record.promotion_unit_id, record]));
+  assert.ok([0, units.length].includes(completionByUnit.size),
+    'Wave 3 completion records must transition as one 0/8 batch');
+  const repositoryIsDelivered = completionByUnit.size === units.length;
+  const assertRepositoryWave3State = (disposition, delivered) => {
+    for (const unit of units) {
+      const rows = disposition.skills.filter((row) =>
+        row.promotion_unit_id === unit.id
+      );
+      assert.deepEqual(rows.map((row) => row.source_name).sort(), unit.sources,
+        `${unit.id}: source rows must remain exact`);
+      for (const row of rows) {
+        assert.equal(row.target_skill, unit.target,
+          `${unit.id}:${row.source_name} target must remain exact`);
+        assert.equal(row.delivery_state,
+          delivered ? unit.final : 'candidate',
+          `${unit.id}:${row.source_name} must be ${
+            delivered ? unit.final : 'candidate'
+          }`);
+      }
+      if (delivered) {
+        assert.equal(completionByUnit.get(unit.id)?.kind, unit.kind,
+          `${unit.id}: completion kind must match the final overlay`);
+      }
+    }
+    assert.equal(disposition.skills.find((row) =>
+      row.source_name === 'codex-implement').alias_policy, 'mapping-only');
+    assert.equal(disposition.skills.find((row) =>
+      row.source_name === 'codex-test-gen').alias_policy, 'mapping-only');
+  };
+  assertRepositoryWave3State(repositoryDisposition, repositoryIsDelivered);
+  if (repositoryIsDelivered) {
+    const reverted = structuredClone(repositoryDisposition);
+    reverted.skills.find((row) =>
+      row.promotion_unit_id === 'debug/default'
+    ).delivery_state = 'candidate';
+    assert.throws(() => assertRepositoryWave3State(reverted, true),
+      /debug\/default:debug must be pack-ready/);
+  }
+  const lifecycleSpec = fs.readFileSync(path.join(
+    values.root, 'docs/features/skill-toolkit-migration/2-tech-spec.md'
+  ), 'utf8');
+  assert.match(lifecycleSpec,
+    /<!-- sd0x-delivery-transaction:v1 order=payload-final-gates,completion-evidence,delivered-overlay,post-overlay-gates -->/);
+  git(values.root, [
+    'merge-base', '--is-ancestor', closureCheckpoint, evidenceRef
+  ]);
+  git(values.root, ['update-ref', evidenceRef, closureCheckpoint]);
+  const closureAudit = auditRequestClosures(values.root, units.map((unit) => ({
+    kind: 'request-closure',
+    promotion_unit_id: unit.id,
+    record_sha256: unit.closure
+  })));
+  const closures = new Map(closureAudit.selected.map((record) => [
+    record.promotion_unit_id, record
+  ]));
+
+  const candidate = readJson(values.root, dispositionPath);
+  const wave3Rows = candidate.skills.filter((row) =>
+    units.some((unit) => unit.id === row.promotion_unit_id)
+  );
+  assert.equal(wave3Rows.length, 9);
+  assert.deepEqual(wave3Rows.filter((row) =>
+    row.promotion_unit_id === 'feature-dev/default'
+  ).map((row) => row.source_name).sort(), ['codex-implement', 'feature-dev']);
+  assert.equal(wave3Rows.find((row) =>
+    row.source_name === 'codex-test-gen').alias_policy, 'mapping-only');
+  assert.ok(wave3Rows.every((row) => row.delivery_state === 'candidate'));
+
+  const applyFinalOverlay = (disposition) => {
+    for (const unit of units) {
+      const rows = disposition.skills.filter((row) =>
+        row.promotion_unit_id === unit.id
+      );
+      assert.ok(rows.length > 0, unit.id);
+      for (const row of rows) row.delivery_state = unit.final;
+    }
+  };
+  const premature = structuredClone(candidate);
+  applyFinalOverlay(premature);
+  writeJson(values.root, dispositionPath, premature);
+  assert.throws(() => auditSource({ root: values.root }),
+    /Evidence has no completion record for bug-fix\/default/);
+
+  writeJson(values.root, dispositionPath, candidate);
+  assert.equal(auditSource({ root: values.root }).ok, true,
+    'removing the premature lifecycle overlay must remove the completion failure');
+  recordPassingGates(values.root, 'wave3-completion-batch');
+  const recordedAfter = Math.max(...[...closures.values()].map((record) =>
+    Date.parse(record.recorded_at)
+  ));
+  for (const [index, unit] of units.entries()) {
+    const rows = candidate.skills.filter((row) =>
+      row.promotion_unit_id === unit.id
+    );
+    const targetPackage = [...new Set(rows.map((row) => row.target_package))];
+    assert.equal(targetPackage.length, 1);
+    const payload = unit.kind === 'promotion'
+      ? `plugin/sd0x-dev-flow-codex/skills/${unit.target}`
+      : `migration/packs/${targetPackage[0]}/${unit.target}`;
+    recordPromotionEvidence(values.root, {
+      kind: unit.kind,
+      promotion_unit_id: unit.id,
+      request_closure_record_sha256: closures.get(unit.id).record_sha256,
+      disposition_row: rows.length === 1 ? rows[0] : rows,
+      payload_tree_sha256: hashPayloadTree(values.root, payload),
+      reason: null,
+      recorded_at: new Date(recordedAfter + (index + 1) * 1000).toISOString(),
+      supersedes_record_sha256: null
+    });
+  }
+
+  const delivered = structuredClone(candidate);
+  applyFinalOverlay(delivered);
+  writeJson(values.root, dispositionPath, delivered);
+  const assertPostOverlayComplete = () => {
+    const state = refreshState(values.root);
+    assert.ok(isCurrentPass(state, 'review'),
+      'post-overlay review gate must be current');
+    assert.ok(isCurrentPass(state, 'verify'),
+      'post-overlay verification gate must be current');
+    return auditSource({ root: values.root });
+  };
+  assert.throws(() => assertPostOverlayComplete(),
+    /post-overlay review gate must be current/);
+  recordPassingGates(values.root, 'wave3-post-overlay');
+  const finalAudit = assertPostOverlayComplete();
+  assert.equal(finalAudit.ok, true);
+  assert.equal(finalAudit.durable_completion_units, 8);
+  assert.deepEqual(delivered.skills.filter((row) =>
+    row.promotion_unit_id === 'feature-dev/default'
+  ).map((row) => row.delivery_state), ['promoted', 'promoted']);
+  assert.equal(delivered.skills.find((row) =>
+    row.source_name === 'codex-test-gen').delivery_state, 'pack-ready');
+});
+
 test('source audit binds Candidate Complete research-pack ticket evidence', (t) => {
   const values = fixtureRoot({ candidateCompletePacks: true });
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
@@ -446,7 +661,38 @@ test('source audit binds Candidate Complete research-pack ticket evidence', (t) 
     '> **Status**: Candidate Complete\n> **Status**: Completed'
   ));
   assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
-    /exactly one canonical Candidate Complete or Completed status/);
+    /exactly one canonical Status metadata field/);
+  fs.writeFileSync(askPath, original.replace(
+    '> **Status**: Candidate Complete',
+    '> **Status**: Candidate Complete\n> **Status**: Candidate Complete'
+  ));
+  assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
+    /exactly one canonical Status metadata field/);
+  fs.writeFileSync(askPath, original.replace(
+    '> **Status**: Candidate Complete',
+    '> **Status**: Pending\n\n## Background\n\n> **Status**: Candidate Complete'
+  ));
+  assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
+    /exactly one canonical Status metadata field/);
+  fs.writeFileSync(askPath,
+    `${original}\n\`\`\`text\n<!--\n\`\`\`\n> **Status**: Candidate Complete\n`);
+  assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
+    /exactly one canonical Status metadata field/);
+  fs.writeFileSync(askPath,
+    `${original}\nparagraph\n<foo>\n> **Status**: Candidate Complete\n`);
+  assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
+    /exactly one canonical Status metadata field/);
+  for (const commentedStatus of [
+    '> **Status**: Candidate Complete <!-- note -->',
+    '> **Status**: Candidate <!-- note -->Complete'
+  ]) {
+    fs.writeFileSync(askPath, original.replace(
+      '> **Status**: Candidate Complete',
+      commentedStatus
+    ));
+    assert.throws(() => validateCandidateCompletePackEvidence(values.root, disposition),
+      /exactly one canonical Status metadata field/);
+  }
 
   fs.writeFileSync(askPath, original);
   const semanticsPath = path.join(values.root, 'test/ask-default-semantics.test.js');
@@ -6852,6 +7098,64 @@ test('audit CLI returns structured success and fails unknown modes', () => {
 });
 
 
+test('Wave 3 mutation workflows require review before deterministic verification', () => {
+  const finalNumberedStep = (workflow) => workflow
+    .split('\n')
+    .filter((line) => /^\d+\.\s+/.test(line))
+    .at(-1)
+    ?.replace(/^\d+\.\s+/, '');
+  const mutationSkills = new Map([
+    [
+      'plugin/sd0x-dev-flow-codex/skills/bug-fix/SKILL.md',
+      "Complete focused checks, then the repository's sd0x review and deterministic verification workflows. Any post-review fix invalidates the previous fingerprint and requires review again."
+    ],
+    [
+      'plugin/sd0x-dev-flow-codex/skills/feature-dev/SKILL.md',
+      'Complete the sd0x review workflow until both configured independent perspectives are clean, then complete deterministic verification. Any fix creates a new fingerprint and requires review again.'
+    ],
+    [
+      'migration/packs/development-pack/refactor/SKILL.md',
+      'Complete the repository-required review and verification gates before claiming completion.'
+    ],
+    [
+      'migration/packs/development-pack/simplify/SKILL.md',
+      'Complete the repository-required review workflow, then deterministic verification, before claiming completion. Any fix after review creates a new fingerprint and requires review again.'
+    ],
+    [
+      'migration/packs/development-pack/test-gen/SKILL.md',
+      'Complete the repository-required review workflow, then deterministic verification, before claiming completion. Any fix after review creates a new fingerprint and requires review again.'
+    ]
+  ]);
+
+  for (const [relativePath, requiredGateStep] of mutationSkills) {
+    const source = fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
+    const protocol = source.match(/## (?:Protocol|Workflow)\n([\s\S]*?)(?=\n## )/)?.[1];
+    assert.ok(protocol, `${relativePath} must define a protocol or workflow section`);
+    assert.equal(
+      finalNumberedStep(protocol),
+      requiredGateStep,
+      `${relativePath} must end with its exact review-to-verification gate`
+    );
+  }
+
+  const canonical = mutationSkills.get(
+    'migration/packs/development-pack/simplify/SKILL.md'
+  );
+  for (const invalidFinalStep of [
+    'Complete review without deterministic verification.',
+    'Do not verify; complete review instead.',
+    'Complete deterministic verification, then review.',
+    'Complete review after deterministic verification.',
+    'Complete review or deterministic verification.'
+  ]) {
+    assert.notEqual(finalNumberedStep(`1. ${invalidFinalStep}`), canonical);
+  }
+  assert.notEqual(
+    finalNumberedStep(`1. ${canonical}\n2. Apply another mutation.`),
+    canonical
+  );
+});
+
 test('active candidate audit binds non-routing payload bytes to request evidence', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
@@ -6879,6 +7183,30 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     path.join(ROOT, 'migration', 'source-disposition.json'),
     path.join(values.root, 'migration', 'source-disposition.json')
   );
+  const fixtureDisposition = JSON.parse(fs.readFileSync(
+    path.join(values.root, 'migration', 'source-disposition.json'), 'utf8'
+  ));
+  for (const target of [
+    'bug-fix', 'debug', 'feature-dev', 'post-dev-test',
+    'refactor', 'simplify', 'test-deep', 'test-gen'
+  ]) {
+    const rows = fixtureDisposition.skills.filter((candidate) =>
+      candidate.promotion_unit_id === `${target}/default`
+    );
+    assert.ok(rows.length > 0, target);
+    for (const row of rows) row.delivery_state = 'candidate';
+    const row = rows[0];
+    const requestPath = path.join(values.root, row.promotion_request);
+    const finalAudit = row.target_package === 'core' ? 'Final audit' : 'Final pack audit';
+    const evidenceKind = row.target_package === 'core' ? 'promotion' : 'pack-ready';
+    const normalizedRequest = fs.readFileSync(requestPath, 'utf8')
+      .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
+      .replace(/^\| Acceptance \| Complete \|.*$/m,
+        `| Acceptance | Candidate Complete | ${finalAudit} and subject gates passed; runtime-owned R3 closure and ${evidenceKind} evidence remain pending. |`);
+    fs.writeFileSync(requestPath, normalizedRequest);
+  }
+  writeJson(values.root, 'migration/source-disposition.json',
+    fixtureDisposition);
   for (const target of [
     'bug-fix', 'debug', 'feature-dev', 'post-dev-test',
     'refactor', 'simplify', 'test-deep', 'test-gen'
@@ -7038,6 +7366,20 @@ test('active candidate audit binds non-routing payload bytes to request evidence
   }), /active candidate repository identity changed after completion revalidation/);
 
   fs.writeFileSync(supplementalTest, originalSupplementalTest);
+  const raceTree = git(values.root, ['write-tree'], { encoding: 'utf8' }).trim();
+  const raceOid = git(values.root, [
+    'commit-tree', raceTree, '-m', 'concurrent evidence advance'
+  ], { encoding: 'utf8' }).trim();
+  const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
+  assert.throws(() => auditActiveCandidates({
+    root: values.root,
+    afterActiveCandidateCompletion({ candidate }) {
+      if (candidate !== 'migration/candidates/test-gen') return;
+      git(values.root, ['update-ref', evidenceRef, raceOid]);
+    }
+  }), /active candidate evidence ref changed after completion revalidation/);
+  git(values.root, ['update-ref', '-d', evidenceRef, raceOid]);
+
   const coreCandidate = path.join(values.root, 'migration', 'candidates', 'bug-fix');
   const coreTarget = path.join(
     values.root, 'plugin', 'sd0x-dev-flow-codex', 'skills', 'bug-fix'
@@ -7056,9 +7398,156 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     unit.promotion_unit_id === 'bug-fix/default').lifecycle, 'move-window');
   assert.equal(moveWindows.units.find((unit) =>
     unit.promotion_unit_id === 'debug/default').lifecycle, 'move-window');
+
+  fs.writeFileSync(debugRequest, originalRequest.replace(
+    /Final pack audit `[0-9a-f]{64}`/,
+    `Final pack audit \`${'0'.repeat(64)}\``
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /candidate final audit evidence mismatch for debug\/default/);
+  fs.writeFileSync(debugRequest, originalRequest);
+  fs.writeFileSync(debugRequest, originalRequest.replace(
+    / Final pack audit `[0-9a-f]{64}` passed\./,
+    ''
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /requires one Final pack audit hash in Testing/);
+  fs.writeFileSync(debugRequest, originalRequest);
+  for (const downgradedStatus of ['Complete', 'Pending']) {
+    fs.writeFileSync(debugRequest, originalRequest
+      .replace('| Acceptance | Candidate Complete |',
+        `| Acceptance | ${downgradedStatus} |`)
+      .replace(/ Final pack audit `[0-9a-f]{64}` passed\./, ''));
+    assert.throws(() => auditActiveCandidates({ root: values.root }),
+      /candidate evidence has unsupported Acceptance status/);
+    fs.writeFileSync(debugRequest, originalRequest);
+  }
+
+  const bugFixRequest = path.join(values.root, 'docs', 'features',
+    'skill-toolkit-migration', 'requests', '2026-07-15-wave3-bug-fix-promotion.md');
+  const originalBugFixRequest = fs.readFileSync(bugFixRequest, 'utf8');
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest.replace(
+    /Final audit `[0-9a-f]{64}`/,
+    `Final audit \`${'0'.repeat(64)}\``
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /candidate final audit evidence mismatch for bug-fix\/default/);
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest);
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest.replace(
+    / Final audit `[0-9a-f]{64}` passed\./,
+    ''
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /requires one Final audit hash in Testing/);
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest);
+
+  const completedDebugRequest = originalRequest
+    .replace('> **Status**: Candidate Complete', '> **Status**: Completed')
+    .replace(/^\| Acceptance \| Candidate Complete \|.*$/m,
+      '| Acceptance | Complete | Durable closure fixture. |');
+  const subjectState = recordPassingGates(values.root, 'active-candidate-subject');
+  const subject = {
+    kind: 'dirty',
+    fingerprint: subjectState.worktree.fingerprint,
+    head_sha: git(values.root, ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+  };
+  const pending = prepareRequestClosure(values.root, {
+    promotion_unit_id: 'debug/default',
+    request_path: path.relative(values.root, debugRequest).split(path.sep).join('/'),
+    proposed_request: completedDebugRequest,
+    subject,
+    evidence: {
+      subject_review: {
+        binding: subject,
+        provider: 'codex',
+        evidence: {
+          gate: subjectState.gates.review.evidence,
+          native_results: subjectState.review_agents.completed,
+          external_results: [],
+          subject_bindings: []
+        }
+      },
+      verify: {
+        binding: subject,
+        provider: 'codex',
+        evidence: subjectState.gates.verify.evidence
+      },
+      ac: {
+        verdicts: Array.from({
+          length: (completedDebugRequest.match(/^- \[x\] /gm) || []).length
+        }, (_, index) => ({
+          ac: index + 1,
+          status: 'Complete',
+          confidence: 'High',
+          evidence: ['AGENTS.md:1']
+        }))
+      },
+      checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
+    },
+    recorded_at: '2026-07-24T01:00:00.000Z',
+    supersedes_record_sha256: null
+  });
+  applyRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256
+  });
+  recordPassingGates(values.root, 'active-candidate-docs');
+  finalizeRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256,
+    recorded_at: '2026-07-24T01:01:00.000Z',
+    supersedes_record_sha256: null
+  });
+  let evidenceOidCaptures = 0;
+  assert.equal(auditActiveCandidates({
+    root: values.root,
+    evidenceAuditHooks: {
+      afterOidCapture() {
+        evidenceOidCaptures += 1;
+      }
+    }
+  }).ok, true);
+  assert.equal(evidenceOidCaptures, 1,
+    'Completed candidate closures must share one evidence history walk');
+
+  const debugMoveWindow = moveWindows.units.find((unit) =>
+    unit.promotion_unit_id === 'debug/default');
+  const debugValidation = {
+    ...debugMoveWindow,
+    move_window: true,
+    target_package: 'development-pack',
+    audit_fingerprint: debugMoveWindow.final_audit_fingerprint
+  };
+  assert.throws(() => validateCandidateRequestEvidence(
+    completedDebugRequest,
+    { ...debugValidation, promotion_unit_id: 'test-deep/default' },
+    path.relative(values.root, debugRequest).split(path.sep).join('/'),
+    { root: values.root }
+  ), /Evidence has no request closure for test-deep\/default/);
+  assert.throws(() => validateCandidateRequestEvidence(
+    completedDebugRequest,
+    debugValidation,
+    path.relative(values.root, bugFixRequest).split(path.sep).join('/'),
+    { root: values.root }
+  ), /Evidence completion mismatch for request_path/);
+
+  const closedDebugRequest = fs.readFileSync(debugRequest);
+  fs.appendFileSync(debugRequest, '\n> **Status**: Candidate Complete\n');
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /Current request no longer matches durable completion evidence/);
+  fs.writeFileSync(debugRequest, closedDebugRequest);
+  fs.appendFileSync(debugRequest, '\npost-closure tamper\n');
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /Current request no longer matches durable completion evidence/);
+  fs.writeFileSync(debugRequest, closedDebugRequest);
+
 });
 
 test('CI fetches full history required by request base-SHA ancestry checks', () => {
   const workflow = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
   assert.match(workflow, /uses: actions\/checkout@[^\n]+\n\s+with:\n\s+fetch-depth: 0/);
+  const fetch = workflow.indexOf(
+    '+refs/sd0x-dev-flow-codex/evidence/v1:refs/sd0x-dev-flow-codex/evidence/v1'
+  );
+  const check = workflow.indexOf('npm run check');
+  assert.ok(fetch >= 0 && check > fetch,
+    'CI must fetch the exact evidence ref before npm run check');
 });

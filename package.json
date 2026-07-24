@@ -1,6 +1,6 @@
 {
   "name": "sd0x-dev-flow-codex",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Codex-native engineering loop with fingerprinted review and verification gates.",
   "license": "MIT",
   "private": true,
