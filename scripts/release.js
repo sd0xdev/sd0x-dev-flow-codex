@@ -74,6 +74,7 @@ function releasePaths(root = ROOT) {
     root,
     packagePath: path.join(root, 'package.json'),
     aliasCapabilityPath: path.join(root, 'migration', 'alias-capability.json'),
+    dispositionPath: path.join(root, 'migration', 'source-disposition.json'),
     marketplacePath: path.join(root, '.agents', 'plugins', 'marketplace.json'),
     migrationGuidePath: path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
     pluginRoot,
@@ -93,6 +94,82 @@ function parseVersion(version) {
     prerelease: match[4] || null,
     build: match[5] || null
   };
+}
+
+function migrationDeliveryCheckpoint(disposition) {
+  assert(disposition && typeof disposition === 'object' &&
+    !Array.isArray(disposition) && Array.isArray(disposition.skills) &&
+    disposition.skills.length > 0,
+  'migration disposition skills are required');
+  const units = new Map();
+  for (const row of disposition.skills) {
+    assert(row && typeof row === 'object' && !Array.isArray(row) &&
+      typeof row.promotion_unit_id === 'string' &&
+      row.promotion_unit_id.length > 0 &&
+      Number.isInteger(row.wave) &&
+      typeof row.delivery_state === 'string' &&
+      row.delivery_state.length > 0,
+    'migration disposition unit fields are invalid');
+    const next = {
+      delivery_state: row.delivery_state,
+      wave: row.wave
+    };
+    const current = units.get(row.promotion_unit_id);
+    assert(!current ||
+      (current.delivery_state === next.delivery_state &&
+        current.wave === next.wave),
+    `${row.promotion_unit_id} rows must share delivery state and wave`);
+    units.set(row.promotion_unit_id, next);
+  }
+  const deliveredStates = new Set(['pack-ready', 'promoted', 'retired']);
+  const values = Array.from(units.values());
+  const deliveredUnits = values.filter((unit) =>
+    deliveredStates.has(unit.delivery_state)
+  ).length;
+  const wave = (number) => {
+    const selected = values.filter((unit) => unit.wave === number);
+    return {
+      delivered: selected.filter((unit) =>
+        deliveredStates.has(unit.delivery_state)
+      ).length,
+      total: selected.length
+    };
+  };
+  const createRequestState =
+    units.get('create-request/default')?.delivery_state;
+  assert(typeof createRequestState === 'string',
+    'create-request/default migration unit is required');
+  return {
+    rows: disposition.skills.length,
+    units: units.size,
+    delivered: deliveredUnits,
+    pending: units.size - deliveredUnits,
+    waves: {
+      1: wave(1),
+      2: wave(2),
+      3: wave(3)
+    },
+    create_request_state: createRequestState
+  };
+}
+
+function migrationDeliveryMarker(checkpoint) {
+  return '<!-- sd0x-migration-delivery:v1 ' +
+    `rows=${checkpoint.rows} units=${checkpoint.units} ` +
+    `delivered=${checkpoint.delivered} pending=${checkpoint.pending} ` +
+    `wave3=${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total} ` +
+    `create-request=${checkpoint.create_request_state} -->`;
+}
+
+function migrationDeliverySummary(checkpoint) {
+  return '- Registry checkpoint：' +
+    `${checkpoint.delivered}/${checkpoint.units} canonical units delivered；` +
+    `${checkpoint.pending} pending；` +
+    `Wave 1 ${checkpoint.waves[1].delivered}/${checkpoint.waves[1].total}、` +
+    `Wave 2 ${checkpoint.waves[2].delivered}/${checkpoint.waves[2].total}、` +
+    `Wave 3 ${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total} delivered；` +
+    '`create-request/default` = ' +
+    `\`${checkpoint.create_request_state}\`。`;
 }
 
 function expectedReleaseAssets(version) {
@@ -327,6 +404,9 @@ function checkRelease(root = ROOT) {
   const packageJson = readJson(paths.packagePath);
   const aliasCapabilityBytes = fs.readFileSync(paths.aliasCapabilityPath);
   const aliasCapability = JSON.parse(aliasCapabilityBytes);
+  const migrationDelivery = migrationDeliveryCheckpoint(
+    readJson(paths.dispositionPath)
+  );
   const marketplace = readJson(paths.marketplacePath);
   const manifest = readJson(paths.manifestPath);
   const migrationGuide = fs.readFileSync(paths.migrationGuidePath, 'utf8');
@@ -339,6 +419,18 @@ function checkRelease(root = ROOT) {
   assert(manifest.version === packageJson.version, 'package and plugin versions must match');
   assert(documentedVersion === packageJson.version,
     'migration guide and package versions must match');
+  const deliveryMarkers = migrationGuide.match(
+    /^<!-- sd0x-migration-delivery:v1 [^\r\n]+ -->$/gm
+  );
+  assert(JSON.stringify(deliveryMarkers) === JSON.stringify([
+    migrationDeliveryMarker(migrationDelivery)
+  ]), 'migration guide delivery marker must match the current registry');
+  const deliverySummaries = migrationGuide.match(
+    /^- Registry checkpoint：[^\r\n]+$/gm
+  );
+  assert(JSON.stringify(deliverySummaries) === JSON.stringify([
+    migrationDeliverySummary(migrationDelivery)
+  ]), 'migration guide visible delivery checkpoint must match the current registry');
   assert(
     aliasCapability.plugin_fingerprint === sha256(paths.manifestPath),
     'alias capability plugin fingerprint must match the plugin manifest'
@@ -375,7 +467,8 @@ function checkRelease(root = ROOT) {
     tag: `v${packageJson.version}`,
     marketplace: MARKETPLACE_NAME,
     selector: `${PLUGIN_NAME}@${MARKETPLACE_NAME}`,
-    pluginRoot: paths.pluginRoot
+    pluginRoot: paths.pluginRoot,
+    migrationDelivery
   };
 }
 
@@ -508,6 +601,9 @@ module.exports = {
   checkRelease,
   expectedReleaseAssets,
   main,
+  migrationDeliveryCheckpoint,
+  migrationDeliveryMarker,
+  migrationDeliverySummary,
   parseVersion,
   releasePlan,
   releasePaths,
