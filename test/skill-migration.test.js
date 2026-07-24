@@ -7056,6 +7056,48 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     unit.promotion_unit_id === 'bug-fix/default').lifecycle, 'move-window');
   assert.equal(moveWindows.units.find((unit) =>
     unit.promotion_unit_id === 'debug/default').lifecycle, 'move-window');
+
+  fs.writeFileSync(debugRequest, originalRequest.replace(
+    /Final pack audit `[0-9a-f]{64}`/,
+    `Final pack audit \`${'0'.repeat(64)}\``
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /candidate final audit evidence mismatch for debug\/default/);
+  fs.writeFileSync(debugRequest, originalRequest);
+  fs.writeFileSync(debugRequest, originalRequest.replace(
+    / Final pack audit `[0-9a-f]{64}` passed\./,
+    ''
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /requires one Final pack audit hash in Testing/);
+  fs.writeFileSync(debugRequest, originalRequest);
+  for (const downgradedStatus of ['Complete', 'Pending']) {
+    fs.writeFileSync(debugRequest, originalRequest
+      .replace('| Acceptance | Candidate Complete |',
+        `| Acceptance | ${downgradedStatus} |`)
+      .replace(/ Final pack audit `[0-9a-f]{64}` passed\./, ''));
+    assert.throws(() => auditActiveCandidates({ root: values.root }),
+      /candidate evidence has unsupported Acceptance status/);
+    fs.writeFileSync(debugRequest, originalRequest);
+  }
+
+  const bugFixRequest = path.join(values.root, 'docs', 'features',
+    'skill-toolkit-migration', 'requests', '2026-07-15-wave3-bug-fix-promotion.md');
+  const originalBugFixRequest = fs.readFileSync(bugFixRequest, 'utf8');
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest.replace(
+    /Final audit `[0-9a-f]{64}`/,
+    `Final audit \`${'0'.repeat(64)}\``
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /candidate final audit evidence mismatch for bug-fix\/default/);
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest);
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest.replace(
+    / Final audit `[0-9a-f]{64}` passed\./,
+    ''
+  ));
+  assert.throws(() => auditActiveCandidates({ root: values.root }),
+    /requires one Final audit hash in Testing/);
+  fs.writeFileSync(bugFixRequest, originalBugFixRequest);
 });
 
 test('CI fetches full history required by request base-SHA ancestry checks', () => {

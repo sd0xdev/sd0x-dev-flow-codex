@@ -112,6 +112,9 @@ const PINNED_SUPPLEMENTAL_MODULES = new Map([
   ]
 ]);
 const ACTIVE_CANDIDATE_MOVE_WINDOW = Symbol('active-candidate-move-window');
+const ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS = new Map([
+  ['create-request/default', 'Complete']
+]);
 const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
 const CORE_TARGETS = Object.freeze([
   'bug-fix',
@@ -7328,7 +7331,7 @@ function renderedMarkdownLines(markdown) {
   return records;
 }
 
-function requestProgressHash(request, phase, label, requestPath) {
+function requestProgressRows(request, phase, requestPath) {
   const lines = renderedMarkdownLines(request);
   const headings = lines.reduce((matches, line, index) => {
     if (line.rendered && line.text === '## Progress') matches.push(index);
@@ -7364,14 +7367,27 @@ function requestProgressHash(request, phase, label, requestPath) {
       .map((cell) => cell.trim());
     assert(cells.length === 3,
       `${requestPath}: canonical Progress rows require Phase, Status, and Note`);
-    if (cells[0] === phase && cells[1] === 'Complete') rows.push(cells[2]);
+    if (cells[0] === phase) {
+      rows.push({ status: cells[1], note: cells[2] });
+    }
   }
+  return rows;
+}
+
+function requestProgressHash(request, phase, label, requestPath, options = {}) {
+  const rows = requestProgressRows(request, phase, requestPath)
+    .filter((row) => row.status === 'Complete');
   assert(rows.length === 1,
     `${requestPath}: candidate evidence requires one Complete ${phase} progress row`);
   const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const matches = [...rows[0].matchAll(new RegExp(
+  const matches = [...rows[0].note.matchAll(new RegExp(
     `\\b${escaped} ` + '`([0-9a-f]{64})`', 'g'
   ))];
+  if (options.optional && matches.length === 0) {
+    assert(!new RegExp(`\\b${escaped}\\b`).test(rows[0].note),
+      `${requestPath}: candidate evidence requires one ${label} hash in ${phase}`);
+    return null;
+  }
   assert(matches.length === 1,
     `${requestPath}: candidate evidence requires one ${label} hash in ${phase}`);
   return matches[0][1];
@@ -7384,7 +7400,36 @@ function validateCandidateRequestEvidence(request, result, requestPath) {
     `${requestPath}: candidate payload evidence mismatch for ${result.promotion_unit_id}`);
   assert(preflight === (result.preflight_audit_fingerprint || result.audit_fingerprint),
     `${requestPath}: candidate preflight evidence mismatch for ${result.promotion_unit_id}`);
-  return { payload_tree_sha256: payload, preflight_audit_fingerprint: preflight };
+  if (!result.move_window) {
+    return { payload_tree_sha256: payload, preflight_audit_fingerprint: preflight };
+  }
+  const finalLabel = result.target_package === 'core'
+    ? 'Final audit'
+    : 'Final pack audit';
+  const acceptanceRows = requestProgressRows(request, 'Acceptance', requestPath);
+  assert(acceptanceRows.length === 1,
+    `${requestPath}: candidate evidence requires one Acceptance progress row`);
+  const exemptAcceptance = ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS.get(
+    result.promotion_unit_id
+  );
+  const expectedAcceptance = exemptAcceptance || 'Candidate Complete';
+  assert(acceptanceRows[0].status === expectedAcceptance,
+    `${requestPath}: candidate evidence has unsupported Acceptance status`);
+  const finalAudit = requestProgressHash(
+    request, 'Testing', finalLabel, requestPath, {
+      optional: Boolean(exemptAcceptance)
+    }
+  );
+  if (!finalAudit) {
+    return { payload_tree_sha256: payload, preflight_audit_fingerprint: preflight };
+  }
+  assert(finalAudit === result.audit_fingerprint,
+    `${requestPath}: candidate final audit evidence mismatch for ${result.promotion_unit_id}`);
+  return {
+    payload_tree_sha256: payload,
+    preflight_audit_fingerprint: preflight,
+    final_audit_fingerprint: finalAudit
+  };
 }
 
 function selectActiveCandidatePayload(options) {
