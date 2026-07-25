@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-25
 > **Implementation Base SHA**: `2631aaff15b4a829f54ac34c2365887b0cb3e0e1`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -50,8 +50,8 @@
 |---|---|---|
 | Analysis | Complete | Source ownership, mode boundary, and target package are fixed by the migration registry. |
 | Development | Complete | Candidate payload `3d6755abca65baa0d9ba072c19832e7e0ff46c6a0ec87ca37865e63e7fb2d436` and its closed behavior contract are complete. |
-| Testing | Complete | Preflight `11ef414bb893898d928e14bc105e4f03a695a1d830db895ca5ed8eb12e84db9e` binds the candidate payload, routing tests, and disposition rows. |
-| Acceptance | Candidate Complete | Candidate evidence is complete; final audit and durable R3 closure remain pending. |
+| Testing | Complete | Preflight `11ef414bb893898d928e14bc105e4f03a695a1d830db895ca5ed8eb12e84db9e` binds the candidate payload, routing tests, and disposition rows. Final pack audit `9530858449856b92539a50b7bc2fd862b93722df68c332a1c31e7d0630b342ba` passed. |
+| Acceptance | Complete | Independent AC verification, subject-bound review, deterministic verification, and final pack audit passed. The runtime-owned R3 closure and pack-ready evidence bind this exact Completed request. |
 
 ## References
 

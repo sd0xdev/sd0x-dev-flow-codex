@@ -638,6 +638,173 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
     row.source_name === 'codex-test-gen').delivery_state, 'pack-ready');
 });
 
+test('Wave 4 delivery overlay follows all fifteen durable completion records', (t) => {
+  const values = fixtureRoot({ copyEvidenceRef: true });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
+  const closureCheckpoint = '4113d0190a1d5a1cc3ea69b2b01581e27c940db2';
+  const dispositionPath = 'migration/source-disposition.json';
+  const units = [
+    ['review/branch', 'review', ['codex-review-branch'], 'promotion', 'promoted',
+      '66e40e838275c7a631dda30ff7a6c0484c8daeb97caf9e54684dc116219e2108'],
+    ['review/deep', 'review', ['codex-cli-review'], 'promotion', 'promoted',
+      'b2b9d74e80f1d9d5e654edbdbdecb1b79f4d83cd2bd3da3595447697f1a64ec7'],
+    ['review/default', 'review', ['codex-code-review'], 'promotion', 'promoted',
+      '54ff2854d6d9d104611b0d97389e25536a76a92364f953bc1829fd9efe4a9954'],
+    ['review/fast', 'review', ['codex-review-fast'], 'promotion', 'promoted',
+      'ed2d7058352c93ce55652560ff18caef1734892baad67ebe0d28fc07da1e0cfa'],
+    ['review/full', 'review', ['codex-review'], 'promotion', 'promoted',
+      '012f73a94a10dfc1bb8e8c3207636d844aeb97f694b50146f036a7381d392ae9'],
+    ['best-practices/default', 'best-practices', ['best-practices'],
+      'pack-ready', 'pack-ready',
+      '4a5ec6ff615598c7f09e6c89eec97763c9771bb1f38c12457c5de672150ef8cd'],
+    ['check-coverage/default', 'check-coverage', ['check-coverage'],
+      'pack-ready', 'pack-ready',
+      '9e382d918a8be739db942a3d023af1cbedd2893be9cca56451eccfa1cd6859f9'],
+    ['dep-audit/default', 'dep-audit', ['dep-audit'], 'pack-ready', 'pack-ready',
+      '66d145f84573508765c7400edc5657717a2476b0ffe075ffabceed1881d8fdae'],
+    ['doc-review/default', 'doc-review', ['codex-review-doc', 'doc-review'],
+      'pack-ready', 'pack-ready',
+      'e35dec5c3e0318aca0a856c06a616e9d6a11e64d7afabcb82e0b67b95094a582'],
+    ['pre-pr-audit/default', 'pre-pr-audit', ['pre-pr-audit'],
+      'pack-ready', 'pack-ready',
+      '943363397d4992196089ca633bfbcd6e3652957cde982854d2a3e118abf902a5'],
+    ['project-audit/default', 'project-audit', ['project-audit'],
+      'pack-ready', 'pack-ready',
+      '34a36979ead8b223a5355a6e399769d8eb5938a481aed92d074368e5032a28da'],
+    ['risk-assess/default', 'risk-assess', ['risk-assess'],
+      'pack-ready', 'pack-ready',
+      '6bfe9fc7bf3877139788aa76e12aced413a5d7b74d70dc18a2fdb6d1e5df941a'],
+    ['security-review/default', 'security-review',
+      ['codex-security', 'security-review'], 'pack-ready', 'pack-ready',
+      '3fedc2106c90eb638b0b8d540445f96c7ba8553d8e4eca4445e48dde8519c980'],
+    ['test-health/default', 'test-health', ['test-health'],
+      'pack-ready', 'pack-ready',
+      '2d3e657fb4e08eb4b2ab1d3abf3b1fe6938a044fe7a4654d4817e29fd9c2cda9'],
+    ['test-review/default', 'test-review',
+      ['codex-test-review', 'test-review'], 'pack-ready', 'pack-ready',
+      'e81086ac619967dabec65a8ed7edc11ea8b80726b918b36bdfd865202b270611']
+  ].map(([id, target, sources, kind, final, closure]) => ({
+    id, target, sources, kind, final, closure
+  }));
+  const assertWave4State = (disposition, completions) => {
+    const delivered = completions.size === units.length;
+    for (const unit of units) {
+      const rows = disposition.skills.filter((row) =>
+        row.promotion_unit_id === unit.id
+      );
+      assert.deepEqual(rows.map((row) => row.source_name).sort(),
+        [...unit.sources].sort(), `${unit.id}: source rows must remain exact`);
+      for (const row of rows) {
+        assert.equal(row.target_skill, unit.target,
+          `${unit.id}:${row.source_name} target must remain exact`);
+        assert.equal(row.delivery_state, delivered ? unit.final : 'candidate',
+          `${unit.id}:${row.source_name} must follow the 0/15 batch`);
+      }
+      if (delivered) {
+        assert.equal(completions.get(unit.id)?.kind, unit.kind,
+          `${unit.id}: completion kind must match the final overlay`);
+      }
+    }
+  };
+  const repositoryCompletions = new Map(latestCompletionEvidence(ROOT)
+    .filter((record) => units.some((unit) =>
+      unit.id === record.promotion_unit_id
+    ))
+    .map((record) => [record.promotion_unit_id, record]));
+  assert.ok([0, units.length].includes(repositoryCompletions.size),
+    'Wave 4 completion records must transition as one 0/15 batch');
+  assertWave4State(readJson(ROOT, dispositionPath), repositoryCompletions);
+
+  git(values.root, [
+    'merge-base', '--is-ancestor', closureCheckpoint, evidenceRef
+  ]);
+  git(values.root, ['update-ref', evidenceRef, closureCheckpoint]);
+  const closureAudit = auditRequestClosures(values.root, units.map((unit) => ({
+    kind: 'request-closure',
+    promotion_unit_id: unit.id,
+    record_sha256: unit.closure
+  })));
+  const closures = new Map(closureAudit.selected.map((record) => [
+    record.promotion_unit_id, record
+  ]));
+  const candidate = readJson(values.root, dispositionPath);
+  const candidateRows = candidate.skills.filter((row) =>
+    units.some((unit) => unit.id === row.promotion_unit_id)
+  );
+  assert.equal(candidateRows.length, 18);
+  assert.ok(candidateRows.every((row) => row.delivery_state === 'candidate'));
+  assertWave4State(candidate, new Map());
+  const applyFinalOverlay = (disposition) => {
+    for (const unit of units) {
+      for (const row of disposition.skills.filter((entry) =>
+        entry.promotion_unit_id === unit.id
+      )) {
+        row.delivery_state = unit.final;
+      }
+    }
+  };
+  const premature = structuredClone(candidate);
+  applyFinalOverlay(premature);
+  writeJson(values.root, dispositionPath, premature);
+  assert.throws(() => auditSource({ root: values.root }),
+    /Evidence has no completion record for best-practices\/default/);
+
+  writeJson(values.root, dispositionPath, candidate);
+  const candidateAudit = auditSource({ root: values.root });
+  assert.equal(candidateAudit.ok, true);
+  recordPassingGates(values.root, 'wave4-completion-batch');
+  const recordedAfter = Math.max(...[...closures.values()].map((record) =>
+    Date.parse(record.recorded_at)
+  ));
+  for (const [index, unit] of units.entries()) {
+    const rows = candidate.skills.filter((row) =>
+      row.promotion_unit_id === unit.id
+    );
+    const targetPackage = [...new Set(rows.map((row) => row.target_package))];
+    assert.equal(targetPackage.length, 1);
+    const payload = unit.kind === 'promotion'
+      ? `plugin/sd0x-dev-flow-codex/skills/${unit.target}`
+      : `migration/packs/${targetPackage[0]}/${unit.target}`;
+    recordPromotionEvidence(values.root, {
+      kind: unit.kind,
+      promotion_unit_id: unit.id,
+      request_closure_record_sha256: closures.get(unit.id).record_sha256,
+      disposition_row: rows.length === 1 ? rows[0] : rows,
+      payload_tree_sha256: hashPayloadTree(values.root, payload),
+      reason: null,
+      recorded_at: new Date(recordedAfter + (index + 1) * 1000).toISOString(),
+      supersedes_record_sha256: null
+    });
+  }
+  const completed = new Map(latestCompletionEvidence(values.root)
+    .filter((record) => units.some((unit) =>
+      unit.id === record.promotion_unit_id
+    ))
+    .map((record) => [record.promotion_unit_id, record]));
+  assert.equal(completed.size, units.length);
+
+  const delivered = structuredClone(candidate);
+  applyFinalOverlay(delivered);
+  writeJson(values.root, dispositionPath, delivered);
+  const assertPostOverlayComplete = () => {
+    const state = refreshState(values.root);
+    assert.ok(isCurrentPass(state, 'review'),
+      'post-overlay review gate must be current');
+    assert.ok(isCurrentPass(state, 'verify'),
+      'post-overlay verification gate must be current');
+    return auditSource({ root: values.root });
+  };
+  assert.throws(() => assertPostOverlayComplete(),
+    /post-overlay review gate must be current/);
+  recordPassingGates(values.root, 'wave4-post-overlay');
+  const finalAudit = assertPostOverlayComplete();
+  assert.equal(finalAudit.ok, true);
+  assert.equal(finalAudit.durable_completion_units,
+    candidateAudit.durable_completion_units + units.length);
+  assertWave4State(delivered, completed);
+});
+
 test('source audit binds Candidate Complete research-pack ticket evidence', (t) => {
   const values = fixtureRoot({ candidateCompletePacks: true });
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));

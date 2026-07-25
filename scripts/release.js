@@ -147,7 +147,8 @@ function migrationDeliveryCheckpoint(disposition) {
     waves: {
       1: wave(1),
       2: wave(2),
-      3: wave(3)
+      3: wave(3),
+      4: wave(4)
     },
     create_request_state: createRequestState
   };
@@ -158,6 +159,7 @@ function migrationDeliveryMarker(checkpoint) {
     `rows=${checkpoint.rows} units=${checkpoint.units} ` +
     `delivered=${checkpoint.delivered} pending=${checkpoint.pending} ` +
     `wave3=${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total} ` +
+    `wave4=${checkpoint.waves[4].delivered}/${checkpoint.waves[4].total} ` +
     `create-request=${checkpoint.create_request_state} -->`;
 }
 
@@ -167,7 +169,8 @@ function migrationDeliverySummary(checkpoint) {
     `${checkpoint.pending} pending；` +
     `Wave 1 ${checkpoint.waves[1].delivered}/${checkpoint.waves[1].total}、` +
     `Wave 2 ${checkpoint.waves[2].delivered}/${checkpoint.waves[2].total}、` +
-    `Wave 3 ${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total} delivered；` +
+    `Wave 3 ${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total}、` +
+    `Wave 4 ${checkpoint.waves[4].delivered}/${checkpoint.waves[4].total} delivered；` +
     '`create-request/default` = ' +
     `\`${checkpoint.create_request_state}\`。`;
 }

@@ -11,7 +11,7 @@ const {
 } = require('./state');
 
 const OUTPUT_LIMIT = 12_000;
-const TIMEOUT_MS = 45 * 60 * 1000;
+const TIMEOUT_MS = 60 * 60 * 1000;
 const WINDOWS_COMMAND_RUNNERS = new Set(['npm', 'yarn', 'pnpm']);
 
 function commandSpec(command, args) {

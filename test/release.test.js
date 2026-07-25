@@ -215,12 +215,13 @@ test('migration guide delivery checkpoint matches the current registry', () => {
   assert.deepEqual(result.migrationDelivery, {
     rows: 100,
     units: 95,
-    delivered: 29,
-    pending: 66,
+    delivered: 44,
+    pending: 51,
     waves: {
       1: { delivered: 9, total: 10 },
       2: { delivered: 12, total: 12 },
-      3: { delivered: 8, total: 8 }
+      3: { delivered: 8, total: 8 },
+      4: { delivered: 15, total: 15 }
     },
     create_request_state: 'candidate'
   });
