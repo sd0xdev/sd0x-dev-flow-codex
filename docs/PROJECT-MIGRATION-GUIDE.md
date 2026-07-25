@@ -103,7 +103,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 Codex core 目前刻意只包含：
 
 - 11 個 skills：`setup`、`review`、`verify`、`feature-dev`、`bug-fix`、`create-request`、`req-analyze`、`remind`、`reset`、`doctor`、`tech-spec`。
-- 1 個 opt-in bundled MCP server：`sd0x_claude_review`，只在 Claude provider 中透過本機 Claude CLI 提供外部 primary 視角。
+- 1 個 bundled MCP server：`sd0x_claude_review`。所有 provider 都使用其 provider-independent、allowlisted `run_skill_script` runtime entrypoint；Claude provider 才額外透過本機 Claude CLI 使用唯讀 `review_worktree` primary 視角。
 - 3 個 project-scoped reviewer profiles：Codex primary、Claude wrapper 與 test；預設兩個實際 reviewer 都使用 Codex。
 - Session、prompt、edit、subagent 與 Stop lifecycle hooks。
 - Fingerprint state machine、deterministic verification、project setup、doctor 與 dev-link tooling。
@@ -137,7 +137,7 @@ sd0x-dev-flow-codex/
 │   ├── .codex-plugin/plugin.json
 │   ├── .mcp.json
 │   ├── hooks/hooks.json
-│   ├── scripts/mcp/                  # Claude review MCP adapter
+│   ├── scripts/mcp/                  # trusted skill runtime + Claude review MCP adapter
 │   ├── scripts/runtime/
 │   ├── skills/
 │   └── templates/agents/
@@ -503,7 +503,7 @@ custom refs；CI、release、clone import 與離線 bundle 都必須明確搬移
 目前 suite 會先遞迴 syntax-check 所有 shipped JavaScript entrypoints，再執行下列測試群組；案例數以 `npm run check` 的即時輸出為準，不在文件寫死：
 
 - `dev-plugin.test.js`：loader-safe overlay、regular-file skill entrypoint、idempotency、foreign owner、missing／mismatched cache path、isolated home 的 link/unlink。
-- `claude-review-mcp.test.js`：MCP wire format、Claude CLI read-only flags、structured output、protected paths、bundle/fingerprint binding。
+- `claude-review-mcp.test.js`：provider-independent skill runtime allowlist/hostile PATH binding、MCP wire format、Doctor capability discovery、Claude CLI read-only flags、structured output、protected paths、bundle/fingerprint binding。
 - `hook.test.js`：opt-in、SessionStart boundary、multi-session enforcement、protected patch、Claude MCP PostToolUse evidence、Stop、terminal subagent lifecycle。
 - `setup.test.js`：idempotency、AGENTS preservation、unowned agents、invalid config preflight。
 - `state.test.js`：Claude + dual-Codex clean outcomes、schema migration、fingerprint binding、session retention、no-ceiling loop、explicit reset 與 obsolete-counter migration。
@@ -534,7 +534,7 @@ CODEX_HOME="$PLUGIN_REPO/.codex-dev-home" codex
 在第一個 task 依序執行：
 
 1. 確認 `/hooks` 已 trust。
-2. 呼叫 `$sd0x-dev-flow-codex:setup`，確認產生預設 `review.provider: "codex"`、三個 `.codex/agents/*.toml` 與 `AGENTS.md` managed block；舊 setup-managed `sd0x-reviewer.toml` 必須退休，自訂同名檔則保留。只有測試 Claude mode 時才需確認 bundled MCP 與 Claude CLI login。
+2. 呼叫 `$sd0x-dev-flow-codex:setup`，確認產生預設 `review.provider: "codex"`、三個 `.codex/agents/*.toml` 與 `AGENTS.md` managed block；舊 setup-managed `sd0x-reviewer.toml` 必須退休，自訂同名檔則保留。所有 provider 都要確認 bundled MCP registry 含 `run_skill_script`；只有測試 Claude mode 時才需額外確認 `review_worktree` 與 Claude CLI login。
 3. 確認 setup 所在 task 不會因尚未觀察到該 task 的 SessionStart opt-in 而被 Stop gate 卡住。
 4. 開新 task，建立一個可測試的小變更，分別驗證 code/config 需要 review + verify，docs-only 只需要 review。
 5. 讓 Codex primary 與 Codex test reviewer 完成後記錄 review pass，再執行 verify；確認兩者 fingerprint 相同且 final Stop 放行。
@@ -586,7 +586,7 @@ npm run dev:local:status
 1. `claude --version` 可執行，`claude --help` 含 adapter 所需 flags，且 Claude CLI 已完成登入。
    Windows 必須解析到 native `claude.exe`；若 Doctor 回報 `native-windows-cli-required`，以 `winget install Anthropic.ClaudeCode` 安裝官方 native build，並移除 PATH 中遮蔽它的舊 shim。
 2. 變更 `.mcp.json`、manifest 或新增 adapter 後，已先 `dev:local:unlink` 再 `dev:local:link` 並開新 task。
-3. Doctor 的 MCP initialize/tool-list handshake 通過，且目前 task 的 tool registry 含 `mcp__sd0x_claude_review__review_worktree`。
+3. Doctor 的 MCP initialize/tool-list handshake 通過，且目前 task 的 tool registry 同時含 provider-independent `mcp__sd0x_claude_review__run_skill_script` 與 Claude-only `mcp__sd0x_claude_review__review_worktree`。
 4. Changed paths 不含 protected file 或 nested repository/submodule，review bundle 未超過預設 4 MiB。
 5. `SD0X_CLAUDE_BIN`、`SD0X_CLAUDE_REVIEW_MODEL`、`SD0X_CLAUDE_REVIEW_TIMEOUT_MS` 或 bundle limit overrides 沒有錯誤值。
 

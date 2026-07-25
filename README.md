@@ -117,7 +117,7 @@ codex plugin remove sd0x-dev-flow-codex@sd0xdev-marketplace
 - `verify`：依 repository 類型選擇 deterministic checks，記錄 verification gate。
 - `remind`：在中斷或 context compaction 後，恢復下一個尚未完成的 gate。
 - `reset`：旋轉 runtime epoch、清除 sd0x gate/reviewer evidence，要求目前 dirty worktree 重新 review。
-- `doctor`：檢查安裝、runtime、目前 provider 與 gate 狀態；只有 Claude mode 會要求 Claude CLI/auth/MCP readiness。
+- `doctor`：檢查安裝、runtime、目前 provider 與 gate 狀態；所有 provider 都要求 bundled MCP 的 allowlisted skill-runtime tool ready，只有 Claude mode 額外要求 Claude CLI/auth 與 review tool readiness。
 - `setup`：為目標 repository 安裝 project guidance 與 reviewer profiles。
 
 典型請求：
@@ -139,7 +139,7 @@ Reset 不會修改 project files 或停用 active session；它只清除 sd0x ru
 
 `plugin/sd0x-dev-flow-codex/scripts/runtime/worktree.js` 分別雜湊 HEAD→index、index→worktree 的 raw diffs，以及所有未被忽略的 untracked paths/file bodies，也涵蓋 dirty nested Git repositories。即使 staged file 之後被刪除，或 worktree 又改回 HEAD，fingerprint 仍可辨識 staged state。
 
-`skills/review/scripts/provider.js` 從 project config 解析 primary backend。`scripts/mcp/server.js` 提供 opt-in 的唯讀 Claude review tool，傳入兩層 tracked diff，並拒絕 stale fingerprint、protected changed paths、tracked binary changes、超量/缺漏內容與非結構化結果。`state.js` 原子化保存 provider、gate 與 reviewer evidence；provider 或 fingerprint 改變都會使舊 evidence 失效。`hook.js` 只負責 Codex event adapter 與 workflow routing，並在 Codex mode 直接拒絕 Claude tool call；`verify.js` 執行 native checks，不讓 model 自行宣告通過。
+`skills/review/scripts/provider.js` 從 project config 解析 primary backend。`scripts/mcp/server.js` 在所有 provider 提供 `run_skill_script`：只接受固定 allowlist 內的 installed skill entrypoint，以 MCP runtime 自己的 `process.execPath` 執行，忽略 project cwd/PATH 的 Node shadow，並移除 Node/loader preload 環境變數；修改這個 server 或 tool registry 後必須開新 task。相同 server 另提供 opt-in 的唯讀 Claude `review_worktree`，傳入兩層 tracked diff，並拒絕 stale fingerprint、protected changed paths、tracked binary changes、超量/缺漏內容與非結構化結果。`state.js` 原子化保存 provider、gate 與 reviewer evidence；provider 或 fingerprint 改變都會使舊 evidence 失效。`hook.js` 只負責 Codex event adapter 與 workflow routing，並在 Codex mode 直接拒絕 Claude review tool call；`verify.js` 執行 native checks，不讓 model 自行宣告通過。
 
 Runtime state 存在 Git metadata 或 `.sd0x/`，不會成為 tracked project artifact。Hooks 是 workflow guardrails，不是 OS security boundary；repository permissions 與 secret management 仍是實際安全邊界。
 
