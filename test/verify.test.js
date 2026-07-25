@@ -13,6 +13,7 @@ const {
   refreshState
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
+  TIMEOUT_MS,
   commandForPlatform,
   detectCommands,
   execute,
@@ -138,7 +139,8 @@ test('package commands keep the timeout and Windows runner shim', () => {
   assert.equal(observed.command, 'npm.cmd');
   assert.deepEqual(observed.args, ['run', 'check']);
   assert.equal(observed.options.shell, true);
-  assert.equal(observed.options.timeout, 30 * 60 * 1000);
+  assert.equal(TIMEOUT_MS, 45 * 60 * 1000);
+  assert.equal(observed.options.timeout, TIMEOUT_MS);
 });
 
 test('verification records successful deterministic evidence', (t) => {

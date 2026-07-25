@@ -1997,6 +1997,46 @@ function candidateTreeDigest(tree) {
   ])));
 }
 
+function trustedCoreResourceFiles(root, tree, target) {
+  if (!CORE_TARGETS.includes(target)) return new Set();
+  const candidateMatch = /^migration\/candidates\/([a-z0-9][a-z0-9-]*)$/.exec(
+    tree.relative
+  );
+  const liveMatch = /^plugin\/sd0x-dev-flow-codex\/skills\/([a-z0-9][a-z0-9-]*)$/.exec(
+    tree.relative
+  );
+  if ((!candidateMatch && !liveMatch) ||
+      (candidateMatch || liveMatch)[1] !== target) return new Set();
+  const trusted = new Set();
+  for (const file of tree.files) {
+    if (['SKILL.md', 'migration-contract.json'].includes(file)) continue;
+    let baseBytes = null;
+    if (candidateMatch) {
+      const relative = `plugin/sd0x-dev-flow-codex/skills/${target}/${file}`;
+      const absolute = path.join(root, ...relative.split('/'));
+      const stat = lstatIfPresent(absolute);
+      if (stat?.isFile() && !stat.isSymbolicLink()) {
+        baseBytes = captureContainedRegularFile(
+          root, relative, 'trusted core candidate resource'
+        ).bytes;
+      }
+    } else {
+      try {
+        baseBytes = runGit(root, [
+          'show', `HEAD:plugin/sd0x-dev-flow-codex/skills/${target}/${file}`
+        ], null);
+      } catch {
+        baseBytes = null;
+      }
+    }
+    if (Buffer.isBuffer(baseBytes) &&
+        candidateFileBytes(tree, file).equals(baseBytes)) {
+      trusted.add(file);
+    }
+  }
+  return trusted;
+}
+
 function localReferences(markdown) {
   const references = [];
   const linkPattern = /\[[^\]]*\]\(([^)]+)\)/g;
@@ -2660,7 +2700,7 @@ function validateNode18SyntaxBaseline(code, current) {
     `${current}: import phases are newer than the Node 18 ES2022 baseline`);
 }
 
-function validateCandidateResources(tree) {
+function validateCandidateResources(tree, trustedFiles = new Set()) {
   const fileSet = new Set(tree.files);
   const javascriptProbeBudget = { used: 0 };
   const javascriptFiles = tree.files.filter((file) => /\.(?:js|cjs|mjs)$/.test(file));
@@ -2672,7 +2712,11 @@ function validateCandidateResources(tree) {
     `candidate contains more than ${MAX_JAVASCRIPT_BYTES_PER_CANDIDATE} total JavaScript bytes`);
   assert(!tree.files.some((file) => path.posix.basename(file) === 'package.json'),
     'candidate package metadata is unsupported because it changes runtime module resolution');
-  const reachable = new Set(['SKILL.md', 'migration-contract.json']);
+  const reachable = new Set([
+    'SKILL.md',
+    'migration-contract.json',
+    ...trustedFiles
+  ]);
   const queue = ['SKILL.md'];
   while (queue.length > 0) {
     const current = queue.shift();
@@ -5427,7 +5471,23 @@ function validateChildProcessUsage(text, recordPath) {
   }
 }
 
-function observedOperations(records) {
+function trustedNodeInstruction(records, executableIndex, trustedFiles) {
+  if (!(trustedFiles instanceof Set)) return false;
+  const executable = path.posix.basename(
+    records[executableIndex]?.value.replace(/\\/g, '/') || ''
+  ).toLowerCase();
+  if (executable !== 'node') return false;
+  const args = records.slice(executableIndex + 1);
+  if (args.length === 0 || args.some((token) => token.dynamic || token.executes)) return false;
+  const script = args.find((token) => !token.value.startsWith('-'));
+  const match = /^<this-skill-directory>\/(scripts\/[a-z0-9][a-z0-9-]*\.js)$/.exec(
+    script?.value || ''
+  );
+  return Boolean(match && trustedFiles.has(match[1]));
+}
+
+function observedOperations(records, options = {}) {
+  const trustedFiles = options.trustedFiles || new Set();
   const operations = new Set(['read']);
   for (const record of records) {
     const extension = path.posix.extname(record.path);
@@ -5495,7 +5555,11 @@ function observedOperations(records) {
           const executable = executableRecord
             ? path.posix.basename(executableRecord.value.replace(/\\/g, '/')).toLowerCase()
             : '';
-          if (executable && !SHELL_AUDITED_COMMANDS.has(executable) &&
+          const trustedNode = trustedNodeInstruction(
+            tokenRecords, executableIndex, trustedFiles
+          );
+          if (trustedNode) operations.add('local-write');
+          if (executable && !SHELL_AUDITED_COMMANDS.has(executable) && !trustedNode &&
               !declaredShellFunctions.has(executable)) {
             operations.add('local-write');
             operations.add('connector-write');
@@ -6206,8 +6270,8 @@ function observedOperations(records) {
   return [...operations].sort(BYTEWISE);
 }
 
-function validateCandidateOperationRecords(records, declaredOperations) {
-  const observed = observedOperations(records);
+function validateCandidateOperationRecords(records, declaredOperations, options = {}) {
+  const observed = observedOperations(records, options);
   for (const operation of observed) {
     assert(declaredOperations.includes(operation),
       `candidate uses undeclared operation: ${operation}; observed=${JSON.stringify(observed)}`);
@@ -6230,8 +6294,10 @@ function auditCandidateStatic(options = {}) {
     row.target_skill === target && row.delivery_state === 'candidate');
   assert(rows.length > 0, `${target}: candidate operation audit has no active rows`);
   const tree = candidateTree(root, relative);
+  const trustedResources = trustedCoreResourceFiles(root, tree, target);
   const records = tree.files
     .filter((file) => file !== 'migration-contract.json')
+    .filter((file) => !trustedResources.has(file))
     .map((file) => {
       const bytes = candidateFileBytes(tree, file);
       if (bytes.includes(0)) return null;
@@ -6247,11 +6313,13 @@ function auditCandidateStatic(options = {}) {
   for (const file of tree.files.filter((name) => name.endsWith('.md'))) {
     validateMarkdownTables(candidateFileBytes(tree, file).toString('utf8'), file);
   }
-  validateCandidateResources(tree);
+  validateCandidateResources(tree, trustedResources);
   const declaredOperations = sortedUnique(rows.flatMap((row) => row.operations));
   return {
     ok: true,
-    observed_operations: validateCandidateOperationRecords(records, declaredOperations)
+    observed_operations: validateCandidateOperationRecords(records, declaredOperations, {
+      trustedFiles: trustedResources
+    })
   };
 }
 
@@ -6963,6 +7031,7 @@ function auditCandidate(options = {}) {
   }
 
   const tree = candidateTree(root, relative);
+  const trustedResources = trustedCoreResourceFiles(root, tree, target);
   if (typeof options.afterCandidateTreeRead === 'function') {
     options.afterCandidateTreeRead({ directory: tree.directory, files: [...tree.files] });
   }
@@ -7108,6 +7177,7 @@ function auditCandidate(options = {}) {
   }
   const productionRecords = tree.files
     .filter((file) => file !== 'migration-contract.json')
+    .filter((file) => !trustedResources.has(file))
     .map((file) => {
       const bytes = candidateFileBytes(tree, file);
       if (bytes.includes(0)) return null;
@@ -7124,10 +7194,12 @@ function auditCandidate(options = {}) {
     validateMarkdownTables(candidateFileBytes(tree, file).toString('utf8'), file);
   }
 
-  validateCandidateResources(tree);
+  validateCandidateResources(tree, trustedResources);
 
   const declaredOperations = sortedUnique(activeRows.flatMap((row) => row.operations));
-  const observed = validateCandidateOperationRecords(productionRecords, declaredOperations);
+  const observed = validateCandidateOperationRecords(productionRecords, declaredOperations, {
+    trustedFiles: trustedResources
+  });
   const observedSensitive = observed.filter((operation) => SENSITIVE_OPERATIONS.has(operation));
   assert(JSON.stringify(contract.authorization.sensitive_operations) ===
     JSON.stringify(observedSensitive),
@@ -7339,7 +7411,7 @@ function validateCandidateRequestEvidence(request, result, requestPath, options 
     `${requestPath}: candidate evidence has unsupported Acceptance status`);
   const finalAudit = requestProgressHash(
     request, 'Testing', finalLabel, requestPath, {
-      optional: Boolean(exemptAcceptance)
+      optional: Boolean(exemptAcceptance) || requestStatus === 'candidate complete'
     }
   );
   if (!finalAudit) {

@@ -39,6 +39,17 @@ const {
   validateSemanticContract
 } = require('../scripts/research-contract-test');
 const {
+  completeAcceptanceCriteria
+} = require('../scripts/record-skill-wave-preflight');
+const {
+  applyPromotionMoves,
+  buildPromotionPlan,
+  treeDigest: promotionTreeDigest
+} = require('../scripts/promote-skill-wave');
+const {
+  restageCoreCandidate
+} = require('../scripts/restage-core-candidate');
+const {
   acquireProbeLease,
   buildDump,
   cleanupFixtureSkill,
@@ -3485,6 +3496,629 @@ test('candidate audit rejects orphan, escaping, malformed, undeclared, and index
   }), /cannot be audited as a candidate/);
 });
 
+test('core candidate trusts only byte-identical inherited runtime resources', (t) => {
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  prepareRow(values.root, 'codex-code-review', {
+    operations: ['local-write', 'read']
+  });
+  const relative = writeCandidate(values.root, {
+    target: 'review',
+    sourceNames: ['codex-code-review'],
+    targetPackage: 'core',
+    unit: 'review/default',
+    body: 'Review changes with the [guide](references/guide.md). The [gate wrapper](scripts/gate.js) records evidence.'
+  });
+  const candidateScripts = path.join(values.root, relative, 'scripts');
+  fs.cpSync(
+    path.join(values.root, 'plugin/sd0x-dev-flow-codex/skills/review/scripts'),
+    candidateScripts,
+    { recursive: true }
+  );
+
+  assert.deepEqual(auditCandidateStatic({
+    root: values.root,
+    candidate: relative,
+    target: 'review'
+  }), {
+    ok: true,
+    observed_operations: ['read']
+  });
+
+  fs.appendFileSync(path.join(candidateScripts, 'gate.js'), '\n// candidate drift\n');
+  assert.throws(() => auditCandidateStatic({
+    root: values.root,
+    candidate: relative,
+    target: 'review'
+  }), /template-literal code cannot be audited/);
+});
+
+test('Candidate Complete criteria cannot claim final audit or durable closure', () => {
+  const candidateCriteria = [
+    '# Request',
+    '',
+    '## Acceptance Criteria',
+    '',
+    '- [ ] Candidate preserves the complete fixture workflow and its meaningful failure boundaries.',
+    '- [ ] Contract binds every assigned source name to this single canonical promotion unit.',
+    '- [ ] Compatibility aliases remain mapping-only and add no discovered skill entrypoints.',
+    '- [ ] Trusted routing tests distinguish positive prompts from adjacent skill boundaries.',
+    '- [ ] Candidate preflight binds exact payload and behavioral-test identity.',
+    '- [ ] Final pack destination and move-window comparison are fixed.',
+    '- [ ] R3 closure inputs identify this exact request, promotion unit, evidence kind, and final-fingerprint fields.',
+    '',
+    '## Progress',
+    ''
+  ].join('\n').replace(
+    'Final pack destination and move-window comparison are fixed.',
+    'Final pack destination and move-window comparison are fixed for the accepted candidate bytes.'
+  );
+  const completed = completeAcceptanceCriteria(candidateCriteria, 'fixture.md');
+  assert.equal((completed.match(/^- \[x\] /gm) || []).length, 7);
+  for (const futureClaim of [
+    '- [ ] The final quality-pack artifact has completed its source audit.',
+    '- [ ] The completion ledger now binds this request.',
+    '- [ ] Final pack destination and move-window comparison are not fixed for the accepted candidate bytes.',
+    '- [ ] R3 completion inputs identify this exact request, promotion unit, evidence kind, and final-fingerprint fields.'
+  ]) {
+    assert.throws(() => completeAcceptanceCriteria(
+      candidateCriteria.replace(
+        '- [ ] Candidate preserves the complete fixture workflow and its meaningful failure boundaries.',
+        futureClaim
+      ),
+      'fixture.md'
+    ), /must exactly match the Candidate Complete stage contract/);
+  }
+});
+
+test('Wave 4 review payload retains the executable strict gate contract', () => {
+  const review = fs.readFileSync(path.join(
+    ROOT, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  ), 'utf8');
+  for (const required of [
+    '[review theory](references/review-theory.md)',
+    'scripts/provider.js',
+    'scripts/snapshot.js',
+    'scripts/round.js',
+    'scripts/gate.js',
+    'sd0x_codex_primary_reviewer',
+    'sd0x_claude_primary_reviewer',
+    'sd0x_test_reviewer',
+    'mcp__sd0x_claude_review__review_worktree',
+    'No actionable findings remain.'
+  ]) {
+    assert.match(review, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+});
+
+test('Wave 4 non-default review modes have explicit no-gate execution contracts', () => {
+  const review = fs.readFileSync(path.join(
+    ROOT, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  ), 'utf8');
+  const modes = [
+    {
+      name: 'fast',
+      required: [/staged and unstaged diff/i, /do not run project checks/i, /preliminary/i]
+    },
+    {
+      name: 'full',
+      required: [/affected callers and dependencies/i, /non-mutating local build, lint, or test checks/i]
+    },
+    {
+      name: 'branch',
+      required: [/compute the merge base/i, /merge-base-to-HEAD\s+commit range/i, /Exclude dirty\s+worktree-only changes/i]
+    },
+    {
+      name: 'deep',
+      required: [/surrounding\s+architecture, callers, invariants/i, /independent read-only implementation and test\/acceptance passes/i]
+    }
+  ];
+  for (let index = 0; index < modes.length; index += 1) {
+    const mode = modes[index];
+    const start = review.indexOf(`### \`${mode.name}\``);
+    const next = index + 1 < modes.length
+      ? review.indexOf(`### \`${modes[index + 1].name}\``, start)
+      : review.indexOf('\nRepository completion always requires', start);
+    assert.notEqual(start, -1, mode.name);
+    assert.notEqual(next, -1, mode.name);
+    const section = review.slice(start, next);
+    for (const pattern of mode.required) assert.match(section, pattern);
+    assert.doesNotMatch(section, /(?:round|gate)\.js/);
+  }
+  assert.match(review, /Non-default modes[\s\S]*`round\.js` and `gate\.js`\s+wrappers are excluded/i);
+});
+
+test('wave promotion prevalidates every target and safely recognizes an interrupted move', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-promotion-plan-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const targets = ['alpha', 'beta'];
+  const plan = {
+    targets: targets.map((target) => ({
+      target,
+      target_package: 'quality-pack',
+      units: [{ promotion_unit_id: `${target}/default` }]
+    }))
+  };
+  const disposition = { skills: [] };
+  for (const target of targets) {
+    const candidate = path.join(root, 'migration', 'candidates', target);
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'SKILL.md'), `# ${target}\n`);
+    const request = `requests/${target}.md`;
+    fs.mkdirSync(path.join(root, 'requests'), { recursive: true });
+    fs.writeFileSync(path.join(root, request), [
+      `# ${target}`,
+      '',
+      '> **Status**: Candidate Complete',
+      '',
+      `Candidate payload \`${promotionTreeDigest(candidate)}\`.`,
+      ''
+    ].join('\n'));
+    disposition.skills.push({
+      target_skill: target,
+      promotion_unit_id: `${target}/default`,
+      delivery_state: 'candidate',
+      promotion_request: request
+    });
+  }
+
+  const beta = path.join(root, 'migration', 'candidates', 'beta', 'SKILL.md');
+  fs.appendFileSync(beta, 'drift\n');
+  assert.throws(() => buildPromotionPlan(root, plan, disposition),
+    /beta: candidate drifted after Candidate Complete preflight/);
+  assert.equal(fs.existsSync(path.join(root, 'migration', 'candidates', 'alpha')), true);
+  assert.equal(fs.existsSync(path.join(
+    root, 'migration', 'packs', 'quality-pack', 'alpha'
+  )), false);
+
+  fs.writeFileSync(beta, '# beta\n');
+  const alphaCandidate = path.join(root, 'migration', 'candidates', 'alpha');
+  const alphaFinal = path.join(root, 'migration', 'packs', 'quality-pack', 'alpha');
+  fs.mkdirSync(path.dirname(alphaFinal), { recursive: true });
+  fs.renameSync(alphaCandidate, alphaFinal);
+  const retry = buildPromotionPlan(root, plan, disposition);
+  assert.equal(retry.find((move) => move.target === 'alpha').action, 'already-moved');
+  assert.equal(retry.find((move) => move.target === 'beta').action, 'move');
+});
+
+test('core promotion rollback restores the full accepted candidate after partial cleanup', (t) => {
+  const initialCwd = process.cwd();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-core-promotion-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidate = path.join(root, 'candidate');
+  const destination = path.join(root, 'live');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(destination, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  fs.writeFileSync(path.join(candidate, 'contract.json'), '{"accepted":true}\n');
+  fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+  const accepted = promotionTreeDigest(candidate);
+  const prior = promotionTreeDigest(destination);
+  const moves = [{
+    target: 'fixture',
+    target_package: 'core',
+    payload_tree_sha256: accepted,
+    action: 'move',
+    candidate,
+    destination
+  }];
+
+  assert.throws(() => applyPromotionMoves(root, moves, {
+    removeCoreCandidate(directory) {
+      fs.rmSync(path.join(directory, 'SKILL.md'));
+      throw new Error('injected cleanup failure');
+    }
+  }), /injected cleanup failure/);
+  assert.equal(promotionTreeDigest(destination), prior);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core promotion retains complete backups when rollback itself fails', (t) => {
+  const initialCwd = process.cwd();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-core-recovery-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidate = path.join(root, 'candidate');
+  const destination = path.join(root, 'live');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(destination, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  fs.writeFileSync(path.join(candidate, 'contract.json'), '{"accepted":true}\n');
+  fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+  const accepted = promotionTreeDigest(candidate);
+  const prior = promotionTreeDigest(destination);
+  const moves = [{
+    target: 'fixture',
+    target_package: 'core',
+    payload_tree_sha256: accepted,
+    action: 'move',
+    candidate,
+    destination
+  }];
+
+  let failure;
+  try {
+    applyPromotionMoves(root, moves, {
+      removeCoreCandidate(directory) {
+        fs.rmSync(path.join(directory, 'SKILL.md'));
+        throw new Error('injected cleanup failure');
+      },
+      restoreTree(source, target, kind) {
+        if (kind === 'live') throw new Error('injected live restore failure');
+        fs.cpSync(source, target, { recursive: true });
+      }
+    });
+  } catch (error) {
+    failure = error;
+  }
+  assert.ok(failure);
+  assert.match(failure.message, /rollback was incomplete; recovery retained at/);
+  const recovery = /recovery retained at ([^;]+)/.exec(failure.message)?.[1];
+  assert.ok(recovery);
+  assert.equal(path.relative(root, recovery).split(path.sep)[0], '.sd0x');
+  assert.equal(fs.existsSync(path.join(recovery, 'recovery.json')), true);
+  assert.equal(promotionTreeDigest(path.join(recovery, 'fixture-live')), prior);
+  assert.equal(promotionTreeDigest(path.join(
+    recovery, 'fixture-candidate'
+  )), accepted);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+  const observed = spawnSync(process.execPath, ['-e', [
+    "const fs = require('node:fs');",
+    "const path = require('node:path');",
+    'const recovery = process.argv[1];',
+    "for (const name of ['fixture-live', 'fixture-candidate', 'recovery.json']) {",
+    '  if (!fs.existsSync(path.join(recovery, name))) process.exit(2);',
+    '}'
+  ].join('\n'), recovery], { encoding: 'utf8' });
+  assert.equal(observed.status, 0, observed.stderr || observed.stdout);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('promotion and restaging reject symlinked recovery paths before mutation', (t) => {
+  const initialCwd = process.cwd();
+  const promotionRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-promotion-root-'));
+  const restage = fixtureRoot();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-recovery-outside-'));
+  t.after(() => {
+    fs.rmSync(promotionRoot, { recursive: true, force: true });
+    fs.rmSync(restage.workspace, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+
+  const candidate = path.join(promotionRoot, 'candidate');
+  const destination = path.join(promotionRoot, 'live');
+  fs.mkdirSync(candidate);
+  fs.mkdirSync(destination);
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+  const accepted = promotionTreeDigest(candidate);
+  const prior = promotionTreeDigest(destination);
+  fs.symlinkSync(outside, path.join(promotionRoot, '.sd0x'));
+  assert.throws(() => applyPromotionMoves(promotionRoot, [{
+    target: 'fixture',
+    target_package: 'core',
+    payload_tree_sha256: accepted,
+    action: 'move',
+    candidate,
+    destination
+  }]), /Recovery root \.sd0x must be a real directory/);
+  assert.equal(process.cwd(), initialCwd);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+  assert.equal(promotionTreeDigest(destination), prior);
+  assert.deepEqual(fs.readdirSync(outside), []);
+
+  const relative = 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md';
+  const live = fs.readFileSync(path.join(restage.root, relative));
+  fs.symlinkSync(outside, path.join(restage.root, '.sd0x'));
+  assert.throws(() => restageCoreCandidate(restage.root, 'review'),
+    /Recovery root \.sd0x must be a real directory/);
+  assert.equal(process.cwd(), initialCwd);
+  assert.deepEqual(fs.readFileSync(path.join(restage.root, relative)), live);
+  assert.equal(fs.existsSync(path.join(
+    restage.root, 'migration/candidates/review'
+  )), false);
+  assert.deepEqual(fs.readdirSync(outside), []);
+
+  fs.rmSync(path.join(restage.root, '.sd0x'));
+  fs.symlinkSync(path.join(outside, 'missing'), path.join(restage.root, '.sd0x'));
+  assert.throws(() => restageCoreCandidate(restage.root, 'review'),
+    /Recovery root \.sd0x must be a real directory/);
+  assert.equal(process.cwd(), initialCwd);
+  assert.deepEqual(fs.readFileSync(path.join(restage.root, relative)), live);
+  assert.equal(fs.existsSync(path.join(
+    restage.root, 'migration/candidates/review'
+  )), false);
+  assert.deepEqual(fs.readdirSync(outside), []);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('recovery child replacement fails closed without external writes', (t) => {
+  const initialCwd = process.cwd();
+  const restage = fixtureRoot();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-recovery-child-'));
+  t.after(() => {
+    fs.rmSync(restage.workspace, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  assert.throws(() => restageCoreCandidate(restage.root, 'review', {
+    onTemporary(directory) {
+      fs.rmSync(directory, { recursive: true });
+      fs.symlinkSync(outside, directory);
+    }
+  }), /Recovery directory changed before it could be bound/);
+  assert.equal(fs.existsSync(path.join(
+    restage.root, 'migration/candidates/review'
+  )), false);
+  assert.deepEqual(fs.readdirSync(outside), []);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('bound recovery creation and removal ignore swapped ancestors', (t) => {
+  const initialCwd = process.cwd();
+  const createSwap = fixtureRoot();
+  const removeSwap = fixtureRoot();
+  const createOutside =
+    fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-create-swap-'));
+  const removeOutside =
+    fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-remove-swap-'));
+  t.after(() => {
+    fs.rmSync(createSwap.workspace, { recursive: true, force: true });
+    fs.rmSync(removeSwap.workspace, { recursive: true, force: true });
+    fs.rmSync(createOutside, { recursive: true, force: true });
+    fs.rmSync(removeOutside, { recursive: true, force: true });
+  });
+
+  const createLive = fs.readFileSync(path.join(
+    createSwap.root, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  ));
+  assert.throws(() => restageCoreCandidate(createSwap.root, 'review', {
+    beforeRecoveryCreate(recoveryRoot) {
+      fs.renameSync(recoveryRoot, `${recoveryRoot}-held`);
+      fs.symlinkSync(createOutside, recoveryRoot);
+    }
+  }), /Recovery root \.sd0x must be a real directory/);
+  assert.equal(process.cwd(), initialCwd);
+  assert.deepEqual(fs.readdirSync(createOutside), []);
+  assert.deepEqual(fs.readFileSync(path.join(
+    createSwap.root, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  )), createLive);
+  assert.equal(fs.existsSync(path.join(
+    createSwap.root, 'migration/candidates/review'
+  )), false);
+
+  let externalMarker;
+  const result = restageCoreCandidate(removeSwap.root, 'review', {
+    beforeRecoveryRemove(recoveryRoot, name) {
+      externalMarker = path.join(removeOutside, name, 'keep.txt');
+      fs.mkdirSync(path.dirname(externalMarker));
+      fs.writeFileSync(externalMarker, 'external\n');
+      fs.renameSync(recoveryRoot, `${recoveryRoot}-held`);
+      fs.symlinkSync(removeOutside, recoveryRoot);
+    }
+  });
+  assert.equal(process.cwd(), initialCwd);
+  assert.equal(result.ok, true);
+  assert.equal(fs.readFileSync(externalMarker, 'utf8'), 'external\n');
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('cross-device recovery fails before candidate mutation', (t) => {
+  const initialCwd = process.cwd();
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const livePath = path.join(
+    values.root, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  );
+  const live = fs.readFileSync(livePath);
+  assert.throws(() => restageCoreCandidate(values.root, 'review', {
+    recoveryDeviceOf(target) {
+      return target === values.root ? 1 : 2;
+    }
+  }), /must share the repository filesystem/);
+  assert.deepEqual(fs.readFileSync(livePath), live);
+  assert.equal(fs.existsSync(path.join(
+    values.root, 'migration/candidates/review'
+  )), false);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging ignores hostile Git selectors and rejects symlinked managed paths', (t) => {
+  const initialCwd = process.cwd();
+  const values = fixtureRoot();
+  const decoy = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-restage-decoy-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-restage-outside-'));
+  t.after(() => {
+    fs.rmSync(values.workspace, { recursive: true, force: true });
+    fs.rmSync(decoy, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  initRepository(decoy);
+  const relative = 'plugin/sd0x-dev-flow-codex/skills/review';
+  const decoyReview = path.join(decoy, relative);
+  fs.mkdirSync(decoyReview, { recursive: true });
+  fs.writeFileSync(path.join(decoyReview, 'SKILL.md'), '# decoy\n');
+  git(decoy, ['add', '.']);
+  commit(decoy, 'decoy');
+
+  const liveSkill = path.join(values.root, relative, 'SKILL.md');
+  const acceptedBytes = fs.readFileSync(liveSkill);
+  const committedBytes = git(values.root, ['show', `HEAD:${relative}/SKILL.md`]);
+  const selectors = {
+    GIT_ALTERNATE_OBJECT_DIRECTORIES: path.join(decoy, '.git', 'objects'),
+    GIT_COMMON_DIR: path.join(decoy, '.git'),
+    GIT_DIR: path.join(decoy, '.git'),
+    GIT_INDEX_FILE: path.join(decoy, '.git', 'index'),
+    GIT_NAMESPACE: 'hostile',
+    GIT_OBJECT_DIRECTORY: path.join(decoy, '.git', 'objects'),
+    GIT_WORK_TREE: decoy
+  };
+  const prior = Object.fromEntries(Object.keys(selectors).map((key) => [
+    key, process.env[key]
+  ]));
+  let temporary;
+  try {
+    Object.assign(process.env, selectors);
+    restageCoreCandidate(values.root, 'review', {
+      onTemporary(directory) {
+        temporary = directory;
+      }
+    });
+  } finally {
+    for (const [key, value] of Object.entries(prior)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+  assert.deepEqual(
+    fs.readFileSync(path.join(values.root, 'migration/candidates/review/SKILL.md')),
+    acceptedBytes
+  );
+  assert.deepEqual(fs.readFileSync(liveSkill), committedBytes);
+  assert.equal(path.relative(values.root, temporary).split(path.sep)[0], '.sd0x');
+  assert.equal(fs.existsSync(temporary), false);
+
+  fs.rmSync(path.join(values.root, 'migration/candidates/review'), {
+    recursive: true,
+    force: true
+  });
+  const outsideCandidate = path.join(outside, 'candidate');
+  fs.mkdirSync(outsideCandidate);
+  fs.symlinkSync(outsideCandidate, path.join(
+    values.root, 'migration/candidates/review'
+  ));
+  assert.throws(() => restageCoreCandidate(values.root, 'review'),
+    /managed path must contain only real directories/);
+  assert.deepEqual(fs.readdirSync(outsideCandidate), []);
+
+  fs.rmSync(path.join(values.root, 'migration/candidates/review'));
+  const candidatesAncestor = path.join(values.root, 'migration/candidates');
+  fs.rmSync(candidatesAncestor, { recursive: true, force: true });
+  const outsideCandidatesAncestor = path.join(outside, 'candidates');
+  fs.mkdirSync(outsideCandidatesAncestor);
+  fs.symlinkSync(outsideCandidatesAncestor, candidatesAncestor);
+  assert.throws(() => restageCoreCandidate(values.root, 'review'),
+    /managed path must contain only real directories/);
+  assert.deepEqual(fs.readdirSync(outsideCandidatesAncestor), []);
+  fs.rmSync(candidatesAncestor);
+  fs.mkdirSync(candidatesAncestor);
+
+  const outsideLive = path.join(outside, 'live');
+  fs.mkdirSync(outsideLive);
+  fs.writeFileSync(path.join(outsideLive, 'SKILL.md'), '# outside\n');
+  fs.rmSync(path.join(values.root, relative), { recursive: true, force: true });
+  fs.symlinkSync(outsideLive, path.join(values.root, relative));
+  assert.throws(() => restageCoreCandidate(values.root, 'review'),
+    /managed path must contain only real directories/);
+  assert.equal(fs.readFileSync(path.join(outsideLive, 'SKILL.md'), 'utf8'), '# outside\n');
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging restores accepted live bytes after a recoverable install failure', (t) => {
+  const initialCwd = process.cwd();
+  const values = fixtureRoot();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-install-outside-'));
+  t.after(() => {
+    fs.rmSync(values.workspace, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  const relative = 'plugin/sd0x-dev-flow-codex/skills/review';
+  const live = path.join(values.root, relative);
+  const accepted = fs.readFileSync(path.join(live, 'SKILL.md'));
+  const marker = path.join(outside, 'keep.txt');
+  fs.writeFileSync(marker, 'external\n');
+  let renameCalls = 0;
+  let temporary;
+
+  assert.throws(() => restageCoreCandidate(values.root, 'review', {
+    onTemporary(directory) {
+      temporary = directory;
+    },
+    rename(source, destination) {
+      renameCalls += 1;
+      if (renameCalls === 2) throw new Error('injected install failure');
+      fs.renameSync(source, destination);
+    }
+  }), (error) => error.message === 'injected install failure');
+  assert.equal(renameCalls, 3);
+  assert.deepEqual(fs.readFileSync(path.join(live, 'SKILL.md')), accepted);
+  assert.equal(fs.existsSync(path.join(
+    values.root, 'migration/candidates/review'
+  )), false);
+  assert.equal(fs.existsSync(temporary), false);
+  assert.equal(fs.readFileSync(marker, 'utf8'), 'external\n');
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging preserves accepted bytes and recovery artifacts on cleanup failures', (t) => {
+  const initialCwd = process.cwd();
+  const cleanup = fixtureRoot();
+  const rollback = fixtureRoot();
+  t.after(() => {
+    fs.rmSync(cleanup.workspace, { recursive: true, force: true });
+    fs.rmSync(rollback.workspace, { recursive: true, force: true });
+  });
+  const relative = 'plugin/sd0x-dev-flow-codex/skills/review';
+  const candidateRelative = 'migration/candidates/review/SKILL.md';
+
+  const cleanupAccepted = fs.readFileSync(path.join(cleanup.root, relative, 'SKILL.md'));
+  const cleanupCommitted = git(cleanup.root, ['show', `HEAD:${relative}/SKILL.md`]);
+  let cleanupFailure;
+  try {
+    restageCoreCandidate(cleanup.root, 'review', {
+      removePrior() {
+        throw new Error('injected prior cleanup failure');
+      }
+    });
+  } catch (error) {
+    cleanupFailure = error;
+  }
+  assert.ok(cleanupFailure);
+  assert.match(cleanupFailure.message, /payload swap completed.*recovery retained at/);
+  assert.deepEqual(fs.readFileSync(path.join(cleanup.root, relative, 'SKILL.md')),
+    cleanupCommitted);
+  assert.deepEqual(fs.readFileSync(path.join(cleanup.root, candidateRelative)),
+    cleanupAccepted);
+  const cleanupRecovery =
+    /recovery retained at ([^ (]+)/.exec(cleanupFailure.message)?.[1];
+  assert.ok(cleanupRecovery);
+  assert.equal(path.relative(cleanup.root, cleanupRecovery).split(path.sep)[0], '.sd0x');
+  assert.equal(fs.existsSync(path.join(cleanupRecovery, 'recovery.json')), true);
+
+  const rollbackAccepted = fs.readFileSync(path.join(
+    rollback.root, relative, 'SKILL.md'
+  ));
+  let renameCalls = 0;
+  let rollbackFailure;
+  try {
+    restageCoreCandidate(rollback.root, 'review', {
+      rename(source, destination) {
+        renameCalls += 1;
+        if (renameCalls >= 2) {
+          throw new Error(renameCalls === 2
+            ? 'injected install failure'
+            : 'injected rollback failure');
+        }
+        fs.renameSync(source, destination);
+      }
+    });
+  } catch (error) {
+    rollbackFailure = error;
+  }
+  assert.ok(rollbackFailure);
+  assert.match(rollbackFailure.message,
+    /installation and rollback failed.*recovery retained at/);
+  assert.deepEqual(fs.readFileSync(path.join(rollback.root, candidateRelative)),
+    rollbackAccepted);
+  const rollbackRecovery =
+    /recovery retained at ([^ (]+)/.exec(rollbackFailure.message)?.[1];
+  assert.ok(rollbackRecovery);
+  assert.equal(fs.existsSync(path.join(rollbackRecovery, 'recovery.json')), true);
+  assert.deepEqual(fs.readFileSync(path.join(
+    rollbackRecovery, 'review-prior', 'SKILL.md'
+  )), rollbackAccepted);
+  assert.equal(process.cwd(), initialCwd);
+});
+
 test('candidate audit requires declared sensitive operations and explicit later approval', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
@@ -6201,6 +6835,15 @@ test('trusted routing harness rejects candidate and pack symlink paths', (t) => 
 test('modeful canonical targets require an explicit selected mode', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const liveReview = 'plugin/sd0x-dev-flow-codex/skills/review';
+  fs.rmSync(path.join(values.root, liveReview), { recursive: true, force: true });
+  git(values.root, ['restore', '--source=HEAD', '--worktree', '--', liveReview]);
+  const disposition = readJson(values.root, 'migration/source-disposition.json');
+  for (const row of disposition.skills.filter((entry) => entry.target_skill === 'review')) {
+    row.delivery_state = 'planned';
+    row.promotion_request = null;
+  }
+  writeJson(values.root, 'migration/source-disposition.json', disposition);
   prepareRow(values.root, 'codex-code-review');
   const relative = writeCandidate(values.root, {
     target: 'review',
@@ -7186,6 +7829,26 @@ test('active candidate audit binds non-routing payload bytes to request evidence
   const fixtureDisposition = JSON.parse(fs.readFileSync(
     path.join(values.root, 'migration', 'source-disposition.json'), 'utf8'
   ));
+  const selectedUnits = new Set([
+    'bug-fix/default',
+    'create-request/default',
+    'debug/default',
+    'feature-dev/default',
+    'post-dev-test/default',
+    'refactor/default',
+    'simplify/default',
+    'test-deep/default',
+    'test-gen/default'
+  ]);
+  for (const row of fixtureDisposition.skills) {
+    if (row.delivery_state === 'candidate' &&
+        !selectedUnits.has(row.promotion_unit_id)) {
+      row.delivery_state = 'planned';
+      row.capabilities = [];
+      row.operations = [];
+      row.promotion_request = null;
+    }
+  }
   for (const target of [
     'bug-fix', 'debug', 'feature-dev', 'post-dev-test',
     'refactor', 'simplify', 'test-deep', 'test-gen'
@@ -7410,8 +8073,8 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     / Final pack audit `[0-9a-f]{64}` passed\./,
     ''
   ));
-  assert.throws(() => auditActiveCandidates({ root: values.root }),
-    /requires one Final pack audit hash in Testing/);
+  assert.equal(auditActiveCandidates({ root: values.root }).units.find((unit) =>
+    unit.promotion_unit_id === 'debug/default').lifecycle, 'move-window');
   fs.writeFileSync(debugRequest, originalRequest);
   for (const downgradedStatus of ['Complete', 'Pending']) {
     fs.writeFileSync(debugRequest, originalRequest
@@ -7437,8 +8100,8 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     / Final audit `[0-9a-f]{64}` passed\./,
     ''
   ));
-  assert.throws(() => auditActiveCandidates({ root: values.root }),
-    /requires one Final audit hash in Testing/);
+  assert.equal(auditActiveCandidates({ root: values.root }).units.find((unit) =>
+    unit.promotion_unit_id === 'bug-fix/default').lifecycle, 'move-window');
   fs.writeFileSync(bugFixRequest, originalBugFixRequest);
 
   const completedDebugRequest = originalRequest

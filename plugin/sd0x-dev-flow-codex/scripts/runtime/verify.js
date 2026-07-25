@@ -11,7 +11,7 @@ const {
 } = require('./state');
 
 const OUTPUT_LIMIT = 12_000;
-const TIMEOUT_MS = 30 * 60 * 1000;
+const TIMEOUT_MS = 45 * 60 * 1000;
 const WINDOWS_COMMAND_RUNNERS = new Set(['npm', 'yarn', 'pnpm']);
 
 function commandSpec(command, args) {
@@ -234,6 +234,7 @@ function runVerification(cwd = process.cwd(), options = {}) {
 }
 
 module.exports = {
+  TIMEOUT_MS,
   commandForPlatform,
   detectCommands,
   execute,

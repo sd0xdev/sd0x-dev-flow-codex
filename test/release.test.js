@@ -20,6 +20,9 @@ const {
   setVersion,
   verifyReleaseAssets
 } = require('../scripts/release');
+const {
+  TIMEOUT_MS: VERIFY_TIMEOUT_MS
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/verify');
 const { commit, git, initRepository } = require('./helpers/git');
 
 function writeJson(filePath, value) {
@@ -261,8 +264,9 @@ test('CI and release budgets cover the aggregate repository check', () => {
     /^\s*timeout-minutes:\s*(\d+)\s*$/m.exec(workflow)?.[1]
   );
 
-  assert.ok(timeout(ci) >= 40);
-  assert.ok(timeout(release) >= 45);
+  const verifyMinutes = VERIFY_TIMEOUT_MS / (60 * 1000);
+  assert.ok(timeout(ci) >= verifyMinutes + 5);
+  assert.ok(timeout(release) >= verifyMinutes + 10);
   assert.match(ci, /npm run check/);
   assert.match(release, /npm run check/);
 });
