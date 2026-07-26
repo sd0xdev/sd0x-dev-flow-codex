@@ -128,3 +128,22 @@ test('R3 acceptance evidence file is byte-preserving under canonical redaction',
   const envelope = JSON.parse(canonicalEvidenceBlob(ROOT, source));
   assert.equal(envelope.value, source);
 });
+
+test('R3 specification grants current evidence authority to one configured primary', () => {
+  const spec = fs.readFileSync(path.join(
+    ROOT, 'docs/features/skill-toolkit-migration/2-tech-spec.md'
+  ), 'utf8');
+  assert.ok(spec.includes(
+    'Current review blob只保留 configured primary 的 Codex terminal result'
+  ));
+  assert.ok(spec.includes(
+    'schema v8雙 reviewer evidence與更舊三視角 evidence只可歷史稽核，不能取得 current authority'
+  ));
+  for (const legacyPhrase of [
+    '兩個 Codex terminal results',
+    'primary + test 兩個 reviewer',
+    'begin後兩個 subject-bound terminal reviewers'
+  ]) {
+    assert.equal(spec.includes(legacyPhrase), false);
+  }
+});

@@ -41,6 +41,7 @@ function openBoundDirectory(directory, options = {}) {
     },
     run(callback) {
       const previous = process.cwd();
+      const previousIdentity = fs.statSync('.');
       let entered = false;
       try {
         process.chdir(directory);
@@ -51,7 +52,17 @@ function openBoundDirectory(directory, options = {}) {
         }
         return callback(childName);
       } finally {
-        if (entered) process.chdir(previous);
+        if (entered) {
+          const restoreTarget = fs.lstatSync(previous, { throwIfNoEntry: false });
+          if (!restoreTarget || restoreTarget.isSymbolicLink() ||
+              !sameDirectory(previousIdentity, restoreTarget)) {
+            fail(`bound previous directory changed before restore: ${previous}`);
+          }
+          process.chdir(previous);
+          if (!sameDirectory(previousIdentity, fs.statSync('.'))) {
+            fail(`bound previous directory identity changed after restore: ${previous}`);
+          }
+        }
       }
     },
     close() {}

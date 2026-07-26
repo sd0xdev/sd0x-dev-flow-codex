@@ -184,7 +184,12 @@ function copyCapturedTree(source, destination, captured, hooks = {}) {
         if (crypto.createHash('sha256').update(bytes).digest('hex') !== entry.sha256) {
           fail(`payload file content changed before copy: ${entry.relative}`);
         }
-        parent.run((child) => fs.writeFileSync(child(name), bytes, { flag: 'wx' }));
+        parent.run((child) => {
+          if (typeof hooks.beforeDestinationWrite === 'function') {
+            hooks.beforeDestinationWrite({ relative: entry.relative, destination: target });
+          }
+          fs.writeFileSync(child(name), bytes, { flag: 'wx' });
+        });
       } finally {
         fs.closeSync(descriptor);
       }
@@ -353,39 +358,104 @@ function recoverPromotion(root, recoveryDirectory) {
         root, path.dirname(move.destination), move.destination_parent
       );
       if (move.target_package === 'core') {
+        if (!move.backup || !move.displaced || !move.candidate_sibling_backup) {
+          fail(`${move.target}: core recovery artifacts are incomplete`);
+        }
+        const priorPayload = boundRecovery.run(() => {
+          const backup = fs.lstatSync(move.backup, { throwIfNoEntry: false });
+          if (!backup || backup.isSymbolicLink() || !backup.isDirectory()) {
+            fail(`${move.target}: core recovery live backup is unavailable`);
+          }
+          return treeDigest(move.backup);
+        });
         destinationParent.run(() => {
           const destinationName = path.basename(move.destination);
-          if (fs.existsSync(move.displaced)) {
-            if (fs.existsSync(destinationName)) {
-              fs.renameSync(destinationName, `${move.target}-recovery-installed`);
+          const installedName = `${move.target}-recovery-installed`;
+          const destinationExists = fs.existsSync(destinationName);
+          const displacedExists = fs.existsSync(move.displaced);
+          const installedExists = fs.existsSync(installedName);
+          if (!destinationExists && !displacedExists) {
+            fail(`${move.target}: recovery lost both live and displaced payloads`);
+          }
+          if (displacedExists) {
+            if (treeDigest(move.displaced) !== priorPayload) {
+              fail(`${move.target}: displaced live payload differs from its backup`);
+            }
+            if (destinationExists) {
+              if (treeDigest(destinationName) !== move.payload_tree_sha256 ||
+                  installedExists) {
+                fail(`${move.target}: installed recovery payload is incoherent`);
+              }
+              fs.renameSync(destinationName, installedName);
+            } else if (installedExists &&
+                treeDigest(installedName) !== move.payload_tree_sha256) {
+              fail(`${move.target}: retained installed payload is invalid`);
             }
             fs.renameSync(move.displaced, destinationName);
+          } else if (treeDigest(destinationName) !== priorPayload) {
+            fail(`${move.target}: recovered live payload differs from its backup`);
+          }
+          if (fs.existsSync(installedName)) {
+            if (treeDigest(installedName) !== move.payload_tree_sha256) {
+              fail(`${move.target}: retained installed payload is invalid`);
+            }
+            fs.rmSync(installedName, { recursive: true });
+          }
+          if (!fs.existsSync(destinationName) ||
+              treeDigest(destinationName) !== priorPayload) {
+            fail(`${move.target}: live recovery postcondition failed`);
           }
         });
         candidateParent.run(() => {
           const candidateName = path.basename(move.candidate);
           const candidateValid = fs.existsSync(candidateName) &&
             treeDigest(candidateName) === move.payload_tree_sha256;
-          if (!candidateValid && move.candidate_sibling_backup) {
+          if (!candidateValid) {
+            if (!fs.existsSync(move.candidate_sibling_backup) ||
+                treeDigest(move.candidate_sibling_backup) !==
+                  move.payload_tree_sha256) {
+              fail(`${move.target}: candidate recovery backup is unavailable`);
+            }
             if (fs.existsSync(candidateName)) {
               fs.renameSync(candidateName,
                 `${move.target}-recovery-partial-candidate`);
             }
             fs.renameSync(move.candidate_sibling_backup, candidateName);
           }
+          if (!fs.existsSync(candidateName) ||
+              treeDigest(candidateName) !== move.payload_tree_sha256) {
+            fail(`${move.target}: candidate recovery postcondition failed`);
+          }
         });
       } else {
         destinationParent.run(() => {
           const destinationName = path.basename(move.destination);
+          const installedName = `${move.target}-recovery-installed-pack`;
           if (fs.existsSync(destinationName)) {
-            fs.renameSync(destinationName, `${move.target}-recovery-installed-pack`);
+            if (treeDigest(destinationName) !== move.payload_tree_sha256 ||
+                fs.existsSync(installedName)) {
+              fail(`${move.target}: installed pack recovery payload is incoherent`);
+            }
+            fs.renameSync(destinationName, installedName);
+          }
+          if (fs.existsSync(installedName)) {
+            if (treeDigest(installedName) !== move.payload_tree_sha256) {
+              fail(`${move.target}: retained installed pack is invalid`);
+            }
+            fs.rmSync(installedName, { recursive: true });
           }
         });
         candidateParent.run(() => {
           const candidateName = path.basename(move.candidate);
-          if (!fs.existsSync(candidateName) && move.candidate_removed &&
-              fs.existsSync(move.candidate_removed)) {
+          if (!fs.existsSync(candidateName)) {
+            if (!move.candidate_removed || !fs.existsSync(move.candidate_removed) ||
+                treeDigest(move.candidate_removed) !== move.payload_tree_sha256) {
+              fail(`${move.target}: pack candidate recovery artifact is unavailable`);
+            }
             fs.renameSync(move.candidate_removed, candidateName);
+          }
+          if (treeDigest(candidateName) !== move.payload_tree_sha256) {
+            fail(`${move.target}: pack candidate recovery postcondition failed`);
           }
         });
       }
@@ -539,7 +609,9 @@ function applyPromotionMoves(root, moves, options = {}) {
           if (treeDigest(move.candidate) !== move.payload_tree_sha256) {
             fail(`${move.target}: candidate identity changed before promotion`);
           }
-          copyCapturedTree(move.destination, backup, liveSnapshot);
+          copyCapturedTree(move.destination, backup, liveSnapshot, {
+            beforeDestinationWrite: options.beforeRecoveryBackupWrite
+          });
           copyCapturedTree(move.candidate, candidateBackup, candidateSnapshot);
           boundDestinationParent.run(() => {
             copyCapturedTree(move.candidate, replacement, candidateSnapshot);
@@ -755,23 +827,10 @@ function applyPromotionMoves(root, moves, options = {}) {
       if (rollbackErrors.length > 0) {
         retainRecovery = true;
         const recoveryDetails = {
-          schema_version: 1,
-          operation: 'promote-skill-wave',
+          ...recoveryIntent(rollback),
+          status: 'rollback-incomplete',
           original_error: error.message,
-          rollback_errors: rollbackErrors,
-          moves: rollback.map((move) => ({
-            target: move.target,
-            target_package: move.target_package,
-            candidate: move.candidate,
-            destination: move.destination,
-            payload_tree_sha256: move.payload_tree_sha256,
-            backup: move.backup
-              ? path.join(temporary, move.backup)
-              : null,
-            candidate_backup: move.candidateBackup
-              ? path.join(temporary, move.candidateBackup)
-              : null
-          }))
+          rollback_errors: rollbackErrors
         };
         try {
           fs.writeFileSync('recovery.json',

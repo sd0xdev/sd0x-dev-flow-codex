@@ -3,6 +3,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { openBoundDirectory } = require('./bound-directory');
 const { atomicWriteContainedFile } = require('./contained-file');
 const {
   routingContractBlock,
@@ -218,7 +219,56 @@ function renderSkill(target) {
   ].join('\n');
 }
 
-function copyPreservedLiveFiles(target, candidateRoot) {
+function sameFile(left, right) {
+  return left.isFile() && right.isFile() &&
+    left.dev === right.dev && left.ino === right.ino && left.size === right.size;
+}
+
+function copyPreservedEntry(source, destinationName, destinationParent) {
+  const sourceStat = fs.lstatSync(source, { throwIfNoEntry: false });
+  if (!sourceStat || sourceStat.isSymbolicLink() ||
+      (!sourceStat.isDirectory() && !sourceStat.isFile())) {
+    fail(`preserved resource must be a regular file or real directory: ${source}`);
+  }
+  if (sourceStat.isFile()) {
+    const descriptor = fs.openSync(source,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    try {
+      const opened = fs.fstatSync(descriptor);
+      if (!sameFile(sourceStat, opened)) {
+        fail(`preserved resource changed before copy: ${source}`);
+      }
+      const bytes = fs.readFileSync(descriptor);
+      destinationParent.run((child) =>
+        fs.writeFileSync(child(destinationName), bytes, { flag: 'wx' }));
+      if (!sameFile(sourceStat, fs.lstatSync(source))) {
+        fail(`preserved resource changed during copy: ${source}`);
+      }
+    } finally {
+      fs.closeSync(descriptor);
+    }
+    return;
+  }
+  let identity;
+  destinationParent.run((child) => {
+    const name = child(destinationName);
+    fs.mkdirSync(name);
+    identity = fs.lstatSync(name);
+  });
+  const destination = path.join(destinationParent.directory, destinationName);
+  const childDirectory = openBoundDirectory(destination, { identity });
+  try {
+    const entries = fs.readdirSync(source, { withFileTypes: true })
+      .sort((left, right) => BYTEWISE(left.name, right.name));
+    for (const entry of entries) {
+      copyPreservedEntry(path.join(source, entry.name), entry.name, childDirectory);
+    }
+  } finally {
+    childDirectory.close();
+  }
+}
+
+function copyPreservedLiveFiles(target, candidateDirectory) {
   if (!target.preserve_live_body && !target.preserve_live_resources) return;
   const liveRoot = path.join(
     ROOT, 'plugin', 'sd0x-dev-flow-codex', 'skills', target.target
@@ -226,9 +276,79 @@ function copyPreservedLiveFiles(target, candidateRoot) {
   for (const entry of fs.readdirSync(liveRoot, { withFileTypes: true })) {
     if (entry.name === 'SKILL.md' ||
         entry.name === 'migration-contract.json') continue;
-    fs.cpSync(path.join(liveRoot, entry.name), path.join(candidateRoot, entry.name), {
-      recursive: true
+    copyPreservedEntry(path.join(liveRoot, entry.name), entry.name,
+      candidateDirectory);
+  }
+}
+
+function captureContainedDirectory(root, directory, label) {
+  const rootReal = fs.realpathSync(root);
+  const relative = path.relative(root, directory);
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relative)) {
+    fail(`${label} must be a contained descendant`);
+  }
+  let current = root;
+  for (const part of relative.split(path.sep)) {
+    current = path.join(current, part);
+    const stat = fs.lstatSync(current, { throwIfNoEntry: false });
+    if (!stat || stat.isSymbolicLink() || !stat.isDirectory()) {
+      fail(`${label} path ancestors must be real directories: ${current}`);
+    }
+    const resolved = fs.realpathSync(current);
+    const containment = path.relative(rootReal, resolved);
+    if (containment === '..' || containment.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(containment)) {
+      fail(`${label} escapes the repository: ${current}`);
+    }
+  }
+}
+
+function withPreparedCandidateDirectory(root, target, callback) {
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(target || '')) {
+    fail('candidate target must be canonical');
+  }
+  const migration = path.join(root, 'migration');
+  captureContainedDirectory(root, migration, 'candidate preparation');
+  const migrationDirectory = openBoundDirectory(migration);
+  const candidates = path.join(migration, 'candidates');
+  try {
+    migrationDirectory.run((child) => {
+      const name = child('candidates');
+      const existing = fs.lstatSync(name, { throwIfNoEntry: false });
+      if (!existing) fs.mkdirSync(name);
+      else if (existing.isSymbolicLink() || !existing.isDirectory()) {
+        fail('candidate preparation path ancestors must be real directories');
+      }
     });
+  } finally {
+    migrationDirectory.close();
+  }
+  captureContainedDirectory(root, candidates, 'candidate preparation');
+  const candidatesDirectory = openBoundDirectory(candidates);
+  const candidateRoot = path.join(candidates, target);
+  let identity;
+  try {
+    candidatesDirectory.run((child) => {
+      const name = child(target);
+      const existing = fs.lstatSync(name, { throwIfNoEntry: false });
+      if (existing) {
+        if (existing.isSymbolicLink() || !existing.isDirectory()) {
+          fail(`${target}: existing candidate must be a real directory`);
+        }
+        fs.rmSync(name, { recursive: true });
+      }
+      fs.mkdirSync(name);
+      identity = fs.lstatSync(name);
+    });
+    const candidateDirectory = openBoundDirectory(candidateRoot, { identity });
+    try {
+      return candidateDirectory.run(() => callback(candidateRoot, candidateDirectory));
+    } finally {
+      candidateDirectory.close();
+    }
+  } finally {
+    candidatesDirectory.close();
   }
 }
 
@@ -266,17 +386,15 @@ function main(argv = process.argv.slice(2)) {
     target.units.sort((left, right) =>
       BYTEWISE(left.promotion_unit_id, right.promotion_unit_id)
     );
-    const candidateRoot = path.join(
-      ROOT, 'migration', 'candidates', target.target
-    );
-    if (fs.existsSync(candidateRoot)) {
-      fs.rmSync(candidateRoot, { recursive: true, force: true });
-    }
-    fs.mkdirSync(candidateRoot, { recursive: true });
-    copyPreservedLiveFiles(target, candidateRoot);
-    writeText(path.join(candidateRoot, 'SKILL.md'), renderSkill(target));
-    writeText(path.join(candidateRoot, 'migration-contract.json'),
-      canonicalJson(renderContract(target)));
+    withPreparedCandidateDirectory(ROOT, target.target,
+      (_candidateRoot, candidateDirectory) => {
+        copyPreservedLiveFiles(target, candidateDirectory);
+        fs.writeFileSync(candidateDirectory.child('SKILL.md'), renderSkill(target), {
+          flag: 'wx'
+        });
+        fs.writeFileSync(candidateDirectory.child('migration-contract.json'),
+          canonicalJson(renderContract(target)), { flag: 'wx' });
+      });
     const registry = target.units.map((unit) => ({
       unit: unit.promotion_unit_id,
       routing: normalizedRouting(unit.routing)
@@ -346,5 +464,6 @@ module.exports = {
   renderContract,
   renderRequest,
   renderSkill,
+  withPreparedCandidateDirectory,
   writeText
 };

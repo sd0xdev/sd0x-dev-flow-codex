@@ -42,7 +42,10 @@ const {
   completeAcceptanceCriteria,
   recordRequest
 } = require('../scripts/record-skill-wave-preflight');
-const { writeText: writePreparedText } = require('../scripts/prepare-skill-wave');
+const {
+  withPreparedCandidateDirectory,
+  writeText: writePreparedText
+} = require('../scripts/prepare-skill-wave');
 const {
   applyPromotionMoves,
   buildPromotionPlan,
@@ -5098,6 +5101,26 @@ test('wave preparation rejects an ancestor swap before atomic installation', (t)
   assert.deepEqual(fs.readdirSync(outside), []);
 });
 
+test('wave preparation rejects a symlinked candidates ancestor without external deletion', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-candidates-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-candidates-outside-'));
+  t.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  fs.mkdirSync(path.join(root, 'migration'));
+  fs.mkdirSync(path.join(outside, 'fixture'));
+  const sentinel = path.join(outside, 'fixture', 'KEEP');
+  fs.writeFileSync(sentinel, 'outside unchanged\n');
+  fs.symlinkSync(outside, path.join(root, 'migration', 'candidates'));
+
+  assert.throws(() => withPreparedCandidateDirectory(root, 'fixture', () => {
+    throw new Error('callback must not run');
+  }), /ancestors must be real directories/);
+  assert.equal(fs.readFileSync(sentinel, 'utf8'), 'outside unchanged\n');
+  assert.deepEqual(fs.readdirSync(path.join(outside, 'fixture')), ['KEEP']);
+});
+
 test('contained atomic writes bind temporary and final-boundary identities', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-contained-cas-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -5226,6 +5249,43 @@ test('captured-tree copy rejects a nested destination directory swap before writ
   assert.deepEqual(fs.readdirSync(outside), []);
 });
 
+test('promotion rejects recovery-directory restoration through a swapped pathname', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-recovery-restore-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-recovery-restore-outside-'));
+  t.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  const candidate = path.join(root, 'candidate');
+  const destination = path.join(root, 'live');
+  fs.mkdirSync(candidate);
+  fs.mkdirSync(destination);
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+  fs.writeFileSync(path.join(outside, 'KEEP'), 'outside unchanged\n');
+  let recovery;
+  let swapped = false;
+
+  assert.throws(() => applyPromotionMoves(root, [{
+    target: 'fixture', target_package: 'core', action: 'move',
+    candidate, destination,
+    payload_tree_sha256: promotionTreeDigest(candidate)
+  }], {
+    onTemporary(directory) {
+      recovery = directory;
+    },
+    beforeRecoveryBackupWrite() {
+      if (swapped) return;
+      swapped = true;
+      fs.renameSync(recovery, `${recovery}-real`);
+      fs.symlinkSync(outside, recovery);
+    }
+  }), /bound previous directory changed before restore|Recovery directory changed/);
+  assert.equal(fs.readFileSync(path.join(outside, 'KEEP'), 'utf8'),
+    'outside unchanged\n');
+  assert.deepEqual(fs.readdirSync(outside), ['KEEP']);
+});
+
 test('promotion preserves same-size edits and supports crash recovery', (t) => {
   const fixture = (prefix) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -5292,6 +5352,34 @@ test('promotion preserves same-size edits and supports crash recovery', (t) => {
   assert.deepEqual(JSON.parse(recovered.stdout), { recovered: true, moves: 1 });
   assert.equal(fs.readFileSync(path.join(crashed.destination, 'SKILL.md'), 'utf8'),
     '# original\n');
+
+  const lost = fixture('sd0x-promotion-lost-displaced-');
+  t.after(() => fs.rmSync(lost.root, { recursive: true, force: true }));
+  const lostResult = spawnSync(process.execPath, ['-e', [
+    "const { applyPromotionMoves, treeDigest } = require(process.argv[1]);",
+    'const [root, candidate, destination] = process.argv.slice(2);',
+    "applyPromotionMoves(root, [{target:'fixture',target_package:'core',action:'move',",
+    'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+    '{afterDisplace(){process.exit(86);}});'
+  ].join('\n'), modulePath, lost.root, lost.candidate, lost.destination], {
+    encoding: 'utf8'
+  });
+  assert.equal(lostResult.status, 86, lostResult.stderr || lostResult.stdout);
+  const lostRecoveryName = fs.readdirSync(path.join(lost.root, '.sd0x'))
+    .find((name) => name.startsWith('wave-promotion-'));
+  const lostRecovery = path.join(lost.root, '.sd0x', lostRecoveryName);
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(lostRecovery, 'recovery.json'), 'utf8'
+  ));
+  fs.rmSync(path.join(path.dirname(lost.destination), manifest.moves[0].displaced), {
+    recursive: true
+  });
+  const refused = spawnSync(process.execPath,
+    [modulePath, '--recover', lostRecovery], { encoding: 'utf8' });
+  assert.notEqual(refused.status, 0, refused.stdout);
+  assert.match(refused.stderr, /lost both live and displaced payloads/);
+  assert.equal(fs.existsSync(lostRecovery), true);
+  assert.equal(fs.existsSync(lost.destination), false);
 });
 
 test('non-core rollback rejects swapped ancestors without external writes', (t) => {
