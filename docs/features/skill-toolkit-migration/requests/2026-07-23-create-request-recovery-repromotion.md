@@ -57,8 +57,8 @@ the already-promoted payload requires a new auditable promotion revision.
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | The rejected Wave 3 docs proposal exposed the post-success recovery gap and the immutable-readiness/current-delivery authority split. |
-| Development | Complete | Runtime recovery、operator documentation、lifecycle guard、rollback restart handling and readiness checkpoint semantics are implemented. payload `a20dff0482ef497d1214a075b38e03e57b7ec948819acb1968f154eb5955b780`. |
-| Testing | Complete | Focused evidence-ledger recovery tests and the documentation synchronization contract pass. Preflight `c52d321ac0be8ff45dc5232c162eb59b0b60065fc5c70521af9487902056c8fe`. |
+| Development | Complete | Runtime recovery、operator documentation、lifecycle guard、rollback restart handling and readiness checkpoint semantics are implemented. payload `60b07e574455e7c05fdad6a5d841b98829c655220fc4c3495121608a623ad7a3`. |
+| Testing | Complete | Focused evidence-ledger recovery tests and the documentation synchronization contract pass. Preflight `d03a381b3095d092b73080bbfe755f4256e6b0979130e9eaa4e3ea851b178d2a`. |
 | Acceptance | Complete | All eight ACs have implementation and regression evidence; independent AC verification、full review、deterministic verification and promotion transactions remain. |
 
 ## References

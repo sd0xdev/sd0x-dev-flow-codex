@@ -4,7 +4,7 @@
     "sensitive_operations": []
   },
   "schema_version": 1,
-  "target_package": "quality-pack",
+  "target_package": "core",
   "target_skill": "test-review",
   "units": [
     {

@@ -56,7 +56,8 @@ test('hook definition observes the exec command that completes setup', () => {
   ));
   assert.ok(hooks.SubagentStart.some((entry) =>
     entry.matcher.includes('sd0x_codex_primary_reviewer') &&
-    entry.matcher.includes('sd0x_claude_primary_reviewer')
+    entry.matcher.includes('sd0x_claude_primary_reviewer') &&
+    !entry.matcher.includes('sd0x_test_reviewer')
   ));
 });
 
@@ -80,22 +81,18 @@ function createRepo(options = {}) {
 
 function recordPassingReview(root) {
   refreshState(root);
-  const agents = [
-    'sd0x_codex_primary_reviewer',
-    'sd0x_test_reviewer'
-  ];
-  for (const agentType of agents) {
-    const agentId = `${agentType}-hook-test`;
-    recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
-    recordSubagent(root, 'stop', {
-      agent_id: agentId,
-      agent_type: agentType,
-      last_assistant_message: 'No actionable findings remain.'
-    });
-  }
+  const agents = ['sd0x_codex_primary_reviewer'];
+  const agentType = agents[0];
+  const agentId = `${agentType}-hook-test`;
+  recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
+  recordSubagent(root, 'stop', {
+    agent_id: agentId,
+    agent_type: agentType,
+    last_assistant_message: 'No actionable findings remain.'
+  });
   return markGate(root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 2,
+    reviewers: 1,
     agents,
     findings: 0
   });
@@ -430,7 +427,7 @@ test('Stop advises while review is in progress without forcing continuation', (t
   fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
   recordSubagent(root, 'start', {
     agent_id: 'running-reviewer',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_codex_primary_reviewer'
   });
 
   const output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
@@ -478,7 +475,7 @@ test('Stop fails closed when runtime state is corrupt', (t) => {
   for (const corruptState of [
     '{not valid json',
     '{}',
-    JSON.stringify({ schema_version: 8 }),
+    JSON.stringify({ schema_version: 9 }),
     JSON.stringify({
       schema_version: 6,
       sessions: [{ session_id: 'session-1' }]
@@ -526,7 +523,7 @@ test('corrupt-state reset blocks the old session until a new SessionStart', (t) 
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
-  fs.writeFileSync(resolveStatePath(root), JSON.stringify({ schema_version: 8 }));
+  fs.writeFileSync(resolveStatePath(root), JSON.stringify({ schema_version: 9 }));
   const failedAttemptGeneration = runtimeStateGeneration(root);
 
   const reset = resetState(root);
@@ -605,13 +602,13 @@ test('Subagent hooks record completion and return valid event JSON', (t) => {
   const start = invoke(root, {
     hook_event_name: 'SubagentStart',
     agent_id: 'agent-1',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_codex_primary_reviewer'
   });
   assert.match(JSON.parse(start.stdout).hookSpecificOutput.additionalContext, /read-only/);
   const stop = invoke(root, {
     hook_event_name: 'SubagentStop',
     agent_id: 'agent-1',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_codex_primary_reviewer'
   });
   assert.equal(JSON.parse(stop.stdout).decision, 'block');
   assert.equal(readState(root).review_agents.completed.length, 0);
@@ -619,7 +616,7 @@ test('Subagent hooks record completion and return valid event JSON', (t) => {
   const completed = invoke(root, {
     hook_event_name: 'SubagentStop',
     agent_id: 'agent-1',
-    agent_type: 'sd0x_test_reviewer',
+    agent_type: 'sd0x_codex_primary_reviewer',
     stop_hook_active: true,
     last_assistant_message: 'No actionable findings remain.'
   });
@@ -646,7 +643,7 @@ test('SubagentStart injects the exact active commit closure subject', (t) => {
   const start = invoke(root, {
     hook_event_name: 'SubagentStart',
     agent_id: 'commit-reviewer',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_codex_primary_reviewer'
   });
   const context = JSON.parse(start.stdout).hookSpecificOutput.additionalContext;
   assert.match(context, new RegExp(marker.subject_sha256));
@@ -661,12 +658,12 @@ test('reviewer failures provide finding-or-reset remediation', (t) => {
   invoke(root, {
     hook_event_name: 'SubagentStart',
     agent_id: 'failed-reviewer',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_codex_primary_reviewer'
   });
   invoke(root, {
     hook_event_name: 'SubagentStop',
     agent_id: 'failed-reviewer',
-    agent_type: 'sd0x_test_reviewer',
+    agent_type: 'sd0x_codex_primary_reviewer',
     last_assistant_message: 'Reviewer process failed before producing a verdict.'
   });
 
@@ -693,11 +690,8 @@ test('Stop yields to the user when reviewer infrastructure is unavailable', (t) 
   });
   markGate(root, 'review', 'fail', {
     provider: 'codex',
-    reviewers: 2,
-    agents: [
-      'sd0x_codex_primary_reviewer',
-      'sd0x_test_reviewer'
-    ],
+    reviewers: 1,
+    agents: ['sd0x_codex_primary_reviewer'],
     findings: 0,
     reviewer_failure: true,
     summary: 'custom reviewer identities were unavailable'

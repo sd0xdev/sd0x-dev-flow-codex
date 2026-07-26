@@ -16,13 +16,13 @@ const MANAGED_MARKER = '# Managed by sd0x-dev-flow-codex.';
 const BLOCK = `${START}
 ## sd0x Dev Flow
 
-<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
+<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
 
 - Treat the current worktree fingerprint as the unit of review and verification.
 - Before completing code or configuration changes, run \`$sd0x-dev-flow-codex:review\`, then \`$sd0x-dev-flow-codex:verify\`.
 - For documentation-only changes, review is required but deterministic verification is optional.
 - After any fix, rerun review because the previous gate belongs to the previous fingerprint.
-- Run the configured \`sd0x_codex_primary_reviewer\` or \`sd0x_claude_primary_reviewer\` plus \`sd0x_test_reviewer\` in parallel; keep both perspectives independent and read-only.
+- Run the configured \`sd0x_codex_primary_reviewer\` or \`sd0x_claude_primary_reviewer\` read-only; one clean primary result is required for each fingerprint.
 - Never claim a gate passed without recording evidence through the plugin runtime.
 ${END}`;
 
@@ -113,8 +113,7 @@ function setup(cwd = process.cwd()) {
   const desiredConfig = projectConfig(existingConfig);
   const agentPlans = [
     'sd0x-codex-primary-reviewer.toml',
-    'sd0x-claude-primary-reviewer.toml',
-    'sd0x-test-reviewer.toml'
+    'sd0x-claude-primary-reviewer.toml'
   ].map((name) => ({
     source: path.join(pluginRoot, 'templates', 'agents', name),
     destination: path.join(root, '.codex', 'agents', name)
@@ -134,6 +133,11 @@ function setup(cwd = process.cwd()) {
     status: removeRetiredManagedAgent(path.join(
       root, '.codex', 'agents', 'sd0x-reviewer.toml'
     ))
+  }, {
+    file: path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
+    status: removeRetiredManagedAgent(path.join(
+      root, '.codex', 'agents', 'sd0x-test-reviewer.toml'
+    ))
   }];
 
   for (const plan of agentPlans) {
@@ -146,6 +150,7 @@ function setup(cwd = process.cwd()) {
   const activationFiles = new Set([
     configPath,
     path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml'),
+    path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
     ...agentPlans.map((plan) => plan.destination)
   ]);
   const activationDeferred = results.some((item) =>

@@ -3,6 +3,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
+const { atomicWriteContainedFile } = require('./contained-file');
 const {
   routingContractBlock,
   routingDescription,
@@ -23,9 +24,8 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-function writeText(filePath, bytes) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, bytes);
+function writeText(filePath, bytes, options = {}) {
+  atomicWriteContainedFile(options.root || ROOT, filePath, bytes, options);
 }
 
 function canonicalJson(value) {
@@ -345,5 +345,6 @@ module.exports = {
   main,
   renderContract,
   renderRequest,
-  renderSkill
+  renderSkill,
+  writeText
 };

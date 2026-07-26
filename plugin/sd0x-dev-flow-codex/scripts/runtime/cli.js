@@ -241,9 +241,10 @@ function doctor(cwd, options = {}) {
     'skills/verify/scripts/verify.js',
     'skills/setup/SKILL.md',
     'skills/setup/scripts/setup.js',
+    'skills/test-review/SKILL.md',
+    'skills/test-review/migration-contract.json',
     'templates/agents/sd0x-claude-primary-reviewer.toml',
-    'templates/agents/sd0x-codex-primary-reviewer.toml',
-    'templates/agents/sd0x-test-reviewer.toml'
+    'templates/agents/sd0x-codex-primary-reviewer.toml'
   ];
   const checks = required.map((relative) => ({
     check: relative,

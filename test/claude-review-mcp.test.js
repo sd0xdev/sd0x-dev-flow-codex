@@ -875,11 +875,12 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
     'skills/review/scripts/snapshot.js',
     'skills/setup/SKILL.md',
     'skills/setup/scripts/setup.js',
+    'skills/test-review/SKILL.md',
+    'skills/test-review/migration-contract.json',
     'skills/verify/SKILL.md',
     'skills/verify/scripts/verify.js',
     'templates/agents/sd0x-claude-primary-reviewer.toml',
-    'templates/agents/sd0x-codex-primary-reviewer.toml',
-    'templates/agents/sd0x-test-reviewer.toml'
+    'templates/agents/sd0x-codex-primary-reviewer.toml'
   ];
 
   for (const relative of skillArtifacts) {

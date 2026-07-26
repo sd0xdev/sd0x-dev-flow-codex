@@ -47,7 +47,7 @@ defineRoutingContractTests({
         "positive_triggers": [
           "Perform the standard fingerprint-bound code review before verification.",
           "Review the current dirty worktree and close the repository review gate.",
-          "Run the required independent implementation and test reviews for these changes."
+          "Run the required configured primary review for these changes."
         ]
       }
     },

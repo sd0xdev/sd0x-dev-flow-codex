@@ -176,9 +176,7 @@ function passingClosureEvidence(root, subject = dirtySubject(root)) {
 }
 
 function passingCommitClosureEvidence(subject) {
-  const nativeResults = [
-    'sd0x_codex_primary_reviewer', 'sd0x_test_reviewer'
-  ].map((agentType, index) => ({
+  const nativeResults = ['sd0x_codex_primary_reviewer'].map((agentType, index) => ({
     agent_id: `fixture-${index}`,
     agent_type: agentType,
     recorded_at: '2026-07-12T01:44:00.000Z',
@@ -192,7 +190,7 @@ function passingCommitClosureEvidence(subject) {
       binding: subject,
       provider: 'codex',
       evidence: {
-        gate: { provider: 'codex', reviewers: 2, findings: 0 },
+        gate: { provider: 'codex', reviewers: 1, findings: 0 },
         native_results: nativeResults,
         external_results: [],
         subject_bindings: []
@@ -263,9 +261,7 @@ function recordCleanReview(root) {
   const commitContext = commitClosureReviewerContext(root);
   const subjectSha = /Commit closure subject SHA-256: ([a-f0-9]{64})\./
     .exec(commitContext || '')?.[1];
-  for (const agentType of [
-    'sd0x_codex_primary_reviewer', 'sd0x_test_reviewer'
-  ]) {
+  for (const agentType of ['sd0x_codex_primary_reviewer']) {
     recordSubagent(root, 'start', { agent_id: agentType, agent_type: agentType });
     recordSubagent(root, 'stop', {
       agent_id: agentType,
@@ -279,8 +275,8 @@ function recordCleanReview(root) {
   }
   return markGate(root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 2,
-    agents: ['sd0x_codex_primary_reviewer', 'sd0x_test_reviewer'],
+    reviewers: 1,
+    agents: ['sd0x_codex_primary_reviewer'],
     findings: 0
   });
 }
@@ -337,9 +333,7 @@ function record(root, details = {}) {
   const priorBytes = fs.readFileSync(path.join(root, 'docs', 'features', 'fixture',
     'requests', '2026-07-12-fixture.md'));
   const acFileBytes = Buffer.from('fixture evidence line\n');
-  const nativeResults = [
-    'sd0x_codex_primary_reviewer', 'sd0x_test_reviewer'
-  ].map((agentType, index) => ({
+  const nativeResults = ['sd0x_codex_primary_reviewer'].map((agentType, index) => ({
     agent_type: agentType,
     outcome: 'clean',
     has_transcript: true,
@@ -352,7 +346,7 @@ function record(root, details = {}) {
         binding: subject,
         provider: 'codex',
         evidence: {
-          gate: { provider: 'codex', reviewers: 2, findings: 0 },
+          gate: { provider: 'codex', reviewers: 1, findings: 0 },
           native_results: nativeResults,
           external_results: [],
           subject_bindings: []
@@ -1903,7 +1897,7 @@ test('closure prepare rejects stale subjects and non-passing evidence', (t) => {
       ...base.evidence,
       subject_review: {
         ...base.evidence.subject_review,
-        evidence: { outcome: 'clean', reviewers: 2, findings: 0 }
+        evidence: { outcome: 'clean', reviewers: 1, findings: 0 }
       }
     }
   }), /does not match the current gate/);
@@ -2405,7 +2399,7 @@ test('clean commit closure binds base, HEAD, tree, and a clean projection', (t) 
     commands: [{ command: 'node --test', exit_code: 0 }]
   }, state.worktree.fingerprint, 'codex');
   const attestation = attestCommitClosureReview(root, subject);
-  assert.equal(attestation.reviewer_bindings.length, 2);
+  assert.equal(attestation.reviewer_bindings.length, 1);
   assert.ok(attestation.reviewer_bindings.every((binding) =>
     binding.subject_sha256 === attestation.subject_sha256
   ));
@@ -2665,6 +2659,43 @@ test('legacy three-view commit markers rotate without reusing evidence', (t) => 
   assert.ok(fs.readdirSync(path.dirname(markerPath)).some((name) =>
     name.startsWith('commit-closure-review.json.legacy-three-view.')
   ));
+});
+
+test('pending dual-review commit markers rotate without granting the retired test reviewer authority', (t) => {
+  const root = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  git(root, ['add', 'app.js']);
+  commit(root, 'implementation');
+  const subject = {
+    kind: 'commit',
+    base_sha: String(git(root, ['rev-parse', 'HEAD^'])).trim(),
+    head_sha: String(git(root, ['rev-parse', 'HEAD'])).trim(),
+    tree_sha: String(git(root, ['rev-parse', 'HEAD^{tree}'])).trim()
+  };
+  const markerPath = resolveRuntimeMetadataPath(root,
+    'commit-closure-review.json');
+  const legacy = beginCommitClosureReview(root, subject);
+  legacy.reviewer_bindings = [
+    {
+      agent_id: 'legacy-primary',
+      agent_type: 'sd0x_codex_primary_reviewer',
+      subject_sha256: legacy.subject_sha256,
+      started_at: legacy.started_at
+    },
+    {
+      agent_id: 'legacy-test',
+      agent_type: 'sd0x_test_reviewer',
+      subject_sha256: legacy.subject_sha256,
+      started_at: legacy.started_at
+    }
+  ];
+  fs.writeFileSync(markerPath, `${JSON.stringify(legacy)}\n`);
+
+  const fresh = beginCommitClosureReview(root, subject);
+  assert.notEqual(fresh.generation, legacy.generation);
+  assert.deepEqual(fresh.reviewer_bindings, []);
+  assert.equal(fresh.review_evidence, null);
+  assert.equal(fresh.verify_evidence, null);
 });
 
 test('stale commit attestation cannot overwrite a successor marker generation', (t) => {
@@ -3294,13 +3325,13 @@ test('writer and auditor reject rehashed legacy three-view review blobs', (t) =>
   const writerBundle = legacyBundle(writerRoot);
   assert.throws(() => appendEvidenceRevision(
     writerRoot, writerBundle.value, writerBundle.blobs, { expected_old_oid: null }
-  ), /requires exactly two independent reviewers/);
+  ), /requires one current or two legacy reviewers/);
 
   const auditRoot = repository();
   t.after(() => fs.rmSync(auditRoot, { recursive: true, force: true }));
   installRawEvidenceBundle(auditRoot, legacyBundle(auditRoot));
   assert.throws(() => auditEvidenceLedger(auditRoot),
-    /requires exactly two independent reviewers/);
+    /requires one current or two legacy reviewers/);
 });
 
 test('ledger audit rejects unknown subjects, noncanonical paths, and malformed AC identities', (t) => {

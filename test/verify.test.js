@@ -66,26 +66,19 @@ function setReviewProvider(root, provider) {
 
 function passReview(root) {
   refreshState(root);
-  for (const agentType of [
-    'sd0x_codex_primary_reviewer',
-    'sd0x_test_reviewer'
-  ]) {
-    const agentId = `${agentType}-1`;
-    recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
-    recordSubagent(root, 'stop', {
-      agent_id: agentId,
-      agent_type: agentType,
-      stop_hook_active: false,
-      last_assistant_message: 'No actionable findings remain.'
-    });
-  }
+  const agentType = 'sd0x_codex_primary_reviewer';
+  const agentId = `${agentType}-1`;
+  recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
+  recordSubagent(root, 'stop', {
+    agent_id: agentId,
+    agent_type: agentType,
+    stop_hook_active: false,
+    last_assistant_message: 'No actionable findings remain.'
+  });
   return markGate(root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 2,
-    agents: [
-      'sd0x_codex_primary_reviewer',
-      'sd0x_test_reviewer'
-    ],
+    reviewers: 1,
+    agents: ['sd0x_codex_primary_reviewer'],
     findings: 0
   });
 }

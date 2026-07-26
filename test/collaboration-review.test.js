@@ -34,10 +34,7 @@ const { commit, git, initRepository, isolateGitEnvironment } = require('./helper
 
 isolateGitEnvironment();
 
-const REVIEWERS = [
-  'sd0x_codex_primary_reviewer',
-  'sd0x_test_reviewer'
-];
+const REVIEWERS = ['sd0x_codex_primary_reviewer'];
 const GATE = path.resolve(
   __dirname,
   '..',
@@ -52,7 +49,7 @@ const GATE = path.resolve(
 function passEvidence() {
   return {
     provider: 'codex',
-    reviewers: 2,
+    reviewers: 1,
     agents: REVIEWERS,
     findings: 0,
     summary: 'no actionable findings'
@@ -187,7 +184,7 @@ function cleanRows(commitSubjectSha256 = null) {
   ]);
 }
 
-test('collaboration adapter imports two canonical terminal reviewer results', (t) => {
+test('collaboration adapter imports one canonical terminal reviewer result', (t) => {
   const values = fixture();
   t.after(() => values.cleanup());
   const started = beginCollaborationReview(values.root, { env: values.env });
@@ -205,7 +202,7 @@ test('collaboration adapter imports two canonical terminal reviewer results', (t
 
   const state = readState(values.root);
   assert.equal(state.review_agents.collaboration_round_id, started.round_id);
-  assert.equal(state.review_agents.completed.length, 2);
+  assert.equal(state.review_agents.completed.length, 1);
   assert.ok(state.review_agents.completed.every((entry) =>
     entry.outcome === 'clean' && entry.has_transcript === true
   ));
@@ -242,12 +239,12 @@ test('collaboration adapter reviews a clean commit subject with durable identity
   assert.equal(repeatedClosure.generation, closure.generation);
   assert.equal(repeatedRound.round_id, started.round_id);
   assert.equal(repeatedRound.reused, true);
-  assert.equal(readState(values.root).review_agents.started.length, 2);
+  assert.equal(readState(values.root).review_agents.started.length, 1);
 
   appendRows(values.transcript, cleanRows(closure.subject_sha256));
   const imported = importCollaborationReview(values.root, { env: values.env });
   assert.equal(imported.imported, true);
-  assert.equal(readState(values.root).review_agents.completed.length, 2);
+  assert.equal(readState(values.root).review_agents.completed.length, 1);
   const gated = runGate(values);
   assert.equal(gated.status, 0, gated.stderr);
   assert.equal(isCurrentPass(readState(values.root), 'review'), true);
@@ -362,13 +359,12 @@ test('collaboration adapter rejects interrupted, forged, and missing reviewers',
     finalMessage(REVIEWERS[0], 'No actionable findings remain.', {
       sender: '/root/sd0x_reviewer'
     }),
-    activity(REVIEWERS[1]),
-    activity(REVIEWERS[1], 'interrupted', '2'),
-    finalMessage(REVIEWERS[1], 'No actionable findings remain.'),
+    activity(REVIEWERS[0], 'interrupted', '2'),
+    finalMessage(REVIEWERS[0], 'No actionable findings remain.'),
   ]);
   assert.throws(
     () => importCollaborationReview(values.root, { env: values.env }),
-    /no terminal result: sd0x_codex_primary_reviewer/
+    /interrupted: sd0x_codex_primary_reviewer/
   );
   assert.equal(readState(values.root).review_agents.completed.length, 0);
 });
@@ -449,8 +445,8 @@ test('collaboration begin preserves an active round until fingerprint change', (
   t.after(() => values.cleanup());
   const first = beginCollaborationReview(values.root, { env: values.env });
   appendRows(values.transcript, [
-    activity(REVIEWERS[1]),
-    finalMessage(REVIEWERS[1], '[P1] app.js:1 finding must not be skipped.')
+    activity(REVIEWERS[0]),
+    finalMessage(REVIEWERS[0], '[P1] app.js:1 finding must not be skipped.')
   ]);
   assert.throws(
     () => beginCollaborationReview(values.root, { env: values.env }),
@@ -652,7 +648,7 @@ test('a new collaboration round suspends an existing review pass', (t) => {
   beginCollaborationReview(values.root, { env: values.env });
   const state = readState(values.root);
   assert.equal(isCurrentPass(state, 'review'), false);
-  assert.equal(state.review_agents.started.length, 2);
+  assert.equal(state.review_agents.started.length, 1);
   assert.deepEqual(nextAction(state), {
     action: 'review',
     reason: 'review-in-progress'
@@ -894,7 +890,7 @@ test('delayed import cannot reclaim ownership from a completed successor round',
       expected_round_id: first.round_id
     }, {
       provider: first.provider,
-      reviewers: 2,
+      reviewers: 1,
       agents: REVIEWERS,
       findings: 1,
       summary: 'delayed superseded round failure'
@@ -988,7 +984,7 @@ test('conditional collaboration failure never binds to edited bytes', (t) => {
     }
   }, {
     provider: 'codex',
-    reviewers: 2,
+    reviewers: 1,
     agents: REVIEWERS,
     findings: 1,
     summary: 'collaboration evidence changed'
@@ -1006,8 +1002,8 @@ test('collaboration finalization observes late reviewer findings', (t) => {
   importCollaborationReview(values.root, { env: values.env });
   markGate(values.root, 'review', 'pass', passEvidence());
   appendRows(values.transcript, [
-    activity(REVIEWERS[1], 'interacted', '7'),
-    finalMessage(REVIEWERS[1], '[P1] app.js:1 late regression remains.')
+    activity(REVIEWERS[0], 'interacted', '7'),
+    finalMessage(REVIEWERS[0], '[P1] app.js:1 late regression remains.')
   ]);
   const gated = runGate(values);
   assert.notEqual(gated.status, 0);
@@ -1030,8 +1026,8 @@ test('failed gate evidence retains the round boundary for a corrected retry', (t
   assert.equal(fs.existsSync(markerPath(values.root)), true);
 
   appendRows(values.transcript, [
-    activity(REVIEWERS[1], 'interacted', '7'),
-    finalMessage(REVIEWERS[1], '[P1] app.js:1 late regression remains.')
+    activity(REVIEWERS[0], 'interacted', '7'),
+    finalMessage(REVIEWERS[0], '[P1] app.js:1 late regression remains.')
   ]);
   const corrected = runGate(values);
   assert.notEqual(corrected.status, 0);
@@ -1045,15 +1041,15 @@ test('collaboration findings remain blocking and malformed JSONL fails closed', 
   beginCollaborationReview(values.root, { env: values.env });
   appendRows(values.transcript, REVIEWERS.flatMap((agentType, index) => [
     activity(agentType),
-    finalMessage(agentType, index === 1
+    finalMessage(agentType, index === 0
       ? '[P2] app.js:1 regression remains.'
       : 'No actionable findings remain.')
   ]));
   const imported = importCollaborationReview(values.root, { env: values.env });
-  assert.equal(imported.results[1].outcome, 'findings');
+  assert.equal(imported.results[0].outcome, 'findings');
   assert.throws(() => markGate(values.root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 2,
+    reviewers: 1,
     agents: REVIEWERS,
     findings: 0
   }), /unresolved findings|terminal findings|clean terminal results/);

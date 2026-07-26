@@ -4,6 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { auditCandidate } = require('./skill-migration-audit');
+const { atomicUpdateContainedFile } = require('./contained-file');
 
 const ROOT = path.resolve(__dirname, '..');
 const PLAN_PATH = path.join(ROOT, 'scripts', 'skill-wave-plans.json');
@@ -55,71 +56,73 @@ function completeAcceptanceCriteria(markdown, requestPath) {
   return markdown.slice(0, contentStart) + completed + markdown.slice(end);
 }
 
-function recordRequest(requestPath, result) {
-  const absolute = path.join(ROOT, ...requestPath.split('/'));
-  let markdown = fs.readFileSync(absolute, 'utf8');
-  markdown = replaceExactly(
-    markdown,
-    /^> \*\*Status\*\*: In Progress$/gm,
-    '> **Status**: Candidate Complete',
-    requestPath
-  );
-  markdown = completeAcceptanceCriteria(markdown, requestPath);
-  markdown = replaceExactly(
-    markdown,
-    /^\| Development \| In Progress \|.*\|$/gm,
-    `| Development | Complete | Candidate payload \`${result.payload_tree_sha256}\` and its closed behavior contract are complete. |`,
-    requestPath
-  );
-  markdown = replaceExactly(
-    markdown,
-    /^\| Testing \| Pending \|.*\|$/gm,
-    `| Testing | Complete | Preflight \`${result.audit_fingerprint}\` binds the candidate payload, routing tests, and disposition rows. |`,
-    requestPath
-  );
-  markdown = replaceExactly(
-    markdown,
-    /^\| Acceptance \| Pending \|.*\|$/gm,
-    '| Acceptance | Candidate Complete | Candidate evidence is complete; final audit and durable R3 closure remain pending. |',
-    requestPath
-  );
-  fs.writeFileSync(absolute, markdown);
+function recordRequest(requestPath, result, options = {}) {
+  const root = options.root || ROOT;
+  const absolute = path.join(root, ...requestPath.split('/'));
+  return atomicUpdateContainedFile(root, absolute, (current) => {
+    let markdown = replaceExactly(
+      current,
+      /^> \*\*Status\*\*: In Progress$/gm,
+      '> **Status**: Candidate Complete',
+      requestPath
+    );
+    markdown = completeAcceptanceCriteria(markdown, requestPath);
+    markdown = replaceExactly(
+      markdown,
+      /^\| Development \| In Progress \|.*\|$/gm,
+      `| Development | Complete | Candidate payload \`${result.payload_tree_sha256}\` and its closed behavior contract are complete. |`,
+      requestPath
+    );
+    markdown = replaceExactly(
+      markdown,
+      /^\| Testing \| Pending \|.*\|$/gm,
+      `| Testing | Complete | Preflight \`${result.audit_fingerprint}\` binds the candidate payload, routing tests, and disposition rows. |`,
+      requestPath
+    );
+    return replaceExactly(
+      markdown,
+      /^\| Acceptance \| Pending \|.*\|$/gm,
+      '| Acceptance | Candidate Complete | Candidate evidence is complete; final audit and durable R3 closure remain pending. |',
+      requestPath
+    );
+  }, options);
 }
 
-function reopenRequest(requestPath) {
-  const absolute = path.join(ROOT, ...requestPath.split('/'));
-  let markdown = fs.readFileSync(absolute, 'utf8');
-  markdown = replaceExactly(
-    markdown,
-    /^> \*\*Status\*\*: Candidate Complete$/gm,
-    '> **Status**: In Progress',
-    requestPath
-  );
-  const heading = '## Acceptance Criteria\n';
-  const start = markdown.indexOf(heading);
-  const end = markdown.indexOf('\n## ', start + heading.length);
-  if (start < 0 || end < 0) fail(`${requestPath}: Acceptance Criteria section is missing`);
-  const section = markdown.slice(start, end).replace(/^- \[x\] /gm, '- [ ] ');
-  markdown = markdown.slice(0, start) + section + markdown.slice(end);
-  markdown = replaceExactly(
-    markdown,
-    /^\| Development \| Complete \|.*\|$/gm,
-    '| Development | In Progress | Candidate bytes changed after review and require a fresh preflight. |',
-    requestPath
-  );
-  markdown = replaceExactly(
-    markdown,
-    /^\| Testing \| Complete \|.*\|$/gm,
-    '| Testing | Pending | Fresh candidate preflight evidence is not recorded yet. |',
-    requestPath
-  );
-  markdown = replaceExactly(
-    markdown,
-    /^\| Acceptance \| Candidate Complete \|.*\|$/gm,
-    '| Acceptance | Pending | Fresh candidate evidence is not recorded yet. |',
-    requestPath
-  );
-  fs.writeFileSync(absolute, markdown);
+function reopenRequest(requestPath, options = {}) {
+  const root = options.root || ROOT;
+  const absolute = path.join(root, ...requestPath.split('/'));
+  return atomicUpdateContainedFile(root, absolute, (current) => {
+    let markdown = replaceExactly(
+      current,
+      /^> \*\*Status\*\*: Candidate Complete$/gm,
+      '> **Status**: In Progress',
+      requestPath
+    );
+    const heading = '## Acceptance Criteria\n';
+    const start = markdown.indexOf(heading);
+    const end = markdown.indexOf('\n## ', start + heading.length);
+    if (start < 0 || end < 0) fail(`${requestPath}: Acceptance Criteria section is missing`);
+    const section = markdown.slice(start, end).replace(/^- \[x\] /gm, '- [ ] ');
+    markdown = markdown.slice(0, start) + section + markdown.slice(end);
+    markdown = replaceExactly(
+      markdown,
+      /^\| Development \| Complete \|.*\|$/gm,
+      '| Development | In Progress | Candidate bytes changed after review and require a fresh preflight. |',
+      requestPath
+    );
+    markdown = replaceExactly(
+      markdown,
+      /^\| Testing \| Complete \|.*\|$/gm,
+      '| Testing | Pending | Fresh candidate preflight evidence is not recorded yet. |',
+      requestPath
+    );
+    return replaceExactly(
+      markdown,
+      /^\| Acceptance \| Candidate Complete \|.*\|$/gm,
+      '| Acceptance | Pending | Fresh candidate evidence is not recorded yet. |',
+      requestPath
+    );
+  }, options);
 }
 
 function main(argv = process.argv.slice(2)) {

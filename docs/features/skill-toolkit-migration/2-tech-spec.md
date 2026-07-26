@@ -11,7 +11,7 @@
 
 ### 1.1 Problem
 
-Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flow` 的完整 skill 工具包。可重現 Git snapshot 有 98 個 skills / 263 files / 138 references / 25 scripts；目前 sibling 開發環境另有兩個 ignored local-only skills，共 3 files / 1 reference。Composite inventory 因此是 100 / 266 / 139 / 25；Wave 1 的 `req-analyze` 與 `tech-spec` final payload 已進入 gate transaction，目標 repository 只有 11 個核心 skills。若逐檔直拷，Claude Code tool names、hook payload、session state、Codex MCP 角色與 mutation authorization 會在 Codex runtime 失真；若只挑少數重寫，又會遺失來源長期累積的工作流理論。
+Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flow` 的完整 skill 工具包。可重現 Git snapshot 有 98 個 skills / 263 files / 138 references / 25 scripts；目前 sibling 開發環境另有兩個 ignored local-only skills，共 3 files / 1 reference。Composite inventory 因此是 100 / 266 / 139 / 25；Wave 1 的 `req-analyze` 與 `tech-spec` final payload 已進入 gate transaction，目標 repository 只有 12 個核心 skills。若逐檔直拷，Claude Code tool names、hook payload、session state、Codex MCP 角色與 mutation authorization 會在 Codex runtime 失真；若只挑少數重寫，又會遺失來源長期累積的工作流理論。
 
 ### 1.2 Goals
 
@@ -42,13 +42,13 @@ Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flo
 
 | Metric | Composite source | Current Codex plugin | Gap |
 |---|---:|---:|---:|
-| Skills | 100 | 11 | 89 entrypoints, plus semantic merges |
+| Skills | 100 | 12 | 88 entrypoints, plus semantic merges |
 | SKILL.md lines | 16,849 | curated core | Large orchestration surface |
 | Skill payload files | 266 | bundled core only | 259 files require disposition |
 | References | 139 | review theory + existing refs | Progressive-loading migration required |
 | Bundled scripts | 25 | deterministic runtime scripts | Runtime/API audit required |
 
-Current Codex skills are `bug-fix`、`create-request`、`doctor`、`feature-dev`、`remind`、`req-analyze`、`reset`、`review`、`setup`、`tech-spec`、`verify`。其中 review 已把來源的 reviewer/auto-loop 理論改成 configured Codex-first/Claude-wrapper primary + 一個 independent native Codex test perspective，並綁定 exact worktree fingerprint 與 provider policy。R1/R2 infrastructure 已實作，R3 durable closure/ledger 已完成；R4 對 Codex `0.145.0` 的 registry capability probe 已完成並永久選定 version-bound `mapping-only` fallback；`create-request` 的 Wave 1 promotion 已完成，後續 recovery hardening 由新的唯一 gate-owner ticket進行 re-promotion。
+Current Codex skills are `bug-fix`、`create-request`、`doctor`、`feature-dev`、`remind`、`req-analyze`、`reset`、`review`、`setup`、`tech-spec`、`test-review`、`verify`。其中 review 已把來源的 reviewer/auto-loop 理論改成單一 configured Codex-first/Claude-wrapper primary gate，並綁定 exact worktree fingerprint 與 provider policy；`test-review` 則保留為獨立、read-only、non-gating 的 test/AC quality assessment。R1/R2 infrastructure 已實作，R3 durable closure/ledger 已完成；R4 對 Codex `0.145.0` 的 registry capability probe 已完成並永久選定 version-bound `mapping-only` fallback；`create-request` 的 Wave 1 promotion 已完成，後續 recovery hardening 由新的唯一 gate-owner ticket進行 re-promotion。
 
 Composite provenance 不把 dirty working tree 假裝成 commit：primary Git tree 固定為 98/263/138/25；`readme-i18n-sync` 與 `update-readme` 是明列 raw-byte hash 的 local overlay。R1 只能在 hashes 全部相符時匯入；完成後 overlay bytes 由本 repository 的 tracked staging 固定。
 
@@ -102,7 +102,7 @@ flowchart TD
     M --> G
     O --> G
     G --> L[Live plugin skills]
-    L --> R[Configured primary + Codex test review]
+    L --> R[One configured primary review]
     R --> V[Deterministic verify]
 ```
 
@@ -289,7 +289,7 @@ Wave owner 由 `wave 0..7 → Foundation R1-R4 / future Wave 1..7 request batch`
 | Authorization | Read/write/external mutation classified；commit/push/PR writes require explicit user authority |
 | State | Persistent evidence uses Git metadata or `.sd0x`，never tracked runtime artifacts |
 | Tests | Routing/schema/reference tests + behavior tests proportional to risk |
-| Review | Configured primary + independent Codex test perspective clean on exact fingerprint and provider |
+| Review | One configured primary clean on the exact fingerprint and provider; optional `test-review` remains read-only and non-gating |
 | Verify | Deterministic repository checks pass on the reviewed fingerprint |
 
 Adapted payload 先放在 repo-contained、non-distributable `migration/candidates/<canonical-skill>/`。`audit-candidate` 先 derive/validate `target_package`：core row 使用 virtual target `plugin/sd0x-dev-flow-codex/skills/<canonical-skill>/`；pack row 使用 virtual separate-plugin root並額外證明不會進 core manifest/discovery。Audit 同時載入 composed inventory/overlay、core plugin manifest、所有 live core frontmatter 與 candidate row，判 global routing、ownership與 package boundary。Candidate tree 本身永不直接 distributed。
@@ -306,7 +306,7 @@ Supplemental graph 的每個 reachable module path/raw SHA-256 都必須排序�
 
 <!-- sd0x-delivery-transaction:v1 order=payload-final-gates,completion-evidence,delivered-overlay,post-overlay-gates -->
 
-Core promotion transaction 固定為：(1) candidate static/behavior preflight；(2) move 到 final core plugin path，但 overlay 維持 `candidate` move window；(3) 不 reload、不 package、不宣稱完成，對 payload、Completed request 與 candidate overlay 的 evidence fingerprint 重跑 global audit、behavior tests、configured primary + Codex test review、verify；(4) clean 且 final request closure durable 後寫 `kind=promotion` evidence；(5) evidence append 成功後才把 overlay state 設為 `promoted`；(6) 對 post-overlay fingerprint 再跑 configured review 與 deterministic repository verify，`audit-source` 必須以剛寫入的 exact completion record 通過。任何一步 fail 都必須修復重跑或 rollback；preflight evidence、candidate gate 或 promotion record 皆不能取代 step 6 的 post-overlay gate。Authorization gate 以 closed `operations[]` 對照 §4.6。
+Core promotion transaction 固定為：(1) candidate static/behavior preflight；(2) move 到 final core plugin path，但 overlay 維持 `candidate` move window；(3) 不 reload、不 package、不宣稱完成，對 payload、Completed request 與 candidate overlay 的 evidence fingerprint 重跑 global audit、behavior tests、configured primary review、verify；(4) clean 且 final request closure durable 後寫 `kind=promotion` evidence；(5) evidence append 成功後才把 overlay state 設為 `promoted`；(6) 對 post-overlay fingerprint 再跑 configured review 與 deterministic repository verify，`audit-source` 必須以剛寫入的 exact completion record 通過。任何一步 fail 都必須修復重跑或 rollback；preflight evidence、candidate gate 或 promotion record 皆不能取代 step 6 的 post-overlay gate。Authorization gate 以 closed `operations[]` 對照 §4.6。
 
 Pack transaction 使用相同順序：把 audited payload/spec 移到 `migration/packs/<target-package>/` 時 overlay 維持 `candidate`，先對 payload、Completed request 與 candidate overlay 的 evidence fingerprint 跑 final review/verify；final request closure durable 後在 transferable evidence ref append `kind=pack-ready`，成功後才把 overlay state 設為 `pack-ready`，並對 post-overlay fingerprint 重跑 review 與 deterministic repository verify。Record 綁 final request closure、target package、正規化為 candidate 的 disposition row、payload tree、pack spec/dependency tree、evidence fingerprint、review/verify blobs與 record hash；post-overlay `audit-source` 必須找到這筆 exact record。它不是 core promotion，也不產生 core routing entry。Later re-audit 重算 pack trees與 closure/disposition；unrelated wave 可保留，delete/modify/swap/supersede mismatch fail。真正 live pack 仍須在 separate plugin repository 重跑 manifest/dependency/release gates並取得發布授權。
 
@@ -424,11 +424,11 @@ Canonical state is `Pending → In Progress → Candidate Complete → Completed
 | Dirty implementation | Exact worktree fingerprint、all non-quality AC Complete/High、current core review pass，and same-fingerprint verify pass for code/config |
 | Clean post-commit implementation | Clean tracked worktree、exact `base_sha..HEAD` + HEAD tree hash、all AC Complete/High、deterministic checks against HEAD、fresh commit-scope review provenance clean for the same base/head/tree |
 
-Commit-scope review uses the same independent configured primary + native test perspectives over the exact Git diff, but records SHA-bound request evidence rather than fabricating a dirty-worktree gate。Closure is an explicit two-phase state transition owned by R3's deterministic runtime API：
+Commit-scope review uses the same configured primary over the exact Git diff, but records SHA-bound request evidence rather than fabricating a dirty-worktree gate。Closure is an explicit two-phase state transition owned by R3's deterministic runtime API：
 
 1. `closure prepare` runs before editing the request。It snapshots the dirty fingerprint or clean base/head/tree、hashes the non-request worktree projection與 proposed Completed request bytes/AC definition，and appends `kind=request-closure-pending` with AC/check/verify/**subject-review** blobs to the evidence ref。
 2. Runtime `closure apply` writes exactly the proposed request bytes。It rejects pre-existing/request-boundary drift unchanged；before its first mutation it durably records the pending hash、inode and prior/proposed hashes並使用 write-all loop。Mutation開始後任一 truncate/write/fsync/validation failure都保留 journal，不執行無法對 concurrent editor提供原子 CAS 的自動 rollback；exact full-file equality（含 EOF）才可清除 journal。An explicit operator may run `closure recover` with inspected `expected_current_sha256` and `restore-prior` to restore persisted prior bytes before replay，or `abandon` to remove recovery ownership without changing request bytes。Restore通常要求 journaled inode；唯一的 exact-success exception 是成功 apply 已移除原 journal、但 current bytes 與 operator-inspected hash 仍同時等於 pending proposal，此時 explicit `restore-prior`可合成 runtime-owned journal。Prior、unknown 或 replacement bytes仍 fail closed；合成 journal與 prepared recovery journal可在 restart後續跑。Restore先把 live file原子移到 `.sd0x/closure-recovery/` displaced backup，再用 no-overwrite link安裝 prior；post-rename identity驗證失敗時也會以 no-overwrite方式把 displaced bytes恢復到 live path並保留 operator recovery，rollback link後的 crash會在 restart辨識同 inode並只完成 metadata cleanup。Finalized pending對 recovery是 terminal（含既有 journal），不得把 durable closure/promotion倒退，後續修正必須建立 superseding closure revision。Abandon允許 atomic-save replacement inode。Apply/recover在 mutation與 journal removal前重驗 current bytes/path/ref/latest pending。Runtime never chooses automatically。Any non-request projection drift、different request/AC hash、subject change、non-latest pending revision or restart without a valid pending record blocks finalization。
-3. The new dirty docs fingerprint runs the ordinary two-perspective docs review。`closure finalize --pending <record_sha256>` then appends `kind=request-closure` with `{pending_record_sha256, request_path, request_content_sha256, implementation_base_sha, ac_definition_sha256, subject_review_evidence_sha256, docs_review_evidence_sha256, docs_fingerprint, recorded_at, supersedes_record_sha256, record_sha256}`；both review hashes must resolve to distinct matching blobs in the ref chain。Current/proposed `implementation_base_sha` must be immutable、non-null and ancestral to subject HEAD；commit closure additionally requires equality with `subject.base_sha`。Legacy tickets missing the field fail closed until an exact base is supplied。Finalize and promotion accept only the unit's latest commit-order pending/closure revision。
+3. The new dirty docs fingerprint runs the ordinary primary docs review。`closure finalize --pending <record_sha256>` then appends `kind=request-closure` with `{pending_record_sha256, request_path, request_content_sha256, implementation_base_sha, ac_definition_sha256, subject_review_evidence_sha256, docs_review_evidence_sha256, docs_fingerprint, recorded_at, supersedes_record_sha256, record_sha256}`；both review hashes must resolve to distinct matching blobs in the ref chain。Current/proposed `implementation_base_sha` must be immutable、non-null and ancestral to subject HEAD；commit closure additionally requires equality with `subject.base_sha`。Legacy tickets missing the field fail closed until an exact base is supplied。Finalize and promotion accept only the unit's latest commit-order pending/closure revision。
 
 Missing/tampered pending、changed projection/subject、failed subject checks、missing docs reviewer、stale final fingerprint or mismatched hashes fail closed。Existing closure reuse requires every field/blob to match；title/scope/AC edits require fresh prepare/finalize and linked revision。Promotion/retirement record must point to the final closure hash, never the pending hash。Commit closure's pending subject includes base/head/tree；dirty closure includes worktree fingerprint + HEAD。
 
@@ -777,7 +777,7 @@ Gate-owner lifecycle：promotion completion 要求 pointed ticket 為 `Completed
 1. Repository-only install/reload matrix。
 2. New Codex task rebuilds skill registry。
 3. Representative positive/negative routing prompts。
-4. Configured primary + native test reviewer clean。
+4. Configured primary clean；optional `test-review` remains non-gating。
 5. `npm run check` and `$sd0x-dev-flow-codex:verify` pass on the same fingerprint。
 
 ## 10. Rollout and Reload

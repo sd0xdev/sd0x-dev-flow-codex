@@ -50,6 +50,7 @@ const CORE_SOURCES = new Set([
   'codex-review-branch',
   'codex-review-fast',
   'codex-setup',
+  'codex-test-review',
   'create-request',
   'deep-analyze',
   'feature-dev',
@@ -62,6 +63,7 @@ const CORE_SOURCES = new Set([
   'remind',
   'req-analyze',
   'tech-spec',
+  'test-review',
   'verify'
 ]);
 

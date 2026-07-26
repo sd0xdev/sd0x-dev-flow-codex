@@ -123,7 +123,7 @@ const ACTIVE_CANDIDATE_MOVE_WINDOW = Symbol('active-candidate-move-window');
 const ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS = new Map([
   ['create-request/default', 'Complete']
 ]);
-const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
+const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
 const TRUSTED_RUNTIME_TOOL = 'mcp__sd0x_claude_review__run_skill_script';
 const CORE_TARGETS = Object.freeze([
   'bug-fix',
@@ -135,11 +135,12 @@ const CORE_TARGETS = Object.freeze([
   'review',
   'setup',
   'tech-spec',
+  'test-review',
   'verify'
 ]);
 const GRANDFATHERED_LIVE_TARGETS = Object.freeze(['reset']);
 const APPROVED_ROUTING_CATALOG_SHA256 =
-  '57c64a09d9a1800c83892e073bf5288911e868cc6cb5dbb71920b0ea90268c16';
+  'ac750a3b2e80e5d6aec7be7c0476b219f7fc27c195ab39f491c8e9278994649e';
 const MAX_JAVASCRIPT_ARRAY_PROBES = 16;
 const MAX_JAVASCRIPT_ARRAY_PROBES_PER_AUDIT = 32;
 const MAX_JAVASCRIPT_FILES_PER_CANDIDATE = 64;
@@ -414,7 +415,7 @@ function validateDisposition(disposition, inventoryNames) {
     .filter((row) => row.target_package === 'core')
     .map((row) => row.target_skill));
   assert(JSON.stringify(coreTargets) === JSON.stringify(CORE_TARGETS),
-    'core targets differ from the approved ten-target catalog');
+    'core targets differ from the approved eleven-target catalog');
 
   const expectedTargets = {};
   for (const target of [...catalogModes.keys()].sort(BYTEWISE)) {

@@ -222,8 +222,8 @@ function handle(eventName, input) {
       'sd0x Dev Flow is active.',
       'Completion gates are tied to the exact worktree fingerprint.',
       projectConfig.review.provider === 'claude'
-        ? 'Use the Claude-wrapper primary subagent plus one independent Codex test reviewer subagent; the Claude MCP call must happen inside its wrapper.'
-        : 'Use the gpt-5.6-sol xhigh Codex primary subagent plus one independent gpt-5.6-sol xhigh Codex test reviewer subagent; do not call Claude.',
+        ? 'Use only the Claude-wrapper primary subagent for the review gate; the Claude MCP call must happen inside its wrapper.'
+        : 'Use only the gpt-5.6-sol xhigh Codex primary subagent for the review gate; do not call Claude.',
       'Use the deterministic verify runner for tests.',
       pendingMessage(state, sessionId)
     ].join(' ')));
@@ -270,9 +270,7 @@ function handle(eventName, input) {
   if (eventName === 'SubagentStart') {
     recordSubagent(cwd, 'start', input);
     let focus = 'Focus on correctness, security, behavior regressions, race conditions, and error handling.';
-    if (input.agent_type === 'sd0x_test_reviewer') {
-      focus = 'Focus on missing tests, acceptance coverage, flaky assumptions, and verification gaps.';
-    } else if (input.agent_type === 'sd0x_codex_primary_reviewer') {
+    if (input.agent_type === 'sd0x_codex_primary_reviewer') {
       focus = 'Perform the full primary implementation and test review with gpt-5.6-sol xhigh.';
     } else if (input.agent_type === 'sd0x_claude_primary_reviewer') {
       focus = 'Call the Claude MCP exactly once for the supplied root and fingerprint, then validate and relay its structured result.';

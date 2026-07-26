@@ -18,7 +18,7 @@ const {
   canonicalRequestStatus
 } = require('./request-metadata');
 
-const SCHEMA_VERSION = 8;
+const SCHEMA_VERSION = 9;
 const LOCK_WAIT_MS = 5_000;
 const LOCK_RETRY_MS = 20;
 const LOCK_OWNER_GRACE_MS = 1_000;
@@ -730,8 +730,11 @@ function readCommitClosureReview(cwd) {
     assertExactKeys(binding, [
       'agent_id', 'agent_type', 'subject_sha256', 'started_at'
     ], 'commit closure reviewer binding');
+    const historicalReviewerTypes = [
+      ...requiredReviewers(value.provider), 'sd0x_test_reviewer'
+    ];
     if (typeof binding.agent_id !== 'string' || !binding.agent_id ||
-        !requiredReviewers(value.provider).includes(binding.agent_type) ||
+        !historicalReviewerTypes.includes(binding.agent_type) ||
         binding.subject_sha256 !== value.subject_sha256) {
       throw new Error('Commit closure reviewer binding is invalid');
     }
@@ -819,6 +822,9 @@ function beginCommitClosureReview(cwd, subject) {
       if (existing?.status === 'pending' &&
           existing.runtime_epoch === state.runtime_epoch &&
           existing.provider === provider &&
+          existing.reviewer_bindings.every((binding) =>
+            requiredReviewers(provider).includes(binding.agent_type)
+          ) &&
           canonicalJson(existing.subject) === canonicalJson(subject)) {
         marker = existing;
         return state;
@@ -1265,7 +1271,9 @@ function validateReviewEvidence(review, label) {
   }
   const reviewerCount = Number(gate.reviewers || gate.results?.length ||
     gate.agents?.length || 0);
-  if (reviewerCount !== 2) throw new Error(`${label} requires exactly two independent reviewers`);
+  if (![1, 2].includes(reviewerCount)) {
+    throw new Error(`${label} requires one current or two legacy reviewers`);
+  }
   if (!Array.isArray(payload.native_results) || !Array.isArray(payload.external_results) ||
       !Array.isArray(payload.subject_bindings) ||
       payload.native_results.some((item) => item?.outcome !== 'clean' ||
@@ -1280,8 +1288,11 @@ function validateReviewEvidence(review, label) {
     ], `${label} subject binding`);
     assertSha256(binding.subject_sha256, `${label} subject binding hash`);
     assertRecordedAt(binding.started_at, `${label} subject binding started_at`);
+    const allowedBindingTypes = reviewerCount === 2
+      ? [...requiredReviewers(review.provider), 'sd0x_test_reviewer']
+      : requiredReviewers(review.provider);
     if (typeof binding.agent_id !== 'string' || !binding.agent_id ||
-        !requiredReviewers(review.provider).includes(binding.agent_type)) {
+        !allowedBindingTypes.includes(binding.agent_type)) {
       throw new Error(`${label} contains a malformed reviewer subject binding`);
     }
     const identity = `${binding.agent_id}\0${binding.agent_type}`;
@@ -1291,7 +1302,9 @@ function validateReviewEvidence(review, label) {
     bindingIdentities.add(identity);
   }
   const nativeTypes = new Set(payload.native_results.map((item) => item.agent_type));
-  const expectedNativeTypes = requiredReviewers(review.provider);
+  const expectedNativeTypes = reviewerCount === 2
+    ? [...requiredReviewers(review.provider), 'sd0x_test_reviewer']
+    : requiredReviewers(review.provider);
   if (nativeTypes.size !== expectedNativeTypes.length ||
       !expectedNativeTypes.every((type) => nativeTypes.has(type)) ||
       (review.provider === 'claude' && !payload.external_results.some((item) =>
@@ -1307,7 +1320,7 @@ function validateReviewEvidence(review, label) {
     )) {
       throw new Error(`${label} contains a binding for another commit subject`);
     }
-    if (!requiredReviewers(review.provider).every((type) =>
+    if (!expectedNativeTypes.every((type) =>
       payload.native_results.some((result) =>
         result.agent_type === type && payload.subject_bindings.some((binding) =>
           binding.agent_type === type && binding.subject_sha256 === subjectSha &&
@@ -4138,11 +4151,11 @@ function inferLegacyCollaborationRound(reviewAgents) {
 
 function normalizeState(value) {
   const base = defaultState();
-  if (!value || ![1, 2, 3, 4, 5, 6, 7, SCHEMA_VERSION].includes(value.schema_version)) {
+  if (!value || ![1, 2, 3, 4, 5, 6, 7, 8, SCHEMA_VERSION].includes(value.schema_version)) {
     throw new Error('runtime state schema_version is missing or unsupported');
   }
   if (value.schema_version === SCHEMA_VERSION) assertCurrentStateShape(value);
-  const invalidatesLegacyEvidence = value.schema_version <= 7;
+  const invalidatesLegacyEvidence = value.schema_version <= 8;
   const legacyCollaborationRound = value.schema_version === 6
     ? inferLegacyCollaborationRound(value.review_agents)
     : { present: false, roundId: null };
@@ -4440,7 +4453,7 @@ function requiredReviewers(provider) {
   const primary = provider === 'claude'
     ? 'sd0x_claude_primary_reviewer'
     : 'sd0x_codex_primary_reviewer';
-  return [primary, 'sd0x_test_reviewer'];
+  return [primary];
 }
 
 function validateEvidence(gate, status, evidence, provider = DEFAULT_REVIEW_PROVIDER) {
@@ -4451,8 +4464,8 @@ function validateEvidence(gate, status, evidence, provider = DEFAULT_REVIEW_PROV
     throw new Error('Gate evidence must be a JSON object');
   }
   if (gate === 'review' && status === 'pass') {
-    if (evidence.reviewers !== 2) {
-      throw new Error('A passing review gate requires evidence.reviewers === 2');
+    if (evidence.reviewers !== 1) {
+      throw new Error('A passing review gate requires evidence.reviewers === 1');
     }
     if (evidence.findings !== 0) {
       throw new Error('A passing review gate requires evidence.findings === 0');
@@ -4467,7 +4480,7 @@ function validateEvidence(gate, status, evidence, provider = DEFAULT_REVIEW_PROV
         new Set(evidence.agents).size !== required.length ||
         !required.every((reviewer) => evidence.agents.includes(reviewer))) {
       throw new Error(
-        `A passing review gate requires exactly the ${provider} primary and test reviewer evidence`
+        `A passing review gate requires exactly the configured ${provider} primary reviewer evidence`
       );
     }
   }

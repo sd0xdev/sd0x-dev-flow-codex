@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "target_skill": "feature-dev",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "feature-dev/default",
+      "target_mode": null,
+      "source_names": [
+        "codex-implement",
+        "feature-dev"
+      ],
+      "routing": {
+        "positive_triggers": [
+          "Build the approved notification preference feature end to end.",
+          "Extend the billing API with the specified refund behavior and tests.",
+          "Implement this non-trivial capability from the technical specification."
+        ],
+        "negative_boundaries": [
+          "Diagnose the failing refund test without implementing a correction.",
+          "Generate focused tests for the existing billing behavior only.",
+          "Review the notification preference diff without changing it."
+        ]
+      },
+      "behavior_tests": [
+        "test/feature-dev-default-routing.test.js"
+      ]
+    }
+  ]
+}

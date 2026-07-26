@@ -1,7 +1,7 @@
 {
   "name": "sd0x-dev-flow-codex",
-  "version": "0.3.3",
-  "description": "Codex-native engineering loop with dual review, deterministic verification, and fingerprinted completion gates.",
+  "version": "0.3.4",
+  "description": "Codex-native engineering loop with primary review, deterministic verification, and fingerprinted completion gates.",
   "author": {
     "name": "sd0xdev"
   },
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "sd0x Dev Flow for Codex",
     "shortDescription": "Fingerprint-gated review and verification loop",
-    "longDescription": "A Codex-native engineering harness with Codex-first review, an optional Claude MCP primary, and independent Codex implementation and test perspectives, all tied to the exact current worktree.",
+    "longDescription": "A Codex-native engineering harness with Codex-first review through one primary, an optional Claude MCP primary, deterministic verification, and an optional non-gating test-review skill, all tied to the exact current worktree.",
     "developerName": "sd0xdev",
     "websiteURL": "https://github.com/sd0xdev/sd0x-dev-flow-codex",
     "category": "Developer Tools",
