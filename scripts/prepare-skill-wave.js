@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 'use strict';
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { openBoundDirectory } = require('./bound-directory');
 const { atomicWriteContainedFile } = require('./contained-file');
+const { captureRegularTree } = require('./promote-skill-wave');
 const {
   routingContractBlock,
   routingDescription,
@@ -188,7 +190,7 @@ function stripFrontmatter(text) {
     .trim();
 }
 
-function renderSkill(target) {
+function renderSkill(target, preservedBody = null) {
   const registry = target.units.map((unit) => ({
     unit: unit.promotion_unit_id,
     routing: normalizedRouting(unit.routing)
@@ -199,10 +201,10 @@ function renderSkill(target) {
   }
   let body = target.body_lines.join('\n').trim();
   if (target.preserve_live_body) {
-    const live = path.join(
-      ROOT, 'plugin', 'sd0x-dev-flow-codex', 'skills', target.target, 'SKILL.md'
-    );
-    body = `${stripFrontmatter(fs.readFileSync(live, 'utf8'))}\n\n${body}`;
+    if (typeof preservedBody !== 'string') {
+      fail(`${target.target}: preserved live body snapshot is unavailable`);
+    }
+    body = `${stripFrontmatter(preservedBody)}\n\n${body}`;
   }
   return [
     '---',
@@ -219,65 +221,130 @@ function renderSkill(target) {
   ].join('\n');
 }
 
-function sameFile(left, right) {
-  return left.isFile() && right.isFile() &&
-    left.dev === right.dev && left.ino === right.ino && left.size === right.size;
+function statIdentity(stat) {
+  return [stat.dev, stat.ino, stat.mode, stat.size].map(String).join(':');
 }
 
-function copyPreservedEntry(source, destinationName, destinationParent) {
-  const sourceStat = fs.lstatSync(source, { throwIfNoEntry: false });
-  if (!sourceStat || sourceStat.isSymbolicLink() ||
-      (!sourceStat.isDirectory() && !sourceStat.isFile())) {
-    fail(`preserved resource must be a regular file or real directory: ${source}`);
+function assertPreservedSnapshot(liveRoot, snapshot) {
+  if (JSON.stringify(captureRegularTree(liveRoot)) !== JSON.stringify(snapshot)) {
+    fail(`preserved resource tree changed during copy: ${liveRoot}`);
   }
-  if (sourceStat.isFile()) {
-    const descriptor = fs.openSync(source,
+}
+
+function readCapturedFile(parent, name, entry) {
+  return parent.run((child) => {
+    const descriptor = fs.openSync(child(name),
       fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
     try {
-      const opened = fs.fstatSync(descriptor);
-      if (!sameFile(sourceStat, opened)) {
-        fail(`preserved resource changed before copy: ${source}`);
+      const opened = fs.fstatSync(descriptor, { bigint: true });
+      if (!opened.isFile() || statIdentity(opened) !== entry.identity) {
+        fail(`preserved resource identity changed before copy: ${entry.relative}`);
       }
       const bytes = fs.readFileSync(descriptor);
-      destinationParent.run((child) =>
-        fs.writeFileSync(child(destinationName), bytes, { flag: 'wx' }));
-      if (!sameFile(sourceStat, fs.lstatSync(source))) {
-        fail(`preserved resource changed during copy: ${source}`);
+      const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+      if (digest !== entry.sha256) {
+        fail(`preserved resource content changed before copy: ${entry.relative}`);
       }
+      return bytes;
     } finally {
       fs.closeSync(descriptor);
     }
-    return;
-  }
-  let identity;
-  destinationParent.run((child) => {
-    const name = child(destinationName);
-    fs.mkdirSync(name);
-    identity = fs.lstatSync(name);
   });
-  const destination = path.join(destinationParent.directory, destinationName);
-  const childDirectory = openBoundDirectory(destination, { identity });
-  try {
-    const entries = fs.readdirSync(source, { withFileTypes: true })
-      .sort((left, right) => BYTEWISE(left.name, right.name));
-    for (const entry of entries) {
-      copyPreservedEntry(path.join(source, entry.name), entry.name, childDirectory);
-    }
-  } finally {
-    childDirectory.close();
-  }
 }
 
-function copyPreservedLiveFiles(target, candidateDirectory) {
-  if (!target.preserve_live_body && !target.preserve_live_resources) return;
+function capturePreservedLive(target) {
+  if (!target.preserve_live_body && !target.preserve_live_resources) return null;
   const liveRoot = path.join(
     ROOT, 'plugin', 'sd0x-dev-flow-codex', 'skills', target.target
   );
-  for (const entry of fs.readdirSync(liveRoot, { withFileTypes: true })) {
-    if (entry.name === 'SKILL.md' ||
-        entry.name === 'migration-contract.json') continue;
-    copyPreservedEntry(path.join(liveRoot, entry.name), entry.name,
-      candidateDirectory);
+  const snapshot = captureRegularTree(liveRoot);
+  const rootStat = fs.lstatSync(liveRoot, { throwIfNoEntry: false });
+  if (!rootStat || rootStat.isSymbolicLink() || !rootStat.isDirectory() ||
+      statIdentity(rootStat) !== snapshot.root) {
+    fail(`${target.target}: preserved live root changed during capture`);
+  }
+  const rootDirectory = openBoundDirectory(liveRoot, { identity: rootStat });
+  try {
+    const skill = snapshot.entries.find((entry) =>
+      entry.relative === 'SKILL.md' && entry.kind === 'file');
+    if (target.preserve_live_body && !skill) {
+      fail(`${target.target}: preserved SKILL.md is unavailable`);
+    }
+    const body = skill ? readCapturedFile(rootDirectory, 'SKILL.md', skill)
+      .toString('utf8') : null;
+    assertPreservedSnapshot(liveRoot, snapshot);
+    return { liveRoot, snapshot, body, rootStat };
+  } finally {
+    rootDirectory.close();
+  }
+}
+
+function copyPreservedLiveFiles(target, candidateDirectory, preserved, hooks = {}) {
+  if (!preserved || !target.preserve_live_resources) return;
+  const { liveRoot, snapshot, rootStat } = preserved;
+  const sourceRoot = openBoundDirectory(liveRoot, { identity: rootStat });
+  const opened = [sourceRoot];
+  const sources = new Map([['', sourceRoot]]);
+  const destinations = new Map([['', candidateDirectory]]);
+  try {
+    for (const entry of snapshot.entries) {
+      const top = entry.relative.split('/')[0];
+      if (top === 'SKILL.md' || top === 'migration-contract.json') continue;
+      const parentRelative = path.posix.dirname(entry.relative) === '.'
+        ? ''
+        : path.posix.dirname(entry.relative);
+      const sourceParent = sources.get(parentRelative);
+      const destinationParent = destinations.get(parentRelative);
+      if (!sourceParent || !destinationParent) {
+        fail(`preserved resource parent is unavailable: ${entry.relative}`);
+      }
+      const name = path.posix.basename(entry.relative);
+      if (entry.kind === 'directory') {
+        const sourceIdentity = sourceParent.run((child) => {
+          const stat = fs.lstatSync(child(name), { throwIfNoEntry: false });
+          if (!stat || stat.isSymbolicLink() || !stat.isDirectory() ||
+              statIdentity(stat) !== entry.identity) {
+            fail(`preserved directory changed before copy: ${entry.relative}`);
+          }
+          return stat;
+        });
+        let destinationIdentity;
+        destinationParent.run((child) => {
+          const destination = child(name);
+          fs.mkdirSync(destination);
+          destinationIdentity = fs.lstatSync(destination);
+        });
+        const source = openBoundDirectory(
+          path.join(liveRoot, ...entry.relative.split('/')),
+          { identity: sourceIdentity }
+        );
+        const destination = openBoundDirectory(
+          path.join(candidateDirectory.directory, ...entry.relative.split('/')),
+          { identity: destinationIdentity }
+        );
+        opened.push(source, destination);
+        sources.set(entry.relative, source);
+        destinations.set(entry.relative, destination);
+        if (typeof hooks.afterSourceDirectoryOpen === 'function') {
+          hooks.afterSourceDirectoryOpen({ relative: entry.relative });
+        }
+      } else {
+        if (typeof hooks.beforeSourceFileRead === 'function') {
+          hooks.beforeSourceFileRead({ relative: entry.relative });
+        }
+        const bytes = readCapturedFile(sourceParent, name, entry);
+        destinationParent.run((child) =>
+          fs.writeFileSync(child(name), bytes, { flag: 'wx' }));
+      }
+      if (typeof hooks.afterEntryCopy === 'function') {
+        hooks.afterEntryCopy({ relative: entry.relative });
+      }
+    }
+    assertPreservedSnapshot(liveRoot, snapshot);
+  } finally {
+    for (const directory of opened.reverse()) {
+      if (directory !== candidateDirectory) directory.close();
+    }
   }
 }
 
@@ -304,7 +371,7 @@ function captureContainedDirectory(root, directory, label) {
   }
 }
 
-function withPreparedCandidateDirectory(root, target, callback) {
+function withPreparedCandidateDirectory(root, target, callback, options = {}) {
   if (!/^[a-z0-9][a-z0-9-]*$/.test(target || '')) {
     fail('candidate target must be canonical');
   }
@@ -336,7 +403,22 @@ function withPreparedCandidateDirectory(root, target, callback) {
         if (existing.isSymbolicLink() || !existing.isDirectory()) {
           fail(`${target}: existing candidate must be a real directory`);
         }
-        fs.rmSync(name, { recursive: true });
+        if (typeof options.afterCandidateCapture === 'function') {
+          options.afterCandidateCapture({ candidate: candidateRoot });
+        }
+        const quarantine = child(
+          `.${target}-sd0x-${crypto.randomUUID()}-retired-candidate`
+        );
+        fs.renameSync(name, quarantine);
+        const moved = fs.lstatSync(quarantine, { throwIfNoEntry: false });
+        if (!moved || moved.isSymbolicLink() || !moved.isDirectory() ||
+            moved.dev !== existing.dev || moved.ino !== existing.ino) {
+          if (!fs.lstatSync(name, { throwIfNoEntry: false }) && moved) {
+            fs.renameSync(quarantine, name);
+          }
+          fail(`${target}: existing candidate changed before retirement`);
+        }
+        fs.rmSync(quarantine, { recursive: true });
       }
       fs.mkdirSync(name);
       identity = fs.lstatSync(name);
@@ -386,10 +468,12 @@ function main(argv = process.argv.slice(2)) {
     target.units.sort((left, right) =>
       BYTEWISE(left.promotion_unit_id, right.promotion_unit_id)
     );
+    const preserved = capturePreservedLive(target);
     withPreparedCandidateDirectory(ROOT, target.target,
       (_candidateRoot, candidateDirectory) => {
-        copyPreservedLiveFiles(target, candidateDirectory);
-        fs.writeFileSync(candidateDirectory.child('SKILL.md'), renderSkill(target), {
+        copyPreservedLiveFiles(target, candidateDirectory, preserved);
+        fs.writeFileSync(candidateDirectory.child('SKILL.md'),
+          renderSkill(target, preserved?.body), {
           flag: 'wx'
         });
         fs.writeFileSync(candidateDirectory.child('migration-contract.json'),
@@ -460,6 +544,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  capturePreservedLive,
+  copyPreservedLiveFiles,
   main,
   renderContract,
   renderRequest,

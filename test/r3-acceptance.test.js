@@ -146,4 +146,15 @@ test('R3 specification grants current evidence authority to one configured prima
   ]) {
     assert.equal(spec.includes(legacyPhrase), false);
   }
+  const guide = fs.readFileSync(path.join(ROOT, 'docs',
+    'PROJECT-MIGRATION-GUIDE.md'), 'utf8');
+  assert.ok(guide.includes(
+    'v1–v8 會保留可辨識的 activated sessions，但保守清除所有 pre-v9 gates'
+  ));
+  assert.equal(guide.includes(
+    'v1–v7 會保留可辨識的 activated sessions，但保守清除所有 pre-v8 gates'
+  ), false);
+  assert.ok(guide.includes(
+    'configured Codex/Claude primary clean outcomes、legacy multi-reviewer schema migration'
+  ));
 });

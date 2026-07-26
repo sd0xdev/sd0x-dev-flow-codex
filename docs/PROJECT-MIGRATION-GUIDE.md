@@ -456,7 +456,7 @@ Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向�
 ### 修改 state schema
 
 1. 評估是否提升 `SCHEMA_VERSION`；目前 runtime state schema 是 v9。
-2. 說明舊 state 是 migrate 還是安全 reset；v1–v7 會保留可辨識的 activated sessions，但保守清除所有 pre-v8 gates、collaboration ownership 與 reviewer evidence，避免三視角 identities 被沿用；缺失或不支援的 schema 會 fail closed，只有 user-authorized reset 能 quarantine 原始 bytes 並建立乾淨 state。
+2. 說明舊 state 是 migrate 還是安全 reset；v1–v8 會保留可辨識的 activated sessions，但保守清除所有 pre-v9 gates、collaboration ownership 與 reviewer evidence，避免 multi-reviewer identities 被沿用；缺失或不支援的 schema 會 fail closed，只有 user-authorized reset 能 quarantine 原始 bytes 並建立乾淨 state。
 3. 保持 atomic write、state lock 與 Git metadata path。
 4. 新增 fingerprint invalidation、concurrency 與 stale-state tests。
 
@@ -506,7 +506,7 @@ custom refs；CI、release、clone import 與離線 bundle 都必須明確搬移
 - `claude-review-mcp.test.js`：provider-independent skill runtime allowlist/hostile PATH binding、MCP wire format、Doctor capability discovery、Claude CLI read-only flags、structured output、protected paths、bundle/fingerprint binding。
 - `hook.test.js`：opt-in、SessionStart boundary、multi-session enforcement、protected patch、Claude MCP PostToolUse evidence、Stop、terminal subagent lifecycle。
 - `setup.test.js`：idempotency、AGENTS preservation、unowned agents、invalid config preflight。
-- `state.test.js`：Claude + dual-Codex clean outcomes、schema migration、fingerprint binding、session retention、no-ceiling loop、explicit reset 與 obsolete-counter migration。
+- `state.test.js`：configured Codex/Claude primary clean outcomes、legacy multi-reviewer schema migration、fingerprint binding、session retention、no-ceiling loop、explicit reset 與 obsolete-counter migration。
 - `verify.test.js`：project command detection、review precondition、CLI spoof rejection、start/end fingerprint 與 mutating checks。
 - `worktree.test.js`：tracked/non-ignored-untracked hashing、nested repositories、`ignore=all` submodules、generated paths、patch parsing、protected paths。
 

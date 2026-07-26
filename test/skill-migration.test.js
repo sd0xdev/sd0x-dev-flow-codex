@@ -43,6 +43,7 @@ const {
   recordRequest
 } = require('../scripts/record-skill-wave-preflight');
 const {
+  copyPreservedLiveFiles,
   withPreparedCandidateDirectory,
   writeText: writePreparedText
 } = require('../scripts/prepare-skill-wave');
@@ -53,6 +54,7 @@ const {
   copyCapturedTree,
   treeDigest: promotionTreeDigest
 } = require('../scripts/promote-skill-wave');
+const { openBoundDirectory } = require('../scripts/bound-directory');
 const { atomicWriteContainedFile } = require('../scripts/contained-file');
 const {
   restageCoreCandidate
@@ -5121,6 +5123,105 @@ test('wave preparation rejects a symlinked candidates ancestor without external 
   assert.deepEqual(fs.readdirSync(path.join(outside, 'fixture')), ['KEEP']);
 });
 
+test('wave preparation quarantines the captured candidate before recursive retirement', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-retire-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidates = path.join(root, 'migration', 'candidates');
+  const candidate = path.join(candidates, 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'ORIGINAL'), 'original candidate\n');
+
+  assert.throws(() => withPreparedCandidateDirectory(root, 'fixture', () => {
+    throw new Error('callback must not run');
+  }, {
+    afterCandidateCapture() {
+      fs.renameSync(candidate, `${candidate}-captured`);
+      fs.mkdirSync(candidate);
+      fs.writeFileSync(path.join(candidate, 'KEEP'), 'replacement survives\n');
+    }
+  }), /existing candidate changed before retirement/);
+  assert.equal(fs.readFileSync(path.join(candidate, 'KEEP'), 'utf8'),
+    'replacement survives\n');
+  assert.equal(fs.readFileSync(path.join(`${candidate}-captured`, 'ORIGINAL'), 'utf8'),
+    'original candidate\n');
+});
+
+test('preserved resource copies reject same-size edits and directory swaps', (t) => {
+  const fixture = (prefix) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    const liveRoot = path.join(root, 'live');
+    const candidate = path.join(root, 'candidate');
+    fs.mkdirSync(liveRoot);
+    fs.mkdirSync(candidate);
+    return { root, liveRoot, candidate };
+  };
+  const target = { preserve_live_resources: true };
+
+  const edited = fixture('sd0x-preserved-edit-');
+  t.after(() => fs.rmSync(edited.root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(edited.liveRoot, 'resources'));
+  const editedFile = path.join(edited.liveRoot, 'resources', 'config.txt');
+  fs.writeFileSync(editedFile, 'AAAA\n');
+  const editedSnapshot = captureRegularTree(edited.liveRoot);
+  const editedDirectory = openBoundDirectory(edited.candidate);
+  try {
+    assert.throws(() => copyPreservedLiveFiles(target, editedDirectory, {
+      liveRoot: edited.liveRoot,
+      snapshot: editedSnapshot,
+      rootStat: fs.lstatSync(edited.liveRoot),
+      body: null
+    }, {
+      beforeSourceFileRead({ relative }) {
+        if (relative === 'resources/config.txt') fs.writeFileSync(editedFile, 'BBBB\n');
+      }
+    }), /content changed before copy|tree changed during copy/);
+  } finally {
+    editedDirectory.close();
+  }
+  assert.equal(fs.existsSync(path.join(
+    edited.candidate, 'resources', 'config.txt'
+  )), false);
+
+  const swapped = fixture('sd0x-preserved-swap-');
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-preserved-outside-'));
+  t.after(() => {
+    fs.rmSync(swapped.root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  fs.mkdirSync(path.join(swapped.liveRoot, 'resources', 'nested'), {
+    recursive: true
+  });
+  fs.writeFileSync(path.join(
+    swapped.liveRoot, 'resources', 'nested', 'inside.txt'
+  ), 'trusted\n');
+  fs.mkdirSync(path.join(outside, 'nested'));
+  fs.writeFileSync(path.join(outside, 'nested', 'inside.txt'), 'external\n');
+  const swappedSnapshot = captureRegularTree(swapped.liveRoot);
+  const swappedDirectory = openBoundDirectory(swapped.candidate);
+  try {
+    assert.throws(() => copyPreservedLiveFiles(target, swappedDirectory, {
+      liveRoot: swapped.liveRoot,
+      snapshot: swappedSnapshot,
+      rootStat: fs.lstatSync(swapped.liveRoot),
+      body: null
+    }, {
+      afterSourceDirectoryOpen({ relative }) {
+        if (relative !== 'resources') return;
+        fs.renameSync(path.join(swapped.liveRoot, 'resources'),
+          path.join(swapped.liveRoot, 'resources-real'));
+        fs.symlinkSync(outside, path.join(swapped.liveRoot, 'resources'));
+      }
+    }), /bound directory changed before it could be entered/);
+  } finally {
+    swappedDirectory.close();
+  }
+  assert.equal(fs.existsSync(path.join(
+    swapped.candidate, 'resources', 'nested', 'inside.txt'
+  )), false);
+  assert.equal(fs.readFileSync(path.join(outside, 'nested', 'inside.txt'), 'utf8'),
+    'external\n');
+});
+
 test('contained atomic writes bind temporary and final-boundary identities', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-contained-cas-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -5380,6 +5481,67 @@ test('promotion preserves same-size edits and supports crash recovery', (t) => {
   assert.match(refused.stderr, /lost both live and displaced payloads/);
   assert.equal(fs.existsSync(lostRecovery), true);
   assert.equal(fs.existsSync(lost.destination), false);
+});
+
+test('promotion recovery preflights candidate artifacts before mutating live state', (t) => {
+  const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+  for (const corruption of ['missing', 'corrupt']) {
+    const root = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-recovery-preflight-${corruption}-`
+    ));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const candidate = path.join(root, 'candidate');
+    const destination = path.join(root, 'live');
+    fs.mkdirSync(candidate);
+    fs.mkdirSync(destination);
+    fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+    fs.writeFileSync(path.join(destination, 'SKILL.md'), '# original\n');
+    const result = spawnSync(process.execPath, ['-e', [
+      "const fs = require('node:fs');",
+      "const { applyPromotionMoves, treeDigest } = require(process.argv[1]);",
+      'const [root, candidate, destination] = process.argv.slice(2);',
+      "applyPromotionMoves(root, [{target:'fixture',target_package:'core',action:'move',",
+      'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+      '{removeCoreCandidate(value){',
+      "fs.renameSync(value, `${value}-survivor`); process.exit(86); }});"
+    ].join('\n'), modulePath, root, candidate, destination], {
+      encoding: 'utf8'
+    });
+    assert.equal(result.status, 86, result.stderr || result.stdout);
+    const recoveryName = fs.readdirSync(path.join(root, '.sd0x'))
+      .find((name) => name.startsWith('wave-promotion-'));
+    const recovery = path.join(root, '.sd0x', recoveryName);
+    const manifest = JSON.parse(fs.readFileSync(
+      path.join(recovery, 'recovery.json'), 'utf8'
+    ));
+    const move = manifest.moves[0];
+    const displaced = path.join(path.dirname(destination), move.displaced);
+    const sibling = path.join(path.dirname(candidate), move.candidate_sibling_backup);
+    const survivor = `${candidate}-survivor`;
+    const before = {
+      destination: promotionTreeDigest(destination),
+      displaced: promotionTreeDigest(displaced),
+      sibling: promotionTreeDigest(sibling),
+      survivor: promotionTreeDigest(survivor)
+    };
+    const candidateBackup = path.join(recovery, move.candidate_backup);
+    if (corruption === 'missing') {
+      fs.rmSync(candidateBackup, { recursive: true });
+    } else {
+      fs.writeFileSync(path.join(candidateBackup, 'SKILL.md'), '# TAMPERED\n');
+    }
+    const refused = spawnSync(process.execPath,
+      [modulePath, '--recover', recovery], { encoding: 'utf8' });
+    assert.notEqual(refused.status, 0, refused.stdout);
+    assert.match(refused.stderr,
+      /core recovery candidate backup is (?:unavailable|invalid)/);
+    assert.equal(promotionTreeDigest(destination), before.destination);
+    assert.equal(promotionTreeDigest(displaced), before.displaced);
+    assert.equal(promotionTreeDigest(sibling), before.sibling);
+    assert.equal(promotionTreeDigest(survivor), before.survivor);
+    assert.equal(fs.existsSync(candidate), false);
+    assert.equal(fs.existsSync(recovery), true);
+  }
 });
 
 test('non-core rollback rejects swapped ancestors without external writes', (t) => {
