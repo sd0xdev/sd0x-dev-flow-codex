@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-26
 > **Implementation Base SHA**: `2631aaff15b4a829f54ac34c2365887b0cb3e0e1`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [Wave 3 Feature-Dev Core Promotion](./2026-07-15-wave3-feature-dev-promotion.md), [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -52,7 +52,7 @@ model without retaining the retired independent test-reviewer gate.
 | Analysis | Complete | The retired test-reviewer gate was isolated from the feature workflow. |
 | Development | Complete | Candidate payload `058f96660dc1dc9055ce80d45c0537bbf3654c6d2606d3e59fcf8b57d60bb3fa` and its closed behavior contract are complete. |
 | Testing | Complete | Preflight `6aa17773b5ba2197c95be10ed05668fd19a0615e84be4e4bbfebecf2882a241e` binds the candidate payload, routing tests, and disposition rows. |
-| Acceptance | Candidate Complete | Candidate evidence is complete; final audit and durable R3 closure remain pending. |
+| Acceptance | Complete | All seven ACs have Complete/High evidence; subject review and final core audit passed. This exact Completed proposal is owned by the runtime closure transaction. |
 
 ## References
 

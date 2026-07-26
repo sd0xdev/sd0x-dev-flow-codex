@@ -304,6 +304,28 @@ function prepareRow(root, sourceName, options = {}) {
   }
   row.delivery_state = options.deliveryState || 'candidate';
   writeJson(root, 'migration/source-disposition.json', disposition);
+  let hasEvidenceRef = true;
+  try {
+    git(root, [
+      'show-ref', '--verify', '--quiet', 'refs/sd0x-dev-flow-codex/evidence/v1'
+    ]);
+  } catch {
+    hasEvidenceRef = false;
+  }
+  if (row.delivery_state === 'candidate' && !hasEvidenceRef) {
+    const requestPath = path.join(root, row.promotion_request);
+    let request = fs.readFileSync(requestPath, 'utf8');
+    if (/^> \*\*Status\*\*: Completed$/m.test(request)) {
+      request = request.replace(
+        '> **Status**: Completed', '> **Status**: Candidate Complete'
+      );
+      if (row.promotion_unit_id !== 'create-request/default') {
+        request = request.replace(/^\| Acceptance \| Complete \|.*$/m,
+          '| Acceptance | Candidate Complete | Synthetic fixture candidate authority remains pending. |');
+      }
+      fs.writeFileSync(requestPath, request);
+    }
+  }
   return row;
 }
 
@@ -1016,7 +1038,9 @@ test('source audit accepts a durably Completed research-pack candidate transitio
   }
   const missingEvidence = fixtureRoot({
     candidateCompletePacks: true,
-    completedCandidatePacks: true
+    completedCandidatePacks: true,
+    copyEvidenceRef: false,
+    preserveCompletedCandidateOwners: true
   });
   const values = fixtureRoot({
     candidateCompletePacks: true,
@@ -1053,10 +1077,14 @@ test('source audit rejects matching durable research evidence with wrong phase h
     const payload = /Candidate payload `([0-9a-f]{64})`/.exec(candidate)[1];
     const preflight = /Preflight `([0-9a-f]{64})`/.exec(candidate)[1];
     const finalAudit = 'f'.repeat(64);
-    const request = candidate.replace(
-      /(Preflight `[0-9a-f]{64}`[^|]*)( \|)$/m,
-      `$1 Final audit \`${finalAudit}\` passed.$2`
-    );
+    const request = candidate
+      .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
+      .replace(/^\| Acceptance \| Complete \|.*$/m,
+        '| Acceptance | Candidate Complete | Synthetic phase-hash fixture. |')
+      .replace(
+        /(Preflight `[0-9a-f]{64}`[^|]*)( \|)$/m,
+        `$1 Final audit \`${finalAudit}\` passed.$2`
+      );
     const result = {
       promotion_unit_id: 'review/default',
       target_package: 'core',
@@ -1382,7 +1410,7 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
   fs.writeFileSync(currentOwnerPath, currentOwner
     .replace(/^> \*\*Depends On\*\*:.*\n/m, ''));
   assert.throws(() => auditSource({ root: values.root }),
-    /replacement gate owner lacks latest durable lineage/);
+    /Current request no longer matches durable completion evidence/);
   fs.writeFileSync(currentOwnerPath, currentOwner);
   for (const row of active.skills) {
     if (row.promotion_unit_id === 'create-request/default') {
@@ -1415,7 +1443,115 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
       '| Acceptance | Candidate Complete | Candidate evidence remains pending. |'));
   writeJson(values.root, 'migration/source-disposition.json', active);
   assert.throws(() => auditActiveCandidates({ root: values.root }),
-    /candidate payload evidence mismatch/);
+    /Current request no longer matches durable completion evidence/);
+});
+
+test('candidate replacement owner requires its own durable closure before Completed', (t) => {
+  const values = fixtureRoot({ copyEvidenceRef: true });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const dispositionPath = 'migration/source-disposition.json';
+  const disposition = readJson(values.root, dispositionPath);
+  const rows = disposition.skills.filter((row) =>
+    row.promotion_unit_id === 'create-request/default'
+  );
+  const priorCompletion = completionEvidenceSnapshot(values.root).find((record) =>
+    record.promotion_unit_id === 'create-request/default'
+  );
+  const priorOwner = priorCompletion.request_path;
+  const priorClosure = auditEvidenceLedger(values.root, {
+    promotion_unit_id: 'create-request/default',
+    kind: 'request-closure'
+  }).selected;
+  const requestPath = writeRequest(
+    values.root, '2026-07-26-fixture-create-request-transition.md'
+  );
+  const requestAbsolute = path.join(values.root, requestPath);
+  const candidate = fs.readFileSync(requestAbsolute, 'utf8')
+    .replace('> **Status**: Pending', '> **Status**: Candidate Complete')
+    .replace('> **Priority**: P1',
+      `> **Priority**: P1\n> **Depends On**: [Prior owner](./${path.basename(priorOwner)})`)
+    .replace('- [ ] Fixture evidence passes.', '- [x] Fixture evidence passes.');
+  fs.writeFileSync(requestAbsolute, candidate);
+  for (const row of rows) {
+    row.delivery_state = 'candidate';
+    row.promotion_request = requestPath;
+  }
+  writeJson(values.root, dispositionPath, disposition);
+  assert.equal(auditSource({ root: values.root }).ok, true);
+
+  const completed = candidate.replace(
+    '> **Status**: Candidate Complete', '> **Status**: Completed'
+  );
+  fs.writeFileSync(requestAbsolute, completed);
+  assert.throws(() => auditSource({ root: values.root }),
+    /Evidence completion mismatch for request_path/);
+  fs.writeFileSync(requestAbsolute, candidate);
+
+  const subjectState = recordPassingGates(values.root, 'candidate-closure-subject');
+  const subject = {
+    kind: 'dirty',
+    fingerprint: subjectState.worktree.fingerprint,
+    head_sha: git(values.root, ['rev-parse', 'HEAD']).toString().trim()
+  };
+  const pending = prepareRequestClosure(values.root, {
+    promotion_unit_id: 'create-request/default',
+    request_path: requestPath,
+    proposed_request: completed,
+    subject,
+    evidence: {
+      subject_review: {
+        binding: subject,
+        provider: 'codex',
+        evidence: {
+          gate: subjectState.gates.review.evidence,
+          native_results: subjectState.review_agents.completed,
+          external_results: [],
+          subject_bindings: []
+        }
+      },
+      verify: {
+        binding: subject,
+        provider: 'codex',
+        evidence: subjectState.gates.verify.evidence
+      },
+      ac: {
+        verdicts: [{
+          ac: 1,
+          status: 'Complete',
+          confidence: 'High',
+          evidence: ['AGENTS.md:1']
+        }]
+      },
+      checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
+    },
+    recorded_at: '2026-07-26T15:00:00.000Z',
+    supersedes_record_sha256: priorClosure.pending_record_sha256
+  });
+  applyRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256
+  });
+  recordPassingGates(values.root, 'candidate-closure-docs');
+  finalizeRequestClosure(values.root, {
+    pending_record_sha256: pending.record_sha256,
+    recorded_at: '2026-07-26T15:01:00.000Z',
+    supersedes_record_sha256: priorClosure.record_sha256
+  });
+  assert.equal(auditSource({ root: values.root }).ok, true);
+});
+
+test('source audit rejects a Completed core candidate owner without an evidence ref', (t) => {
+  const values = fixtureRoot({ copyEvidenceRef: false });
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const disposition = readJson(values.root, 'migration/source-disposition.json');
+  const owner = disposition.skills.find((row) =>
+    row.promotion_unit_id === 'create-request/default'
+  ).promotion_request;
+  const ownerPath = path.join(values.root, owner);
+  fs.writeFileSync(ownerPath, fs.readFileSync(ownerPath, 'utf8').replace(
+    '> **Status**: Candidate Complete', '> **Status**: Completed'
+  ));
+  assert.throws(() => auditSource({ root: values.root }),
+    /Evidence ref is missing/);
 });
 
 test('durable owner revisions preserve prior requests and chain every successor', (t) => {
@@ -9743,7 +9879,7 @@ test('Wave 3 mutation workflows require review before deterministic verification
 });
 
 test('active candidate audit binds non-routing payload bytes to request evidence', (t) => {
-  const values = fixtureRoot();
+  const values = fixtureRoot({ copyEvidenceRef: false });
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   const candidatesRoot = path.join(values.root, 'migration', 'candidates');
   fs.mkdirSync(candidatesRoot, { recursive: true });
@@ -9769,6 +9905,10 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     path.join(ROOT, 'migration', 'source-disposition.json'),
     path.join(values.root, 'migration', 'source-disposition.json')
   );
+  copy(
+    path.join(ROOT, 'docs', 'features', 'skill-toolkit-migration'),
+    path.join(values.root, 'docs', 'features', 'skill-toolkit-migration')
+  );
   const fixtureDisposition = JSON.parse(fs.readFileSync(
     path.join(values.root, 'migration', 'source-disposition.json'), 'utf8'
   ));
@@ -9793,7 +9933,7 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     }
   }
   for (const target of [
-    'bug-fix', 'debug', 'feature-dev', 'post-dev-test',
+    'bug-fix', 'create-request', 'debug', 'feature-dev', 'post-dev-test',
     'refactor', 'simplify', 'test-deep', 'test-gen'
   ]) {
     const rows = fixtureDisposition.skills.filter((candidate) =>
@@ -9805,10 +9945,13 @@ test('active candidate audit binds non-routing payload bytes to request evidence
     const requestPath = path.join(values.root, row.promotion_request);
     const finalAudit = row.target_package === 'core' ? 'Final audit' : 'Final pack audit';
     const evidenceKind = row.target_package === 'core' ? 'promotion' : 'pack-ready';
-    const normalizedRequest = fs.readFileSync(requestPath, 'utf8')
-      .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
-      .replace(/^\| Acceptance \| Complete \|.*$/m,
+    let normalizedRequest = fs.readFileSync(requestPath, 'utf8')
+      .replace('> **Status**: Completed', '> **Status**: Candidate Complete');
+    if (target !== 'create-request') {
+      normalizedRequest = normalizedRequest.replace(
+        /^\| Acceptance \| Complete \|.*$/m,
         `| Acceptance | Candidate Complete | ${finalAudit} and subject gates passed; runtime-owned R3 closure and ${evidenceKind} evidence remain pending. |`);
+    }
     fs.writeFileSync(requestPath, normalizedRequest);
   }
   writeJson(values.root, 'migration/source-disposition.json',

@@ -1170,6 +1170,38 @@ function resolveRequestLink(root, from, link) {
   return relative;
 }
 
+function validateDurableRequestLineage(disposition, bindings, options = {}) {
+  if (!(options.durableOwnersByUnit instanceof Map)) return;
+  const { records, ownerByUnit } = bindings;
+  assert(records instanceof Map && ownerByUnit instanceof Map,
+    'request DAG lineage bindings are required');
+  for (const [unit, completion] of options.durableOwnersByUnit) {
+    const currentOwner = ownerByUnit.get(unit);
+    if (!currentOwner) continue;
+    const deliveredSuccessor = currentOwner === completion.request_path;
+    const priorOwner = deliveredSuccessor
+      ? completion.prior_completion_request_path
+      : completion.request_path;
+    if (!priorOwner || currentOwner === priorOwner) continue;
+    const currentRows = disposition.skills.filter((row) =>
+      row.promotion_unit_id === unit
+    );
+    const provisional = currentRows.length > 0 &&
+      currentRows.every((row) => row.delivery_state === 'candidate');
+    const durableClosure = options.durableClosuresByUnit instanceof Map
+      ? options.durableClosuresByUnit.get(unit)
+      : null;
+    const currentOwnerClosed = durableClosure?.request_path === currentOwner;
+    const expectedStatus = provisional && !deliveredSuccessor && !currentOwnerClosed
+      ? 'candidate complete'
+      : 'completed';
+    assert(records.get(currentOwner)?.status === expectedStatus &&
+        records.get(priorOwner)?.status === 'completed' &&
+        records.get(currentOwner)?.dependencies.includes(priorOwner),
+    `${unit}: replacement gate owner lacks latest durable lineage`);
+  }
+}
+
 function validateRequestDag(root, disposition, options = {}) {
   const files = requestFiles(root);
   const records = new Map();
@@ -1310,29 +1342,8 @@ function validateRequestDag(root, disposition, options = {}) {
         `${row.source_name}: delivered promotion owner must be Completed`);
     }
   }
-  if (options.durableOwnersByUnit instanceof Map) {
-    for (const [unit, completion] of options.durableOwnersByUnit) {
-      const currentOwner = ownerByUnit.get(unit);
-      if (!currentOwner) continue;
-      const deliveredSuccessor = currentOwner === completion.request_path;
-      const priorOwner = deliveredSuccessor
-        ? completion.prior_completion_request_path
-        : completion.request_path;
-      if (!priorOwner || currentOwner === priorOwner) continue;
-      const currentRows = disposition.skills.filter((row) =>
-        row.promotion_unit_id === unit
-      );
-      const provisional = currentRows.length > 0 &&
-        currentRows.every((row) => row.delivery_state === 'candidate');
-      const expectedStatus = provisional && !deliveredSuccessor
-        ? 'candidate complete'
-        : 'completed';
-      assert(records.get(currentOwner)?.status === expectedStatus &&
-          records.get(priorOwner)?.status === 'completed' &&
-          records.get(currentOwner)?.dependencies.includes(priorOwner),
-      `${unit}: replacement gate owner lacks latest durable lineage`);
-    }
-  }
+  const lineageBindings = { records, ownerByUnit };
+  validateDurableRequestLineage(disposition, lineageBindings, options);
   for (const record of records.values()) {
     for (const dependency of record.dependencies) {
       if (!unitByOwner.has(dependency)) continue;
@@ -1356,6 +1367,10 @@ function validateRequestDag(root, disposition, options = {}) {
     'request file set changed while validating the DAG');
   if (options.manifestBinding && typeof options.manifestBinding === 'object') {
     options.manifestBinding.files = [...files];
+  }
+  if (options.lineageBinding && typeof options.lineageBinding === 'object') {
+    options.lineageBinding.records = records;
+    options.lineageBinding.ownerByUnit = ownerByUnit;
   }
   for (const [relative, bytes] of snapshots) {
     const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
@@ -1418,6 +1433,19 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     : validateWave1Readiness(root, disposition, {
       snapshotBindings: sourceSnapshots
     });
+  const requestManifest = {};
+  const requestLineage = {};
+  const aliasCapability = validateAliasCapability(root, disposition, {
+    ...(options.aliasCapability || {}),
+    snapshotBindings: sourceSnapshots
+  });
+  const requestDag = validateRequestDag(root, disposition, {
+    ...(options.requestDag || {}),
+    expectedSnapshots: sourceSnapshots,
+    snapshotBindings: sourceSnapshots,
+    manifestBinding: requestManifest,
+    lineageBinding: requestLineage
+  });
   if (typeof options.beforeCompletionEvidenceSnapshot === 'function') {
     options.beforeCompletionEvidenceSnapshot();
   }
@@ -1432,17 +1460,33 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
   const durableOwnersByUnit = new Map(completionSnapshot.records.map((record) => [
     record.promotion_unit_id, record
   ]));
-  const requestManifest = {};
-  const aliasCapability = validateAliasCapability(root, disposition, {
-    ...(options.aliasCapability || {}),
-    snapshotBindings: sourceSnapshots
-  });
-  const requestDag = validateRequestDag(root, disposition, {
-    ...(options.requestDag || {}),
-    expectedSnapshots: sourceSnapshots,
-    snapshotBindings: sourceSnapshots,
-    manifestBinding: requestManifest,
-    durableOwnersByUnit
+  const closureExpectations = new Map();
+  for (const row of disposition.skills) {
+    if (row.delivery_state !== 'candidate' || row.promotion_request === null ||
+        closureExpectations.has(row.promotion_unit_id)) continue;
+    const requestBytes = sourceSnapshots.get(row.promotion_request);
+    assert(requestBytes,
+      `${row.promotion_request}: candidate promotion request snapshot is missing`);
+    if (canonicalRequestStatus(requestBytes.toString('utf8'))?.toLowerCase() ===
+        'completed') {
+      closureExpectations.set(row.promotion_unit_id, {
+        promotion_unit_id: row.promotion_unit_id,
+        kind: 'request-closure',
+        request_path: row.promotion_request
+      });
+    }
+  }
+  const closureSnapshot = closureExpectations.size > 0
+    ? auditRequestClosures(root, [...closureExpectations.values()])
+    : { oid: sourceEvidenceOid, selected: [] };
+  assert(closureSnapshot.oid === sourceEvidenceOid,
+    'source evidence ref changed while request closure owners were selected');
+  const durableClosuresByUnit = new Map(closureSnapshot.selected.map((record) => [
+    record.promotion_unit_id, record
+  ]));
+  validateDurableRequestLineage(disposition, requestLineage, {
+    durableOwnersByUnit,
+    durableClosuresByUnit
   });
   if (!context.candidateSandbox) {
     validateCandidateCompletePackEvidence(root, disposition, {

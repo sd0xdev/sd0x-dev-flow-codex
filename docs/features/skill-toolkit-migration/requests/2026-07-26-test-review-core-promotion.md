@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-26
 > **Implementation Base SHA**: `2631aaff15b4a829f54ac34c2365887b0cb3e0e1`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [Wave 4 Test-Review Pack Readiness](./2026-07-25-wave4-test-review-default-pack-ready.md), [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -53,7 +53,7 @@ independent read-only, non-gating skill.
 | Analysis | Complete | Agent authority and skill-only test assessment were separated. |
 | Development | Complete | Candidate payload `90da73b370f5be8e729e9095677f93e3232a01f469af40a749bb0b50119387fb` and its closed behavior contract are complete. |
 | Testing | Complete | Preflight `517ca45cc91349fa3559a512305b1926a06a39b84c17171c9c6949c55f39c562` binds the candidate payload, routing tests, and disposition rows. |
-| Acceptance | Candidate Complete | Candidate evidence is complete; final audit and durable R3 closure remain pending. |
+| Acceptance | Complete | All seven ACs have Complete/High evidence; subject review and final core audit passed. This exact Completed proposal is owned by the runtime closure transaction. |
 
 ## References
 

@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-26
 > **Implementation Base SHA**: `2631aaff15b4a829f54ac34c2365887b0cb3e0e1`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [Wave 4 Review deep Core Promotion](./2026-07-25-wave4-review-deep-promotion.md), [R4 — Alias Registry Capability](./2026-07-10-skill-alias-capability-r4.md), [Wave 4 Review Default Core Promotion](./2026-07-25-wave4-review-default-promotion.md), [Wave 4 Review Default Runtime Re-promotion](./2026-07-26-wave4-review-default-runtime-repromotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -52,7 +52,7 @@
 | Analysis | Complete | Source ownership, mode boundary, and target package are fixed by the migration registry. |
 | Development | Complete | Candidate payload `97043f81cecc7b3b3619d3f944066278f405018afa6f4905466f2a42672a58df` and its closed behavior contract are complete. |
 | Testing | Complete | Preflight `41649d71d9f73f4db17df8f616fea8d3ffc574ef07b70ed319833e051665030d` binds the candidate payload, routing tests, and disposition rows. |
-| Acceptance | Candidate Complete | Candidate evidence is complete; final audit and durable R3 closure remain pending. |
+| Acceptance | Complete | All seven ACs have Complete/High evidence; subject review and final core audit passed. This exact Completed proposal is owned by the runtime closure transaction. |
 
 ## References
 

@@ -67,6 +67,28 @@ function fixtureRoot(options = {}) {
     path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills'));
   copy(path.join(ROOT, 'docs', 'features', 'skill-toolkit-migration'),
     path.join(root, 'docs', 'features', 'skill-toolkit-migration'));
+  if (!options.copyEvidenceRef && !options.preserveCompletedCandidateOwners) {
+    const candidateOwners = new Map();
+    for (const row of disposition.skills) {
+      if (row.delivery_state !== 'candidate' || row.promotion_request === null) continue;
+      const units = candidateOwners.get(row.promotion_request) || new Set();
+      units.add(row.promotion_unit_id);
+      candidateOwners.set(row.promotion_request, units);
+    }
+    for (const [requestPath, units] of candidateOwners) {
+      const absolute = path.join(root, requestPath);
+      let request = fs.readFileSync(absolute, 'utf8');
+      if (!/^> \*\*Status\*\*: Completed$/m.test(request)) continue;
+      request = request.replace(
+        '> **Status**: Completed', '> **Status**: Candidate Complete'
+      );
+      if (!(units.size === 1 && units.has('create-request/default'))) {
+        request = request.replace(/^\| Acceptance \| Complete \|.*$/m,
+          '| Acceptance | Candidate Complete | Synthetic fixture candidate authority remains pending. |');
+      }
+      fs.writeFileSync(absolute, request);
+    }
+  }
   if (options.candidateCompletePacks && !options.completedCandidatePacks) {
     for (const requestPath of new Set(disposition.skills
       .filter((row) => row.target_package === 'research-pack' &&
