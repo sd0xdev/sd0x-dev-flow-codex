@@ -212,18 +212,22 @@ test('current repository satisfies the public release contract', () => {
 test('migration guide delivery checkpoint matches the current registry', () => {
   const root = path.resolve(__dirname, '..');
   const result = checkRelease(root);
-  assert.deepEqual(result.migrationDelivery, {
-    rows: 100,
-    units: 95,
-    delivered: 44,
-    pending: 51,
-    waves: {
-      1: { delivered: 9, total: 10 },
-      2: { delivered: 12, total: 12 },
-      3: { delivered: 8, total: 8 },
-      4: { delivered: 15, total: 15 }
-    },
-    create_request_state: 'candidate'
+  const disposition = JSON.parse(fs.readFileSync(path.join(
+    root, 'migration', 'source-disposition.json'
+  ), 'utf8'));
+  assert.deepEqual(result.migrationDelivery,
+    migrationDeliveryCheckpoint(disposition));
+  assert.equal(result.migrationDelivery.rows, 100);
+  assert.equal(result.migrationDelivery.units, 95);
+  assert.equal(result.migrationDelivery.delivered +
+    result.migrationDelivery.pending, result.migrationDelivery.units);
+  assert.deepEqual(Object.fromEntries(Object.entries(
+    result.migrationDelivery.waves
+  ).map(([wave, value]) => [wave, value.total])), {
+    1: 10,
+    2: 12,
+    3: 8,
+    4: 15
   });
 });
 

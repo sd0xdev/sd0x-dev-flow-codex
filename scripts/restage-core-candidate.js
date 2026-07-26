@@ -91,16 +91,11 @@ function restageCoreCandidate(root, target, options = {}) {
   });
   const temporary = recovery.directory;
   const restored = target;
-  const prior = `${target}-prior`;
   const rename = options.rename || fs.renameSync;
-  const removePrior = options.removePrior ||
-    ((directory) => fs.rmSync(directory, { recursive: true }));
   let retainRecovery = false;
   try {
     if (typeof options.onTemporary === 'function') options.onTemporary(temporary);
     recovery.run(() => {
-      fs.mkdirSync(path.dirname(candidate), { recursive: true });
-      fs.cpSync(live, candidate, { recursive: true });
       for (const relative of tracked) {
         const file = relative.slice(`${liveRelative}/`.length);
         const destination = path.join(restored, ...file.split('/'));
@@ -108,13 +103,21 @@ function restageCoreCandidate(root, target, options = {}) {
         fs.writeFileSync(destination, git(root, ['show', `HEAD:${relative}`], null));
       }
       assertContainedDirectory(root, liveRelative);
-      assertContainedDirectory(root, candidateRelative);
-      rename(live, prior);
+      assertContainedDirectory(root, candidateRelative, {
+        allowMissingLeaf: true,
+        mustBeMissing: true
+      });
+      fs.mkdirSync(path.dirname(candidate), { recursive: true });
+      // Move the accepted live tree atomically instead of copying it and later
+      // deleting the original. A concurrent writer holding an open descriptor
+      // follows the inode into the candidate, so accepted bytes cannot vanish in
+      // the copy/swap window.
+      rename(live, candidate);
       try {
         rename(restored, live);
       } catch (installError) {
         try {
-          rename(prior, live);
+          rename(candidate, live);
         } catch (rollbackError) {
           retainRecovery = true;
           const manifest = writeRecoveryManifest({
@@ -123,7 +126,6 @@ function restageCoreCandidate(root, target, options = {}) {
             target,
             candidate,
             live,
-            prior: path.join(temporary, prior),
             restored: path.join(temporary, restored),
             install_error: installError.message,
             rollback_error: rollbackError.message
@@ -134,29 +136,7 @@ function restageCoreCandidate(root, target, options = {}) {
             `${temporary}${manifest ? ` (${path.join(temporary, manifest)})` : ''}`
           );
         }
-        fs.rmSync(candidate, { recursive: true, force: true });
         throw installError;
-      }
-      try {
-        removePrior(prior);
-      } catch (cleanupError) {
-        retainRecovery = true;
-        const manifest = writeRecoveryManifest({
-          schema_version: 1,
-          operation: 'restage-core-candidate',
-          target,
-          candidate,
-          live,
-          prior: path.join(temporary, prior),
-          restored: path.join(temporary, restored),
-          cleanup_error: cleanupError.message,
-          swap_completed: true
-        });
-        throw new Error(
-          `${target}: payload swap completed but prior-tree cleanup failed; ` +
-          `accepted candidate remains at ${candidate}; recovery retained at ` +
-          `${temporary}${manifest ? ` (${path.join(temporary, manifest)})` : ''}`
-        );
       }
     });
   } catch (error) {

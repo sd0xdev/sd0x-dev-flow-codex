@@ -29,7 +29,7 @@ const {
   auditRequestClosures,
   evidenceRefOid,
   hashPayloadTree,
-  latestCompletionEvidence
+  latestCompletionEvidenceSnapshot
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   snapshot: snapshotWorktree
@@ -1417,11 +1417,20 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     : validateWave1Readiness(root, disposition, {
       snapshotBindings: sourceSnapshots
     });
-  const durableOwnersByUnit = sourceEvidenceOid
-    ? new Map(latestCompletionEvidence(root).map((record) => [
-      record.promotion_unit_id, record
-    ]))
-    : new Map();
+  if (typeof options.beforeCompletionEvidenceSnapshot === 'function') {
+    options.beforeCompletionEvidenceSnapshot();
+  }
+  const completionSnapshot = sourceEvidenceOid
+    ? latestCompletionEvidenceSnapshot(root)
+    : { oid: null, records: [] };
+  if (typeof options.afterCompletionEvidenceSnapshot === 'function') {
+    options.afterCompletionEvidenceSnapshot(completionSnapshot);
+  }
+  assert(completionSnapshot.oid === sourceEvidenceOid,
+    'source evidence ref changed while completion owners were selected');
+  const durableOwnersByUnit = new Map(completionSnapshot.records.map((record) => [
+    record.promotion_unit_id, record
+  ]));
   const requestManifest = {};
   const aliasCapability = validateAliasCapability(root, disposition, {
     ...(options.aliasCapability || {}),
@@ -1442,6 +1451,16 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
   if (typeof options.beforeDeliveredEvidenceAudit === 'function') {
     options.beforeDeliveredEvidenceAudit();
   }
+  const selectCompletionEvidence = (expected) => {
+    const selected = durableOwnersByUnit.get(expected.promotion_unit_id);
+    assert(selected,
+      `Evidence has no completion record for ${expected.promotion_unit_id}`);
+    for (const [field, value] of Object.entries(expected)) {
+      assert(selected[field] === value,
+        `Evidence completion mismatch for ${field}`);
+    }
+    return { oid: sourceEvidenceOid, selected };
+  };
   const deliveredUnits = new Map();
   for (const row of rows.values()) {
     if (!['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)) continue;
@@ -1454,7 +1473,6 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     deliveredUnits.set(row.promotion_unit_id, kind);
   }
   if (!options.skipDeliveredEvidence) {
-    if (evidenceRefOid(root)) auditEvidenceLedger(root);
     for (const [promotionUnitId, kind] of deliveredUnits) {
       const unitRows = disposition.skills.filter((row) =>
         row.promotion_unit_id === promotionUnitId
@@ -1517,13 +1535,13 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
             assert(finalEvidence[3] === validated.audit_fingerprint,
               `${expected.request_path}: delivered final audit evidence is stale or cross-unit`);
           }
-          return auditEvidenceLedger(root, {
+          return selectCompletionEvidence({
             ...expected,
             payload_tree_sha256: payloadHash
           });
         });
       } else {
-        auditEvidenceLedger(root, { ...expected });
+        selectCompletionEvidence({ ...expected });
       }
     }
   }

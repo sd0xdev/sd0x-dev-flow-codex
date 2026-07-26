@@ -112,8 +112,8 @@ Codex core 目前刻意只包含：
 
 Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。2026-07-25 checkpoint：
 
-- Registry checkpoint：44/95 canonical units delivered；51 pending；Wave 1 9/10、Wave 2 12/12、Wave 3 8/8、Wave 4 15/15 delivered；`create-request/default` = `candidate`。
-<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=44 pending=51 wave3=8/8 wave4=15/15 create-request=candidate -->
+- Registry checkpoint：39/95 canonical units delivered；56 pending；Wave 1 9/10、Wave 2 12/12、Wave 3 8/8、Wave 4 10/15 delivered；`create-request/default` = `candidate`。
+<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=39 pending=56 wave3=8/8 wave4=10/15 create-request=candidate -->
 - Wave 1 的 10 個 units 均已有 durable closure 歷史；目前 overlay 有 9 個 delivered units，`create-request/default` 因 recovery re-promotion 保持 `candidate`，且不得用舊 completion evidence 冒充這次 replacement 已完成。
 - Wave 2 的 12 個 research units 已完成 12/12 preflights、125/125 focused tests、adversarial probes、final-fingerprint review/verification、R3 durable request closures 與 exact `pack-ready` evidence；accepted bytes 位於 `migration/packs/research-pack/`，owner tickets 為 `Completed`。
 - Wave 3 的 8 個 development units 已完成 8/8 durable closure：`bug-fix/default`、`feature-dev/default` 已進 curated core，另外 6 個 units 已交付 development-pack。

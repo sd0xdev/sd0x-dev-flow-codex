@@ -3474,7 +3474,7 @@ function auditRequestClosures(cwd, expectations, hooks = {}) {
   }
 }
 
-function latestCompletionEvidence(cwd) {
+function latestCompletionEvidenceSnapshot(cwd) {
   const root = findRepoRoot(cwd);
   const audit = auditEvidenceLedger(root);
   const byUnit = new Map();
@@ -3501,9 +3501,16 @@ function latestCompletionEvidence(cwd) {
       prior_completion_request_path: prior?.request_path || null
     };
   });
-  return latest.sort((left, right) =>
-    Buffer.from(left.promotion_unit_id).compare(Buffer.from(right.promotion_unit_id))
-  );
+  return {
+    oid: audit.oid,
+    records: latest.sort((left, right) =>
+      Buffer.from(left.promotion_unit_id).compare(Buffer.from(right.promotion_unit_id))
+    )
+  };
+}
+
+function latestCompletionEvidence(cwd) {
+  return latestCompletionEvidenceSnapshot(cwd).records;
 }
 
 function pruneExternalReviewStarts(values, referenceTime = Date.now()) {
@@ -5251,6 +5258,7 @@ module.exports = {
   hasSessionActivationFailure,
   hashPayloadTree,
   latestCompletionEvidence,
+  latestCompletionEvidenceSnapshot,
   isCurrentPass,
   isSessionActive,
   markSetupDeferral,

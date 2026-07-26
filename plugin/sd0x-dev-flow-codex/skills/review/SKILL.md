@@ -5,12 +5,26 @@ description: "Route review using exact migration registry [{\"unit\":\"review/br
 
 # Close the Review Gate
 
-1. Resolve this skill's installed directory. Read the [review theory](references/review-theory.md); its independent-research, orthogonal-perspective, evidence, severity, and convergence rules govern every reviewer. Run `node "<this-skill-directory>/scripts/provider.js"`, then `node "<this-skill-directory>/scripts/snapshot.js"`. Parse and retain the configured provider, primary agent, root, fingerprint, and changed files. Stop if the worktree is clean. Run `node "<this-skill-directory>/scripts/round.js" begin` immediately before dispatch. On Codex surfaces with persistent collaboration agents, the round wrapper records a fingerprint-bound transcript boundary for the explicit Codex JSONL adapter; an unavailable adapter is non-fatal only when native reviewer lifecycle evidence remains authoritative.
+1. Resolve the repository root. Read the [review theory](references/review-theory.md); its independent-research, orthogonal-perspective, evidence, severity, and convergence rules govern every reviewer. Required ordered invocations:
+
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/provider.js","cwd":"<repository-root>","args":[]}'`
+
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/snapshot.js","cwd":"<repository-root>","args":[]}'`
+
+Parse and retain the configured provider, primary agent, root, fingerprint, and changed files. Stop if the worktree is clean. Immediately before dispatch, run:
+
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/round.js","cwd":"<repository-root>","args":["begin"]}'`
+
+On Codex surfaces with persistent collaboration agents, the round wrapper records a fingerprint-bound transcript boundary for the explicit Codex JSONL adapter; an unavailable adapter is non-fatal only when native reviewer lifecycle evidence remains authoritative.
 2. In one parallel dispatch, start the configured primary reviewer and the independent Codex test perspective. Neither reviewer receives the other's conclusions:
    - For provider `codex`, dispatch `sd0x_codex_primary_reviewer` against the snapshot. Its project profile pins model gpt-5.6-sol, reasoning effort xhigh, and read-only mode.
-   - For provider `claude`, dispatch `sd0x_claude_primary_reviewer` against the snapshot. The required nested entrypoint is mcp__sd0x_claude_review__review_worktree with the exact root and fingerprint. On a fix round, give it only its own prior normalized finding identities. The nested Claude evidence recorder must store a structured result; the parent task never substitutes prose for that nested result.
+   - For provider `claude`, dispatch `sd0x_claude_primary_reviewer` against the snapshot. Its configured read-only MCP adapter must receive the exact root and fingerprint. On a fix round, give it only its own prior normalized finding identities. The nested Claude evidence recorder must store a structured result; the parent task never substitutes prose for that nested result.
    - Dispatch `sd0x_test_reviewer` against the same fingerprint for the native Codex test and acceptance perspective. On a fix round, give it only its own prior finding identities as hypotheses to revalidate.
-3. Wait for both reviewer results. Each reviewer must return an explicit terminal result; a lifecycle start and end without final assistant output does not count. In Claude mode, a failed, missing, unstructured, or stale nested result also blocks the gate. When clean, each reviewer returns exactly `No actionable findings remain.` Before recording a pass, run `node "<this-skill-directory>/scripts/round.js" import`; the passing gate wrapper rescans from the original boundary and finalizes the marker. Only exact direct reviewer paths and terminal messages after the recorded boundary count for the unchanged fingerprint and runtime epoch.
+3. Wait for both reviewer results. Each reviewer must return an explicit terminal result; a lifecycle start and end without final assistant output does not count. In Claude mode, a failed, missing, unstructured, or stale nested result also blocks the gate. When clean, each reviewer returns exactly `No actionable findings remain.` Before recording a pass, run:
+
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/round.js","cwd":"<repository-root>","args":["import"]}'`
+
+The passing gate wrapper rescans from the original boundary and finalizes the marker. Only exact direct reviewer paths and terminal messages after the recorded boundary count for the unchanged fingerprint and runtime epoch.
 4. Apply the theory's five deliberate checks before accepting a finding. Normalize survivors to `[P0|P1|P2] file:line description → root cause → recommendation → regression protection`, then deduplicate by file and canonical issue while ignoring line drift of at most five lines. Keep the highest severity and preserve source attribution.
 5. Aggregate only discrete actionable findings with file and line evidence. Any P0, P1, or P2 finding blocks this strict gate.
 6. If findings exist, record failure. Before editing, identify each finding's symptom, violated invariant or root cause, minimal fix, and recurrence protection. Fixes create a new fingerprint, invalidate both prior results, and require a new round from step 1. If a reviewer is unavailable, cancelled, or lacks terminal output, record failure; do not replace or retry that reviewer type on the same fingerprint. Ask the user before running the sd0x Dev Flow reset skill, then restart from step 1 only after the user-authorized reset. A genuine fingerprint change invalidates the stale evidence and requires a fresh round.
@@ -18,17 +32,13 @@ description: "Route review using exact migration registry [{\"unit\":\"review/br
 
 Record failure with compact JSON evidence:
 
-```bash
-node "<this-skill-directory>/scripts/gate.js" fail --evidence '{"provider":"<provider>","reviewers":2,"agents":["<primary-agent>","sd0x_test_reviewer"],"findings":1,"summary":"actionable findings or reviewer failure remain"}'
-```
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/gate.js","cwd":"<repository-root>","args":["fail","--evidence","{\"provider\":\"<provider>\",\"reviewers\":2,\"agents\":[\"<primary-agent>\",\"sd0x_test_reviewer\"],\"findings\":1,\"summary\":\"actionable findings or reviewer failure remain\"}"]}'`
 
 For unavailable reviewer infrastructure, record `findings: 0` and `reviewer_failure: true`. This keeps the gate failed while allowing the review lifecycle to yield. On the same fingerprint, a user-authorized reset is required before retrying; restoring reviewer identities may additionally require a new Codex task, but process restart alone does not clear the failed gate or stale ledger.
 
 Record pass only after all provider-plan evidence has been observed:
 
-```bash
-node "<this-skill-directory>/scripts/gate.js" pass --evidence '{"provider":"codex","reviewers":2,"agents":["sd0x_codex_primary_reviewer","sd0x_test_reviewer"],"findings":0,"summary":"no actionable findings"}'
-```
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/gate.js","cwd":"<repository-root>","args":["pass","--evidence","{\"provider\":\"codex\",\"reviewers\":2,\"agents\":[\"sd0x_codex_primary_reviewer\",\"sd0x_test_reviewer\"],\"findings\":0,\"summary\":\"no actionable findings\"}"]}'`
 
 For Claude mode, the provider plan requires `sd0x_claude_primary_reviewer`, `sd0x_test_reviewer`, and `claude_mcp_primary`.
 
@@ -43,6 +53,12 @@ mode that records the repository review gate.
 Non-default modes are direct reporting workflows. The `round.js` and `gate.js`
 wrappers are excluded; these modes never write runtime evidence or satisfy
 repository completion.
+They still fail closed on a stale subject. Before dispatch, run
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/snapshot.js","cwd":"<repository-root>","args":[]}'`
+and retain its canonical root and fingerprint. Immediately after the reviewer
+returns, run the same exact tool call again. Discard the reviewer output and report that
+the subject changed whenever either value differs; never present stale findings
+as the selected subject.
 Return their findings to the user with the selected mode, exact subject, inspected
 paths, checks performed, and scope limitations.
 
@@ -52,7 +68,9 @@ paths, checks performed, and scope limitations.
    files. Do not expand into unrelated architecture and do not run project checks.
 2. Dispatch the configured primary reviewer read-only with the captured diff,
    changed paths, repository guidance, and an explicit `fast` label.
-3. Normalize actionable findings with file and line evidence, mark the result
+3. Re-run the canonical snapshot check and reject the report if the root or
+   fingerprint changed during review.
+4. Normalize actionable findings with file and line evidence, mark the result
    preliminary, and state that the default gate remains required.
 
 ### `full`
@@ -62,7 +80,10 @@ paths, checks performed, and scope limitations.
 2. Collect evidence from available non-mutating local build, lint, or test checks.
    List each selected check, its exit status, and anything that was unavailable.
 3. Dispatch the configured primary reviewer read-only with the same subject and
-   check evidence, then return normalized findings without recording a gate.
+   check evidence.
+4. Re-run the canonical snapshot check and reject the report if the root or
+   fingerprint changed during review, then return normalized findings without
+   recording a gate.
 
 ### `branch`
 
@@ -73,8 +94,12 @@ paths, checks performed, and scope limitations.
 2. Inspect every changed path and full changed file in that range. Exclude dirty
    worktree-only changes unless the user explicitly adds them to the subject.
 3. Dispatch the configured primary reviewer read-only with the base, merge base,
-   head commit, commit list, and range diff. Return findings identified as a
-   branch-range report, not a dirty-worktree gate.
+   head commit, commit list, and range diff.
+4. Re-resolve the comparison base, merge base, and HEAD after review and reject
+   the report if any identity changed. When dirty worktree changes were explicitly
+   included, also re-run the canonical snapshot check and reject fingerprint
+   drift. Return findings identified as a branch-range report, not a dirty-worktree
+   gate.
 
 ### `deep`
 
@@ -83,7 +108,9 @@ paths, checks performed, and scope limitations.
 2. Independent read-only implementation and test/acceptance passes precede the
    evidence comparison. Follow credible dependencies beyond changed lines, but
    report only defects caused or exposed by the selected subject.
-3. Apply the five deliberate checks, normalize and deduplicate the surviving
+3. Re-run the canonical snapshot check and reject the report if the root or
+   fingerprint changed during review.
+4. Apply the five deliberate checks, normalize and deduplicate the surviving
    findings, and describe the explored context and remaining uncertainty without
    recording a gate.
 
