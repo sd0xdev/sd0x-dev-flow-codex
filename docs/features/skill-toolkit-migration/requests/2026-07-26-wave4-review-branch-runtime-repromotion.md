@@ -50,8 +50,8 @@
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | Source ownership, mode boundary, and target package are fixed by the migration registry. |
-| Development | Complete | Candidate payload `2b4b5ea243348b17acadec7042b78950de2a9193cc91992c8e4818916a6bbd42` and its closed behavior contract are complete. |
-| Testing | Complete | Preflight `23fb93ecdffb6695c946a4f8c6387c77523e3ff82be4f5648d1c1e5aee83117f` binds the candidate payload, routing tests, and disposition rows. |
+| Development | Complete | Candidate payload `97043f81cecc7b3b3619d3f944066278f405018afa6f4905466f2a42672a58df` and its closed behavior contract are complete. |
+| Testing | Complete | Preflight `b76aae62bab94dd5aa18ca6d829c47b0c612370cd50c27e45a834c68448ecaa6` binds the candidate payload, routing tests, and disposition rows. |
 | Acceptance | Candidate Complete | Candidate evidence is complete; final audit and durable R3 closure remain pending. |
 
 ## References

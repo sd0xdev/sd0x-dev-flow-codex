@@ -14,7 +14,7 @@ Deliver one coherent capability from repository evidence through acceptance and 
 3. Implement one logical slice at a time. Inspect each diff, preserve unrelated user changes, and follow existing architecture unless the accepted scope requires a documented change.
 4. Add or update behavior-focused tests for successful, failure, and meaningful boundary cases. Keep test design proportional to risk.
 5. Complete focused checks after each slice and the repository-defined deterministic checks after integration.
-6. Complete the sd0x review workflow until both configured independent perspectives are clean, then complete deterministic verification. Any fix creates a new fingerprint and requires review again.
+6. Complete the sd0x review workflow until the configured primary reviewer is clean, then complete deterministic verification. Any fix creates a new fingerprint and requires review again.
 
 ## Boundaries and result
 

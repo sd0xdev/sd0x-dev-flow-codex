@@ -608,7 +608,7 @@ test('an explicit Git bundle transfers the evidence ref offline', (t) => {
     bundle.value);
 });
 
-test('request closure prepare and finalize bind proposal, projection, and two reviews', (t) => {
+test('request closure prepare and finalize bind proposal, projection, subject review, and docs review', (t) => {
   const root = repository();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';

@@ -93,7 +93,7 @@ Resolve the runtime CLI relative to the installed skill as
 `<skill-directory>/../../scripts/runtime/cli.js`. A verified update reaches
 `Completed` only through this transaction:
 
-1. Keep the request non-Completed. An ordinary two-perspective review and, for
+1. Keep the request non-Completed. An ordinary primary review and, for
    code/config subjects, deterministic verification must bind the exact implementation
    fingerprint.
 2. Render the exact proposed request bytes with `Status: Completed` and every AC
@@ -103,9 +103,9 @@ Resolve the runtime CLI relative to the installed skill as
 3. Bind a dirty subject as `{kind,fingerprint,head_sha}`. For a clean committed
    subject `{kind:"commit",base_sha,head_sha,tree_sha}`, the runtime
    commit-review-begin operation consumes the subject JSON and also opens the
-   fingerprint/epoch-bound collaboration round. Dispatch the configured two
-   reviewers with the returned subject hash explicitly against `base_sha..head_sha`,
-   require every terminal response to end with the returned
+   fingerprint/epoch-bound collaboration round. Dispatch the configured primary
+   reviewer with the returned subject hash explicitly against `base_sha..head_sha`,
+   require the terminal response to end with the returned
    `Commit-Subject-SHA256: <hash>` line, import that round, record the review gate,
    complete deterministic verification against the clean HEAD, and submit the same
    subject JSON to the runtime commit-review-attest operation. Caller-authored reviewer hashes
@@ -168,7 +168,7 @@ Resolve the runtime CLI relative to the installed skill as
    recovery, including pre-existing journals; create a superseding closure revision
    instead of rolling durable completion or promotion evidence backward.
    Abandon also supports an editor's atomic-save replacement inode.
-   Complete the ordinary two-perspective docs review on that new fingerprint. The
+   Complete the ordinary primary docs review on that new fingerprint. The
    runtime closure finalize operation then accepts only
    `pending_record_sha256`, `recorded_at`, and
    `supersedes_record_sha256`.

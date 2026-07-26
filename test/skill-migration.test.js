@@ -536,15 +536,30 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
     },
   ];
   const repositoryDisposition = readJson(ROOT, dispositionPath);
-  const completionByUnit = new Map(completionEvidenceSnapshot(ROOT)
+  const historicalCompletions = new Map(completionEvidenceSnapshot(ROOT)
     .filter((record) => units.some((unit) =>
       unit.id === record.promotion_unit_id
     ))
     .map((record) => [record.promotion_unit_id, record]));
-  assert.ok([0, units.length].includes(completionByUnit.size),
-    'Wave 3 completion records must transition as one 0/8 batch');
-  const repositoryIsDelivered = completionByUnit.size === units.length;
-  const assertRepositoryWave3State = (disposition, delivered) => {
+  assert.equal(historicalCompletions.size, units.length,
+    'prior Wave 3 completion history must remain durable');
+  const currentOwners = new Map(units.map((unit) => [unit.id,
+    repositoryDisposition.skills.find((row) =>
+      row.promotion_unit_id === unit.id
+    )?.promotion_request
+  ]));
+  const repositoryCompletions = new Map([...historicalCompletions]
+    .filter(([unit, record]) => record.request_path === currentOwners.get(unit)));
+  const currentCandidates = new Set(repositoryDisposition.skills
+    .filter((row) => units.some((unit) => unit.id === row.promotion_unit_id) &&
+      row.delivery_state === 'candidate')
+    .map((row) => row.promotion_unit_id));
+  assert.equal(repositoryCompletions.size, units.length - currentCandidates.size);
+  for (const unit of currentCandidates) {
+    assert.notEqual(historicalCompletions.get(unit)?.request_path,
+      currentOwners.get(unit), `${unit}: replacement owner must supersede old evidence`);
+  }
+  const assertRepositoryWave3State = (disposition, completions) => {
     for (const unit of units) {
       const rows = disposition.skills.filter((row) =>
         row.promotion_unit_id === unit.id
@@ -555,13 +570,13 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
         assert.equal(row.target_skill, unit.target,
           `${unit.id}:${row.source_name} target must remain exact`);
         assert.equal(row.delivery_state,
-          delivered ? unit.final : 'candidate',
+          completions.has(unit.id) ? unit.final : 'candidate',
           `${unit.id}:${row.source_name} must be ${
-            delivered ? unit.final : 'candidate'
+            completions.has(unit.id) ? unit.final : 'candidate'
           }`);
       }
-      if (delivered) {
-        assert.equal(completionByUnit.get(unit.id)?.kind, unit.kind,
+      if (completions.has(unit.id)) {
+        assert.equal(completions.get(unit.id)?.kind, unit.kind,
           `${unit.id}: completion kind must match the final overlay`);
       }
     }
@@ -570,15 +585,13 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
     assert.equal(disposition.skills.find((row) =>
       row.source_name === 'codex-test-gen').alias_policy, 'mapping-only');
   };
-  assertRepositoryWave3State(repositoryDisposition, repositoryIsDelivered);
-  if (repositoryIsDelivered) {
-    const reverted = structuredClone(repositoryDisposition);
-    reverted.skills.find((row) =>
-      row.promotion_unit_id === 'debug/default'
-    ).delivery_state = 'candidate';
-    assert.throws(() => assertRepositoryWave3State(reverted, true),
-      /debug\/default:debug must be pack-ready/);
-  }
+  assertRepositoryWave3State(repositoryDisposition, repositoryCompletions);
+  const reverted = structuredClone(repositoryDisposition);
+  reverted.skills.find((row) =>
+    row.promotion_unit_id === 'debug/default'
+  ).delivery_state = 'candidate';
+  assert.throws(() => assertRepositoryWave3State(reverted, repositoryCompletions),
+    /debug\/default:debug must be pack-ready/);
   const lifecycleSpec = fs.readFileSync(path.join(
     ROOT, 'docs/features/skill-toolkit-migration/2-tech-spec.md'
   ), 'utf8');
@@ -1377,28 +1390,24 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
   assert.throws(() => auditSource({ root: values.root }),
     /Evidence completion mismatch for (?:disposition_row_sha256|request_path)/);
   fs.writeFileSync(currentOwnerPath, currentOwner);
+  const repositoryDisposition = readJson(ROOT, 'migration/source-disposition.json');
+  const repositoryStateBySource = new Map(repositoryDisposition.skills.map((row) =>
+    [row.source_name, row.delivery_state]
+  ));
+  for (const row of active.skills) {
+    if (row.promotion_unit_id !== 'create-request/default') {
+      row.delivery_state = repositoryStateBySource.get(row.source_name);
+    }
+  }
   for (const row of active.skills) {
     if (row.promotion_unit_id === 'create-request/default') {
       row.delivery_state = 'candidate';
     }
   }
-  for (const row of active.skills) {
-    if (row.delivery_state === 'candidate' &&
-        row.promotion_unit_id !== 'create-request/default') {
-      row.delivery_state = 'planned';
-    }
-    if (row.target_skill === 'review') {
-      const mode = row.target_mode || 'default';
-      row.promotion_request =
-        `docs/features/skill-toolkit-migration/requests/` +
-        `2026-07-25-wave4-review-${mode}-promotion.md`;
-    }
-  }
-  for (const mode of ['branch', 'deep', 'default', 'fast', 'full']) {
-    fs.rmSync(path.join(values.root,
-      'docs/features/skill-toolkit-migration/requests',
-      `2026-07-26-wave4-review-${mode}-runtime-repromotion.md`));
-  }
+  fs.writeFileSync(currentOwnerPath, currentOwner
+    .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
+    .replace(/^\| Acceptance \| Complete \|.*$/m,
+      '| Acceptance | Candidate Complete | Candidate evidence remains pending. |'));
   writeJson(values.root, 'migration/source-disposition.json', active);
   assert.throws(() => auditActiveCandidates({ root: values.root }),
     /candidate payload evidence mismatch/);
@@ -4736,7 +4745,7 @@ test('core candidate trusts only byte-identical inherited runtime resources', (t
     root: values.root,
     candidate: relative,
     target: 'review'
-  }), /template-literal code cannot be audited/);
+  }), /code import escapes candidate|template-literal code cannot be audited/);
 });
 
 test('Candidate Complete criteria cannot claim final audit or durable closure', () => {

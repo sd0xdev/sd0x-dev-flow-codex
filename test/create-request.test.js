@@ -709,7 +709,8 @@ test('create-request payload is Codex-native, concise, and closure-safe', () => 
   const referencePath = path.join(path.dirname(skillPath), 'references', 'request-format.md');
   assert.ok(fs.existsSync(referencePath));
   const reference = fs.readFileSync(referencePath, 'utf8');
-  assert.match(reference, /Durable closure[\s\S]*two-perspective review/i);
+  assert.match(reference, /Durable closure[\s\S]*primary review/i);
+  assert.doesNotMatch(reference, /two-perspective review/i);
   assert.match(reference, /pending_record_sha256[\s\S]*supersedes_record_sha256/i);
   assert.match(reference, /path:line/);
   assert.match(reference, /at least one evidence location outside the request/i);
