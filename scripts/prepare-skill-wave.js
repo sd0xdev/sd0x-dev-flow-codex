@@ -7,6 +7,7 @@ const path = require('node:path');
 const { openBoundDirectory } = require('./bound-directory');
 const { atomicWriteContainedFile } = require('./contained-file');
 const { captureRegularTree } = require('./promote-skill-wave');
+const { createRecoveryDirectory } = require('./recovery-directory');
 const {
   routingContractBlock,
   routingDescription,
@@ -395,30 +396,53 @@ function withPreparedCandidateDirectory(root, target, callback, options = {}) {
   const candidatesDirectory = openBoundDirectory(candidates);
   const candidateRoot = path.join(candidates, target);
   let identity;
+  const hadExisting = candidatesDirectory.run((child) => {
+    const existing = fs.lstatSync(child(target), { throwIfNoEntry: false });
+    if (existing && (existing.isSymbolicLink() || !existing.isDirectory())) {
+      fail(`${target}: existing candidate must be a real directory`);
+    }
+    return Boolean(existing);
+  });
+  const retirement = hadExisting
+    ? createRecoveryDirectory(root, 'candidate-preparation-')
+    : null;
   try {
     candidatesDirectory.run((child) => {
       const name = child(target);
       const existing = fs.lstatSync(name, { throwIfNoEntry: false });
-      if (existing) {
-        if (existing.isSymbolicLink() || !existing.isDirectory()) {
-          fail(`${target}: existing candidate must be a real directory`);
+      if (hadExisting) {
+        if (!existing || existing.isSymbolicLink() || !existing.isDirectory()) {
+          fail(`${target}: existing candidate changed before retirement`);
         }
         if (typeof options.afterCandidateCapture === 'function') {
           options.afterCandidateCapture({ candidate: candidateRoot });
         }
-        const quarantine = child(
-          `.${target}-sd0x-${crypto.randomUUID()}-retired-candidate`
-        );
-        fs.renameSync(name, quarantine);
-        const moved = fs.lstatSync(quarantine, { throwIfNoEntry: false });
-        if (!moved || moved.isSymbolicLink() || !moved.isDirectory() ||
-            moved.dev !== existing.dev || moved.ino !== existing.ino) {
-          if (!fs.lstatSync(name, { throwIfNoEntry: false }) && moved) {
-            fs.renameSync(quarantine, name);
-          }
-          fail(`${target}: existing candidate changed before retirement`);
+        retirement.assertSafe();
+        const retiredCandidate = path.join(retirement.directory, 'retired-candidate');
+        fs.renameSync(name, retiredCandidate);
+        if (typeof options.afterCandidateQuarantine === 'function') {
+          options.afterCandidateQuarantine({ retiredCandidate });
         }
-        fs.rmSync(quarantine, { recursive: true });
+        retirement.run(() => {
+          const moved = fs.lstatSync('retired-candidate', {
+            throwIfNoEntry: false
+          });
+          if (!moved || moved.isSymbolicLink() || !moved.isDirectory() ||
+              moved.dev !== existing.dev || moved.ino !== existing.ino) {
+            fail(`${target}: retired candidate identity changed after quarantine`);
+          }
+          fs.writeFileSync('retirement.json', `${JSON.stringify({
+            schema_version: 1,
+            target,
+            retired_candidate: 'retired-candidate',
+            original_identity: {
+              dev: String(existing.dev),
+              ino: String(existing.ino)
+            }
+          }, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+        });
+      } else if (existing) {
+        fail(`${target}: candidate appeared during preparation`);
       }
       fs.mkdirSync(name);
       identity = fs.lstatSync(name);

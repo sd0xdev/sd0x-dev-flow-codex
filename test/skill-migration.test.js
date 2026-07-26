@@ -5123,7 +5123,7 @@ test('wave preparation rejects a symlinked candidates ancestor without external 
   assert.deepEqual(fs.readdirSync(path.join(outside, 'fixture')), ['KEEP']);
 });
 
-test('wave preparation quarantines the captured candidate before recursive retirement', (t) => {
+test('wave preparation moves the captured candidate to recoverable retirement', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-retire-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const candidates = path.join(root, 'migration', 'candidates');
@@ -5139,11 +5139,42 @@ test('wave preparation quarantines the captured candidate before recursive retir
       fs.mkdirSync(candidate);
       fs.writeFileSync(path.join(candidate, 'KEEP'), 'replacement survives\n');
     }
-  }), /existing candidate changed before retirement/);
-  assert.equal(fs.readFileSync(path.join(candidate, 'KEEP'), 'utf8'),
+  }), /retired candidate identity changed after quarantine/);
+  const recovery = path.join(root, '.sd0x', fs.readdirSync(path.join(root, '.sd0x'))
+    .find((name) => name.startsWith('candidate-preparation-')));
+  assert.equal(fs.readFileSync(path.join(
+    recovery, 'retired-candidate', 'KEEP'
+  ), 'utf8'),
     'replacement survives\n');
   assert.equal(fs.readFileSync(path.join(`${candidate}-captured`, 'ORIGINAL'), 'utf8'),
     'original candidate\n');
+});
+
+test('wave preparation never deletes a replaced retirement quarantine', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-quarantine-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidate = path.join(root, 'migration', 'candidates', 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'ORIGINAL'), 'captured candidate\n');
+  let captured;
+  let replacement;
+
+  assert.throws(() => withPreparedCandidateDirectory(root, 'fixture', () => {
+    throw new Error('callback must not run');
+  }, {
+    afterCandidateQuarantine({ retiredCandidate }) {
+      captured = `${retiredCandidate}-captured`;
+      replacement = retiredCandidate;
+      fs.renameSync(retiredCandidate, captured);
+      fs.mkdirSync(replacement);
+      fs.writeFileSync(path.join(replacement, 'KEEP'), 'replacement survives\n');
+    }
+  }), /retired candidate identity changed after quarantine/);
+  assert.equal(fs.readFileSync(path.join(captured, 'ORIGINAL'), 'utf8'),
+    'captured candidate\n');
+  assert.equal(fs.readFileSync(path.join(replacement, 'KEEP'), 'utf8'),
+    'replacement survives\n');
+  assert.equal(fs.existsSync(candidate), false);
 });
 
 test('preserved resource copies reject same-size edits and directory swaps', (t) => {
