@@ -132,6 +132,39 @@ function completionEvidenceSnapshot(root = ROOT) {
   return [...byUnit.values()];
 }
 
+function demoteUnboundCompletedCandidateOwners(root, disposition) {
+  const ref = 'refs/sd0x-dev-flow-codex/evidence/v1';
+  const oid = git(root, ['rev-parse', ref]).toString().trim();
+  const paths = git(root, ['ls-tree', '-r', '--name-only', oid])
+    .toString()
+    .trim()
+    .split('\n')
+    .filter((file) => /^records\/request-closure\/.+\.json$/.test(file));
+  const boundOwners = new Set(paths.map((file) => {
+    const record = JSON.parse(git(root, ['show', `${oid}:${file}`]).toString());
+    return `${record.promotion_unit_id}\0${record.request_path}`;
+  }));
+  const owners = new Map();
+  for (const row of disposition.skills) {
+    if (row.delivery_state !== 'candidate' || row.promotion_request === null) continue;
+    const rows = owners.get(row.promotion_request) || [];
+    rows.push(row);
+    owners.set(row.promotion_request, rows);
+  }
+  for (const [requestPath, rows] of owners) {
+    if (rows.every((row) => boundOwners.has(
+      `${row.promotion_unit_id}\0${requestPath}`
+    ))) continue;
+    const absolute = path.join(root, requestPath);
+    const request = fs.readFileSync(absolute, 'utf8');
+    if (!/^> \*\*Status\*\*: Completed$/m.test(request)) continue;
+    fs.writeFileSync(absolute, request
+      .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
+      .replace(/^\| Acceptance \| Complete \|.*$/m,
+        '| Acceptance | Candidate Complete | Historical replay has not reached this owner closure. |'));
+  }
+}
+
 function requestDocumentCount(root) {
   const featuresRoot = path.join(root, 'docs', 'features');
   let count = 0;
@@ -643,6 +676,21 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
   ]));
 
   const candidate = readJson(values.root, dispositionPath);
+  for (const unit of units) {
+    for (const row of candidate.skills.filter((entry) =>
+      entry.promotion_unit_id === unit.id
+    )) {
+      row.promotion_request = closures.get(unit.id).request_path;
+    }
+  }
+  for (const request of [
+    '2026-07-26-feature-dev-single-primary-repromotion.md',
+    '2026-07-26-feature-dev-final-audit-closure.md'
+  ]) {
+    fs.rmSync(path.join(values.root,
+      'docs/features/skill-toolkit-migration/requests', request));
+  }
+  demoteUnboundCompletedCandidateOwners(values.root, candidate);
   const wave3Rows = candidate.skills.filter((row) =>
     units.some((unit) => unit.id === row.promotion_unit_id)
   );
@@ -821,12 +869,15 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
   const closureCheckpoint = '4113d0190a1d5a1cc3ea69b2b01581e27c940db2';
+  const replayUnits = units.filter((unit) =>
+    unit.id !== 'test-review/default'
+  );
 
   git(values.root, [
     'merge-base', '--is-ancestor', closureCheckpoint, evidenceRef
   ]);
   git(values.root, ['update-ref', evidenceRef, closureCheckpoint]);
-  const closureAudit = auditRequestClosures(values.root, units.map((unit) => ({
+  const closureAudit = auditRequestClosures(values.root, replayUnits.map((unit) => ({
     kind: 'request-closure',
     promotion_unit_id: unit.id,
     record_sha256: unit.closure
@@ -843,23 +894,28 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
       `docs/features/skill-toolkit-migration/requests/` +
       `2026-07-25-wave4-review-${mode}-promotion.md`;
   }
+  demoteUnboundCompletedCandidateOwners(values.root, candidate);
   for (const mode of ['branch', 'deep', 'default', 'fast', 'full']) {
-    fs.rmSync(path.join(values.root,
-      'docs/features/skill-toolkit-migration/requests',
-      `2026-07-26-wave4-review-${mode}-runtime-repromotion.md`));
+    for (const request of [
+      `2026-07-26-wave4-review-${mode}-runtime-repromotion.md`,
+      `2026-07-26-review-${mode}-final-audit-closure.md`
+    ]) {
+      fs.rmSync(path.join(values.root,
+        'docs/features/skill-toolkit-migration/requests', request));
+    }
   }
   fs.rmSync(path.join(values.root, 'migration/candidates/review'), {
     recursive: true,
     force: true
   });
   const candidateRows = candidate.skills.filter((row) =>
-    units.some((unit) => unit.id === row.promotion_unit_id)
+    replayUnits.some((unit) => unit.id === row.promotion_unit_id)
   );
-  assert.equal(candidateRows.length, 18);
+  assert.equal(candidateRows.length, 16);
   assert.ok(candidateRows.every((row) => row.delivery_state === 'candidate'));
   assertWave4State(candidate, new Map());
   const applyFinalOverlay = (disposition) => {
-    for (const unit of units) {
+    for (const unit of replayUnits) {
       for (const row of disposition.skills.filter((entry) =>
         entry.promotion_unit_id === unit.id
       )) {
@@ -888,7 +944,7 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
   const recordedAfter = Math.max(...[...closures.values()].map((record) =>
     Date.parse(record.recorded_at)
   ));
-  for (const [index, unit] of units.entries()) {
+  for (const [index, unit] of replayUnits.entries()) {
     const rows = candidate.skills.filter((row) =>
       row.promotion_unit_id === unit.id
     );
@@ -909,11 +965,11 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
     });
   }
   const completed = new Map(latestCompletionEvidence(values.root)
-    .filter((record) => units.some((unit) =>
+    .filter((record) => replayUnits.some((unit) =>
       unit.id === record.promotion_unit_id
     ))
     .map((record) => [record.promotion_unit_id, record]));
-  assert.equal(completed.size, units.length);
+  assert.equal(completed.size, replayUnits.length);
 
   const delivered = structuredClone(candidate);
   applyFinalOverlay(delivered);
@@ -932,7 +988,7 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
   const finalAudit = assertPostOverlayComplete();
   assert.equal(finalAudit.ok, true);
   assert.equal(finalAudit.durable_completion_units,
-    candidateAudit.durable_completion_units + units.length);
+    candidateAudit.durable_completion_units + replayUnits.length);
   assertWave4State(delivered, completed);
 });
 
@@ -1587,9 +1643,24 @@ test('durable owner revisions preserve prior requests and chain every successor'
   const row = disposition.skills.find((entry) =>
     entry.promotion_unit_id === 'create-request/default'
   );
-  const requestPath = row.promotion_request;
+  const predecessorRequestPath = row.promotion_request;
+  const predecessorRequest = fs.readFileSync(
+    path.join(values.root, predecessorRequestPath), 'utf8'
+  );
+  const requestPath =
+    'docs/features/skill-toolkit-migration/requests/' +
+    '2026-07-27-create-request-successor-repromotion.md';
   const requestAbsolute = path.join(values.root, requestPath);
-  const candidateRequest = fs.readFileSync(requestAbsolute, 'utf8');
+  const candidateRequest = predecessorRequest
+    .replace(/^# .+$/m, '# Create Request Successor Re-Promotion')
+    .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
+    .replace(/^> \*\*Depends On\*\*:.*$/m,
+      `> **Depends On**: [Current durable owner](./${path.basename(predecessorRequestPath)})`)
+    .replace(/^\| Acceptance \| Complete \|.*$/m,
+      '| Acceptance | Candidate Complete | Successor closure remains pending. |');
+  fs.writeFileSync(requestAbsolute, candidateRequest);
+  row.promotion_request = requestPath;
+  writeJson(values.root, dispositionPath, disposition);
   const completedRequest = candidateRequest.replace(
     '> **Status**: Candidate Complete', '> **Status**: Completed'
   );
@@ -1601,6 +1672,12 @@ test('durable owner revisions preserve prior requests and chain every successor'
     promotion_unit_id: row.promotion_unit_id,
     kind: 'request-closure'
   }).selected;
+  const recordedAfter = Math.max(
+    Date.parse(priorPromotion.recorded_at),
+    Date.parse(priorClosure.recorded_at)
+  );
+  const recordedAt = (offset) =>
+    new Date(recordedAfter + offset * 1000).toISOString();
   const priorRequestAbsolute = path.join(values.root, priorPromotion.request_path);
   const priorRequestBytes = fs.readFileSync(priorRequestAbsolute);
   const subjectState = recordPassingGates(values.root, 'owner-revision-subject');
@@ -1641,7 +1718,7 @@ test('durable owner revisions preserve prior requests and chain every successor'
       },
       checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
     },
-    recorded_at: '2026-07-23T09:00:00.000Z',
+    recorded_at: recordedAt(1),
     supersedes_record_sha256: priorClosure.pending_record_sha256
   });
   applyRequestClosure(values.root, {
@@ -1650,7 +1727,7 @@ test('durable owner revisions preserve prior requests and chain every successor'
   recordPassingGates(values.root, 'owner-revision-docs');
   const closure = finalizeRequestClosure(values.root, {
     pending_record_sha256: pending.record_sha256,
-    recorded_at: '2026-07-23T09:01:00.000Z',
+    recorded_at: recordedAt(2),
     supersedes_record_sha256: priorClosure.record_sha256
   });
   row.delivery_state = 'promoted';
@@ -1665,7 +1742,7 @@ test('durable owner revisions preserve prior requests and chain every successor'
       values.root, 'plugin/sd0x-dev-flow-codex/skills/create-request'
     ),
     reason: null,
-    recorded_at: '2026-07-23T09:02:00.000Z',
+    recorded_at: recordedAt(3),
     supersedes_record_sha256: priorPromotion.record_sha256
   });
   assert.deepEqual(fs.readFileSync(priorRequestAbsolute), priorRequestBytes);
@@ -1762,7 +1839,7 @@ test('durable owner revisions preserve prior requests and chain every successor'
       },
       checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
     },
-    recorded_at: '2026-07-23T09:03:00.000Z',
+    recorded_at: recordedAt(4),
     supersedes_record_sha256: pending.record_sha256
   });
   applyRequestClosure(values.root, {
@@ -1771,7 +1848,7 @@ test('durable owner revisions preserve prior requests and chain every successor'
   recordPassingGates(values.root, 'second-owner-revision-docs');
   const secondClosure = finalizeRequestClosure(values.root, {
     pending_record_sha256: secondPending.record_sha256,
-    recorded_at: '2026-07-23T09:04:00.000Z',
+    recorded_at: recordedAt(5),
     supersedes_record_sha256: closure.record_sha256
   });
   row.delivery_state = 'promoted';
@@ -1786,7 +1863,7 @@ test('durable owner revisions preserve prior requests and chain every successor'
       values.root, 'plugin/sd0x-dev-flow-codex/skills/create-request'
     ),
     reason: null,
-    recorded_at: '2026-07-23T09:05:00.000Z',
+    recorded_at: recordedAt(6),
     supersedes_record_sha256: successorPromotion.record_sha256
   });
   assert.deepEqual(fs.readFileSync(requestAbsolute), Buffer.from(completedRequest));
