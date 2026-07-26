@@ -404,7 +404,9 @@ function withPreparedCandidateDirectory(root, target, callback, options = {}) {
     return Boolean(existing);
   });
   const retirement = hadExisting
-    ? createRecoveryDirectory(root, 'candidate-preparation-')
+    ? createRecoveryDirectory(root, 'candidate-preparation-', {
+        beforeAssertRestore: options.beforeRetirementAssertRestore
+      })
     : null;
   try {
     candidatesDirectory.run((child) => {

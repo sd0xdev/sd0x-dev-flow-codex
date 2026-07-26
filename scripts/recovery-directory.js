@@ -42,8 +42,14 @@ function assertDirectoryIdentity(rootReal, identity, label) {
   }
 }
 
-function withBoundDirectory(identity, label, callback) {
+function sameDirectory(left, right) {
+  return left.isDirectory() && right.isDirectory() &&
+    left.dev === right.dev && left.ino === right.ino;
+}
+
+function withBoundDirectory(identity, label, callback, hooks = {}) {
   const previous = process.cwd();
+  const previousIdentity = fs.statSync('.');
   let entered = false;
   try {
     process.chdir(identity.path);
@@ -56,7 +62,18 @@ function withBoundDirectory(identity, label, callback) {
     }
     return callback();
   } finally {
-    if (entered) process.chdir(previous);
+    if (entered) {
+      if (typeof hooks.beforeRestore === 'function') hooks.beforeRestore(previous);
+      const restoreTarget = fs.lstatSync(previous, { throwIfNoEntry: false });
+      if (!restoreTarget || restoreTarget.isSymbolicLink() ||
+          !sameDirectory(previousIdentity, restoreTarget)) {
+        fail(`Previous directory changed before ${label} restore`);
+      }
+      process.chdir(previous);
+      if (!sameDirectory(previousIdentity, fs.statSync('.'))) {
+        fail(`Previous directory identity changed after ${label} restore`);
+      }
+    }
   }
 }
 
@@ -123,14 +140,19 @@ function createRecoveryDirectory(root, prefix, options = {}) {
   identity.path = directory;
 
   const assertSafe = () => {
-    withBoundDirectory(recoveryRoot.identity, 'Recovery root .sd0x', () => {
-      const childIdentity = { ...identity, path: name };
-      assertDirectoryIdentity(
-        recoveryRoot.rootReal,
-        childIdentity,
-        'Recovery directory'
-      );
-    });
+    withBoundDirectory(
+      recoveryRoot.identity,
+      'Recovery root .sd0x',
+      () => {
+        const childIdentity = { ...identity, path: name };
+        assertDirectoryIdentity(
+          recoveryRoot.rootReal,
+          childIdentity,
+          'Recovery directory'
+        );
+      },
+      { beforeRestore: options.beforeAssertRestore }
+    );
   };
   const run = (callback) => {
     return withBoundDirectory(

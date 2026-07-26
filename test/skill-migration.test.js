@@ -5177,6 +5177,39 @@ test('wave preparation never deletes a replaced retirement quarantine', (t) => {
   assert.equal(fs.existsSync(candidate), false);
 });
 
+test('wave preparation rejects a candidates swap during recovery-bound restore', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-restore-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-restore-outside-'));
+  t.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  const candidates = path.join(root, 'migration', 'candidates');
+  const candidate = path.join(candidates, 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'ORIGINAL'), 'captured candidate\n');
+  fs.mkdirSync(path.join(outside, 'fixture'));
+  fs.writeFileSync(path.join(outside, 'fixture', 'KEEP'), 'outside unchanged\n');
+
+  assert.throws(() => withPreparedCandidateDirectory(root, 'fixture', () => {
+    throw new Error('callback must not run');
+  }, {
+    beforeRetirementAssertRestore(previous) {
+      assert.equal(fs.realpathSync(previous), fs.realpathSync(candidates));
+      fs.renameSync(candidates, `${candidates}-captured`);
+      fs.symlinkSync(outside, candidates);
+    }
+  }), /Previous directory changed before Recovery root \.sd0x restore/);
+  assert.equal(fs.readFileSync(path.join(outside, 'fixture', 'KEEP'), 'utf8'),
+    'outside unchanged\n');
+  assert.equal(fs.readFileSync(path.join(
+    `${candidates}-captured`, 'fixture', 'ORIGINAL'
+  ), 'utf8'), 'captured candidate\n');
+  const recovery = path.join(root, '.sd0x', fs.readdirSync(path.join(root, '.sd0x'))
+    .find((name) => name.startsWith('candidate-preparation-')));
+  assert.equal(fs.existsSync(path.join(recovery, 'retired-candidate')), false);
+});
+
 test('preserved resource copies reject same-size edits and directory swaps', (t) => {
   const fixture = (prefix) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
