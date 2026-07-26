@@ -14,6 +14,7 @@ const {
   checkRelease,
   expectedReleaseAssets,
   migrationDeliveryCheckpoint,
+  migrationDeliveryHeading,
   migrationDeliveryMarker,
   migrationDeliverySummary,
   releasePlan,
@@ -137,6 +138,7 @@ function fixture() {
   fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
   fs.writeFileSync(path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
     '> Codex 版本：`sd0x-dev-flow-codex` `0.1.0`\n\n' +
+    `${migrationDeliveryHeading(checkpoint)}\n\n` +
     `${migrationDeliverySummary(checkpoint)}\n` +
     `${migrationDeliveryMarker(checkpoint)}\n`);
   writeJson(path.join(root, '.agents', 'plugins', 'marketplace.json'), {
@@ -423,6 +425,19 @@ test('release check rejects a stale visible migration delivery checkpoint', (t) 
   ));
   assert.throws(() => checkRelease(values.root),
     /visible delivery checkpoint must match the current registry/);
+});
+
+test('release check rejects a stale migration delivery checkpoint heading', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const guidePath = path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md');
+  const guide = fs.readFileSync(guidePath, 'utf8');
+  fs.writeFileSync(guidePath, guide.replace(
+    'Current delivery checkpoint：',
+    '2026-07-25 checkpoint：'
+  ));
+  assert.throws(() => checkRelease(values.root),
+    /delivery checkpoint heading must match the current registry/);
 });
 
 test('release check rejects a stale alias capability plugin fingerprint', (t) => {

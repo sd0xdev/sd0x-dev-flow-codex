@@ -762,12 +762,16 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
       '2d3e657fb4e08eb4b2ab1d3abf3b1fe6938a044fe7a4654d4817e29fd9c2cda9'],
     ['test-review/default', 'test-review',
       ['codex-test-review', 'test-review'], 'pack-ready', 'pack-ready',
-      'e81086ac619967dabec65a8ed7edc11ea8b80726b918b36bdfd865202b270611']
-  ].map(([id, target, sources, kind, final, closure]) => ({
-    id, target, sources, kind, final, closure
+      'e81086ac619967dabec65a8ed7edc11ea8b80726b918b36bdfd865202b270611',
+      'promotion', 'promoted']
+  ].map(([id, target, sources, kind, final, closure,
+    currentKind = kind, currentFinal = final]) => ({
+    id, target, sources, kind, final, closure, currentKind, currentFinal
   }));
-  const assertWave4State = (disposition, completions) => {
+  const assertWave4State = (disposition, completions, current = false) => {
     for (const unit of units) {
+      const final = current ? unit.currentFinal : unit.final;
+      const kind = current ? unit.currentKind : unit.kind;
       const rows = disposition.skills.filter((row) =>
         row.promotion_unit_id === unit.id
       );
@@ -777,11 +781,11 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
         assert.equal(row.target_skill, unit.target,
           `${unit.id}:${row.source_name} target must remain exact`);
         assert.equal(row.delivery_state,
-          completions.has(unit.id) ? unit.final : 'candidate',
+          completions.has(unit.id) ? final : 'candidate',
           `${unit.id}:${row.source_name} must follow its current request lineage`);
       }
       if (completions.has(unit.id)) {
-        assert.equal(completions.get(unit.id)?.kind, unit.kind,
+        assert.equal(completions.get(unit.id)?.kind, kind,
           `${unit.id}: completion kind must match the final overlay`);
       }
     }
@@ -810,7 +814,7 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
     assert.notEqual(historicalCompletions.get(unit)?.request_path,
       currentOwners.get(unit), `${unit}: replacement owner must supersede old evidence`);
   }
-  assertWave4State(repositoryDisposition, repositoryCompletions);
+  assertWave4State(repositoryDisposition, repositoryCompletions, true);
 
   if (process.env.SD0X_EXHAUSTIVE_MIGRATION_REPLAY !== '1') return;
   const values = fixtureRoot({ copyEvidenceRef: true });
@@ -1421,7 +1425,7 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
   fs.writeFileSync(currentOwnerPath,
     currentOwner.replace('> **Status**: Candidate Complete', '> **Status**: Completed'));
   assert.throws(() => auditSource({ root: values.root }),
-    /Evidence completion mismatch for (?:disposition_row_sha256|request_path)/);
+    /Evidence completion mismatch for (?:disposition_row_sha256|payload_tree_sha256|request_path)/);
   fs.writeFileSync(currentOwnerPath, currentOwner);
   const repositoryDisposition = readJson(ROOT, 'migration/source-disposition.json');
   const repositoryStateBySource = new Map(repositoryDisposition.skills.map((row) =>
@@ -1560,10 +1564,16 @@ test('durable owner revisions preserve prior requests and chain every successor'
     const row = disposition.skills.find((entry) =>
       entry.promotion_unit_id === 'create-request/default'
     );
-    const prior = completionEvidenceSnapshot(ROOT).find((record) =>
+    const current = completionEvidenceSnapshot(ROOT).find((record) =>
       record.promotion_unit_id === row.promotion_unit_id
     );
-    assert.ok(prior);
+    assert.ok(current);
+    assert.equal(current.request_path, row.promotion_request);
+    assert.match(current.supersedes_record_sha256, /^[0-9a-f]{64}$/);
+    const prior = JSON.parse(git(ROOT, ['show',
+      `refs/sd0x-dev-flow-codex/evidence/v1:records/${current.kind}/` +
+      `${current.supersedes_record_sha256}.json`
+    ]).toString());
     assert.notEqual(prior.request_path, row.promotion_request);
     const request = fs.readFileSync(path.join(ROOT, row.promotion_request), 'utf8');
     assert.match(request, new RegExp(path.basename(prior.request_path)

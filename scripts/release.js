@@ -163,6 +163,12 @@ function migrationDeliveryMarker(checkpoint) {
     `create-request=${checkpoint.create_request_state} -->`;
 }
 
+function migrationDeliveryHeading(checkpoint) {
+  return 'Skill toolkit 的正式 migration registry 仍固定為 ' +
+    `${checkpoint.rows}/${checkpoint.rows} source rows。` +
+    'Current delivery checkpoint：';
+}
+
 function migrationDeliverySummary(checkpoint) {
   return '- Registry checkpoint：' +
     `${checkpoint.delivered}/${checkpoint.units} canonical units delivered；` +
@@ -428,6 +434,12 @@ function checkRelease(root = ROOT) {
   assert(JSON.stringify(deliveryMarkers) === JSON.stringify([
     migrationDeliveryMarker(migrationDelivery)
   ]), 'migration guide delivery marker must match the current registry');
+  const deliveryHeadings = migrationGuide.match(
+    /^Skill toolkit 的正式 migration registry 仍固定為 \d+\/\d+ source rows。Current delivery checkpoint：$/gm
+  );
+  assert(JSON.stringify(deliveryHeadings) === JSON.stringify([
+    migrationDeliveryHeading(migrationDelivery)
+  ]), 'migration guide delivery checkpoint heading must match the current registry');
   const deliverySummaries = migrationGuide.match(
     /^- Registry checkpoint：[^\r\n]+$/gm
   );
@@ -605,6 +617,7 @@ module.exports = {
   expectedReleaseAssets,
   main,
   migrationDeliveryCheckpoint,
+  migrationDeliveryHeading,
   migrationDeliveryMarker,
   migrationDeliverySummary,
   parseVersion,
