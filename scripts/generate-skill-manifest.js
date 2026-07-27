@@ -69,7 +69,7 @@ function normalizeRelative(value, field = 'path') {
 function runGit(repository, args, options = {}) {
   const env = {
     ...process.env,
-    GIT_CONFIG_GLOBAL: os.devNull,
+    GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : os.devNull,
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_NO_REPLACE_OBJECTS: '1'
   };
@@ -663,5 +663,6 @@ module.exports = {
   materialize,
   parseArguments,
   referencedSharedPaths,
+  runGit,
   totalsFor
 };

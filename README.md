@@ -12,7 +12,7 @@
 
 一般的 agent 工作流很容易把「之前跑過 review」誤當成「目前這份程式已通過 review」。sd0x Dev Flow 將品質證據變成可驗證的狀態，同時讓模型依任務與風險判斷是否繼續：
 
-- 對要宣稱已通過 review 的 dirty worktree，必須有設定檔指定的 primary subagent，以及一個獨立的 Codex test/acceptance perspective；預設 primary 是 Codex。
+- 對要宣稱已通過 review 的 dirty worktree，必須有設定檔指定的 primary subagent；預設 primary 是 Codex。
 - 對要宣稱已通過 verification 的 code 或 configuration 變更，必須有 deterministic repository checks 的通過證據。
 - review、verification 與 reviewer evidence 全部綁定同一個 worktree fingerprint。
 - 修正任何檔案後，舊 gate 自動失效；若要再次宣稱 gate 通過，必須重新取得證據。
@@ -23,7 +23,7 @@
 ```mermaid
 flowchart LR
   I[Implement] --> F[Worktree fingerprint]
-  F --> R[Configured primary + Codex test reviewer]
+  F --> R[Configured primary reviewer]
   R -->|actionable findings| I
   R -->|clean| V[Deterministic verification]
   V -->|failure| I
@@ -80,7 +80,7 @@ codex plugin add sd0x-dev-flow-codex@sd0xdev-marketplace
 
 4. 再開一個新的 Codex session，讓 SessionStart 載入 project agents 並正式啟用 gates。
 
-`setup` 會建立 `.codex/sd0x-dev-flow.json`、在 `AGENTS.md` 加入一段受管理內容，並安裝 `.codex/agents/sd0x-codex-primary-reviewer.toml`、`sd0x-claude-primary-reviewer.toml` 與 `sd0x-test-reviewer.toml`。Refresh 時會移除舊的 setup-managed `sd0x-reviewer.toml`，但保留同名的使用者自訂檔、既有使用者指引與其他 custom agents；尚未執行 setup 的 repository 中，hooks 保持 inert。
+`setup` 會建立 `.codex/sd0x-dev-flow.json`、在 `AGENTS.md` 加入一段受管理內容，並安裝 `.codex/agents/sd0x-codex-primary-reviewer.toml` 與 `sd0x-claude-primary-reviewer.toml`。Refresh 時會移除舊的 setup-managed `sd0x-reviewer.toml` 與 `sd0x-test-reviewer.toml`，但保留同名的使用者自訂檔、既有使用者指引與其他 custom agents；尚未執行 setup 的 repository 中，hooks 保持 inert。
 
 預設設定不會呼叫 Claude：
 
@@ -92,7 +92,7 @@ codex plugin add sd0x-dev-flow-codex@sd0xdev-marketplace
 }
 ```
 
-Codex provider 的兩個 review agents 都固定使用 `gpt-5.6-sol`、`xhigh` 與 read-only sandbox。若要明確改用 Claude primary，把 `review.provider` 改為 `claude`，再開新 session；Claude MCP 只會由 `sd0x_claude_primary_reviewer` wrapper subagent 內部呼叫。Provider 切換或三視角舊 evidence 都會使既有 review/verify evidence 失效。只有 agent templates 本身更新時才需 rerun `$sd0x-dev-flow-codex:setup`。
+Codex provider 的 primary review agent 固定使用 `gpt-5.6-sol`、`xhigh` 與 read-only sandbox。若要明確改用 Claude primary，把 `review.provider` 改為 `claude`，再開新 session；Claude MCP 只會由 `sd0x_claude_primary_reviewer` wrapper subagent 內部呼叫。Provider 切換或 schema v8 以前的 multi-reviewer evidence 都會使既有 review/verify evidence 失效。只有 agent templates 本身更新時才需 rerun `$sd0x-dev-flow-codex:setup`。
 
 ### 更新與移除
 
@@ -113,11 +113,12 @@ codex plugin remove sd0x-dev-flow-codex@sd0xdev-marketplace
 - `create-request`：建立、更新、批次同步或掃描單一任務 request tickets；以安全 resolver、`Candidate Complete` 邊界與 durable two-phase closure 避免猜測 feature 或偽造完成證據。Closure evidence schema v2 要求每個 Complete AC 至少引用一個 request 外部位置；舊 schema v1 pending 只能稽核並被明確 supersede，不能 fresh apply 或 finalize，但仍可 recovery 已存在的 legacy journal。
 - `feature-dev`：從範圍確認、實作、獨立 review 到 deterministic verification 的完整功能流程。
 - `bug-fix`：先重現與追查 root cause，再做最小修復與 regression coverage。
-- `review`：平行執行設定的 Codex/Claude-wrapper primary 與 `sd0x_test_reviewer`，記錄 provider- and fingerprint-bound gate。
+- `review`：執行設定的 Codex/Claude-wrapper primary，記錄 provider- and fingerprint-bound gate。
+- `test-review`：獨立、唯讀且 non-gating 的 test/AC assessment；檢查 coverage、acceptance traceability、flakiness 與 verification gaps，不寫 runtime evidence。
 - `verify`：依 repository 類型選擇 deterministic checks，記錄 verification gate。
 - `remind`：在中斷或 context compaction 後，恢復下一個尚未完成的 gate。
 - `reset`：旋轉 runtime epoch、清除 sd0x gate/reviewer evidence，要求目前 dirty worktree 重新 review。
-- `doctor`：檢查安裝、runtime、目前 provider 與 gate 狀態；只有 Claude mode 會要求 Claude CLI/auth/MCP readiness。
+- `doctor`：檢查安裝、runtime、目前 provider 與 gate 狀態；所有 provider 都要求 bundled MCP 的 allowlisted skill-runtime tool ready，只有 Claude mode 額外要求 Claude CLI/auth 與 review tool readiness。
 - `setup`：為目標 repository 安裝 project guidance 與 reviewer profiles。
 
 典型請求：
@@ -139,7 +140,7 @@ Reset 不會修改 project files 或停用 active session；它只清除 sd0x ru
 
 `plugin/sd0x-dev-flow-codex/scripts/runtime/worktree.js` 分別雜湊 HEAD→index、index→worktree 的 raw diffs，以及所有未被忽略的 untracked paths/file bodies，也涵蓋 dirty nested Git repositories。即使 staged file 之後被刪除，或 worktree 又改回 HEAD，fingerprint 仍可辨識 staged state。
 
-`skills/review/scripts/provider.js` 從 project config 解析 primary backend。`scripts/mcp/server.js` 提供 opt-in 的唯讀 Claude review tool，傳入兩層 tracked diff，並拒絕 stale fingerprint、protected changed paths、tracked binary changes、超量/缺漏內容與非結構化結果。`state.js` 原子化保存 provider、gate 與 reviewer evidence；provider 或 fingerprint 改變都會使舊 evidence 失效。`hook.js` 只負責 Codex event adapter 與 workflow routing，並在 Codex mode 直接拒絕 Claude tool call；`verify.js` 執行 native checks，不讓 model 自行宣告通過。
+`skills/review/scripts/provider.js` 從 project config 解析 primary backend。`scripts/mcp/server.js` 在所有 provider 提供 `run_skill_script`：只接受固定 allowlist 內的 installed skill entrypoint，以 MCP runtime 自己的 `process.execPath` 執行，忽略 project cwd/PATH 的 Node shadow，並移除 Node/loader preload 環境變數；修改這個 server 或 tool registry 後必須開新 task。相同 server 另提供 opt-in 的唯讀 Claude `review_worktree`，傳入兩層 tracked diff，並拒絕 stale fingerprint、protected changed paths、tracked binary changes、超量/缺漏內容與非結構化結果。`state.js` 原子化保存 provider、gate 與 reviewer evidence；provider 或 fingerprint 改變都會使舊 evidence 失效。`hook.js` 只負責 Codex event adapter 與 workflow routing，並在 Codex mode 直接拒絕 Claude review tool call；`verify.js` 執行 native checks，不讓 model 自行宣告通過。
 
 Runtime state 存在 Git metadata 或 `.sd0x/`，不會成為 tracked project artifact。Hooks 是 workflow guardrails，不是 OS security boundary；repository permissions 與 secret management 仍是實際安全邊界。
 

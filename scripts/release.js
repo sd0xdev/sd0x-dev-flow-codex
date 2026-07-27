@@ -147,7 +147,8 @@ function migrationDeliveryCheckpoint(disposition) {
     waves: {
       1: wave(1),
       2: wave(2),
-      3: wave(3)
+      3: wave(3),
+      4: wave(4)
     },
     create_request_state: createRequestState
   };
@@ -158,7 +159,14 @@ function migrationDeliveryMarker(checkpoint) {
     `rows=${checkpoint.rows} units=${checkpoint.units} ` +
     `delivered=${checkpoint.delivered} pending=${checkpoint.pending} ` +
     `wave3=${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total} ` +
+    `wave4=${checkpoint.waves[4].delivered}/${checkpoint.waves[4].total} ` +
     `create-request=${checkpoint.create_request_state} -->`;
+}
+
+function migrationDeliveryHeading(checkpoint) {
+  return 'Skill toolkit 的正式 migration registry 仍固定為 ' +
+    `${checkpoint.rows}/${checkpoint.rows} source rows。` +
+    'Current delivery checkpoint：';
 }
 
 function migrationDeliverySummary(checkpoint) {
@@ -167,7 +175,8 @@ function migrationDeliverySummary(checkpoint) {
     `${checkpoint.pending} pending；` +
     `Wave 1 ${checkpoint.waves[1].delivered}/${checkpoint.waves[1].total}、` +
     `Wave 2 ${checkpoint.waves[2].delivered}/${checkpoint.waves[2].total}、` +
-    `Wave 3 ${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total} delivered；` +
+    `Wave 3 ${checkpoint.waves[3].delivered}/${checkpoint.waves[3].total}、` +
+    `Wave 4 ${checkpoint.waves[4].delivered}/${checkpoint.waves[4].total} delivered；` +
     '`create-request/default` = ' +
     `\`${checkpoint.create_request_state}\`。`;
 }
@@ -425,6 +434,12 @@ function checkRelease(root = ROOT) {
   assert(JSON.stringify(deliveryMarkers) === JSON.stringify([
     migrationDeliveryMarker(migrationDelivery)
   ]), 'migration guide delivery marker must match the current registry');
+  const deliveryHeadings = migrationGuide.match(
+    /^Skill toolkit 的正式 migration registry 仍固定為 \d+\/\d+ source rows。Current delivery checkpoint：$/gm
+  );
+  assert(JSON.stringify(deliveryHeadings) === JSON.stringify([
+    migrationDeliveryHeading(migrationDelivery)
+  ]), 'migration guide delivery checkpoint heading must match the current registry');
   const deliverySummaries = migrationGuide.match(
     /^- Registry checkpoint：[^\r\n]+$/gm
   );
@@ -602,6 +617,7 @@ module.exports = {
   expectedReleaseAssets,
   main,
   migrationDeliveryCheckpoint,
+  migrationDeliveryHeading,
   migrationDeliveryMarker,
   migrationDeliverySummary,
   parseVersion,

@@ -16,7 +16,7 @@ const { reviewProvider } = require('./config');
 const { findRepoRoot, snapshot } = require('./worktree');
 
 const ADAPTER = 'codex-collaboration-jsonl-v2';
-const MARKER_SCHEMA_VERSION = 3;
+const MARKER_SCHEMA_VERSION = 4;
 const MARKER_LOCK_OWNER_GRACE_MS = 1_000;
 const MARKER_LOCK_WAIT_MS = 5_000;
 
@@ -26,12 +26,9 @@ function sleep(milliseconds) {
 }
 
 function requiredReviewers(provider) {
-  return [
-    provider === 'claude'
-      ? 'sd0x_claude_primary_reviewer'
-      : 'sd0x_codex_primary_reviewer',
-    'sd0x_test_reviewer'
-  ];
+  return [provider === 'claude'
+    ? 'sd0x_claude_primary_reviewer'
+    : 'sd0x_codex_primary_reviewer'];
 }
 
 function sha256(bytes) {

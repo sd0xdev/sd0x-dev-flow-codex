@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "quality-pack",
+  "target_skill": "test-health",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/test-health-default-routing.test.js"
+      ],
+      "promotion_unit_id": "test-health/default",
+      "routing": {
+        "negative_boundaries": [
+          "Analyze coverage gaps for one specific feature request.",
+          "Generate new tests for this uncovered behavior.",
+          "Review these tests line by line for assertion quality and acceptance traceability."
+        ],
+        "positive_triggers": [
+          "Analyze test artifacts and flaky patterns to produce a test-health report.",
+          "Assess the overall health, reliability, speed, and maintainability of this test system.",
+          "Measure test-layer balance, coverage evidence, and suite quality across the repository."
+        ]
+      },
+      "source_names": [
+        "test-health"
+      ],
+      "target_mode": null
+    }
+  ]
+}

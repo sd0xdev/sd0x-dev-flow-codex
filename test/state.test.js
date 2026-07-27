@@ -59,11 +59,11 @@ function reviewEvidence(provider = 'claude') {
   const primary = provider === 'claude'
     ? 'sd0x_claude_primary_reviewer'
     : 'sd0x_codex_primary_reviewer';
-  const agents = [primary, 'sd0x_test_reviewer'];
+  const agents = [primary];
   if (provider === 'claude') agents.push('claude_mcp_primary');
   return {
     provider,
-    reviewers: 2,
+    reviewers: 1,
     agents,
     findings: 0
   };
@@ -114,7 +114,7 @@ function recordCleanCodexReviewers(root, suffix = 'clean') {
   const primary = provider === 'claude'
     ? 'sd0x_claude_primary_reviewer'
     : 'sd0x_codex_primary_reviewer';
-  for (const agentType of [primary, 'sd0x_test_reviewer']) {
+  for (const agentType of [primary]) {
     const agentId = `${agentType}-${suffix}`;
     recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
     recordSubagent(root, 'stop', {
@@ -140,7 +140,7 @@ test('Codex is the default primary provider and does not require Claude evidence
       'sd0x_reviewer',
       'sd0x_test_reviewer'
     ]
-  }), /reviewers === 2/);
+  }), /reviewers === 1/);
   state = markGate(root, 'review', 'pass', reviewEvidence('codex'));
   assert.equal(state.gates.review.status, 'pass');
   assert.equal(state.external_review.completed.length, 0);
@@ -173,7 +173,7 @@ test('changing review provider invalidates gates and reviewer evidence', (t) => 
   assert.deepEqual(state.external_review.completed, []);
 });
 
-test('similarly named agents cannot contribute authoritative review evidence', (t) => {
+test('retired test reviewer and similarly named agents have no gate authority', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   refreshState(root);
@@ -183,15 +183,17 @@ test('similarly named agents cannot contribute authoritative review evidence', (
   const reviewerEvidence = structuredClone(passed.review_agents);
   const gates = structuredClone(passed.gates);
 
-  recordSubagent(root, 'start', {
-    agent_id: 'lookalike-reviewer',
-    agent_type: 'sd0x_test_reviewer_helper'
-  });
-  recordSubagent(root, 'stop', {
-    agent_id: 'lookalike-reviewer',
-    agent_type: 'sd0x_test_reviewer_helper',
-    last_assistant_message: '[P1] app.js:1 Untrusted result.'
-  });
+  for (const agentType of ['sd0x_test_reviewer', 'sd0x_test_reviewer_helper']) {
+    recordSubagent(root, 'start', {
+      agent_id: `${agentType}-lookalike`,
+      agent_type: agentType
+    });
+    recordSubagent(root, 'stop', {
+      agent_id: `${agentType}-lookalike`,
+      agent_type: agentType,
+      last_assistant_message: '[P1] app.js:1 Untrusted result.'
+    });
+  }
 
   const state = readState(root);
   assert.deepEqual(state.review_agents, reviewerEvidence);
@@ -290,7 +292,7 @@ test('overlapping same-type reviewers remain independently blocking', (t) => {
   );
 });
 
-test('gates require Claude primary plus Codex test review and bind to one fingerprint', (t) => {
+test('gates require the configured Claude primary and bind to one fingerprint', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
@@ -309,18 +311,14 @@ test('gates require Claude primary plus Codex test review and bind to one finger
   });
   assert.equal(refreshState(root).review_agents.completed.length, 0);
 
-  for (const agentType of [
-    'sd0x_claude_primary_reviewer',
-    'sd0x_test_reviewer'
-  ]) {
-    recordSubagent(root, 'start', { agent_id: `${agentType}-1`, agent_type: agentType });
-    recordSubagent(root, 'stop', {
-      agent_id: `${agentType}-1`,
-      agent_type: agentType,
-      stop_hook_active: false,
-      last_assistant_message: 'No actionable findings remain.'
-    });
-  }
+  const agentType = 'sd0x_claude_primary_reviewer';
+  recordSubagent(root, 'start', { agent_id: `${agentType}-1`, agent_type: agentType });
+  recordSubagent(root, 'stop', {
+    agent_id: `${agentType}-1`,
+    agent_type: agentType,
+    stop_hook_active: false,
+    last_assistant_message: 'No actionable findings remain.'
+  });
 
   assert.throws(
     () => markGate(root, 'review', 'pass', reviewEvidence()),
@@ -329,18 +327,16 @@ test('gates require Claude primary plus Codex test review and bind to one finger
   recordClaude(root);
 
   recordSubagent(root, 'start', {
-    agent_id: 'still-running-reviewer',
+    agent_id: 'retired-test-reviewer',
     agent_type: 'sd0x_test_reviewer'
   });
-  assert.throws(
-    () => markGate(root, 'review', 'pass', reviewEvidence()),
-    /still running/
-  );
   recordSubagent(root, 'stop', {
-    agent_id: 'still-running-reviewer',
+    agent_id: 'retired-test-reviewer',
     agent_type: 'sd0x_test_reviewer',
-    last_assistant_message: 'No actionable findings remain.'
+    last_assistant_message: '[P1] app.js:1 This retired agent cannot block the gate.'
   });
+  assert.deepEqual(readState(root).review_agents.completed.map((entry) =>
+    entry.agent_type), ['sd0x_claude_primary_reviewer']);
 
   const fingerprint = refreshState(root).worktree.fingerprint;
   recordExternalReviewStart(root, {
@@ -390,8 +386,8 @@ test('gates require Claude primary plus Codex test review and bind to one finger
   });
 
   recordSubagent(root, 'start', {
-    agent_id: 'post-pass-codex-reviewer',
-    agent_type: 'sd0x_test_reviewer'
+    agent_id: 'post-pass-native-primary',
+    agent_type: 'sd0x_claude_primary_reviewer'
   });
   recordExternalReviewStart(root, {
     input_fingerprint: fingerprint,
@@ -405,8 +401,8 @@ test('gates require Claude primary plus Codex test review and bind to one finger
     reason: 'review-in-progress'
   });
   recordSubagent(root, 'stop', {
-    agent_id: 'post-pass-codex-reviewer',
-    agent_type: 'sd0x_test_reviewer',
+    agent_id: 'post-pass-native-primary',
+    agent_type: 'sd0x_claude_primary_reviewer',
     last_assistant_message: 'No actionable findings remain.'
   });
   assert.equal(nextAction(readState(root)).reason, 'review-in-progress');
@@ -493,7 +489,7 @@ test('late Claude findings revoke passed review and verification gates', (t) => 
   });
 });
 
-test('late Codex findings revoke passed review and verification gates', (t) => {
+test('late native primary findings revoke passed review and verification gates', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   refreshState(root, { sessionId: 'late-codex-session' });
@@ -505,11 +501,11 @@ test('late Codex findings revoke passed review and verification gates', (t) => {
 
   recordSubagent(root, 'start', {
     agent_id: 'late-codex-finding',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_claude_primary_reviewer'
   });
   state = recordSubagent(root, 'stop', {
     agent_id: 'late-codex-finding',
-    agent_type: 'sd0x_test_reviewer',
+    agent_type: 'sd0x_claude_primary_reviewer',
     last_assistant_message: '[P1] app.js:1 A late regression remains.'
   });
 
@@ -612,11 +608,8 @@ test('reviewer infrastructure failures require user action without completing', 
 
   const state = markGate(root, 'review', 'fail', {
     provider: 'codex',
-    reviewers: 2,
-    agents: [
-      'sd0x_codex_primary_reviewer',
-      'sd0x_test_reviewer'
-    ],
+    reviewers: 1,
+    agents: ['sd0x_codex_primary_reviewer'],
     findings: 0,
     reviewer_failure: true,
     summary: 'custom reviewer identities were unavailable'
@@ -683,7 +676,7 @@ test('reset clears gate evidence, preserves sessions, and requires review again'
   assert.ok(beforeReset.gates.verify.evidence.commands.length > 0);
   recordSubagent(root, 'start', {
     agent_id: 'reviewer-in-flight-at-reset',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_claude_primary_reviewer'
   });
 
   const state = resetState(root);
@@ -709,7 +702,7 @@ test('reset clears gate evidence, preserves sessions, and requires review again'
   });
   recordSubagent(root, 'stop', {
     agent_id: 'reviewer-in-flight-at-reset',
-    agent_type: 'sd0x_test_reviewer',
+    agent_type: 'sd0x_claude_primary_reviewer',
     last_assistant_message: 'No actionable findings remain.'
   });
   assert.deepEqual(readState(root).review_agents.completed, []);
@@ -753,11 +746,11 @@ test('reviewer stops without terminal output do not satisfy review', (t) => {
   refreshState(root);
   recordSubagent(root, 'start', {
     agent_id: 'reviewer-1',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_claude_primary_reviewer'
   });
   recordSubagent(root, 'stop', {
     agent_id: 'reviewer-1',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_claude_primary_reviewer'
   });
   assert.equal(refreshState(root).review_agents.completed.length, 0);
 });
@@ -791,7 +784,7 @@ test('aged Codex reviewer starts block until their exact terminal result', (t) =
   assert.equal(nextAction(state).action, 'complete');
   recordSubagent(root, 'start', {
     agent_id: 'aged-codex-reviewer',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_claude_primary_reviewer'
   });
   assert.equal(nextAction(readState(root)).reason, 'review-in-progress');
   const statePath = resolveStatePath(root);
@@ -804,7 +797,7 @@ test('aged Codex reviewer starts block until their exact terminal result', (t) =
   assert.equal(nextAction(state).reason, 'review-in-progress');
   state = recordSubagent(root, 'stop', {
     agent_id: 'aged-codex-reviewer',
-    agent_type: 'sd0x_test_reviewer',
+    agent_type: 'sd0x_claude_primary_reviewer',
     last_assistant_message: '[P1] app.js:1 An aged reviewer found a regression.'
   });
   assert.equal(state.gates.review.status, 'fail');
@@ -884,13 +877,13 @@ test('reviewer result is discarded when the fingerprint changes after start', (t
   const started = refreshState(root).worktree.fingerprint;
   recordSubagent(root, 'start', {
     agent_id: 'reviewer-stale',
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: 'sd0x_claude_primary_reviewer'
   });
 
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 7;\n');
   recordSubagent(root, 'stop', {
     agent_id: 'reviewer-stale',
-    agent_type: 'sd0x_test_reviewer',
+    agent_type: 'sd0x_claude_primary_reviewer',
     last_assistant_message: 'No actionable findings remain.'
   });
 
@@ -971,7 +964,7 @@ test('legacy state invalidates old gates and discards retry counters', (t) => {
   }));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 8);
+  assert.equal(state.schema_version, 9);
   assert.equal(state.gates.review.status, 'pending');
   assert.equal(state.gates.verify.status, 'pending');
   assert.equal('iteration' in state, false);
@@ -980,7 +973,7 @@ test('legacy state invalidates old gates and discards retry counters', (t) => {
   ]);
 });
 
-test('schema v7 migration invalidates legacy three-view evidence', (t) => {
+test('schema v8 migration invalidates legacy two-view evidence', (t) => {
   const root = createChangedRepo('codex');
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   refreshState(root);
@@ -988,17 +981,21 @@ test('schema v7 migration invalidates legacy three-view evidence', (t) => {
   const passed = markGate(root, 'review', 'pass', reviewEvidence('codex'));
   const statePath = resolveStatePath(root);
   const legacy = structuredClone(passed);
-  legacy.schema_version = 7;
-  legacy.gates.review.evidence.reviewers = 3;
+  legacy.schema_version = 8;
+  legacy.gates.review.evidence.reviewers = 2;
   legacy.gates.review.evidence.agents = [
     'sd0x_codex_primary_reviewer',
-    'sd0x_reviewer',
     'sd0x_test_reviewer'
   ];
+  legacy.review_agents.completed.push({
+    ...legacy.review_agents.completed[0],
+    agent_id: 'sd0x_test_reviewer-v8-migration',
+    agent_type: 'sd0x_test_reviewer'
+  });
   fs.writeFileSync(statePath, JSON.stringify(legacy));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 8);
+  assert.equal(state.schema_version, 9);
   assert.equal(state.gates.review.status, 'pending');
   assert.equal(state.gates.verify.status, 'pending');
   assert.deepEqual(state.review_agents.started, []);
@@ -1022,7 +1019,7 @@ test('schema v4 migration invalidates pre-provider evidence and removes exhauste
   fs.writeFileSync(statePath, JSON.stringify(legacy));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 8);
+  assert.equal(state.schema_version, 9);
   assert.equal('iteration' in state, false);
   assert.equal('continuations' in state.sessions[0], false);
   assert.equal(state.gates.review.status, 'pending');
@@ -1093,7 +1090,7 @@ test('schema v3 migration clears gate evidence and preserves sessions', (t) => {
   }));
 
   const state = readState(root);
-  assert.equal(state.schema_version, 8);
+  assert.equal(state.schema_version, 9);
   assert.deepEqual(state.sessions.map((entry) => entry.session_id), [
     'v3-session'
   ]);
@@ -1112,7 +1109,7 @@ test('state lock immediately reclaims a dead owner', (t) => {
   fs.writeFileSync(path.join(lockPath, 'owner'), '99999999');
 
   const state = refreshState(root, { sessionId: 'session-after-crash' });
-  assert.equal(state.schema_version, 8);
+  assert.equal(state.schema_version, 9);
   assert.equal(state.sessions[0].session_id, 'session-after-crash');
   assert.equal(fs.existsSync(lockPath), false);
 });
@@ -1153,28 +1150,23 @@ test('review pass rejects terminal reviewer findings', (t) => {
   const root = createChangedRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   refreshState(root);
-  for (const [agentType, message] of [
-    ['sd0x_claude_primary_reviewer', 'No actionable findings remain.'],
-    ['sd0x_test_reviewer', 'High - a regression remains.']
-  ]) {
-    const agentId = `${agentType}-1`;
-    recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
-    recordSubagent(root, 'stop', {
-      agent_id: agentId,
-      agent_type: agentType,
-      stop_hook_active: false,
-      last_assistant_message: message
-    });
-  }
+  const agentType = 'sd0x_claude_primary_reviewer';
+  recordSubagent(root, 'start', { agent_id: `${agentType}-finding`, agent_type: agentType });
+  recordSubagent(root, 'stop', {
+    agent_id: `${agentType}-finding`,
+    agent_type: agentType,
+    stop_hook_active: false,
+    last_assistant_message: 'High - a regression remains.'
+  });
   recordClaude(root);
-  const cleanTestId = 'sd0x_test_reviewer-clean-after-finding';
+  const cleanTestId = 'sd0x_claude_primary_reviewer-clean-after-finding';
   recordSubagent(root, 'start', {
     agent_id: cleanTestId,
-    agent_type: 'sd0x_test_reviewer'
+    agent_type: agentType
   });
   recordSubagent(root, 'stop', {
     agent_id: cleanTestId,
-    agent_type: 'sd0x_test_reviewer',
+    agent_type: agentType,
     last_assistant_message: 'No actionable findings remain.'
   });
 
@@ -1196,18 +1188,14 @@ test('Claude MCP findings and stale fingerprints cannot satisfy review', (t) => 
     ['findings', 'clean']
   );
 
-  for (const agentType of [
-    'sd0x_claude_primary_reviewer',
-    'sd0x_test_reviewer'
-  ]) {
-    const agentId = `${agentType}-clean`;
-    recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
-    recordSubagent(root, 'stop', {
-      agent_id: agentId,
-      agent_type: agentType,
-      last_assistant_message: 'No actionable findings remain.'
-    });
-  }
+  const primaryAgent = 'sd0x_claude_primary_reviewer';
+  const agentId = `${primaryAgent}-clean`;
+  recordSubagent(root, 'start', { agent_id: agentId, agent_type: primaryAgent });
+  recordSubagent(root, 'stop', {
+    agent_id: agentId,
+    agent_type: primaryAgent,
+    last_assistant_message: 'No actionable findings remain.'
+  });
   assert.throws(
     () => markGate(root, 'review', 'pass', reviewEvidence()),
     /unresolved findings/

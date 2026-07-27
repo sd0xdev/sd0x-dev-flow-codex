@@ -116,17 +116,23 @@
       "source_name": "best-practices",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "best-practices",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "web"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "best-practices",
       "promotion_unit_id": "best-practices/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-best-practices-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -177,17 +183,22 @@
       "source_name": "check-coverage",
       "disposition": "port",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "check-coverage",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "check-coverage",
       "promotion_unit_id": "check-coverage/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-check-coverage-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Port the source workflow while preserving its bounded behavior."
     },
@@ -308,17 +319,24 @@
       "source_name": "codex-cli-review",
       "disposition": "merge",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "promoted",
       "target_skill": "review",
       "target_mode": "deep",
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/deep",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-review-deep-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -326,17 +344,24 @@
       "source_name": "codex-code-review",
       "disposition": "merge",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "promoted",
       "target_skill": "review",
       "target_mode": null,
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-review-default-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -383,7 +408,7 @@
       "wave": 3,
       "routing_owner": "feature-dev",
       "promotion_unit_id": "feature-dev/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-feature-dev-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-feature-dev-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -391,17 +416,24 @@
       "source_name": "codex-review",
       "disposition": "merge",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "promoted",
       "target_skill": "review",
       "target_mode": "full",
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/full",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-review-full-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -409,17 +441,24 @@
       "source_name": "codex-review-branch",
       "disposition": "merge",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "promoted",
       "target_skill": "review",
       "target_mode": "branch",
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/branch",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-review-branch-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -427,17 +466,22 @@
       "source_name": "codex-review-doc",
       "disposition": "merge",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "doc-review",
       "target_mode": null,
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "doc-review",
       "promotion_unit_id": "doc-review/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-doc-review-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -445,17 +489,24 @@
       "source_name": "codex-review-fast",
       "disposition": "merge",
       "target_package": "core",
-      "delivery_state": "planned",
+      "delivery_state": "promoted",
       "target_skill": "review",
       "target_mode": "fast",
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "local-cli"
+      ],
+      "operations": [
+        "local-write",
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/fast",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-review-fast-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -463,17 +514,23 @@
       "source_name": "codex-security",
       "disposition": "merge",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "security-review",
       "target_mode": null,
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "web"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "security-review",
       "promotion_unit_id": "security-review/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-security-review-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -523,18 +580,23 @@
     {
       "source_name": "codex-test-review",
       "disposition": "merge",
-      "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "target_package": "core",
+      "delivery_state": "promoted",
       "target_skill": "test-review",
       "target_mode": null,
       "alias_candidate": true,
       "alias_policy": "mapping-only",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "test-review",
       "promotion_unit_id": "test-review/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-test-review-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -578,7 +640,7 @@
       "source_name": "create-request",
       "disposition": "adapt",
       "target_package": "core",
-      "delivery_state": "candidate",
+      "delivery_state": "promoted",
       "target_skill": "create-request",
       "target_mode": null,
       "alias_candidate": false,
@@ -594,7 +656,7 @@
       "wave": 1,
       "routing_owner": "create-request",
       "promotion_unit_id": "create-request/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-23-create-request-recovery-repromotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-27-create-request-windows-git-repromotion.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -715,17 +777,23 @@
       "source_name": "dep-audit",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "dep-audit",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "web"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "dep-audit",
       "promotion_unit_id": "dep-audit/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-dep-audit-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -769,17 +837,22 @@
       "source_name": "doc-review",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "doc-review",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "doc-review",
       "promotion_unit_id": "doc-review/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-doc-review-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -847,7 +920,7 @@
       "wave": 3,
       "routing_owner": "feature-dev",
       "promotion_unit_id": "feature-dev/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-15-wave3-feature-dev-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-feature-dev-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Retain the existing canonical workflow and adapt only at shared runtime boundaries."
     },
@@ -1321,17 +1394,22 @@
       "source_name": "pre-pr-audit",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "pre-pr-audit",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "pre-pr-audit",
       "promotion_unit_id": "pre-pr-audit/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-pre-pr-audit-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1375,17 +1453,22 @@
       "source_name": "project-audit",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "project-audit",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "project-audit",
       "promotion_unit_id": "project-audit/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-project-audit-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1633,17 +1716,22 @@
       "source_name": "risk-assess",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "risk-assess",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "risk-assess",
       "promotion_unit_id": "risk-assess/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-risk-assess-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1687,17 +1775,23 @@
       "source_name": "security-review",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "security-review",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git",
+        "web"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "security-review",
       "promotion_unit_id": "security-review/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-security-review-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1912,35 +2006,45 @@
       "source_name": "test-health",
       "disposition": "adapt",
       "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "delivery_state": "pack-ready",
       "target_skill": "test-health",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "test-health",
       "promotion_unit_id": "test-health/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-25-wave4-test-health-default-pack-ready.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
     {
       "source_name": "test-review",
       "disposition": "adapt",
-      "target_package": "quality-pack",
-      "delivery_state": "planned",
+      "target_package": "core",
+      "delivery_state": "promoted",
       "target_skill": "test-review",
       "target_mode": null,
       "alias_candidate": false,
       "alias_policy": "none",
-      "capabilities": [],
-      "operations": [],
+      "capabilities": [
+        "core",
+        "git"
+      ],
+      "operations": [
+        "read"
+      ],
       "wave": 4,
       "routing_owner": "test-review",
       "promotion_unit_id": "test-review/default",
-      "promotion_request": null,
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-26-test-review-final-audit-closure.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },

@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "quality-pack",
+  "target_skill": "pre-pr-audit",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/pre-pr-audit-default-routing.test.js"
+      ],
+      "promotion_unit_id": "pre-pr-audit/default",
+      "routing": {
+        "negative_boundaries": [
+          "Create and publish the pull request for this branch.",
+          "Prepare the branch for merge after all pull-request reviews pass.",
+          "Summarize the existing pull request for reviewers."
+        ],
+        "positive_triggers": [
+          "Audit this branch for pull-request readiness without publishing it.",
+          "Check whether the current changes, tests, and commits are ready for a pull request.",
+          "Perform the final local readiness audit before I create the pull request."
+        ]
+      },
+      "source_names": [
+        "pre-pr-audit"
+      ],
+      "target_mode": null
+    }
+  ]
+}

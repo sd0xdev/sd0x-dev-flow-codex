@@ -9,4 +9,3 @@ try {
   process.stderr.write(`sd0x snapshot: ${error.message}\n`);
   process.exitCode = 1;
 }
-

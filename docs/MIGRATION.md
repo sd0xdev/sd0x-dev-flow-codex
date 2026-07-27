@@ -1,6 +1,6 @@
 # Claude Plugin to Codex Plugin Migration
 
-<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
+<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
 
 This document records the high-level migration boundary. For current architecture, development setup, reload rules, troubleshooting, and the continuation checklist, read [PROJECT-MIGRATION-GUIDE.md](PROJECT-MIGRATION-GUIDE.md).
 
@@ -22,7 +22,7 @@ Preserve the original engineering invariants, not the original command inventory
 | Slash commands | Curated plugin skills | Consolidated into nine intent-driven workflows to protect context budget. |
 | `allowed-tools` skill metadata | Runtime permissions plus narrow skill instructions | Removed because it is not the Codex skill contract. |
 | Codex MCP primary review | Configured primary subagent | Defaults to `gpt-5.6-sol`/`xhigh`; an explicit project setting selects the Claude wrapper and bundled read-only adapter. |
-| `Task` secondary reviewer | Native parallel subagents | Uses the project-scoped configured primary and test agent as two independent Codex-orchestrated perspectives. |
+| `Task` secondary reviewer | Optional `test-review` skill | Preserves focused test/AC analysis as a read-only, non-gating workflow rather than a required project agent. |
 | Claude Edit/Write payload fields | Canonical Codex `apply_patch` adapter | Parses `tool_input.command` patch headers. |
 | Claude Stop loop | Codex Stop non-blocking completion advisory | The model decides whether more review/verification is warranted; exact-fingerprint gate state remains visible and cannot be claimed as passed without runtime evidence. |
 | Session state in project files | Git metadata runtime state | Keeps loop state out of the worktree. |
@@ -33,7 +33,7 @@ Preserve the original engineering invariants, not the original command inventory
 ## What Migrated
 
 - Completion guidance through SessionStart, edit, prompt, subagent, and a non-blocking Stop advisory；protected paths、activation failures and unreadable runtime state remain hard failures.
-- A Codex-first configurable primary subagent plus an independent test/acceptance review using observed read-only Codex subagents.
+- A Codex-first configurable primary subagent as the sole fingerprint-bound review authority, plus an optional read-only `test-review` skill for test/acceptance analysis.
 - Deterministic verification with project-aware commands and recorded exit-code evidence.
 - Protected-path checks for Codex `apply_patch` operations.
 - Idempotent repository setup that preserves user-authored `AGENTS.md` content.

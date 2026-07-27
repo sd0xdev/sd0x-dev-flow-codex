@@ -13,6 +13,7 @@ const {
   refreshState
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
+  TIMEOUT_MS,
   commandForPlatform,
   detectCommands,
   execute,
@@ -65,26 +66,19 @@ function setReviewProvider(root, provider) {
 
 function passReview(root) {
   refreshState(root);
-  for (const agentType of [
-    'sd0x_codex_primary_reviewer',
-    'sd0x_test_reviewer'
-  ]) {
-    const agentId = `${agentType}-1`;
-    recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
-    recordSubagent(root, 'stop', {
-      agent_id: agentId,
-      agent_type: agentType,
-      stop_hook_active: false,
-      last_assistant_message: 'No actionable findings remain.'
-    });
-  }
+  const agentType = 'sd0x_codex_primary_reviewer';
+  const agentId = `${agentType}-1`;
+  recordSubagent(root, 'start', { agent_id: agentId, agent_type: agentType });
+  recordSubagent(root, 'stop', {
+    agent_id: agentId,
+    agent_type: agentType,
+    stop_hook_active: false,
+    last_assistant_message: 'No actionable findings remain.'
+  });
   return markGate(root, 'review', 'pass', {
     provider: 'codex',
-    reviewers: 2,
-    agents: [
-      'sd0x_codex_primary_reviewer',
-      'sd0x_test_reviewer'
-    ],
+    reviewers: 1,
+    agents: ['sd0x_codex_primary_reviewer'],
     findings: 0
   });
 }
@@ -138,7 +132,8 @@ test('package commands keep the timeout and Windows runner shim', () => {
   assert.equal(observed.command, 'npm.cmd');
   assert.deepEqual(observed.args, ['run', 'check']);
   assert.equal(observed.options.shell, true);
-  assert.equal(observed.options.timeout, 30 * 60 * 1000);
+  assert.equal(TIMEOUT_MS, 60 * 60 * 1000);
+  assert.equal(observed.options.timeout, TIMEOUT_MS);
 });
 
 test('verification records successful deterministic evidence', (t) => {

@@ -56,7 +56,7 @@ const VALID_STATUSES = new Set(Array.of(
   'design',
   'proposed'
 ));
-const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });
+const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: nodeProcess.platform === 'win32' ? 'NUL' : os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });
 
 function repositoryRoot(cwd) {
   let output = '';

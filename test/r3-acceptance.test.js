@@ -11,13 +11,13 @@ const { canonicalEvidenceBlob } = require(
 const ROOT = path.resolve(__dirname, '..');
 const COVERAGE = [
   { ac: 1, implementation: 'derivePromotionEvidence', implementationSignals: ['request_closure_record_sha256', 'record_sha256'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'promotion records require final closure and current review/verify gates', signals: ['request_closure_record_sha256', 'audit.selected.record_sha256'] }] },
-  { ac: 2, implementation: 'prepareRequestClosure', implementationSignals: ['validateClosureEvidence', 'appendEvidenceRevisionUnlocked'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'request closure prepare and finalize bind proposal, projection, and two reviews', signals: ['prepareRequestClosure', 'finalizeRequestClosure'] }, { name: 'ledger audit rejects a closure committed before its pending record', signals: ['rewriteEvidenceCommitOrder', 'must follow.*pending commit-order'] }, { name: 'closure and promotion writers reject superseded pending and closure records', signals: ['firstPending', 'secondPending', 'thirdPending', 'superseded request closure'] }, { name: 'ledger writer rejects unknown record kinds', signals: ["kind: 'unknown-transition'"] }, { name: 'ledger writer rejects cross-kind and missing record fields', signals: ["'cross-kind', 'missing-field'", "bundle.value.kind = 'promotion'", 'delete bundle.value.subject'] }, { name: 'closure prepare and finalize reject interposed worktree drift before append', signals: ['beforeAppend', 'beforeFinalSnapshot'] }, { name: 'prepare replay re-audits the complete evidence ref', signals: ['replay-tamper', 'prepareRequestClosure'] }] },
+  { ac: 2, implementation: 'prepareRequestClosure', implementationSignals: ['validateClosureEvidence', 'appendEvidenceRevisionUnlocked'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'request closure prepare and finalize bind proposal, projection, subject review, and docs review', signals: ['prepareRequestClosure', 'finalizeRequestClosure'] }, { name: 'ledger audit rejects a closure committed before its pending record', signals: ['rewriteEvidenceCommitOrder', 'must follow.*pending commit-order'] }, { name: 'closure and promotion writers reject superseded pending and closure records', signals: ['firstPending', 'secondPending', 'thirdPending', 'superseded request closure'] }, { name: 'ledger writer rejects unknown record kinds', signals: ["kind: 'unknown-transition'"] }, { name: 'ledger writer rejects cross-kind and missing record fields', signals: ["'cross-kind', 'missing-field'", "bundle.value.kind = 'promotion'", 'delete bundle.value.subject'] }, { name: 'closure prepare and finalize reject interposed worktree drift before append', signals: ['beforeAppend', 'beforeFinalSnapshot'] }, { name: 'prepare replay re-audits the complete evidence ref', signals: ['replay-tamper', 'prepareRequestClosure'] }] },
   { ac: 3, implementation: 'appendEvidenceRevision', implementationSignals: ['withStateLock', 'appendEvidenceRevisionUnlocked'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'evidence revisions are canonical, parent-linked, CAS-protected, and worktree-neutral', signals: ['expected_old_oid', "'rev-list', '--parents'", 'snapshot(root).fingerprint'] }] },
   { ac: 4, implementation: 'auditEvidenceLedgerTransaction', implementationSignals: ["'rev-list', '--reverse', '--parents'", 'validateEvidenceBlobSemantics'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'promotion records require final closure and current review/verify gates', signals: ['cloneRoot', 'promotionBundle', 'auditEvidenceLedger(bundleClone'] }] },
   { ac: 5, implementation: 'derivePromotionEvidence', implementationSignals: ['isCurrentPass', 'supersedes_record_sha256'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'promotion records require final closure and current review/verify gates', signals: ['supersedes_record_sha256: promotion.record_sha256', 'revisedPromotion', 'current final review pass'] }] },
   { ac: 6, implementation: 'auditEvidenceLedgerTransaction', implementationSignals: ['Evidence ref changed while it was audited', 'Evidence commit history must be one parent-linked append chain'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'ledger re-audit rejects blob tamper, missing metadata, and divergent history', signals: ["corruption === 'missing-ref'", "'wrong-kind'", 'divergent evidence', 'unexpected.json', 'tampered evidence'] }, { name: 'ledger audit rejects unknown subjects, noncanonical paths, and malformed AC identities', signals: ["'ac-identity'", "'unsafe-request'", 'rehashEvidenceBundle'] }, { name: 'closure finalization rejects proposed request and non-request drift', signals: ["drift of ['request', 'projection']", 'request bytes drifted', 'projection drifted'] }, { name: 'closure and promotion writers reject superseded pending and closure records', signals: ['superseded request closure', 'superseded or stale'] }, { name: 'promotion records require final closure and current review/verify gates', signals: ["'> **Status**: In Progress'", 'Current request no longer matches durable completion evidence', "fs.appendFileSync(skillPath, 'drift", 'completion mismatch for payload_tree_sha256'] }] },
   { ac: 7, implementation: 'derivePromotionEvidence', implementationSignals: ["kind === 'retirement'", 'payload_tree_sha256', 'isCurrentPass'], file: 'test/evidence-ledger.test.js', regressions: [{ name: 'promotion records require final closure and current review/verify gates', signals: ['packReadyCorePromotionIsRejected', 'Core promotion requires target_package=core', 'staleRetirementReviewIsRejected', 'current final review pass', 'missingRetirementReasonIsRejected', 'Retirement requires retired disposition, approved reason, and null payload', 'verify_evidence_sha256, null', 'payload_tree_sha256, null'] }] },
-  { ac: 8, implementation: 'requiredReviewers', implementationSignals: ['sd0x_codex_primary_reviewer', 'sd0x_test_reviewer'], file: 'test/collaboration-review.test.js', regressions: [{ name: 'collaboration adapter imports two canonical terminal reviewer results', signals: ['REVIEWERS.map', 'completed.length, 2'] }, { file: 'test/state.test.js', name: 'schema v7 migration invalidates legacy three-view evidence', signals: ['legacy.schema_version = 7', 'reviewers = 3', "state.schema_version, 8", "gates.review.status, 'pending'"] }, { file: 'test/evidence-ledger.test.js', name: 'writer and auditor reject rehashed legacy three-view review blobs', signals: ['review.gate.reviewers = 3', 'requires exactly two independent reviewers'] }, { file: 'test/evidence-ledger.test.js', name: 'redaction removes repository, account, and secret data and refuses private keys', signals: ['canonicalEvidenceBlob', 'privateKeyFixture', '<repo>|<account>|<secret>|<absolute-path>'] }, { file: 'test/evidence-ledger.test.js', name: 'closure prepare refuses exact proposed bytes that would require redaction', signals: ['privateKeyFixture', 'bearerFixture', 'requires redaction'] }] }
+  { ac: 8, implementation: 'requiredReviewers', implementationSignals: ['sd0x_codex_primary_reviewer'], file: 'test/collaboration-review.test.js', regressions: [{ name: 'collaboration adapter imports one canonical terminal reviewer result', signals: ['REVIEWERS.map', 'completed.length, 1'] }, { file: 'test/state.test.js', name: 'schema v8 migration invalidates legacy two-view evidence', signals: ['legacy.schema_version = 8', 'reviewers = 2', "state.schema_version, 9", "gates.review.status, 'pending'"] }, { file: 'test/state.test.js', name: 'retired test reviewer and similarly named agents have no gate authority', signals: ['sd0x_test_reviewer', 'assert.deepEqual(state.review_agents, reviewerEvidence)'] }, { file: 'test/evidence-ledger.test.js', name: 'writer and auditor reject rehashed legacy three-view review blobs', signals: ['review.gate.reviewers = 3', 'requires one current or two legacy reviewers'] }, { file: 'test/evidence-ledger.test.js', name: 'redaction removes repository, account, and secret data and refuses private keys', signals: ['canonicalEvidenceBlob', 'privateKeyFixture', '<repo>|<account>|<secret>|<absolute-path>'] }, { file: 'test/evidence-ledger.test.js', name: 'closure prepare refuses exact proposed bytes that would require redaction', signals: ['privateKeyFixture', 'bearerFixture', 'requires redaction'] }] }
 ];
 
 function scopedTest(source, name) {
@@ -86,7 +86,7 @@ test('R3 acceptance scope rejects empty migration and missing redaction regressi
     '});'
   ].join('\n');
   assert.throws(() => assertScopedRegression(emptyMigration, {
-    name: 'schema migration', signals: ['legacy.schema_version = 7']
+    name: 'schema migration', signals: ['legacy.schema_version = 8']
   }));
   assert.throws(() => assertScopedRegression('', {
     name: 'redaction refusal', signals: ['requires redaction']
@@ -127,4 +127,34 @@ test('R3 acceptance evidence file is byte-preserving under canonical redaction',
   const source = fs.readFileSync(__filename, 'utf8');
   const envelope = JSON.parse(canonicalEvidenceBlob(ROOT, source));
   assert.equal(envelope.value, source);
+});
+
+test('R3 specification grants current evidence authority to one configured primary', () => {
+  const spec = fs.readFileSync(path.join(
+    ROOT, 'docs/features/skill-toolkit-migration/2-tech-spec.md'
+  ), 'utf8');
+  assert.ok(spec.includes(
+    'Current review blob只保留 configured primary 的 Codex terminal result'
+  ));
+  assert.ok(spec.includes(
+    'schema v8雙 reviewer evidence與更舊三視角 evidence只可歷史稽核，不能取得 current authority'
+  ));
+  for (const legacyPhrase of [
+    '兩個 Codex terminal results',
+    'primary + test 兩個 reviewer',
+    'begin後兩個 subject-bound terminal reviewers'
+  ]) {
+    assert.equal(spec.includes(legacyPhrase), false);
+  }
+  const guide = fs.readFileSync(path.join(ROOT, 'docs',
+    'PROJECT-MIGRATION-GUIDE.md'), 'utf8');
+  assert.ok(guide.includes(
+    'v1–v8 會保留可辨識的 activated sessions，但保守清除所有 pre-v9 gates'
+  ));
+  assert.equal(guide.includes(
+    'v1–v7 會保留可辨識的 activated sessions，但保守清除所有 pre-v8 gates'
+  ), false);
+  assert.ok(guide.includes(
+    'configured Codex/Claude primary clean outcomes、legacy multi-reviewer schema migration'
+  ));
 });

@@ -186,15 +186,28 @@ function mcpServerStatus(pluginRoot, execute = spawnSync) {
   }
   const initialized = responses.find((item) => item.id === 1)?.result;
   const tools = responses.find((item) => item.id === 2)?.result?.tools;
-  const tool = Array.isArray(tools)
+  const reviewTool = Array.isArray(tools)
     ? tools.find((item) => item.name === 'review_worktree')
     : null;
+  const runtimeTool = Array.isArray(tools)
+    ? tools.find((item) => item.name === 'run_skill_script')
+    : null;
+  const serverReady = initialized?.serverInfo?.name === 'sd0x-claude-review';
+  const reviewReady = serverReady && Boolean(reviewTool);
+  const runtimeReady = serverReady && Boolean(runtimeTool);
   return {
-    ready: initialized?.serverInfo?.name === 'sd0x-claude-review' && Boolean(tool),
+    ready: reviewReady && runtimeReady,
+    review_ready: reviewReady,
+    runtime_ready: runtimeReady,
     server_name: initialized?.serverInfo?.name || null,
     protocol_version: initialized?.protocolVersion || null,
-    tool: tool?.name || null,
-    reason: tool ? null : 'review-tool-missing'
+    tool: reviewTool?.name || null,
+    runtime_tool: runtimeTool?.name || null,
+    reason: !serverReady
+      ? 'unexpected-server-identity'
+      : !runtimeTool
+        ? 'runtime-tool-missing'
+        : !reviewTool ? 'review-tool-missing' : null
   };
 }
 
@@ -228,9 +241,10 @@ function doctor(cwd, options = {}) {
     'skills/verify/scripts/verify.js',
     'skills/setup/SKILL.md',
     'skills/setup/scripts/setup.js',
+    'skills/test-review/SKILL.md',
+    'skills/test-review/migration-contract.json',
     'templates/agents/sd0x-claude-primary-reviewer.toml',
-    'templates/agents/sd0x-codex-primary-reviewer.toml',
-    'templates/agents/sd0x-test-reviewer.toml'
+    'templates/agents/sd0x-codex-primary-reviewer.toml'
   ];
   const checks = required.map((relative) => ({
     check: relative,
@@ -243,14 +257,16 @@ function doctor(cwd, options = {}) {
   const claude = claudeRequired
     ? (options.claudeStatus || claudeCliStatus)()
     : { required: false, checked: false };
-  const mcp = claudeRequired
-    ? (options.mcpStatus || mcpServerStatus)(pluginRoot)
-    : { required: false, checked: false };
+  const mcp = (options.mcpStatus || mcpServerStatus)(pluginRoot);
+  checks.push({
+    check: 'skill-runtime-mcp-handshake',
+    ok: mcp.runtime_ready === true
+  });
   if (claudeRequired) {
     checks.push({ check: 'claude-cli', ok: claude.installed });
     checks.push({ check: 'claude-capabilities', ok: claude.compatible === true });
     checks.push({ check: 'claude-auth', ok: claude.authenticated });
-    checks.push({ check: 'claude-review-mcp-handshake', ok: mcp.ready });
+    checks.push({ check: 'claude-review-mcp-handshake', ok: mcp.review_ready === true });
   }
   let status = null;
   let stateError = null;

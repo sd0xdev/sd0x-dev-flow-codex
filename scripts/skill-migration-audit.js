@@ -29,7 +29,7 @@ const {
   auditRequestClosures,
   evidenceRefOid,
   hashPayloadTree,
-  latestCompletionEvidence
+  latestCompletionEvidenceSnapshot
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   snapshot: snapshotWorktree
@@ -42,6 +42,9 @@ const {
   canonicalRequestStatus,
   renderedMarkdownLines
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/request-metadata');
+const {
+  RUNTIME_ENTRYPOINTS
+} = require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server');
 
 const ROOT = path.resolve(__dirname, '..');
 const CANDIDATE_COMPLETE_EVIDENCE = Symbol('candidate-complete-evidence');
@@ -77,12 +80,12 @@ const AUTHORIZATION_INSTRUCTION = 'This byte-exact block is the sole authorizati
 const AUTHORIZATION_BLOCK = `<!-- sd0x-authorization-policy:v1:start -->\n${AUTHORIZATION_INSTRUCTION}\n<!-- sd0x-authorization-policy:v1:end -->`;
 const CLEAN_GIT_OS_DECLARATION = "const os = require('node:os');";
 const CLEAN_GIT_PROCESS_DECLARATION = "const nodeProcess = require('node:process');";
-const CLEAN_GIT_ENV_DECLARATION = "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });";
+const CLEAN_GIT_ENV_DECLARATION = "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: nodeProcess.platform === 'win32' ? 'NUL' : os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });";
 const CLOSED_GIT_ENV_DECLARATION = "const CLOSED_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' });";
 const GIT_ENVIRONMENT_PATTERN = /\b(?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))\b/;
 const GIT_ENVIRONMENT_QUOTED_KEY_PATTERN = /['"](?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))['"]\s*\]?\s*:/;
 const ENVIRONMENT_MUTATION_PATTERN = /\bdelete\s*\(?\s*process\.env\b|\b(?:Object\.assign|Object\.defineProperty|Reflect\.(?:deleteProperty|set))\s*\(\s*process\.env\b|(?:\+\+|--)\s*\(?\s*process\.env(?:\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])|\bprocess\.env(?:\s*|\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])[\s)\]}]*(?:=(?!=)|\+=|-=|\*=|\*\*=|\/=|%=|<<=|>>=|>>>=|&=|\^=|\|=|\?\?=|&&=|\|\|=|\+\+|--)|[\[{][^\]}\n]*process\.env[^\]}\n]*[\]}]\s*=/;
-const SHELL_GIT_ENV_MUTATION_PATTERN = /\b[A-Z_][A-Z0-9_]*(?:\[[^\]\n]+\])?\s*(?:\+?=)|\b(?:export|unset)\s+(?:-[^\s]+\s+)*[A-Z_][A-Z0-9_]*\b|\benv\s+(?:-[^\s]+|--[A-Za-z-]+|[^\n;`]*\b[A-Z_][A-Z0-9_]*(?:\[[^\]\n]+\])?\s*(?:\+?=))|\bprintf\s+-v\s+[A-Z_][A-Z0-9_]*\b|\b(?:read|readarray|mapfile)\s+(?:-[^\s]+\s+)*[A-Z_][A-Z0-9_]*\b|\bgetopts\s+\S+\s+[A-Z_][A-Z0-9_]*\b|(?:^|[;&|]\s*)(?:source|\.)\s+\S+/m;
+const SHELL_GIT_ENV_MUTATION_PATTERN = /\b[A-Z_][A-Z0-9_]*(?:\[[^\]\n]+\])?\s*(?:\+?=)|\b(?:export|unset)\s+(?:-[^\s]+\s+)*[A-Z_][A-Z0-9_]*\b|\benv\s+(?:-[^\s]+|--[A-Za-z-]+|[^\n;`]*\b[A-Z_][A-Z0-9_]*(?:\[[^\]\n]+\])?\s*(?:\+?=))|\bprintf\s+-v(?:\s+|(?=[A-Z_]))[A-Z_][A-Z0-9_]*\b|\b(?:read|readarray|mapfile)\s+(?:-[^\s]+\s+)*[A-Z_][A-Z0-9_]*\b|\bgetopts\s+\S+\s+[A-Z_][A-Z0-9_]*\b|(?:^|[;&|]\s*)(?:source|\.)\s+\S+/m;
 const FRONTMATTER_FIELDS = new Set(['name', 'description']);
 const ALIAS_CAPABILITY_PATH = 'migration/alias-capability.json';
 const ALIAS_REGISTRY_DUMP_PATH = 'migration/evidence/alias-registry-dump.json';
@@ -120,7 +123,8 @@ const ACTIVE_CANDIDATE_MOVE_WINDOW = Symbol('active-candidate-move-window');
 const ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS = new Map([
   ['create-request/default', 'Complete']
 ]);
-const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
+const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
+const TRUSTED_RUNTIME_TOOL = 'mcp__sd0x_claude_review__run_skill_script';
 const CORE_TARGETS = Object.freeze([
   'bug-fix',
   'create-request',
@@ -131,11 +135,12 @@ const CORE_TARGETS = Object.freeze([
   'review',
   'setup',
   'tech-spec',
+  'test-review',
   'verify'
 ]);
 const GRANDFATHERED_LIVE_TARGETS = Object.freeze(['reset']);
 const APPROVED_ROUTING_CATALOG_SHA256 =
-  '57c64a09d9a1800c83892e073bf5288911e868cc6cb5dbb71920b0ea90268c16';
+  'ac750a3b2e80e5d6aec7be7c0476b219f7fc27c195ab39f491c8e9278994649e';
 const MAX_JAVASCRIPT_ARRAY_PROBES = 16;
 const MAX_JAVASCRIPT_ARRAY_PROBES_PER_AUDIT = 32;
 const MAX_JAVASCRIPT_FILES_PER_CANDIDATE = 64;
@@ -410,7 +415,7 @@ function validateDisposition(disposition, inventoryNames) {
     .filter((row) => row.target_package === 'core')
     .map((row) => row.target_skill));
   assert(JSON.stringify(coreTargets) === JSON.stringify(CORE_TARGETS),
-    'core targets differ from the approved ten-target catalog');
+    'core targets differ from the approved eleven-target catalog');
 
   const expectedTargets = {};
   for (const target of [...catalogModes.keys()].sort(BYTEWISE)) {
@@ -1165,6 +1170,38 @@ function resolveRequestLink(root, from, link) {
   return relative;
 }
 
+function validateDurableRequestLineage(disposition, bindings, options = {}) {
+  if (!(options.durableOwnersByUnit instanceof Map)) return;
+  const { records, ownerByUnit } = bindings;
+  assert(records instanceof Map && ownerByUnit instanceof Map,
+    'request DAG lineage bindings are required');
+  for (const [unit, completion] of options.durableOwnersByUnit) {
+    const currentOwner = ownerByUnit.get(unit);
+    if (!currentOwner) continue;
+    const deliveredSuccessor = currentOwner === completion.request_path;
+    const priorOwner = deliveredSuccessor
+      ? completion.prior_completion_request_path
+      : completion.request_path;
+    if (!priorOwner || currentOwner === priorOwner) continue;
+    const currentRows = disposition.skills.filter((row) =>
+      row.promotion_unit_id === unit
+    );
+    const provisional = currentRows.length > 0 &&
+      currentRows.every((row) => row.delivery_state === 'candidate');
+    const durableClosure = options.durableClosuresByUnit instanceof Map
+      ? options.durableClosuresByUnit.get(unit)
+      : null;
+    const currentOwnerClosed = durableClosure?.request_path === currentOwner;
+    const expectedStatus = provisional && !deliveredSuccessor && !currentOwnerClosed
+      ? 'candidate complete'
+      : 'completed';
+    assert(records.get(currentOwner)?.status === expectedStatus &&
+        records.get(priorOwner)?.status === 'completed' &&
+        records.get(currentOwner)?.dependencies.includes(priorOwner),
+    `${unit}: replacement gate owner lacks latest durable lineage`);
+  }
+}
+
 function validateRequestDag(root, disposition, options = {}) {
   const files = requestFiles(root);
   const records = new Map();
@@ -1305,29 +1342,8 @@ function validateRequestDag(root, disposition, options = {}) {
         `${row.source_name}: delivered promotion owner must be Completed`);
     }
   }
-  if (options.durableOwnersByUnit instanceof Map) {
-    for (const [unit, completion] of options.durableOwnersByUnit) {
-      const currentOwner = ownerByUnit.get(unit);
-      if (!currentOwner) continue;
-      const deliveredSuccessor = currentOwner === completion.request_path;
-      const priorOwner = deliveredSuccessor
-        ? completion.prior_completion_request_path
-        : completion.request_path;
-      if (!priorOwner || currentOwner === priorOwner) continue;
-      const currentRows = disposition.skills.filter((row) =>
-        row.promotion_unit_id === unit
-      );
-      const provisional = currentRows.length > 0 &&
-        currentRows.every((row) => row.delivery_state === 'candidate');
-      const expectedStatus = provisional && !deliveredSuccessor
-        ? 'candidate complete'
-        : 'completed';
-      assert(records.get(currentOwner)?.status === expectedStatus &&
-          records.get(priorOwner)?.status === 'completed' &&
-          records.get(currentOwner)?.dependencies.includes(priorOwner),
-      `${unit}: replacement gate owner lacks latest durable lineage`);
-    }
-  }
+  const lineageBindings = { records, ownerByUnit };
+  validateDurableRequestLineage(disposition, lineageBindings, options);
   for (const record of records.values()) {
     for (const dependency of record.dependencies) {
       if (!unitByOwner.has(dependency)) continue;
@@ -1351,6 +1367,10 @@ function validateRequestDag(root, disposition, options = {}) {
     'request file set changed while validating the DAG');
   if (options.manifestBinding && typeof options.manifestBinding === 'object') {
     options.manifestBinding.files = [...files];
+  }
+  if (options.lineageBinding && typeof options.lineageBinding === 'object') {
+    options.lineageBinding.records = records;
+    options.lineageBinding.ownerByUnit = ownerByUnit;
   }
   for (const [relative, bytes] of snapshots) {
     const absolute = containedPath(root, relative, { label: 'request ticket', type: 'file' });
@@ -1413,12 +1433,8 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     : validateWave1Readiness(root, disposition, {
       snapshotBindings: sourceSnapshots
     });
-  const durableOwnersByUnit = sourceEvidenceOid
-    ? new Map(latestCompletionEvidence(root).map((record) => [
-      record.promotion_unit_id, record
-    ]))
-    : new Map();
   const requestManifest = {};
+  const requestLineage = {};
   const aliasCapability = validateAliasCapability(root, disposition, {
     ...(options.aliasCapability || {}),
     snapshotBindings: sourceSnapshots
@@ -1428,7 +1444,49 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     expectedSnapshots: sourceSnapshots,
     snapshotBindings: sourceSnapshots,
     manifestBinding: requestManifest,
-    durableOwnersByUnit
+    lineageBinding: requestLineage
+  });
+  if (typeof options.beforeCompletionEvidenceSnapshot === 'function') {
+    options.beforeCompletionEvidenceSnapshot();
+  }
+  const completionSnapshot = sourceEvidenceOid
+    ? latestCompletionEvidenceSnapshot(root)
+    : { oid: null, records: [] };
+  if (typeof options.afterCompletionEvidenceSnapshot === 'function') {
+    options.afterCompletionEvidenceSnapshot(completionSnapshot);
+  }
+  assert(completionSnapshot.oid === sourceEvidenceOid,
+    'source evidence ref changed while completion owners were selected');
+  const durableOwnersByUnit = new Map(completionSnapshot.records.map((record) => [
+    record.promotion_unit_id, record
+  ]));
+  const closureExpectations = new Map();
+  for (const row of disposition.skills) {
+    if (row.delivery_state !== 'candidate' || row.promotion_request === null ||
+        closureExpectations.has(row.promotion_unit_id)) continue;
+    const requestBytes = sourceSnapshots.get(row.promotion_request);
+    assert(requestBytes,
+      `${row.promotion_request}: candidate promotion request snapshot is missing`);
+    if (canonicalRequestStatus(requestBytes.toString('utf8'))?.toLowerCase() ===
+        'completed') {
+      closureExpectations.set(row.promotion_unit_id, {
+        promotion_unit_id: row.promotion_unit_id,
+        kind: 'request-closure',
+        request_path: row.promotion_request
+      });
+    }
+  }
+  const closureSnapshot = closureExpectations.size > 0
+    ? auditRequestClosures(root, [...closureExpectations.values()])
+    : { oid: sourceEvidenceOid, selected: [] };
+  assert(closureSnapshot.oid === sourceEvidenceOid,
+    'source evidence ref changed while request closure owners were selected');
+  const durableClosuresByUnit = new Map(closureSnapshot.selected.map((record) => [
+    record.promotion_unit_id, record
+  ]));
+  validateDurableRequestLineage(disposition, requestLineage, {
+    durableOwnersByUnit,
+    durableClosuresByUnit
   });
   if (!context.candidateSandbox) {
     validateCandidateCompletePackEvidence(root, disposition, {
@@ -1438,6 +1496,16 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
   if (typeof options.beforeDeliveredEvidenceAudit === 'function') {
     options.beforeDeliveredEvidenceAudit();
   }
+  const selectCompletionEvidence = (expected) => {
+    const selected = durableOwnersByUnit.get(expected.promotion_unit_id);
+    assert(selected,
+      `Evidence has no completion record for ${expected.promotion_unit_id}`);
+    for (const [field, value] of Object.entries(expected)) {
+      assert(selected[field] === value,
+        `Evidence completion mismatch for ${field}`);
+    }
+    return { oid: sourceEvidenceOid, selected };
+  };
   const deliveredUnits = new Map();
   for (const row of rows.values()) {
     if (!['pack-ready', 'promoted', 'retired'].includes(row.delivery_state)) continue;
@@ -1450,7 +1518,6 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
     deliveredUnits.set(row.promotion_unit_id, kind);
   }
   if (!options.skipDeliveredEvidence) {
-    if (evidenceRefOid(root)) auditEvidenceLedger(root);
     for (const [promotionUnitId, kind] of deliveredUnits) {
       const unitRows = disposition.skills.filter((row) =>
         row.promotion_unit_id === promotionUnitId
@@ -1513,13 +1580,13 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
             assert(finalEvidence[3] === validated.audit_fingerprint,
               `${expected.request_path}: delivered final audit evidence is stale or cross-unit`);
           }
-          return auditEvidenceLedger(root, {
+          return selectCompletionEvidence({
             ...expected,
             payload_tree_sha256: payloadHash
           });
         });
       } else {
-        auditEvidenceLedger(root, { ...expected });
+        selectCompletionEvidence({ ...expected });
       }
     }
   }
@@ -1588,7 +1655,7 @@ function auditDeliveredPayload(root, relative, options = {}, audit = () => {}) {
 function cleanGitEnvironment() {
   const env = {
     ...process.env,
-    GIT_CONFIG_GLOBAL: os.devNull,
+    GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : os.devNull,
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_NO_REPLACE_OBJECTS: '1'
   };
@@ -1995,6 +2062,46 @@ function candidateTreeDigest(tree) {
     candidateFileBytes(tree, file),
     Buffer.from('\0')
   ])));
+}
+
+function trustedCoreResourceFiles(root, tree, target) {
+  if (!CORE_TARGETS.includes(target)) return new Set();
+  const candidateMatch = /^migration\/candidates\/([a-z0-9][a-z0-9-]*)$/.exec(
+    tree.relative
+  );
+  const liveMatch = /^plugin\/sd0x-dev-flow-codex\/skills\/([a-z0-9][a-z0-9-]*)$/.exec(
+    tree.relative
+  );
+  if ((!candidateMatch && !liveMatch) ||
+      (candidateMatch || liveMatch)[1] !== target) return new Set();
+  const trusted = new Set();
+  for (const file of tree.files) {
+    if (['SKILL.md', 'migration-contract.json'].includes(file)) continue;
+    let baseBytes = null;
+    if (candidateMatch) {
+      const relative = `plugin/sd0x-dev-flow-codex/skills/${target}/${file}`;
+      const absolute = path.join(root, ...relative.split('/'));
+      const stat = lstatIfPresent(absolute);
+      if (stat?.isFile() && !stat.isSymbolicLink()) {
+        baseBytes = captureContainedRegularFile(
+          root, relative, 'trusted core candidate resource'
+        ).bytes;
+      }
+    } else {
+      try {
+        baseBytes = runGit(root, [
+          'show', `HEAD:plugin/sd0x-dev-flow-codex/skills/${target}/${file}`
+        ], null);
+      } catch {
+        baseBytes = null;
+      }
+    }
+    if (Buffer.isBuffer(baseBytes) &&
+        candidateFileBytes(tree, file).equals(baseBytes)) {
+      trusted.add(file);
+    }
+  }
+  return trusted;
 }
 
 function localReferences(markdown) {
@@ -2660,7 +2767,7 @@ function validateNode18SyntaxBaseline(code, current) {
     `${current}: import phases are newer than the Node 18 ES2022 baseline`);
 }
 
-function validateCandidateResources(tree) {
+function validateCandidateResources(tree, trustedFiles = new Set()) {
   const fileSet = new Set(tree.files);
   const javascriptProbeBudget = { used: 0 };
   const javascriptFiles = tree.files.filter((file) => /\.(?:js|cjs|mjs)$/.test(file));
@@ -2672,7 +2779,11 @@ function validateCandidateResources(tree) {
     `candidate contains more than ${MAX_JAVASCRIPT_BYTES_PER_CANDIDATE} total JavaScript bytes`);
   assert(!tree.files.some((file) => path.posix.basename(file) === 'package.json'),
     'candidate package metadata is unsupported because it changes runtime module resolution');
-  const reachable = new Set(['SKILL.md', 'migration-contract.json']);
+  const reachable = new Set([
+    'SKILL.md',
+    'migration-contract.json',
+    ...trustedFiles
+  ]);
   const queue = ['SKILL.md'];
   while (queue.length > 0) {
     const current = queue.shift();
@@ -3852,6 +3963,10 @@ function shellCommandSegments(value) {
       index += 1;
       continue;
     }
+    if (['&', '|'].includes(character) && current.endsWith('>')) {
+      current += character;
+      continue;
+    }
     if ([';', '&', '|', '(', ')', '{', '}', '\n'].includes(character)) {
       flush();
       continue;
@@ -4061,7 +4176,28 @@ function stripMarkdownBlockquote(line) {
 }
 
 function markdownFence(line) {
-  return /^\s*```\s*([A-Za-z0-9_-]*)/.exec(stripMarkdownBlockquote(line));
+  const raw = line.replace(/\r$/, '');
+  const prefix = /^(?: {0,3}>[ \t]?)* {0,3}/.exec(raw)?.[0] || '';
+  const match = /^(`{3,}|~{3,})([^\r\n]*)$/.exec(raw.slice(prefix.length));
+  if (!match) return null;
+  const info = match[2].trim();
+  if (match[1][0] === '`' && info.includes('`')) return null;
+  const language = /^([A-Za-z0-9_-]+)/.exec(info)?.[1] || '';
+  return {
+    0: match[0],
+    1: language,
+    language,
+    info,
+    marker: match[1][0],
+    length: match[1].length
+  };
+}
+
+function markdownFenceCloses(openFence, candidate) {
+  return Boolean(openFence && candidate &&
+    !candidate.info &&
+    candidate.marker === openFence.marker &&
+    candidate.length >= openFence.length);
 }
 
 function assertNoPowerShellExpressionInvocation(text, recordPath) {
@@ -4106,7 +4242,7 @@ function assertNoPowerShellExpressionInvocation(text, recordPath) {
       (/\b(?:WScript\.Shell|Shell\.Application|GetTypeFromProgID|CreateObject)\b/i
         .test(code) || /(?:^|\s)-ComObject\b/i.test(code)) ||
       /\[scriptblock\]\s*::\s*Create\b/i.test(code);
-    const sensitiveEnvironment = '(?:BASH_ENV|ENV|HOME|PATH|SHELL|SSH_AUTH_SOCK|' +
+    const sensitiveEnvironment = '(?:BASH_ENV|ENV|HOME|NODE_OPTIONS|NODE_PATH|PATH|PATHEXT|SHELL|SSH_AUTH_SOCK|' +
       'XDG_CONFIG_HOME|GIT_[A-Z0-9_]+|LD_(?:LIBRARY_PATH|PRELOAD)|DYLD_[A-Z0-9_]+|' +
       'PARALLEL|RIPGREP_CONFIG_PATH|TAPE|TAR_OPTIONS)';
     const environmentMutation = new RegExp(
@@ -4118,15 +4254,20 @@ function assertNoPowerShellExpressionInvocation(text, recordPath) {
     assert(!callOperator && !dynamicDotSource && !expressionCommand,
       `${recordPath}: candidate contains unsupported PowerShell expression invocation`);
   };
-  let fenceLanguage = null;
+  let activeFence = null;
   for (const line of text.split('\n')) {
     const fence = markdownFence(line);
     if (fence) {
-      if (fenceLanguage !== null) fenceLanguage = null;
-      else fenceLanguage = fence[1].toLowerCase();
-      continue;
+      if (!activeFence) {
+        activeFence = fence;
+        continue;
+      }
+      if (markdownFenceCloses(activeFence, fence)) {
+        activeFence = null;
+        continue;
+      }
     }
-    if (!/^(?:powershell|ps1|pwsh)$/.test(fenceLanguage || '')) continue;
+    if (!/^(?:powershell|ps1|pwsh)$/.test(activeFence?.language.toLowerCase() || '')) continue;
     assertStaticPowerShellLine(stripMarkdownBlockquote(line));
   }
   for (const context of shellCommandContexts(text)) {
@@ -4168,27 +4309,46 @@ function assertNoWindowsCommandDynamicInvocation(text, recordPath) {
     const dynamicAlias = /\bdoskey\b[^\r\n]*(?:\bgit\b|\bgh\b)/i.test(line);
     const subprocessOrReparse = /(?:^|[&|()])\s*(?:(?:cmd(?:\.exe)?|powershell(?:\.exe)?|pwsh)\b[^&|\r\n]*(?:\/[ck]\b|-Command\b|-EncodedCommand\b)|call\b|start(?=\s|$)|(?:cscript|mshta|rundll32|wscript)(?:\.exe)?\b|for\s+\/f\b)/i
       .test(line);
+    const sensitiveEnvironment = '(?:BASH_ENV|ENV|HOME|NODE_OPTIONS|NODE_PATH|PATH|PATHEXT|SHELL|' +
+      'SSH_AUTH_SOCK|XDG_CONFIG_HOME|GIT_[A-Z0-9_]+|LD_(?:LIBRARY_PATH|PRELOAD)|' +
+      'DYLD_[A-Z0-9_]+|PARALLEL|RIPGREP_CONFIG_PATH|TAPE|TAR_OPTIONS)';
+    const environmentMutation = new RegExp(
+      `\\b(?:set(?:\\s+\\/[ap])?\\s+"?${sensitiveEnvironment}\\s*=|` +
+      `setx(?:\\.exe)?(?:\\s+\\/[A-Za-z]+)*\\s+"?${sensitiveEnvironment}(?=\\s|"))`,
+      'i'
+    ).test(line);
+    assert(!environmentMutation,
+      `${recordPath}: candidate contains unsupported Git shell environment mutation`);
     assert(!fragmentedExecutable && !dynamicInvocation && !dynamicAlias && !subprocessOrReparse,
       `${recordPath}: candidate contains unsupported Windows command dynamic invocation`);
   };
-  let fenceLanguage = null;
+  let activeFence = null;
   let fenceLines = [];
   for (const line of text.split('\n')) {
     const fence = markdownFence(line);
     if (fence) {
-      if (fenceLanguage !== null) {
-        if (/^(?:bat|batch|cmd)$/.test(fenceLanguage)) {
+      if (!activeFence) {
+        activeFence = fence;
+        continue;
+      }
+      if (markdownFenceCloses(activeFence, fence)) {
+        if (/^(?:bat|batch|cmd)$/.test(activeFence.language.toLowerCase())) {
           for (const commandLine of logicalLines(fenceLines.join('\n'))) {
             assertStaticCommandLine(commandLine);
           }
         }
-        fenceLanguage = null;
+        activeFence = null;
         fenceLines = [];
-      } else fenceLanguage = fence[1].toLowerCase();
-      continue;
+        continue;
+      }
     }
-    if (/^(?:bat|batch|cmd)$/.test(fenceLanguage || '')) {
+    if (/^(?:bat|batch|cmd)$/.test(activeFence?.language.toLowerCase() || '')) {
       fenceLines.push(stripMarkdownBlockquote(line));
+    }
+  }
+  if (/^(?:bat|batch|cmd)$/.test(activeFence?.language.toLowerCase() || '')) {
+    for (const commandLine of logicalLines(fenceLines.join('\n'))) {
+      assertStaticCommandLine(commandLine);
     }
   }
   for (const context of shellCommandContexts(text)) {
@@ -4324,7 +4484,7 @@ function shellLogicalLines(text) {
 
 function shellCommandContexts(text) {
   const contexts = [];
-  let fenceKind = null;
+  let activeFence = null;
   let fenceLines = [];
   let frontmatter = null;
   for (const rawLine of shellLogicalLines(text)) {
@@ -4340,20 +4500,27 @@ function shellCommandContexts(text) {
     }
     const fence = markdownFence(rawLine);
     if (fence) {
-      if (fenceKind !== null) {
-        if (fenceKind === 'shell' && fenceLines.length > 0) contexts.push(fenceLines.join('\n'));
-        fenceKind = null;
-        fenceLines = [];
-      } else if (!fence[1] || shellFenceLanguage(fence[1])) {
-        fenceKind = 'shell';
+      if (!activeFence) {
+        activeFence = {
+          ...fence,
+          kind: !fence.info || shellFenceLanguage(fence.language) ? 'shell' : 'other'
+        };
+        continue;
       }
-      else fenceKind = 'other';
-      continue;
+      if (markdownFenceCloses(activeFence, fence)) {
+        if (activeFence.kind === 'shell' && fenceLines.length > 0) {
+          contexts.push(fenceLines.join('\n'));
+        }
+        activeFence = null;
+        fenceLines = [];
+        continue;
+      }
     }
-    const commandLine = fenceKind === 'shell'
+    if (activeFence?.kind === 'other') continue;
+    const commandLine = activeFence?.kind === 'shell'
       ? stripMarkdownBlockquote(rawLine).trim()
       : normalizeMarkdownCommandLine(rawLine);
-    if (fenceKind === 'shell') {
+    if (activeFence?.kind === 'shell') {
       contexts.push(commandLine);
       fenceLines.push(commandLine);
     }
@@ -4365,7 +4532,7 @@ function shellCommandContexts(text) {
           /^(?:[-—:]\s*)?(?:call|command|execute|invoke|run)\b/i.test(after));
       if (/\b(?:run|execute|invoke|call|type|issue|perform|please|use(?:\s+[^`\n]{0,80}?command\s*:?)?)\s*$/i.test(before) ||
           (markdownListCommand(rawLine) &&
-            (/^(?:\$\s*)?(?:git|gh|cmd(?:\.exe)?\b|call\b|start\b|powershell(?:\.exe)?\b|pwsh\b|[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\s*(?:\+?=)|declare\b|export\b|getopts\b|local\b|mapfile\b|read(?:array)?\b|readonly\b|set(?:env)?\b|trap\b|typeset\b|unset(?:env)?\b|env\b|printf\s+-v\b)/.test(match[1]) ||
+            (/^(?:\$\s*)?(?:git|gh|cmd(?:\.exe)?\b|call\b|start\b|powershell(?:\.exe)?\b|pwsh\b|[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\s*(?:\+?=)|declare\b|export\b|getopts\b|local\b|mapfile\b|read(?:array)?\b|readonly\b|set(?:env)?\b|trap\b|typeset\b|unset(?:env)?\b|env\b|printf\s+-v(?=\s|['"]?[A-Za-z_]))/.test(match[1]) ||
               inlineUnknownCommand ||
               /^`[^`]+`(?:[.,;:]?$|\s+(?:[-—:]\s*)?(?:call|command|execute|invoke|run)\b)/i
                 .test(commandLine)))) {
@@ -4381,7 +4548,7 @@ function shellCommandContexts(text) {
       }
     }
     if (/^(?: {4}|\t)/.test(rawLine)) contexts.push(commandLine);
-    if (/^(?:\$\s+)?(?:[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\s*(?:\+?=)|call\b|cmd(?:\.exe)?\b|declare\b|export\b|getopts\b|local\b|mapfile\b|path\b|powershell(?:\.exe)?\b|pwsh\b|read(?:array)?\b|readonly\b|set(?:env|x)?\b|start\b|trap\b|typeset\b|unset(?:env)?\b|env\b|printf\s+-v\b|source\b|\.\s|git\b|gh\b)/.test(commandLine)) {
+    if (/^(?:\$\s+)?(?:[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\s*(?:\+?=)|call\b|cmd(?:\.exe)?\b|declare\b|export\b|getopts\b|local\b|mapfile\b|path\b|powershell(?:\.exe)?\b|pwsh\b|read(?:array)?\b|readonly\b|set(?:env|x)?\b|start\b|trap\b|typeset\b|unset(?:env)?\b|env\b|printf\s+-v(?=\s|['"]?[A-Za-z_])|source\b|\.\s|git\b|gh\b)/.test(commandLine)) {
       contexts.push(commandLine.replace(/^\$\s+/, ''));
     } else if (/^(?:&\s*[$('"]|[^\s;&|]*(?:%[^%\r\n]+%|![^!\r\n]+!|\^)[^\s;&|]*(?:\s+|$)|\$env:|(?:iex|icm|sajb|saps|Invoke-Expression|Invoke-Command|Start-Job|Start-Process|Import-Alias|New-Alias|Set-Alias|Import-Module|ipmo|ipal|nal|sal|Get-WmiObject|Invoke-CimMethod|Invoke-WmiMethod|wmic)\b|Win32_Process\b|\[wmiclass\]|New-Object\b[^;|\n]*-ComObject\b|(?:Add-Content|Clear-Content|Clear-Item|Copy-Item|Move-Item|New-Item|Out-File|Remove-Item|Rename-Item|Set-Content|Set-Item|Tee-Object|ac|ci|clc|copy|cp|cpi|del|erase|mi|move|mv|ni|rd|ren|ri|rm|rmdir|rni|sc|si)\b[^;|\n]*Env:|(?:New-Item|Set-Item)\b[^;|\n]*(?:Alias|Function):|\[(?:(?:System\.)?Diagnostics\.Process|System\.Management\.Automation\.PowerShell|Environment)\b)/i.test(commandLine)) {
       contexts.push(commandLine);
@@ -4393,6 +4560,7 @@ function shellCommandContexts(text) {
       contexts.push(commandLine);
     }
     for (const action of commandLine.matchAll(/\b(run|execute|invoke|call|type|issue|use|perform|please|set|configure)\b\s+/ig)) {
+      if (activeFence?.kind === 'shell' && action[1].toLowerCase() === 'set') continue;
       const actionPrefix = commandLine.slice(0, action.index).trimEnd();
       const imperativeAction = !actionPrefix ||
         /(?:^|\b)(?:and|next|please|then)$|[.;:]$|,\s*(?:and|then)$/i.test(actionPrefix);
@@ -4408,7 +4576,7 @@ function shellCommandContexts(text) {
       const explicitUnknownUse = shellUnknownExecutableCandidate(candidate) ||
         !shellUseCandidateLooksProse(candidate);
       if (action[1].toLowerCase() !== 'use' ||
-          /^(?:\$\s*)?(?:git\b|gh\b|[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\s*(?:\+?=)|declare\b|export\b|getopts\b|local\b|mapfile\b|read(?:array)?\b|readonly\b|set(?:env)?\b|trap\b|typeset\b|unset(?:env)?\b|env\b|printf\s+-v\b|source\b|\.\s)/.test(candidate) ||
+          /^(?:\$\s*)?(?:git\b|gh\b|[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\s*(?:\+?=)|declare\b|export\b|getopts\b|local\b|mapfile\b|read(?:array)?\b|readonly\b|set(?:env)?\b|trap\b|typeset\b|unset(?:env)?\b|env\b|printf\s+-v(?=\s|['"]?[A-Za-z_])|source\b|\.\s)/.test(candidate) ||
           explicitUnknownUse) {
         contexts.push(candidate);
       }
@@ -4430,13 +4598,24 @@ function shellPersistentBlocks(text) {
       continue;
     }
     const commandLine = normalizeMarkdownCommandLine(rawLine).replace(/^\$\s+/, '');
-    const direct = /^(?:[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\+?=|:|\.\s|declare\b|env\b|export\b|getopts\b|git\b|gh\b|local\b|mapfile\b|parallel\b|printf\s+-v\b|read(?:array)?\b|readonly\b|rg\b|set(?:env)?\b|source\b|trap\b|typeset\b|unset(?:env)?\b)/.test(commandLine) ||
+    const direct = /^(?:[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\+?=|:|\.\s|declare\b|env\b|export\b|getopts\b|git\b|gh\b|local\b|mapfile\b|parallel\b|printf\s+-v(?=\s|['"]?[A-Za-z_])|read(?:array)?\b|readonly\b|rg\b|set(?:env)?\b|source\b|trap\b|typeset\b|unset(?:env)?\b)/.test(commandLine) ||
       /^(?: {4}|\t)/.test(rawLine);
     if (direct) current.push(commandLine);
     else flush();
   }
   flush();
   return blocks;
+}
+
+function shellPrintfVariableTarget(args) {
+  for (let index = 0; index < args.length; index += 1) {
+    const token = args[index];
+    if (token === '--' || token === '-' || !token.startsWith('-')) return null;
+    if (token === '-v') return { index: index + 1, value: args[index + 1] || '' };
+    const attached = /^-v(.+)$/.exec(token);
+    if (attached) return { index, value: attached[1] };
+  }
+  return null;
 }
 
 function trapBodyMutatesGitEnvironment(value, affectsGit) {
@@ -4505,8 +4684,8 @@ function trapBodyMutatesGitEnvironment(value, affectsGit) {
       return name && affectsGit(resolvedName(name));
     })) return true;
     if (command === 'printf') {
-      const flag = args.indexOf('-v');
-      if (flag >= 0 && affectsGit(resolvedName(args[flag + 1]))) return true;
+      const target = shellPrintfVariableTarget(args);
+      if (target && affectsGit(resolvedName(target.value))) return true;
     }
     if (command === 'getopts' && affectsGit(resolvedName(args[1]))) return true;
     if (['read', 'readarray', 'mapfile'].includes(command) &&
@@ -4516,10 +4695,16 @@ function trapBodyMutatesGitEnvironment(value, affectsGit) {
 }
 
 function hasShellEnvironmentMutation(text) {
-  const affectsOpaqueCommand = (name) => /^(?:PARALLEL|RIPGREP_CONFIG_PATH|TAPE|TAR_OPTIONS)$/.test(
-    (name || '').replace(/\[.*$/, '')
-  );
-  const affectsGit = (name) => /^(?:BASH_ENV|ENV|HOME|PATH|SHELL|SSH_AUTH_SOCK|XDG_CONFIG_HOME|GIT_[A-Z0-9_]+|LD_(?:LIBRARY_PATH|PRELOAD)|DYLD_[A-Z0-9_]+|PARALLEL|RIPGREP_CONFIG_PATH|TAPE|TAR_OPTIONS)$/.test((name || '').replace(/\[.*$/, ''));
+  const normalizedEnvironmentName = (name) =>
+    String(name || '').replace(/\[.*$/, '');
+  const affectsOpaqueCommand = (name) =>
+    /^(?:NODE_OPTIONS|NODE_PATH|PARALLEL|RIPGREP_CONFIG_PATH|TAPE|TAR_OPTIONS)$/.test(
+      normalizedEnvironmentName(name)
+    );
+  const affectsGit = (name) =>
+    /^(?:BASH_ENV|ENV|HOME|NODE_OPTIONS|NODE_PATH|PATH|PATHEXT|SHELL|SSH_AUTH_SOCK|XDG_CONFIG_HOME|GIT_[A-Z0-9_]+|LD_(?:LIBRARY_PATH|PRELOAD)|DYLD_[A-Z0-9_]+|PARALLEL|RIPGREP_CONFIG_PATH|TAPE|TAR_OPTIONS)$/.test(
+      normalizedEnvironmentName(name)
+    );
   const contexts = sortedUnique([
     ...shellCommandContexts(text),
     ...shellPersistentBlocks(text)
@@ -4564,7 +4749,7 @@ function hasShellEnvironmentMutation(text) {
       const commandIndex = tokens.findIndex((token) => !/^[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\+?=/.test(token));
       if (commandIndex < 0) continue;
       const rawCommand = executable?.value || tokens[commandIndex];
-      const command = /^set\/[ap]$/i.test(rawCommand) ? 'set' : rawCommand;
+      const command = (/^set\/[ap]$/i.test(rawCommand) ? 'set' : rawCommand).toLowerCase();
       const args = tokens.slice(executableIndex + 1);
       const argRecords = records.slice(executableIndex + 1);
       const hasDynamicVariableName = (record) => record?.dynamic &&
@@ -4619,9 +4804,11 @@ function hasShellEnvironmentMutation(text) {
         }
       }
       if (command === 'printf') {
-        const flag = args.indexOf('-v');
-        if (flag >= 0 && hasDynamicVariableName(argRecords[flag + 1])) return true;
-        if (flag >= 0 && affectsGit(args[flag + 1])) return true;
+        const target = shellPrintfVariableTarget(args);
+        const targetRecord = target ? argRecords[target.index] : null;
+        if (target && (
+          hasDynamicVariableName(targetRecord) || affectsGit(target.value)
+        )) return true;
       }
       if (command === 'getopts' &&
           (hasDynamicVariableName(argRecords.at(-1)) || affectsGit(args.at(-1)))) return true;
@@ -5178,21 +5365,31 @@ function markdownCommandOperations(text, executable) {
 }
 
 function markdownHasShellRedirection(text, options = {}) {
-  let fenceKind = null;
+  let activeFence = null;
   for (const line of text.split('\n')) {
     const content = normalizeMarkdownCommandLine(line);
-    const fence = markdownFence(content);
+    const fence = markdownFence(line);
     if (fence) {
-      if (fenceKind !== null) fenceKind = null;
-      else if (shellFenceLanguage(fence[1])) fenceKind = 'shell';
-      else if (!fence[1]) fenceKind = 'untyped';
-      else fenceKind = 'other';
-      continue;
+      if (!activeFence) {
+        activeFence = {
+          ...fence,
+          kind: shellFenceLanguage(fence.language)
+            ? 'shell'
+            : !fence.info ? 'untyped' : 'other'
+        };
+        continue;
+      }
+      if (markdownFenceCloses(activeFence, fence)) {
+        activeFence = null;
+        continue;
+      }
     }
-    if (fenceKind === 'other') continue;
+    if (activeFence?.kind === 'other') continue;
     const codeSpans = [...content.matchAll(/`([^`]+)`/g)];
-    if (fenceKind === 'shell' && markdownShellRedirect(content, { shellFence: true })) return true;
-    if (fenceKind === 'untyped' && markdownShellRedirect(content, { codeBlock: true })) return true;
+    if (activeFence?.kind === 'shell' &&
+        markdownShellRedirect(content, { shellFence: true })) return true;
+    if (activeFence?.kind === 'untyped' &&
+        markdownShellRedirect(content, { codeBlock: true })) return true;
     if (options.plainText && markdownShellRedirect(content, { codeBlock: true })) return true;
     if (/^(?: {4}|\t)/.test(line) &&
         markdownShellRedirect(line.replace(/^(?: {4}|\t)/, ''), { codeBlock: true })) return true;
@@ -5427,8 +5624,262 @@ function validateChildProcessUsage(text, recordPath) {
   }
 }
 
-function observedOperations(records) {
+function trustedRuntimeToolInstruction(
+  records,
+  executableIndex,
+  trustedFiles,
+  trustedSkill
+) {
+  if (!(trustedFiles instanceof Set) || executableIndex !== 0 ||
+      typeof trustedSkill !== 'string' || !trustedSkill) return false;
+  const executable = records[executableIndex];
+  if (executable?.value !== TRUSTED_RUNTIME_TOOL ||
+      executable.raw !== TRUSTED_RUNTIME_TOOL) return false;
+  const args = records.slice(executableIndex + 1);
+  if (args.length !== 1 ||
+      args.some((token) => token.dynamic || token.executes || token.expansion)) {
+    return false;
+  }
+  if (!/^'[^']+'$/.test(args[0].raw)) return false;
+  let input;
+  try {
+    input = JSON.parse(args[0].value);
+  } catch {
+    return false;
+  }
+  if (!input || typeof input !== 'object' || Array.isArray(input) ||
+      JSON.stringify(Object.keys(input).sort()) !==
+        JSON.stringify(['args', 'cwd', 'entrypoint']) ||
+      input.cwd !== '<repository-root>' ||
+      !Array.isArray(input.args) ||
+      input.args.length > 64 ||
+      input.args.some((value) =>
+        typeof value !== 'string' || value.length > 16 * 1024 || value.includes('\0'))) {
+    return false;
+  }
+  const match = /^([a-z0-9][a-z0-9-]*)\/([a-z0-9][a-z0-9-]*\.js)$/.exec(
+    input.entrypoint || ''
+  );
+  return Boolean(match &&
+    match[1] === trustedSkill &&
+    Object.hasOwn(RUNTIME_ENTRYPOINTS, input.entrypoint) &&
+    trustedFiles.has(`scripts/${match[2]}`));
+}
+
+function nodeCommandResolutionMutation(records) {
+  const tokens = records.map((token) => token.value);
+  const resolverTableTarget = (value) =>
+    /^(?:BASH_CMDS|aliases|commands|functions)(?:\[[^\]]*\])?(?:\+?=.*)?$/
+      .test(value || '');
+  for (const record of records) {
+    const tableAssignment =
+      /^(?:BASH_CMDS|aliases|commands|functions)\[([^\]]*)\]\+?=/.exec(record.value);
+    if (!tableAssignment) {
+      if (/^(?:BASH_CMDS|aliases|commands|functions)\[/.test(record.raw) &&
+          (record.dynamic || record.executes || /[$`]/.test(record.raw))) return true;
+      continue;
+    }
+    const tableKey = tableAssignment[1].replace(/^(['"])(.*)\1$/, '$2');
+    if (record.dynamic || record.executes || /[$`]/.test(record.raw) ||
+        tableKey === 'node') return true;
+  }
+  const executableIndex = shellExecutableIndex(records);
+  if (executableIndex < 0) return false;
+  const command = path.posix.basename(
+    records[executableIndex]?.value.replace(/\\/g, '/') || ''
+  ).toLowerCase();
+  const argRecords = records.slice(executableIndex + 1);
+  const args = argRecords.map((token) => token.value);
+  const resolutionMutator = new Set([
+    'alias', 'autoload', 'declare', 'doskey', 'enable', 'export', 'functions',
+    'hash', 'let', 'local', 'mapfile', 'read', 'readarray', 'rehash', 'readonly',
+    'typeset', 'unalias', 'unfunction', 'unhash', 'unset'
+  ]);
+  if (resolutionMutator.has(command) &&
+      argRecords.some((token) => token.dynamic || token.executes || token.expansion)) {
+    return true;
+  }
+  if (command === 'alias') return args.some((token) => /^node=/.test(token));
+  if (command === 'hash') return args.length > 0;
+  if (command === 'rehash') return true;
+  if (['unalias', 'unfunction', 'unhash'].includes(command)) {
+    return args.some((token) => token === 'node');
+  }
+  if (command === 'unset') {
+    const options = args.filter((token) => /^-[^-]/.test(token)).join('');
+    const names = args.filter((token) => !token.startsWith('-'));
+    return (options.includes('f') && names.includes('node')) ||
+      names.includes('BASH_CMDS');
+  }
+  if (command === 'printf') {
+    const target = shellPrintfVariableTarget(args);
+    const targetRecord = target ? argRecords[target.index] : null;
+    return Boolean(target && (
+      targetRecord?.dynamic || targetRecord?.executes || targetRecord?.expansion ||
+      resolverTableTarget(target.value)
+    ));
+  }
+  if (['read', 'mapfile', 'readarray', 'let'].includes(command)) {
+    return args.some(resolverTableTarget);
+  }
+  if (command === 'set') {
+    for (let index = 0; index < args.length; index += 1) {
+      if (args[index] === '--') return false;
+      if (argRecords[index].dynamic || argRecords[index].executes ||
+          argRecords[index].expansion) return true;
+      if (!/^[+-]/.test(args[index])) return false;
+      const optionBody = args[index].slice(1);
+      const arrayIndex = optionBody.indexOf('A');
+      const namedOptionIndex = optionBody.indexOf('o');
+      if (namedOptionIndex >= 0 &&
+          (arrayIndex < 0 || namedOptionIndex < arrayIndex)) {
+        if (namedOptionIndex === optionBody.length - 1) index += 1;
+        continue;
+      }
+      if (arrayIndex >= 0) {
+        const attachedTarget = optionBody.slice(arrayIndex + 1);
+        const targetIndex = attachedTarget ? index : index + 1;
+        const target = attachedTarget || args[targetIndex];
+        const targetRecord = argRecords[targetIndex];
+        return Boolean(targetRecord?.dynamic || targetRecord?.executes ||
+          targetRecord?.expansion || resolverTableTarget(target));
+      }
+    }
+    return false;
+  }
+  if (['declare', 'export', 'local', 'readonly'].includes(command)) {
+    const options = args.filter((token) => /^-[^-]/.test(token)).join('');
+    return options.includes('n') || args.some(resolverTableTarget);
+  }
+  if (['autoload', 'enable', 'functions'].includes(command)) {
+    return args.some((token) => token === 'node' || /^node=/.test(token));
+  }
+  if (command === 'typeset') {
+    const options = args.filter((token) => /^-[^-]/.test(token)).join('');
+    return options.includes('n') || args.some(resolverTableTarget) ||
+      (options.includes('f') && options.includes('u') && args.includes('node'));
+  }
+  return command === 'doskey' && args.some((token) => /^node=/.test(token));
+}
+
+function hasShellHeredocOperator(value) {
+  const normalized = value.replace(/\\\r?\n/g, '');
+  return normalized.includes('<<') || normalized.includes('$(') || normalized.includes('`');
+}
+
+function trustedNodeFenceContractViolation(text) {
+  for (const rawLine of text.split('\n')) {
+    const line = rawLine.replace(/\r$/, '');
+    const marker = /`{3,}|~{3,}/.exec(line);
+    if (!marker) continue;
+    if (marker.index !== 0 || marker[0] !== '```') return true;
+    const info = line.slice(marker[0].length).trim();
+    if (info && info !== 'bash') return true;
+  }
+  return false;
+}
+
+function hasTrustedRuntimeToolInstruction(text, trustedFiles, trustedSkill) {
+  const trustedInValue = (value) =>
+    shellCommandSegments(value.replace(/\\\r?\n/g, '')).some((segment) => {
+      const records = shellTokenRecords(segment);
+      return trustedRuntimeToolInstruction(
+        records,
+        shellExecutableIndex(records),
+        trustedFiles,
+        trustedSkill
+      );
+    });
+  if (shellCommandContexts(text).some(trustedInValue)) return true;
+  for (const rawLine of shellLogicalLines(text)) {
+    if (trustedInValue(normalizeMarkdownCommandLine(rawLine).replace(/^\$\s+/, ''))) {
+      return true;
+    }
+    for (const match of rawLine.matchAll(/`([^`]+)`/g)) {
+      if (trustedInValue(match[1])) return true;
+    }
+  }
+  return false;
+}
+
+function stripTrustedRuntimeToolInstructions(text, trustedFiles, trustedSkill) {
+  const trustedInValue = (value) => {
+    const records = shellTokenRecords(value.replace(/\\\r?\n/g, ''));
+    return trustedRuntimeToolInstruction(
+      records,
+      shellExecutableIndex(records),
+      trustedFiles,
+      trustedSkill
+    );
+  };
+  return text.split('\n').map((line) => {
+    let removedTrustedCodeSpan = false;
+    const withoutTrustedCodeSpans = line.replace(/`([^`]+)`/g, (span, code) => {
+      if (!trustedInValue(code)) return span;
+      removedTrustedCodeSpan = true;
+      return '';
+    });
+    if (removedTrustedCodeSpan &&
+        /^\s*(?:[-*]\s*)?(?:(?:call|execute|invoke|run|use)\s*)?[.;:。]?\s*$/i
+          .test(withoutTrustedCodeSpans)) {
+      return '';
+    }
+    const rawCommand = stripMarkdownBlockquote(withoutTrustedCodeSpans).trim();
+    if (trustedInValue(rawCommand)) return '';
+    const normalized = normalizeMarkdownCommandLine(
+      withoutTrustedCodeSpans
+    ).replace(/^\$\s+/, '');
+    return trustedInValue(normalized) ? '' : withoutTrustedCodeSpans;
+  }).join('\n');
+}
+
+function shellValueMutatesNodeResolution(value) {
+  const executableText = shellExecutableBodyText(value)
+    .replace(/\\\r?\n/g, '')
+    .replace(/\\([A-Za-z_])/g, '$1');
+  const resolverTableAssignment =
+    /\b(?:BASH_CMDS|aliases|commands|functions)\s*(?:\[[^\]\n]*\]\s*)?\+?=/
+      .test(executableText);
+  const shellFunctionDefinition =
+    /(?:^|[;&|({}\n]|\b(?:then|elif|else|do)\s+)function(?:\s+|$)/m
+      .test(executableText) ||
+    /\b[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\)/.test(executableText);
+  if (resolverTableAssignment || shellFunctionDefinition) return true;
+  return shellCommandSegments(value).some((segment) => {
+    const records = shellTokenRecords(segment);
+    if (nodeCommandResolutionMutation(records)) return true;
+    const executableIndex = shellExecutableIndex(records);
+    const command = path.posix.basename(
+      records[executableIndex]?.value.replace(/\\/g, '/') || ''
+    ).toLowerCase();
+    return ['.', 'eval', 'source', 'trap'].includes(command);
+  });
+}
+
+function hasNodeCommandResolutionMutation(text) {
+  return shellCommandContexts(text).some((context) =>
+    hasShellHeredocOperator(context) || shellValueMutatesNodeResolution(context)
+  );
+}
+
+function observedOperations(records, options = {}) {
+  const trustedFiles = options.trustedFiles || new Set();
+  const trustedSkill = options.trustedSkill || '';
   const operations = new Set(['read']);
+  const instructionTexts = records
+    .filter((record) => !['.js', '.cjs', '.mjs'].includes(path.posix.extname(record.path)))
+    .map((record) => path.posix.extname(record.path) === '.md'
+      ? stripRoutingContracts(instructionText(record))
+      : instructionText(record));
+  const trustsRuntimeToolInstruction = instructionTexts.some((text) =>
+    hasTrustedRuntimeToolInstruction(text, trustedFiles, trustedSkill)
+  );
+  assert(!trustsRuntimeToolInstruction ||
+    !instructionTexts.some((text) =>
+      trustedNodeFenceContractViolation(text) ||
+      hasNodeCommandResolutionMutation(text)
+    ),
+  'candidate contains unsupported Node command resolution mutation');
   for (const record of records) {
     const extension = path.posix.extname(record.path);
     if (record.path.startsWith('scripts/')) {
@@ -5439,6 +5890,13 @@ function observedOperations(records) {
     const isInstructionText = !['.js', '.cjs', '.mjs'].includes(extension);
     const decodedText = instructionText(record);
     const text = isMarkdown ? stripRoutingContracts(decodedText) : decodedText;
+    const trustsRuntimeInstruction =
+      hasTrustedRuntimeToolInstruction(text, trustedFiles, trustedSkill);
+    const shellText = stripTrustedRuntimeToolInstructions(
+      text,
+      trustedFiles,
+      trustedSkill
+    );
     const javascriptCommentFreeText = ['.js', '.cjs', '.mjs'].includes(extension)
       ? stripJavaScriptComments(text, record.path)
       : text;
@@ -5464,27 +5922,28 @@ function observedOperations(records) {
     assert(!ENVIRONMENT_MUTATION_PATTERN.test(environmentText),
       `${record.path}: candidate contains unsupported environment mutation`);
     if (isInstructionText) {
-      assertNoPowerShellExpressionInvocation(text, record.path);
-      assertNoWindowsCommandDynamicInvocation(text, record.path);
-      assertNoFragmentedExecutable(text, record.path);
-      assert(!hasShellEnvironmentMutation(text),
+      assertNoPowerShellExpressionInvocation(shellText, record.path);
+      assertNoWindowsCommandDynamicInvocation(shellText, record.path);
+      assertNoFragmentedExecutable(shellText, record.path);
+      assert(!hasShellEnvironmentMutation(shellText),
         `${record.path}: candidate contains unsupported Git shell environment mutation`);
     }
     if (/\b(?:apply_patch|(?:promises\.)?(?:writeFile|appendFile|copyFile|cp|mkdir|rm|unlink|rename)(?:Sync)?|touch|sed\s+-i|tee|chmod|ln\s+-s|truncate|dd\s+)\b/.test(text)) {
       operations.add('local-write');
     }
-    if (isInstructionText && shellCommandContexts(text).some((context) =>
+    if (trustsRuntimeInstruction) operations.add('local-write');
+    if (isInstructionText && shellCommandContexts(shellText).some((context) =>
       shellCommandSegments(context).some((segment) =>
         shellTimeWrites(shellTokenRecords(segment))
       )
     )) operations.add('local-write');
-    if (isInstructionText && shellCommandContexts(text).some((context) =>
+    if (isInstructionText && shellCommandContexts(shellText).some((context) =>
       shellCommandSegments(context).some((segment) =>
         shellParallelWriteOperations(shellTokenRecords(segment)).has('connector-write')
       )
     )) operations.add('connector-write');
     if (isInstructionText) {
-      const commandContexts = shellCommandContexts(text);
+      const commandContexts = shellCommandContexts(shellText);
       const declaredShellFunctions = shellFunctionNames(commandContexts.join('\n'));
       for (const context of commandContexts) {
         for (const segment of shellCommandSegments(context)) {
@@ -5495,7 +5954,22 @@ function observedOperations(records) {
           const executable = executableRecord
             ? path.posix.basename(executableRecord.value.replace(/\\/g, '/')).toLowerCase()
             : '';
+          const trustedRuntimeTool = trustedRuntimeToolInstruction(
+            tokenRecords,
+            executableIndex,
+            trustedFiles,
+            trustedSkill
+          );
+          if (trustedRuntimeTool) operations.add('local-write');
+          const wrappedRuntimeTool = tokenRecords.some((token, index) =>
+            index !== executableIndex && token.value === TRUSTED_RUNTIME_TOOL
+          );
+          if (wrappedRuntimeTool) {
+            operations.add('local-write');
+            operations.add('connector-write');
+          }
           if (executable && !SHELL_AUDITED_COMMANDS.has(executable) &&
+              !trustedRuntimeTool &&
               !declaredShellFunctions.has(executable)) {
             operations.add('local-write');
             operations.add('connector-write');
@@ -5887,7 +6361,10 @@ function observedOperations(records) {
         }
       }
     }
-    if (isInstructionText && markdownHasShellRedirection(text, { plainText: !isMarkdown })) {
+    if (isInstructionText && markdownHasShellRedirection(
+      shellText,
+      { plainText: !isMarkdown }
+    )) {
       operations.add('local-write');
     }
     if (isInstructionText && (/\b(?:curl|wget)\b[^\n]*(?:-X(?:=|\s*)['"]?(?:POST|PUT|PATCH|DELETE)|--(?:request|method)(?:=|\s+)['"]?(?:POST|PUT|PATCH|DELETE)|--data(?:-(?:ascii|binary|raw|urlencode))?\b|--json\b|--form(?:-string)?\b|--upload-file\b|--post-(?:data|file)\b|--body-(?:data|file)\b)/i.test(text) ||
@@ -6117,8 +6594,8 @@ function observedOperations(records) {
       operations.add('connector-write');
     }
     if (isInstructionText) {
-      for (const operation of markdownCommandOperations(text, 'git')) operations.add(operation);
-      for (const operation of markdownCommandOperations(text, 'gh')) operations.add(operation);
+      for (const operation of markdownCommandOperations(shellText, 'git')) operations.add(operation);
+      for (const operation of markdownCommandOperations(shellText, 'gh')) operations.add(operation);
     }
 
     if (!isMarkdown && /--force(?:-with-lease)?/.test(text)) operations.add('history-rewrite');
@@ -6206,8 +6683,8 @@ function observedOperations(records) {
   return [...operations].sort(BYTEWISE);
 }
 
-function validateCandidateOperationRecords(records, declaredOperations) {
-  const observed = observedOperations(records);
+function validateCandidateOperationRecords(records, declaredOperations, options = {}) {
+  const observed = observedOperations(records, options);
   for (const operation of observed) {
     assert(declaredOperations.includes(operation),
       `candidate uses undeclared operation: ${operation}; observed=${JSON.stringify(observed)}`);
@@ -6230,8 +6707,10 @@ function auditCandidateStatic(options = {}) {
     row.target_skill === target && row.delivery_state === 'candidate');
   assert(rows.length > 0, `${target}: candidate operation audit has no active rows`);
   const tree = candidateTree(root, relative);
+  const trustedResources = trustedCoreResourceFiles(root, tree, target);
   const records = tree.files
     .filter((file) => file !== 'migration-contract.json')
+    .filter((file) => !trustedResources.has(file))
     .map((file) => {
       const bytes = candidateFileBytes(tree, file);
       if (bytes.includes(0)) return null;
@@ -6247,11 +6726,14 @@ function auditCandidateStatic(options = {}) {
   for (const file of tree.files.filter((name) => name.endsWith('.md'))) {
     validateMarkdownTables(candidateFileBytes(tree, file).toString('utf8'), file);
   }
-  validateCandidateResources(tree);
+  validateCandidateResources(tree, trustedResources);
   const declaredOperations = sortedUnique(rows.flatMap((row) => row.operations));
   return {
     ok: true,
-    observed_operations: validateCandidateOperationRecords(records, declaredOperations)
+    observed_operations: validateCandidateOperationRecords(records, declaredOperations, {
+      trustedFiles: trustedResources,
+      trustedSkill: target
+    })
   };
 }
 
@@ -6963,6 +7445,7 @@ function auditCandidate(options = {}) {
   }
 
   const tree = candidateTree(root, relative);
+  const trustedResources = trustedCoreResourceFiles(root, tree, target);
   if (typeof options.afterCandidateTreeRead === 'function') {
     options.afterCandidateTreeRead({ directory: tree.directory, files: [...tree.files] });
   }
@@ -7108,6 +7591,7 @@ function auditCandidate(options = {}) {
   }
   const productionRecords = tree.files
     .filter((file) => file !== 'migration-contract.json')
+    .filter((file) => !trustedResources.has(file))
     .map((file) => {
       const bytes = candidateFileBytes(tree, file);
       if (bytes.includes(0)) return null;
@@ -7124,10 +7608,13 @@ function auditCandidate(options = {}) {
     validateMarkdownTables(candidateFileBytes(tree, file).toString('utf8'), file);
   }
 
-  validateCandidateResources(tree);
+  validateCandidateResources(tree, trustedResources);
 
   const declaredOperations = sortedUnique(activeRows.flatMap((row) => row.operations));
-  const observed = validateCandidateOperationRecords(productionRecords, declaredOperations);
+  const observed = validateCandidateOperationRecords(productionRecords, declaredOperations, {
+    trustedFiles: trustedResources,
+    trustedSkill: target
+  });
   const observedSensitive = observed.filter((operation) => SENSITIVE_OPERATIONS.has(operation));
   assert(JSON.stringify(contract.authorization.sensitive_operations) ===
     JSON.stringify(observedSensitive),
@@ -7339,7 +7826,7 @@ function validateCandidateRequestEvidence(request, result, requestPath, options 
     `${requestPath}: candidate evidence has unsupported Acceptance status`);
   const finalAudit = requestProgressHash(
     request, 'Testing', finalLabel, requestPath, {
-      optional: Boolean(exemptAcceptance)
+      optional: Boolean(exemptAcceptance) || requestStatus === 'candidate complete'
     }
   );
   if (!finalAudit) {
@@ -7578,6 +8065,7 @@ module.exports = {
   auditDeliveredPayload,
   auditSource,
   compareCheckout,
+  cleanGitEnvironment,
   parseArguments,
   parseFrontmatter,
   validateDisposition,

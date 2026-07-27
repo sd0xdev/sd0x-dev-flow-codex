@@ -1,0 +1,34 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "test-review",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/test-review-default-routing.test.js"
+      ],
+      "promotion_unit_id": "test-review/default",
+      "routing": {
+        "negative_boundaries": [
+          "Assess the health of every test suite and coverage artifact in the repository.",
+          "Create the missing tests and modify the test files.",
+          "Execute the deterministic repository verification gate."
+        ],
+        "positive_triggers": [
+          "Check whether these tests sufficiently prove the refund behavior and acceptance criteria.",
+          "Review the selected tests for weak assertions, missing boundaries, and flakiness.",
+          "Trace this request's acceptance criteria to source branches and test evidence."
+        ]
+      },
+      "source_names": [
+        "codex-test-review",
+        "test-review"
+      ],
+      "target_mode": null
+    }
+  ]
+}

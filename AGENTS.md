@@ -29,12 +29,12 @@ This repository is the Codex-native implementation of sd0x Dev Flow. Do not port
 <!-- sd0x-dev-flow-codex:start -->
 ## sd0x Dev Flow
 
-<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
+<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
 
 - Treat the current worktree fingerprint as the unit of review and verification.
 - Before completing code or configuration changes, run `$sd0x-dev-flow-codex:review`, then `$sd0x-dev-flow-codex:verify`.
 - For documentation-only changes, review is required but deterministic verification is optional.
 - After any fix, rerun review because the previous gate belongs to the previous fingerprint.
-- Run the configured `sd0x_codex_primary_reviewer` or `sd0x_claude_primary_reviewer` plus `sd0x_test_reviewer` in parallel; keep both perspectives independent and read-only.
+- Run the configured `sd0x_codex_primary_reviewer` or `sd0x_claude_primary_reviewer` read-only; one clean primary result is required for each fingerprint.
 - Never claim a gate passed without recording evidence through the plugin runtime.
 <!-- sd0x-dev-flow-codex:end -->

@@ -6,7 +6,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 function isolateGitEnvironment() {
-  process.env.GIT_CONFIG_GLOBAL = os.devNull;
+  process.env.GIT_CONFIG_GLOBAL = process.platform === 'win32' ? 'NUL' : os.devNull;
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   delete process.env.GIT_CONFIG;
   delete process.env.GIT_CONFIG_COUNT;

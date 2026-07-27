@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-23
 > **Implementation Base SHA**: `629c6f78fc1d37435051a5205ab916574517fe3f`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [Wave 1 Create-Request Formal Promotion](./2026-07-14-wave1-create-request-promotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -57,9 +57,9 @@ the already-promoted payload requires a new auditable promotion revision.
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | The rejected Wave 3 docs proposal exposed the post-success recovery gap and the immutable-readiness/current-delivery authority split. |
-| Development | Complete | Runtime recovery、operator documentation、lifecycle guard、rollback restart handling and readiness checkpoint semantics are implemented. payload `a20dff0482ef497d1214a075b38e03e57b7ec948819acb1968f154eb5955b780`. |
-| Testing | Complete | Focused evidence-ledger recovery tests and the documentation synchronization contract pass. Preflight `c52d321ac0be8ff45dc5232c162eb59b0b60065fc5c70521af9487902056c8fe`. |
-| Acceptance | Complete | All eight ACs have implementation and regression evidence; independent AC verification、full review、deterministic verification and promotion transactions remain. |
+| Development | Complete | Runtime recovery、operator documentation、lifecycle guard、rollback restart handling and readiness checkpoint semantics are implemented. payload `77d2e48587c424d30dc672860b41c44a3e5ae2c22ef7056864134380a133d9da`. |
+| Testing | Complete | Focused evidence-ledger recovery tests and the documentation synchronization contract pass. Preflight `4622fe47b246d6685b72b1a526591ffdb9a800e744f2edf36218f77845d72c37`. |
+| Acceptance | Complete | All eight ACs have Complete/High evidence; subject-bound review, deterministic verification, and final core audit passed. This exact Completed proposal is owned by the runtime closure transaction. |
 
 ## References
 

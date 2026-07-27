@@ -1,10 +1,10 @@
 # sd0x Dev Flow Codex 專案遷移與續作指南
 
-<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
+<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
 
 > 最後校準日期：2026-07-25
 > 來源版本：Claude plugin `sd0x-dev-flow` `3.0.12`  
-> Codex 版本：`sd0x-dev-flow-codex` `0.3.2`
+> Codex 版本：`sd0x-dev-flow-codex` `0.3.4`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -102,21 +102,22 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 
 Codex core 目前刻意只包含：
 
-- 11 個 skills：`setup`、`review`、`verify`、`feature-dev`、`bug-fix`、`create-request`、`req-analyze`、`remind`、`reset`、`doctor`、`tech-spec`。
-- 1 個 opt-in bundled MCP server：`sd0x_claude_review`，只在 Claude provider 中透過本機 Claude CLI 提供外部 primary 視角。
-- 3 個 project-scoped reviewer profiles：Codex primary、Claude wrapper 與 test；預設兩個實際 reviewer 都使用 Codex。
+- 12 個 skills：`setup`、`review`、`verify`、`test-review`、`feature-dev`、`bug-fix`、`create-request`、`req-analyze`、`remind`、`reset`、`doctor`、`tech-spec`。
+- 1 個 bundled MCP server：`sd0x_claude_review`。所有 provider 都使用其 provider-independent、allowlisted `run_skill_script` runtime entrypoint；Claude provider 才額外透過本機 Claude CLI 使用唯讀 `review_worktree` primary 視角。
+- 2 個 project-scoped reviewer profiles：Codex primary 與 Claude wrapper；每個 project 只啟用 configured primary。
 - Session、prompt、edit、subagent 與 Stop lifecycle hooks。
 - Fingerprint state machine、deterministic verification、project setup、doctor 與 dev-link tooling。
 
 這是 curated core，不是遷移未完成的暫時缺漏。新增能力必須符合第 13 節的選擇準則。
 
-Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。2026-07-25 checkpoint：
+Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。Current delivery checkpoint：
 
-- Registry checkpoint：29/95 canonical units delivered；66 pending；Wave 1 9/10、Wave 2 12/12、Wave 3 8/8 delivered；`create-request/default` = `candidate`。
-<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=29 pending=66 wave3=8/8 create-request=candidate -->
-- Wave 1 的 10 個 units 均已有 durable closure 歷史；目前 overlay 有 9 個 delivered units，`create-request/default` 因 recovery re-promotion 保持 `candidate`，且不得用舊 completion evidence 冒充這次 replacement 已完成。
+- Registry checkpoint：45/95 canonical units delivered；50 pending；Wave 1 10/10、Wave 2 12/12、Wave 3 8/8、Wave 4 15/15 delivered；`create-request/default` = `promoted`。
+<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=45 pending=50 wave3=8/8 wave4=15/15 create-request=promoted -->
+- Wave 1 的 10 個 units 均已有 durable closure 與 delivery evidence；`create-request/default` 的 recovery re-promotion 綁定最新 replacement owner、payload 與 single-primary gate fingerprint，promotion revision 為 `e1dd44ef4bd1278022ce1f2746dec2e2399d9c158095820987e40f56adddf1ae`。
 - Wave 2 的 12 個 research units 已完成 12/12 preflights、125/125 focused tests、adversarial probes、final-fingerprint review/verification、R3 durable request closures 與 exact `pack-ready` evidence；accepted bytes 位於 `migration/packs/research-pack/`，owner tickets 為 `Completed`。
-- Wave 3 的 8 個 development units 已完成 8/8 durable closure：`bug-fix/default`、`feature-dev/default` 已進 curated core，另外 6 個 units 已交付 development-pack。
+- Wave 3 的 8 個 development units 已完成 8/8 durable closure 與 delivery；`feature-dev/default` 的 single-primary payload re-promotion 已綁定最新 evidence。
+- Wave 4 的 15 個 quality/review units 已完成 15/15 durable closure 與 delivery；5 個 `review` modes 與獨立 non-gating 的 `test-review/default` 已完成 core re-promotion，其餘 quality-pack delivery 保持不變。
 - `release:check` 會從 `migration/source-disposition.json` 重算上方可見 checkpoint 與 machine marker，防止只更新版本卻發布過期進度。
 - `migration/packs/` 仍是 repository-only transferable payload，不進 plugin manifest、core discovery 或目前 release artifact。每個 later separate-plugin repository 必須自有 manifest、dependency declaration、installation tests、fingerprint-bound gates 與 release authorization。
 
@@ -136,7 +137,7 @@ sd0x-dev-flow-codex/
 │   ├── .codex-plugin/plugin.json
 │   ├── .mcp.json
 │   ├── hooks/hooks.json
-│   ├── scripts/mcp/                  # Claude review MCP adapter
+│   ├── scripts/mcp/                  # trusted skill runtime + Claude review MCP adapter
 │   ├── scripts/runtime/
 │   ├── skills/
 │   └── templates/agents/
@@ -204,7 +205,7 @@ $(git rev-parse --git-path sd0x-dev-flow-codex/runtime-state.json)
 - Review pass 必須和目前 fingerprint 相同。
 - Verify 只能在目前 review pass 後由 deterministic runner 記錄，且 runner 前後 fingerprint 必須相同。
 - Fingerprint 改變會清除兩個 gates 與 reviewer observations。
-- Review pass 必須實際觀察到同 fingerprint 的 configured primary 與 test reviewer。原生 custom-agent surface 使用 matching `SubagentStart` 與帶 terminal `last_assistant_message` 的 `SubagentStop`。只提供 persistent collaboration agents 的 Codex surface 則由 `codex-collaboration-jsonl-v2` adapter 在 dispatch 前綁定 immutable round ID、runtime epoch、optional commit subject hash、exact direct agent paths、transcript file identity、byte offset 與 prefix hash，只接受 offset 後 canonical `sub_agent_activity: interacted` 與相符 `FINAL_ANSWER` agent messages；interrupt、overlap、未終局、缺結果、格式漂移、prefix/file identity、runtime epoch、round ID 或 fingerprint 改變都 fail closed。Runtime state 明確保存目前 collaboration round ID，所有 failure write 與 finalizer 都必須匹配它，不能用 completed array 順序推導 ownership，因此延遲的舊 round 結果無法覆寫同 fingerprint 的 successor；但同 fingerprint/epoch 的 authenticated late finding 仍會依 sticky-finding 規則撤銷 gates，而不轉移 ownership，superseded clean evidence 則忽略。兩個 results 會在同一 state lock 內重新 snapshot 後原子寫入，`gate.js pass` 再從原始 offset 掃到 gate boundary，且只由相同 round ID 的 finalizer 移除 marker；concurrent identical finalizer 以該 round 的兩個 clean state results 做 idempotent completion。Review evidence 同時必須包含目前 provider、`reviewers: 2`、精確 reviewer identities 與 `findings: 0`；舊 `reviewers: 3` evidence 不會沿用。Codex mode 的 primary 是 `sd0x_codex_primary_reviewer`；Claude mode 是 `sd0x_claude_primary_reviewer`，並額外要求 nested Claude MCP structured clean evidence。
+- Review pass 必須實際觀察到同 fingerprint 的 configured primary。原生 custom-agent surface 使用 matching `SubagentStart` 與帶 terminal `last_assistant_message` 的 `SubagentStop`。只提供 persistent collaboration agents 的 Codex surface 則由 `codex-collaboration-jsonl-v2` adapter 在 dispatch 前綁定 immutable round ID、runtime epoch、optional commit subject hash、exact direct agent path、transcript file identity、byte offset 與 prefix hash，只接受 offset 後 canonical `sub_agent_activity: interacted` 與相符 `FINAL_ANSWER` agent message；interrupt、overlap、未終局、缺結果、格式漂移、prefix/file identity、runtime epoch、round ID 或 fingerprint 改變都 fail closed。Runtime state 明確保存目前 collaboration round ID，所有 failure write 與 finalizer 都必須匹配它，不能用 completed array 順序推導 ownership，因此延遲的舊 round 結果無法覆寫同 fingerprint 的 successor；但同 fingerprint/epoch 的 authenticated late finding 仍會依 sticky-finding 規則撤銷 gates，而不轉移 ownership，superseded clean evidence 則忽略。Primary result 會在同一 state lock 內重新 snapshot 後原子寫入，`gate.js pass` 再從原始 offset 掃到 gate boundary，且只由相同 round ID 的 finalizer 移除 marker；concurrent identical finalizer 以該 round 的 clean primary state result 做 idempotent completion。Review evidence 同時必須包含目前 provider、`reviewers: 1`、精確 primary identity 與 `findings: 0`；runtime state schema v9 會使 v8 以前的 multi-reviewer current gates 失效。Codex mode 的 primary 是 `sd0x_codex_primary_reviewer`；Claude mode 是 `sd0x_claude_primary_reviewer`，並額外要求 nested Claude MCP structured clean evidence。`sd0x_test_reviewer` 不再是 authoritative agent type，不能寫入 gate ledger。
 - Provider 從 `codex` 切換為 `claude` 或反向切換時，runtime 會清除 gates 與 reviewer evidence。Claude MCP 的輸入 fingerprint、structured output fingerprint 與 hook 當下 snapshot 必須完全相同；PreToolUse 會以 session、tool use、fingerprint 與 runtime epoch 登記 invocation，PostToolUse 必須消耗同一筆 start，reset 後才完成的舊 result 因 start ledger 已清除而被拒絕。失敗、無 structured output、stale fingerprint 或 pre-reset result 都不記 evidence。
 - 任一 reviewer 對目前 fingerprint 記過 findings 後會保持 blocking；後續同 fingerprint 的 clean result 不得覆蓋。只有 worktree edit 產生新 fingerprint，或使用者明確執行 `$sd0x-dev-flow-codex:reset`，才能清除。
 - Review pass 要求目前 fingerprint 的 Claude/Codex start ledgers 都已終局；pass 或 verify pass 後才到達的同 fingerprint finding 會原子撤銷 review、清除 verify，讓 workflow 回到 review-findings-remain。
@@ -223,7 +224,7 @@ stateDiagram-v2
   [*] --> Clean
   Clean --> ReviewRequired: worktree changes
   ReviewRequired --> ReviewRequired: findings or edit
-  ReviewRequired --> VerifyRequired: configured primary + Codex test reviewer clean
+  ReviewRequired --> VerifyRequired: configured primary clean
   VerifyRequired --> ReviewRequired: verification causes edit
   VerifyRequired --> Complete: deterministic checks pass
   Complete --> ReviewRequired: any new edit
@@ -292,7 +293,7 @@ Setup 預設寫入 Codex-first provider：
 | `SubagentStop` | 同 fingerprint、有 matching start 且有非空 terminal assistant message 才記錄 outcome；第一次無輸出會要求 continuation，續跑後的 terminal result 仍可記錄。 |
 | `Stop` | 缺 review/verify 時回傳 `continue: true` 的 non-blocking advisory，由模型依使用者意圖、任務完整度、風險與 evidence reliability 判斷是否繼續；runtime 仍保留 exact-fingerprint gate 狀態，未記錄的 gate 不得宣稱通過。Session activation/runtime-state failure仍 hard-block。 |
 
-Persistent collaboration agent 不會重新觸發 per-run `SubagentStart`/`SubagentStop`。Review skill 因此在每輪 dispatch 前執行 `round.js begin`，gate pass 前執行 `round.js import`；begin 會在 native started ledger 登記兩個 round owners，使 existing review/verify pass 暫時失效並回到 `review-in-progress`，且同 fingerprint/epoch 的 active marker 不能被第二次 begin 覆蓋。clean commit closure 另由 `commit-review-begin` 建立 `fingerprint=clean` 的 subject-bound round；marker 保存 canonical commit subject hash，dispatch prompt 與每個 terminal result 都必須帶相同 `Commit-Subject-SHA256`，attestation 再把兩個 reviewer start bindings 持久化到 ledger review blob。此路徑目前只接受 Codex provider；Claude provider 在具備等價 range adapter 前 fail closed。即使 transcript adapter unavailable，round owners 也會保留，之後只能由相符 native `SubagentStop` 終結。Marker schema v3 與 runtime state schema v8 明確退休三視角 evidence。Marker lock 記錄 process owner，只回收 dead owner 或超過 grace period仍沒有有效 owner的殘留 lock，絕不因 age 回收確認存活的 owner。Reset 以 runtime epoch 讓未完成 marker 失效；下一個 begin 會在 marker lock 內退休 stale marker，沒有 active round owners時也會 quarantine malformed marker，再建立新的 adapter 或 native-fallback round，舊 result 不能重放。Adapter 只補足這個 Codex event transport 差異；原生 hooks 仍是首選，transcript 未提供或格式不符時不會降級成 parent prose evidence。Codex 官方將 transcript JSONL 視為非穩定介面，因此任何格式更新都必須新增明確 adapter version 與 wire-format fixtures，不能寬鬆猜測欄位。
+Persistent collaboration agent 不會重新觸發 per-run `SubagentStart`/`SubagentStop`。Review skill 因此在每輪 dispatch 前執行 `round.js begin`，gate pass 前執行 `round.js import`；begin 會在 native started ledger 登記一個 primary round owner，使 existing review/verify pass 暫時失效並回到 `review-in-progress`，且同 fingerprint/epoch 的 active marker 不能被第二次 begin 覆蓋。clean commit closure 另由 `commit-review-begin` 建立 `fingerprint=clean` 的 subject-bound round；marker 保存 canonical commit subject hash，dispatch prompt 與 terminal result 都必須帶相同 `Commit-Subject-SHA256`，attestation 再把 primary start binding 持久化到 ledger review blob。此路徑目前只接受 Codex provider；Claude provider 在具備等價 range adapter 前 fail closed。即使 transcript adapter unavailable，round owner 也會保留，之後只能由相符 native `SubagentStop` 終結。Marker schema v4 與 runtime state schema v9 明確退休 v8 的雙 reviewer gate evidence。Marker lock 記錄 process owner，只回收 dead owner 或超過 grace period仍沒有有效 owner的殘留 lock，絕不因 age 回收確認存活的 owner。Reset 以 runtime epoch 讓未完成 marker 失效；下一個 begin 會在 marker lock 內退休 stale marker，沒有 active round owner 時也會 quarantine malformed marker，再建立新的 adapter 或 native-fallback round，舊 result 不能重放。Adapter 只補足這個 Codex event transport 差異；原生 hooks 仍是首選，transcript 未提供或格式不符時不會降級成 parent prose evidence。Codex 官方將 transcript JSONL 視為非穩定介面，因此任何格式更新都必須新增明確 adapter version 與 wire-format fixtures，不能寬鬆猜測欄位。
 
 Protected paths 目前包含 `.env*`、`.git/`、SSH private-key names、credentials/secrets config 與 private-key formats；`.env.example`、`.env.sample`、`.env.template` 允許修改。
 
@@ -300,30 +301,30 @@ Hook interception 只是 workflow guardrail。Shell 或其他等價路徑可能�
 
 ## 7. Review workflow
 
-Review skill 必須平行啟動：
+Review skill 只啟動 configured primary：
 
 - `sd0x_codex_primary_reviewer`（預設）：blocking primary；profile 固定 `gpt-5.6-sol`、`xhigh`、read-only，同時檢查 implementation 與 test/AC。
 - `sd0x_claude_primary_reviewer`（`review.provider: "claude"`）：blocking wrapper subagent；在 subagent 內呼叫 `mcp__sd0x_claude_review__review_worktree`，parent task 不直接呼叫 Claude。
-- `sd0x_test_reviewer`：native Codex test perspective；acceptance criteria、regression coverage、flakiness、verification gaps。
-
-兩者必須：
+Blocking primary 必須：
 
 - Read-only。
-- 不共享彼此結論後再開始審查。
+- 不接受 implementer 或舊 fingerprint 結論作為權威輸入。
 - 針對目前 dirty worktree。
 - 只回報具 file/line evidence 與 fix recommendation 的 P0/P1/P2 actionable findings。
 
 共同理論由 `skills/review/references/review-theory.md` 定義：reviewer 必須從 guidance、contracts/schema、request/spec/AC 推導 intended behavior，並獨立研究完整 changed files、callers/callees/dependencies、config、tests 與 docs；每個 finding 都要通過 evidence、context、false-positive、severity、adjacent-gap 五項 deliberate checks，且輸出 root cause、minimal fix 與 regression protection。Implementation rubric 明確涵蓋 correctness、security、performance/reliability、maintainability/testability；test rubric 明確涵蓋 AC traceability、coverage、boundary/error、concurrency/state、mock/assertion quality、正確 test layer 與 flakiness。
 
-`review-theory.md` 的 Source Alignment 逐項保留來源 `rules/codex-invocation.md`、`rules/auto-loop.md`、`rules/fix-all-issues.md`、`skills/codex-code-review/` 與 `skills/test-review/` 的核心：metadata-only dispatch、reviewer 自行讀 actual diff/context、禁止餵結論造成 anchoring、每輪平行正交視角、五項 deliberate checks、AC/test adequacy、canonical dedup/source attribution，以及 fix 不等於 verify。Codex 版的刻意差異是兩視角 blocking、P0/P1/P2 全阻擋、排除 Nit、provider/fingerprint evidence binding、無 degraded pass 與每個新 fingerprint fresh scan。
+`review-theory.md` 的 Source Alignment 逐項保留來源 `rules/codex-invocation.md`、`rules/auto-loop.md`、`rules/fix-all-issues.md`、`skills/codex-code-review/` 與 `skills/test-review/` 的核心：metadata-only dispatch、reviewer 自行讀 actual diff/context、禁止餵 implementer 結論造成 anchoring、五項 deliberate checks、AC/test adequacy、canonical dedup/source attribution，以及 fix 不等於 verify。Codex 版的刻意差異是 configured primary 單獨 blocking、P0/P1/P2 全阻擋、排除 Nit、provider/fingerprint evidence binding、無 degraded pass 與每個新 fingerprint fresh scan。
 
-相較來源 `sd0x-dev-flow`，這裡刻意採更嚴格的收斂規則：不收 Nit，任何 P0/P1/P2 都阻擋；configured primary 與 Codex test perspective 都是 blocking evidence，不允許 degraded pass；任何 edit 或 provider change 都要求 fresh full scan。為保留 root-cause revalidation，fix round 可把同一 reviewer 自己上一輪的 finding identities 當作非權威 hypotheses 傳回，但不可跨 reviewer 分享，也不能當 gate evidence。
+相較來源 `sd0x-dev-flow`，這裡刻意採更嚴格的收斂規則：不收 Nit，任何 P0/P1/P2 都阻擋；configured primary 是唯一 blocking evidence，不允許 degraded pass；任何 edit 或 provider change 都要求 fresh full scan。為保留 root-cause revalidation，fix round可把 primary 自己上一輪的 finding identities 當作非權威 hypotheses 傳回，但不能當 gate evidence。
+
+`test-review` 保留為獨立、read-only、non-gating skill，專門檢查 test coverage、AC traceability、assertion/mocking quality、flakiness 與 verification gaps。它不派發 `sd0x_test_reviewer` custom agent、不執行 round/gate scripts，也不能滿足或撤銷 repository review gate。
 
 預設 Codex profiles 使用 `gpt-5.6-sol`、`xhigh` 與 read-only sandbox。Claude adapter 只有在 project config 明確選擇 `claude` 時可用；它不開放 Bash、Edit、Web 或 project customizations，接收由 built-in Git 命令建立的 bounded diff/untracked bundle，並只開放 Read/Glob/Grep 研究 surrounding code。預設只給 `claude-opus-4-8` 15 分鐘與 20 agentic turns，不自動啟動第二個 model attempt。Turn cap 透過 Claude 官方 `CLAUDE_CODE_MAX_TURNS` 環境變數設定，避免某些版本支援但未在頂層 `--help` 顯示 `--max-turns` 所造成的 preflight false negative。需要額外 fallback 時，可明確設定 `SD0X_CLAUDE_REVIEW_FALLBACK_MODEL=claude-fable-5`；MCP client 取消或 transport 關閉會終止 active child，不會啟動 fallback。外層 MCP timeout 保留 31 分鐘，以容納 opt-in 的兩次嘗試及清理時間。可用 `SD0X_CLAUDE_REVIEW_MODEL`、`SD0X_CLAUDE_REVIEW_FALLBACK_MODEL`、`SD0X_CLAUDE_REVIEW_TIMEOUT_MS` 與 `SD0X_CLAUDE_REVIEW_MAX_TURNS` 覆寫；timeout override 只能降低，超過 15 分鐘會 clamp。Protected changed paths、tracked binary changes、nested repository/submodule changes、oversized或無法完整納入的 changed content、Claude CLI/auth failure、所有已配置 model attempts 都失敗、invalid structured output 與 review 期間 fingerprint 改變全部 fail closed。
 
 Windows adapter 只接受 Anthropic native installer/`winget` 提供的 `claude.exe`，不透過 shell 執行 `.cmd`、`.bat` 或 PowerShell shim；這能保證 multiline system contract 與 JSON schema 維持原始 argv 邊界。Doctor 會把只有 shim 的安裝回報為 `native-windows-cli-required`。
 
-若有 finding：記錄 fail、修正 root cause、取得新 fingerprint，並重新啟動兩個 perspectives。若任一 reviewer unavailable：以 `findings: 0`、`reviewer_failure: true` 記錄 fail，同 fingerprint 不得直接替換或重跑 reviewer；必須先取得使用者授權執行 reset，或由真正的 worktree edit 產生新 fingerprint。恢復 custom reviewer identity 可能另外需要啟動新 Codex task，但 process restart 本身不會清除 failed gate 或 stale ledger。不可把任何舊 reviewer output 當成新 fingerprint 的 gate evidence。
+若有 finding：記錄 fail、修正 root cause、取得新 fingerprint，並重新啟動 configured primary。若 primary unavailable：以 `findings: 0`、`reviewer_failure: true` 記錄 fail，同 fingerprint 不得直接替換或重跑 reviewer；必須先取得使用者授權執行 reset，或由真正的 worktree edit 產生新 fingerprint。恢復 custom reviewer identity 可能另外需要啟動新 Codex task，但 process restart 本身不會清除 failed gate 或 stale ledger。不可把任何舊 reviewer output 當成新 fingerprint 的 gate evidence。
 
 ## 8. 開發安裝模式
 
@@ -454,8 +455,8 @@ Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向�
 
 ### 修改 state schema
 
-1. 評估是否提升 `SCHEMA_VERSION`；目前 runtime state schema 是 v8。
-2. 說明舊 state 是 migrate 還是安全 reset；v1–v7 會保留可辨識的 activated sessions，但保守清除所有 pre-v8 gates、collaboration ownership 與 reviewer evidence，避免三視角 identities 被沿用；缺失或不支援的 schema 會 fail closed，只有 user-authorized reset 能 quarantine 原始 bytes 並建立乾淨 state。
+1. 評估是否提升 `SCHEMA_VERSION`；目前 runtime state schema 是 v9。
+2. 說明舊 state 是 migrate 還是安全 reset；v1–v8 會保留可辨識的 activated sessions，但保守清除所有 pre-v9 gates、collaboration ownership 與 reviewer evidence，避免 multi-reviewer identities 被沿用；缺失或不支援的 schema 會 fail closed，只有 user-authorized reset 能 quarantine 原始 bytes 並建立乾淨 state。
 3. 保持 atomic write、state lock 與 Git metadata path。
 4. 新增 fingerprint invalidation、concurrency 與 stale-state tests。
 
@@ -502,10 +503,10 @@ custom refs；CI、release、clone import 與離線 bundle 都必須明確搬移
 目前 suite 會先遞迴 syntax-check 所有 shipped JavaScript entrypoints，再執行下列測試群組；案例數以 `npm run check` 的即時輸出為準，不在文件寫死：
 
 - `dev-plugin.test.js`：loader-safe overlay、regular-file skill entrypoint、idempotency、foreign owner、missing／mismatched cache path、isolated home 的 link/unlink。
-- `claude-review-mcp.test.js`：MCP wire format、Claude CLI read-only flags、structured output、protected paths、bundle/fingerprint binding。
+- `claude-review-mcp.test.js`：provider-independent skill runtime allowlist/hostile PATH binding、MCP wire format、Doctor capability discovery、Claude CLI read-only flags、structured output、protected paths、bundle/fingerprint binding。
 - `hook.test.js`：opt-in、SessionStart boundary、multi-session enforcement、protected patch、Claude MCP PostToolUse evidence、Stop、terminal subagent lifecycle。
 - `setup.test.js`：idempotency、AGENTS preservation、unowned agents、invalid config preflight。
-- `state.test.js`：Claude + dual-Codex clean outcomes、schema migration、fingerprint binding、session retention、no-ceiling loop、explicit reset 與 obsolete-counter migration。
+- `state.test.js`：configured Codex/Claude primary clean outcomes、legacy multi-reviewer schema migration、fingerprint binding、session retention、no-ceiling loop、explicit reset 與 obsolete-counter migration。
 - `verify.test.js`：project command detection、review precondition、CLI spoof rejection、start/end fingerprint 與 mutating checks。
 - `worktree.test.js`：tracked/non-ignored-untracked hashing、nested repositories、`ignore=all` submodules、generated paths、patch parsing、protected paths。
 
@@ -533,11 +534,11 @@ CODEX_HOME="$PLUGIN_REPO/.codex-dev-home" codex
 在第一個 task 依序執行：
 
 1. 確認 `/hooks` 已 trust。
-2. 呼叫 `$sd0x-dev-flow-codex:setup`，確認產生預設 `review.provider: "codex"`、三個 `.codex/agents/*.toml` 與 `AGENTS.md` managed block；舊 setup-managed `sd0x-reviewer.toml` 必須退休，自訂同名檔則保留。只有測試 Claude mode 時才需確認 bundled MCP 與 Claude CLI login。
+2. 呼叫 `$sd0x-dev-flow-codex:setup`，確認產生預設 `review.provider: "codex"`、兩個 `.codex/agents/*.toml` 與 `AGENTS.md` managed block；舊 setup-managed `sd0x-reviewer.toml`、`sd0x-test-reviewer.toml` 必須退休，自訂同名檔則保留。所有 provider 都要確認 bundled MCP registry 含 `run_skill_script`；只有測試 Claude mode 時才需額外確認 `review_worktree` 與 Claude CLI login。
 3. 確認 setup 所在 task 不會因尚未觀察到該 task 的 SessionStart opt-in 而被 Stop gate 卡住。
 4. 開新 task，建立一個可測試的小變更，分別驗證 code/config 需要 review + verify，docs-only 只需要 review。
-5. 讓 Codex primary 與 Codex test reviewer 完成後記錄 review pass，再執行 verify；確認兩者 fingerprint 相同且 final Stop 放行。
-6. 把 provider 切換成 `claude`，開新 task，確認 Claude wrapper 內部 MCP evidence 與 Codex test reviewer 可完成同一流程；再切回 `codex`，確認不會呼叫 Claude。
+5. 讓 Codex primary 完成後記錄 review pass，再執行 verify；確認兩個 gates fingerprint 相同且 final Stop 放行。另獨立呼叫 `test-review` 時，確認它維持 read-only 且不改 gate state。
+6. 把 provider 切換成 `claude`，開新 task，確認 Claude wrapper 內部 MCP evidence 可完成同一流程；再切回 `codex`，確認不會呼叫 Claude。
 7. 修改 worktree 或切換 provider，確認舊 review/verify evidence 失效。
 
 並記錄以下結果：
@@ -545,7 +546,7 @@ CODEX_HOME="$PLUGIN_REPO/.codex-dev-home" codex
 - Plugin 可安裝，新增 skill 可在新 task discovery/明確呼叫；若 repository 已加入 validator，也需通過該 validator。
 - 安裝後 cache 不含 repo `.git`、tests 或 root 開發檔案。
 - Setup task 放行，下一個 SessionStart 才啟用。
-- Codex-default primary + Codex test reviewer → review pass → verify pass → final Stop 放行；Claude opt-in wrapper 另有對稱 E2E。
+- Codex-default primary → review pass → verify pass → final Stop 放行；Claude opt-in wrapper 另有對稱 E2E，optional `test-review` 不改 gate state。
 
 ## 12. 常見問題排查
 
@@ -574,7 +575,7 @@ npm run dev:local:status
 
 ### Review pass 被拒絕
 
-先用 review provider script/doctor 確認目前 provider，再檢查 configured primary 與 test agent type 的 start/stop 期間 worktree 是否未改變。Claude mode 另需確認 wrapper 內 MCP 成功回傳 structured result、PostToolUse hook 已 trust 並記錄同一 fingerprint。Runtime 要求 exact `reviewers: 2` 與精確 agent identities；手填或沿用舊三視角 evidence 都不足以通過 gate。
+先用 review provider script/doctor 確認目前 provider，再檢查 configured primary 的 start/stop 期間 worktree 是否未改變。Claude mode 另需確認 wrapper 內 MCP 成功回傳 structured result、PostToolUse hook 已 trust 並記錄同一 fingerprint。Runtime 要求 exact `reviewers: 1` 與精確 primary identity；手填或沿用舊 multi-reviewer evidence 都不足以通過 gate，`sd0x_test_reviewer` 也沒有 gate authority。
 
 ### Claude MCP reviewer 不可用
 
@@ -585,11 +586,11 @@ npm run dev:local:status
 1. `claude --version` 可執行，`claude --help` 含 adapter 所需 flags，且 Claude CLI 已完成登入。
    Windows 必須解析到 native `claude.exe`；若 Doctor 回報 `native-windows-cli-required`，以 `winget install Anthropic.ClaudeCode` 安裝官方 native build，並移除 PATH 中遮蔽它的舊 shim。
 2. 變更 `.mcp.json`、manifest 或新增 adapter 後，已先 `dev:local:unlink` 再 `dev:local:link` 並開新 task。
-3. Doctor 的 MCP initialize/tool-list handshake 通過，且目前 task 的 tool registry 含 `mcp__sd0x_claude_review__review_worktree`。
+3. Doctor 的 MCP initialize/tool-list handshake 通過，且目前 task 的 tool registry 同時含 provider-independent `mcp__sd0x_claude_review__run_skill_script` 與 Claude-only `mcp__sd0x_claude_review__review_worktree`。
 4. Changed paths 不含 protected file 或 nested repository/submodule，review bundle 未超過預設 4 MiB。
 5. `SD0X_CLAUDE_BIN`、`SD0X_CLAUDE_REVIEW_MODEL`、`SD0X_CLAUDE_REVIEW_TIMEOUT_MS` 或 bundle limit overrides 沒有錯誤值。
 
-MCP failure 不會降級成 pass。修復環境後必須重跑完整兩視角 review；若不需要跨模型 primary，可明確切回 `codex` 並開新 task，provider change 會清除舊 evidence。
+MCP failure 不會降級成 pass。修復環境後必須重跑完整 primary review；若不需要跨模型 primary，可明確切回 `codex` 並開新 task，provider change 會清除舊 evidence。
 
 ### Verify 後又要求 review
 
@@ -643,7 +644,7 @@ Reset 會保留可信 state 的 active sessions 與目前 worktree snapshot、ro
 - Verify detector 目前只涵蓋 Node、Python、Go、Rust 的基本策略。
 - Plugin core 尚未覆蓋 Claude 版大多數 domain-specific skills，這是刻意範圍控制。
 - Codex `0.145.0` 的 skill registry 沒有可檢查的 manual-only/implicit-route exclusion flag；compatibility aliases 因此只保留 mapping，不建立 live alias skill。任何 Codex/plugin registry 變更都必須重跑 repository-only R4 probe與 version-bound audit，不能用 prompt sampling 直接升級。Current decision 另以從原始 R4 request 起算、不可截斷的 canonical ordered `owner_history` path/hash與逐票 `Depends On` 鎖住所有 prior R4 owner bytes；缺少首筆或中間 owner 都 fail closed，版本 refresh 不得悄悄改寫歷史證據。
-- `create-request` 已可安全建立、更新與掃描 tickets；`Completed` 只能透過 bundled runtime 的 durable `closure prepare` → runtime-owned descriptor-bound `closure apply` → docs review → `closure finalize` transaction。Pending record持久化 exact prior/proposed bytes、request 的 immutable canonical Implementation Base SHA與每個 AC location的 reconstructable content identity；base 必須是 subject HEAD ancestor，commit subject的 `base_sha` 另須完全相等。Apply 以 inode-bound durable journal與 write-all loop工作：prepare後既有或 write-boundary 使用者編輯原樣 fail closed；mutation開始後任一失敗都保留 journal，不做無法原子 CAS 的自動 rollback。Unknown bytes即使有 journal也不會自動覆寫；明確 operator 必須連同 inspected `expected_current_sha256`使用 `closure recover action=restore-prior`恢復 persisted prior後重播，或用 `action=abandon`保留 request bytes並移除 recovery ownership。Restore通常要求 journaled inode；唯一的 exact-success exception 是成功 apply 已移除原 journal、但 current bytes 與 operator-inspected hash 仍同時等於 pending proposal，此時 explicit `restore-prior`可合成 runtime-owned journal。Prior、unknown 或 replacement bytes仍 fail closed；合成 journal與 prepared recovery journal可在 restart後續跑。Restore先把當下 file原子移到回傳的 `.sd0x/closure-recovery/` displaced backup，再以 no-overwrite link安裝 prior，因此最後瞬間的 edit不會被銷毀；post-rename identity驗證失敗時也會以 no-overwrite方式把 displaced bytes恢復到 live path並保留 operator recovery，rollback link後的 crash會在 restart辨識同 inode並只完成 metadata cleanup。Finalized pending對 recovery是 terminal（含既有 journal），不得把 durable closure/promotion倒退，後續修正必須建立 superseding closure revision。每個已閉環 owner request 的 bytes 永久保持不變；replacement ticket 必須 `Depends On` 該 unit 最新 completion record 的 owner，closure/promotion 再各自以 `supersedes_record_sha256` 接續 ledger，因此非 Wave 1 與多次 re-promotion 都不會回指過時 checkpoint。Abandon可處理 editor atomic-save replacement inode；runtime不得自行選擇。Apply/recover/finalize/promotion與 low-level append只接受 unit目前最新 commit-order pending/closure revision，而且 latest closure必須消費 latest pending；mutation與 journal removal前都在 state lock內重驗。Finalize、selected audit request讀取、source/promotion payload traversal均綁 no-follow descriptor、ancestor/file identity及完整目錄 entry manifest，source audit在 ledger audit後再 hash並重驗 ledger OID。Evidence Git root discovery、metadata path、ref/history/tree reads清除 ambient repository/index selectors並綁單一 captured OID。任何 gate、subject、AC/check、path containment、ref 或 restart evidence 不符都停在 `Candidate Complete`。
+- `create-request` 已可安全建立、更新與掃描 tickets；`Completed` 只能透過 bundled runtime 的 durable `closure prepare` → runtime-owned descriptor-bound `closure apply` → docs review → `closure finalize` transaction。Pending record持久化 exact prior/proposed bytes、request 的 immutable canonical Implementation Base SHA與每個 AC location的 reconstructable content identity；base 必須是 subject HEAD ancestor，commit subject的 `base_sha` 另須完全相等。Candidate delivery 的 gate owner 只有在 exact durable request closure 與目前 request path 相符時才可保持 `Completed`；缺少 evidence ref、closure 或 path binding 一律 fail closed，不能靠把 delivered overlay 降回 candidate 取得 authority。Apply 以 inode-bound durable journal與 write-all loop工作：prepare後既有或 write-boundary 使用者編輯原樣 fail closed；mutation開始後任一失敗都保留 journal，不做無法原子 CAS 的自動 rollback。Unknown bytes即使有 journal也不會自動覆寫；明確 operator 必須連同 inspected `expected_current_sha256`使用 `closure recover action=restore-prior`恢復 persisted prior後重播，或用 `action=abandon`保留 request bytes並移除 recovery ownership。Restore通常要求 journaled inode；唯一的 exact-success exception 是成功 apply 已移除原 journal、但 current bytes 與 operator-inspected hash 仍同時等於 pending proposal，此時 explicit `restore-prior`可合成 runtime-owned journal。Prior、unknown 或 replacement bytes仍 fail closed；合成 journal與 prepared recovery journal可在 restart後續跑。Restore先把當下 file原子移到回傳的 `.sd0x/closure-recovery/` displaced backup，再以 no-overwrite link安裝 prior，因此最後瞬間的 edit不會被銷毀；post-rename identity驗證失敗時也會以 no-overwrite方式把 displaced bytes恢復到 live path並保留 operator recovery，rollback link後的 crash會在 restart辨識同 inode並只完成 metadata cleanup。Finalized pending對 recovery是 terminal（含既有 journal），不得把 durable closure/promotion倒退，後續修正必須建立 superseding closure revision。每個已閉環 owner request 的 bytes 永久保持不變；replacement ticket 必須 `Depends On` 該 unit 最新 completion record 的 owner，closure/promotion 再各自以 `supersedes_record_sha256` 接續 ledger，因此非 Wave 1 與多次 re-promotion 都不會回指過時 checkpoint。Abandon可處理 editor atomic-save replacement inode；runtime不得自行選擇。Apply/recover/finalize/promotion與 low-level append只接受 unit目前最新 commit-order pending/closure revision，而且 latest closure必須消費 latest pending；mutation與 journal removal前都在 state lock內重驗。Finalize、selected audit request讀取、source/promotion payload traversal均綁 no-follow descriptor、ancestor/file identity及完整目錄 entry manifest，source audit在 ledger audit後再 hash並重驗 ledger OID。Evidence Git root discovery、metadata path、ref/history/tree reads清除 ambient repository/index selectors並綁單一 captured OID。任何 gate、subject、AC/check、path containment、ref 或 restart evidence 不符都停在 `Candidate Complete`。
 
 ## 15. Decision log
 
@@ -673,7 +674,7 @@ Auto-loop state 不污染 worktree，並自然支援不同 worktree 的獨立 Gi
 
 ### 2026-07-10：Claude MCP primary + native Codex dual perspectives（已由 2026-07-12 決策取代）
 
-最初採用來源專案的跨模型 review 邊界：Codex host 透過 bundled local MCP adapter 呼叫 Claude primary reviewer，同時保留 implementation 與 test 兩個 native Codex subagents。此三視角設計的安全語義保留在歷史紀錄，但 live gate 已由下方兩視角決策取代。
+最初採用來源專案的跨模型 review 邊界：Codex host 透過 bundled local MCP adapter 呼叫 Claude primary reviewer，同時保留 implementation 與 test 兩個 native Codex subagents。此三視角設計的安全語義保留在歷史紀錄，後續 live gate 決策如下。
 
 ### 2026-07-11：Codex-first configurable primary subagent
 
@@ -682,6 +683,10 @@ Primary orchestration 統一為 subagent。`review.provider` 預設 `codex`，�
 ### 2026-07-12：Primary + test 兩視角
 
 為降低每輪 token 消耗，live review contract 收斂為 configured primary 與 `sd0x_test_reviewer`。Primary 已涵蓋 correctness、security、implementation 與 test/AC；獨立 test reviewer 保留最互補的 acceptance、coverage、flakiness 與 verification-gap 視角。Runtime state schema v8、collaboration marker schema v3、setup managed profiles、hook matchers與 gate evidence均要求 exact `reviewers: 2`，舊 `sd0x_reviewer` managed profile會在 setup refresh時退休，三視角 evidence不會被沿用；兩視角仍同 fingerprint、read-only、parallel、blocking，沒有 degraded pass。
+
+### 2026-07-26：單一 configured primary gate
+
+Live auto-loop 與 review gate 進一步收斂為一位 configured primary。Primary rubric 仍完整涵蓋 correctness、security、implementation、test/AC、flakiness 與 verification gaps；`test-review` 另以獨立、read-only、non-gating core skill保留更聚焦的 test/acceptance assessment。Runtime state schema v9、collaboration marker schema v4、hook matchers、setup managed profiles 與 current gate evidence均要求 exact `reviewers: 1`；setup不再安裝 `sd0x_test_reviewer` 並安全退休舊 managed profile。v8 雙 reviewer current gates在 migration時失效，durable歷史 evidence仍可稽核，但不能取得 current gate authority。
 
 ## 16. 下一個開發 task 的交接清單
 
@@ -705,7 +710,7 @@ Primary orchestration 統一為 subagent。`review.provider` 預設 `codex`，�
 完成前：
 
 - [ ] `npm run check` 全通過。
-- [ ] Configured primary 與 Codex test reviewer 對目前 fingerprint 無 actionable findings；Claude mode 另確認 nested MCP structured evidence。
+- [ ] Configured primary 對目前 fingerprint 無 actionable findings；Claude mode 另確認 nested MCP structured evidence。Optional `test-review` 不得寫 gate evidence。
 - [ ] Deterministic verify 對同一 fingerprint 通過。
 - [ ] 安裝後 plugin list 仍為 `installed, enabled`。
 - [ ] 若設計決策或 reload 規則改變，更新本文件。

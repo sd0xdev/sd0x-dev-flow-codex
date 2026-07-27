@@ -1,35 +1,197 @@
 ---
 name: review
-description: Review the current dirty worktree with a configured Codex-first or Claude primary subagent plus one independent read-only Codex test perspective, fix actionable findings, and record a fingerprint-bound review gate. Use before finishing code or documentation changes, after fixes invalidate prior review, or when the sd0x stop hook requests review.
+description: "Route review using exact migration registry [{\"unit\":\"review/branch\",\"routing\":{\"negative_boundaries\":[\"Inspect only the current unstaged diff for a quick preliminary opinion.\",\"Review prose accuracy and links in the migration guide.\",\"Run the mandatory current-worktree gate for deterministic verification.\"],\"positive_triggers\":[\"Audit all commits on this feature branch against its merge base.\",\"Review every change introduced by the current branch before opening a pull request.\",\"Review the branch range from main through HEAD as one coherent change.\"]}},{\"unit\":\"review/deep\",\"routing\":{\"negative_boundaries\":[\"Check only whether the tests adequately cover the acceptance criteria.\",\"Give a fast changed-lines-only opinion without broader exploration.\",\"Scan the change exclusively for security vulnerabilities.\"],\"positive_triggers\":[\"Deeply inspect these changes, their callers, architecture, and hidden invariants.\",\"Perform an independent whole-codebase investigation around this diff before judging it.\",\"Review this complex change with broad repository exploration and surrounding tests.\"]}},{\"unit\":\"review/default\",\"routing\":{\"negative_boundaries\":[\"Assess project-wide maintainability and repository health without focusing on a diff.\",\"Create missing regression tests for this implementation.\",\"Summarize the pull request without judging correctness.\"],\"positive_triggers\":[\"Perform the standard fingerprint-bound code review before verification.\",\"Review the current dirty worktree and close the repository review gate.\",\"Run the required configured primary review for these changes.\"]}},{\"unit\":\"review/fast\",\"routing\":{\"negative_boundaries\":[\"Deeply investigate the architectural implications of this cross-cutting change.\",\"Review the complete feature branch commit range against main.\",\"Run local checks and inspect all affected dependencies before reviewing.\"],\"positive_triggers\":[\"Give me a quick diff-only review of the current changed lines.\",\"Inspect this small patch for obvious correctness issues without running checks.\",\"Provide a preliminary fast review before the full repository gate.\"]}},{\"unit\":\"review/full\",\"routing\":{\"negative_boundaries\":[\"Audit dependency freshness and advisories without reviewing application logic.\",\"Inspect only this documentation page for clarity and factual accuracy.\",\"Provide a quick diff-only review with no project checks.\"],\"positive_triggers\":[\"Complete a comprehensive review with read-only local checks and dependency context.\",\"Inspect this worktree thoroughly and include available build and lint evidence.\",\"Run the full change review, including affected integrations and repository checks.\"]}}]."
 ---
 
 # Close the Review Gate
 
-1. Resolve this skill's installed directory from the current `SKILL.md`. Read `references/review-theory.md`; its independent-research, orthogonal-perspective, evidence, severity, and convergence rules govern every reviewer. Run `node "<this-skill-directory>/scripts/provider.js"`, then `node "<this-skill-directory>/scripts/snapshot.js"`. Parse and retain the configured provider, primary agent, root, fingerprint, and changed files. Stop if the worktree is clean. Run `node "<this-skill-directory>/scripts/round.js" begin` immediately before dispatch. When the current Codex surface exposes persistent collaboration agents instead of per-run subagent hooks, this records a fingerprint-bound transcript offset for the explicit Codex JSONL adapter; an unavailable adapter is non-fatal because native `SubagentStart`/`SubagentStop` hooks remain authoritative where supported.
-2. In one parallel dispatch, start the configured primary subagent and the independent Codex test perspective. Do not give either reviewer the other's conclusions:
-   - When `provider` is `codex`, spawn `sd0x_codex_primary_reviewer` against the snapshot. Its project agent profile pins `gpt-5.6-sol`, `xhigh`, and read-only mode.
-   - When `provider` is `claude`, spawn `sd0x_claude_primary_reviewer` against the snapshot. Tell it that the provider is `claude`; inside that subagent it must call `mcp__sd0x_claude_review__review_worktree` with the exact `cwd: root` and `fingerprint`. On a fix round, give it only Claude's own prior normalized finding identities. The MCP PostToolUse hook records the structured Claude evidence; never call the Claude MCP from the parent task and never substitute prose for the nested call.
-   - Spawn `sd0x_test_reviewer` against the same fingerprint for the native Codex test and acceptance perspective. On a fix round, give it only its own prior finding identities as hypotheses to revalidate.
-3. Wait for both subagent results. Each subagent must return an explicit terminal result; a start/stop pair without final assistant output does not count. In Claude mode, a failed, missing, unstructured, or stale nested MCP result also blocks the gate. When clean, each subagent must return exactly `No actionable findings remain.` so the runtime can record a structured clean outcome. Before recording a pass, run `node "<this-skill-directory>/scripts/round.js" import`; `gate.js pass` rescans from the original offset and finalizes the marker at the gate boundary. The adapter accepts only exact direct collaboration agent paths and terminal messages observed after the recorded transcript offset for the unchanged fingerprint and runtime epoch; malformed, overlapping, interrupted, pending, missing, replayed, or stale evidence fails closed.
-4. Apply the theory's five deliberate checks before accepting a finding. Normalize survivors to `[P0|P1|P2] file:line description → root cause → recommendation → regression protection`, then deduplicate by `file + canonical issue` (ignore line drift of at most five lines). Keep the highest severity and tag each finding with `source: claude`, `source: codex`, `source: codex-test`, or `source: both`.
-5. Aggregate only discrete actionable findings with file and line evidence. Any P0/P1/P2 finding blocks this strict gate.
-6. If findings exist, record `fail`. Before editing, identify each finding's symptom, violated invariant/root cause, minimal fix, and recurrence protection; add regression evidence at the appropriate test layer when feasible. Fix the findings, then restart from step 1. If a native reviewer is unavailable, cancelled, missing terminal output, or otherwise leaves stale start evidence, record `fail`; do not replace or retry that reviewer type on the same fingerprint. Ask the user before running `$sd0x-dev-flow-codex:reset`, then restart from step 1 only after the user-authorized reset. Any edit creates a new fingerprint and invalidates both prior results; prior finding identities are verification hypotheses, never gate evidence.
-7. Record `pass` only when the configured primary subagent and the Codex test perspective independently report no actionable findings for the same fingerprint. Claude mode additionally requires the nested Claude MCP structured clean result.
+1. Resolve the repository root. Read the [review theory](references/review-theory.md); its independent-research, orthogonal-perspective, evidence, severity, and convergence rules govern every reviewer. The deterministic [provider](scripts/provider.js), [snapshot](scripts/snapshot.js), [round](scripts/round.js), and [gate](scripts/gate.js) wrappers implement the workflow. Required ordered invocations:
 
-Record a failed pass with compact JSON evidence:
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/provider.js","cwd":"<repository-root>","args":[]}'`
 
-```bash
-node "<this-skill-directory>/scripts/gate.js" fail --evidence '{"provider":"<provider>","reviewers":2,"agents":["<primary-agent>","sd0x_test_reviewer"],"findings":1,"summary":"actionable findings or reviewer failure remain"}'
-```
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/snapshot.js","cwd":"<repository-root>","args":[]}'`
 
-For unavailable reviewer infrastructure, record `findings: 0` and `reviewer_failure: true` instead. This keeps the gate failed while allowing the Stop hook to yield. On the same fingerprint, a user-authorized reset is required before retrying; restoring reviewer identities may additionally require a new Codex task, but process restart alone does not clear the failed gate or stale ledger. A genuine fingerprint change also invalidates that evidence.
+Parse and retain the configured provider, primary agent, root, fingerprint, and changed files. Stop if the worktree is clean. Immediately before dispatch, run:
 
-Record the passing gate only after all provider-plan evidence has been observed for this fingerprint:
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/round.js","cwd":"<repository-root>","args":["begin"]}'`
 
-```bash
-node "<this-skill-directory>/scripts/gate.js" pass --evidence '{"provider":"codex","reviewers":2,"agents":["sd0x_codex_primary_reviewer","sd0x_test_reviewer"],"findings":0,"summary":"no actionable findings"}'
-```
+On Codex surfaces with persistent collaboration agents, the round wrapper records a fingerprint-bound transcript boundary for the explicit Codex JSONL adapter; an unavailable adapter is non-fatal only when native reviewer lifecycle evidence remains authoritative.
+2. Dispatch the configured primary reviewer against the fingerprint-bound snapshot:
+   - For provider `codex`, dispatch `sd0x_codex_primary_reviewer` against the snapshot. Its project profile pins model gpt-5.6-sol, reasoning effort xhigh, and read-only mode.
+   - For provider `claude`, dispatch `sd0x_claude_primary_reviewer` against the snapshot. Its configured read-only MCP adapter must receive the exact root and fingerprint. On a fix round, give it only its own prior normalized finding identities. The nested Claude evidence recorder must store a structured result; the parent task never substitutes prose for that nested result.
+3. Wait for the primary reviewer result. It must return an explicit terminal result; a lifecycle start and end without final assistant output does not count. In Claude mode, a failed, missing, unstructured, or stale nested result also blocks the gate. When clean, the reviewer returns exactly `No actionable findings remain.` Before recording a pass, run:
 
-For Claude mode, use the provider plan's three evidence identities: `sd0x_claude_primary_reviewer`, `sd0x_test_reviewer`, and `claude_mcp_primary`.
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/round.js","cwd":"<repository-root>","args":["import"]}'`
+
+The passing gate wrapper rescans from the original boundary and finalizes the marker. Only exact direct reviewer paths and terminal messages after the recorded boundary count for the unchanged fingerprint and runtime epoch.
+4. Apply the theory's five deliberate checks before accepting a finding. Normalize survivors to `[P0|P1|P2] file:line description → root cause → recommendation → regression protection`, then deduplicate by file and canonical issue while ignoring line drift of at most five lines. Keep the highest severity and preserve source attribution.
+5. Aggregate only discrete actionable findings with file and line evidence. Any P0, P1, or P2 finding blocks this strict gate.
+6. If findings exist, record failure. Before editing, identify each finding's symptom, violated invariant or root cause, minimal fix, and recurrence protection. Fixes create a new fingerprint, invalidate the prior result, and require a new round from step 1. If the reviewer is unavailable, cancelled, or lacks terminal output, record failure; do not replace or retry that reviewer type on the same fingerprint. Ask the user before running the sd0x Dev Flow reset skill, then restart from step 1 only after the user-authorized reset. A genuine fingerprint change invalidates the stale evidence and requires a fresh round.
+7. Record pass only when the configured primary reviewer reports no actionable findings for the same fingerprint. Claude mode additionally requires the nested Claude structured clean result produced by that primary reviewer.
+
+Record failure with compact JSON evidence:
+
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/gate.js","cwd":"<repository-root>","args":["fail","--evidence","{\"provider\":\"<provider>\",\"reviewers\":1,\"agents\":[\"<primary-agent>\"],\"findings\":1,\"summary\":\"actionable findings or reviewer failure remain\"}"]}'`
+
+For unavailable reviewer infrastructure, record `findings: 0` and `reviewer_failure: true`. This keeps the gate failed while allowing the review lifecycle to yield. On the same fingerprint, a user-authorized reset is required before retrying; restoring reviewer identities may additionally require a new Codex task, but process restart alone does not clear the failed gate or stale ledger.
+
+Record pass only after all provider-plan evidence has been observed:
+
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/gate.js","cwd":"<repository-root>","args":["pass","--evidence","{\"provider\":\"codex\",\"reviewers\":1,\"agents\":[\"sd0x_codex_primary_reviewer\"],\"findings\":0,\"summary\":\"no actionable findings\"}"]}'`
+
+For Claude mode, the provider plan requires `sd0x_claude_primary_reviewer` and its nested `claude_mcp_primary` evidence.
 
 Do not weaken, bypass, or manually edit runtime state when the gate rejects evidence.
+
+## Subjects and modes
+
+Select exactly one subject before starting. Findings remain bound to the inspected
+bytes. `default` uses the strict current-worktree protocol above and is the only
+mode that records the repository review gate.
+
+Non-default modes are direct reporting workflows. The `round.js` and `gate.js`
+wrappers are excluded; these modes never write runtime evidence or satisfy
+repository completion.
+They still fail closed on a stale subject. Before dispatch, run
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"review/snapshot.js","cwd":"<repository-root>","args":[]}'`
+and retain its canonical root and fingerprint. Immediately after the reviewer
+returns, run the same exact tool call again. Discard the reviewer output and report that
+the subject changed whenever either value differs; never present stale findings
+as the selected subject.
+Return their findings to the user with the selected mode, exact subject, inspected
+paths, checks performed, and scope limitations.
+
+### `fast`
+
+1. Capture the current staged and unstaged diff plus the directly affected full
+   files. Do not expand into unrelated architecture and do not run project checks.
+2. Dispatch the configured primary reviewer read-only with the captured diff,
+   changed paths, repository guidance, and an explicit `fast` label.
+3. Re-run the canonical snapshot check and reject the report if the root or
+   fingerprint changed during review.
+4. Normalize actionable findings with file and line evidence, mark the result
+   preliminary, and state that the default gate remains required.
+
+### `full`
+
+1. Capture the current staged and unstaged diff, full changed files, directly
+   affected callers and dependencies, repository guidance, and relevant specs.
+2. Collect evidence from available non-mutating local build, lint, or test checks.
+   List each selected check, its exit status, and anything that was unavailable.
+3. Dispatch the configured primary reviewer read-only with the same subject and
+   check evidence.
+4. Re-run the canonical snapshot check and reject the report if the root or
+   fingerprint changed during review, then return normalized findings without
+   recording a gate.
+
+### `branch`
+
+1. Resolve the comparison base from the user-supplied base, configured upstream,
+   or repository default branch, in that order. Inspect repository history without
+   mutation to compute the merge base and capture the exact merge-base-to-HEAD
+   commit range.
+2. Inspect every changed path and full changed file in that range. Exclude dirty
+   worktree-only changes unless the user explicitly adds them to the subject.
+3. Dispatch the configured primary reviewer read-only with the base, merge base,
+   head commit, commit list, and range diff.
+4. Re-resolve the comparison base, merge base, and HEAD after review and reject
+   the report if any identity changed. When dirty worktree changes were explicitly
+   included, also re-run the canonical snapshot check and reject fingerprint
+   drift. Return findings identified as a branch-range report, not a dirty-worktree
+   gate.
+
+### `deep`
+
+1. Capture the current diff and full changed files, then map surrounding
+   architecture, callers, invariants, state transitions, and relevant tests.
+2. Independent read-only implementation and test/acceptance passes precede the
+   evidence comparison. Follow credible dependencies beyond changed lines, but
+   report only defects caused or exposed by the selected subject.
+3. Re-run the canonical snapshot check and reject the report if the root or
+   fingerprint changed during review.
+4. Apply the five deliberate checks, normalize and deduplicate the surviving
+   findings, and describe the explored context and remaining uncertainty without
+   recording a gate.
+
+Repository completion always requires `default` against the exact current
+fingerprint.
+
+<!-- sd0x-routing-contract:v1 unit=review/branch -->
+```json
+{
+  "positive_triggers": [
+    "Audit all commits on this feature branch against its merge base.",
+    "Review every change introduced by the current branch before opening a pull request.",
+    "Review the branch range from main through HEAD as one coherent change."
+  ],
+  "negative_boundaries": [
+    "Inspect only the current unstaged diff for a quick preliminary opinion.",
+    "Review prose accuracy and links in the migration guide.",
+    "Run the mandatory current-worktree gate for deterministic verification."
+  ]
+}
+```
+
+<!-- sd0x-routing-contract:v1 unit=review/deep -->
+```json
+{
+  "positive_triggers": [
+    "Deeply inspect these changes, their callers, architecture, and hidden invariants.",
+    "Perform an independent whole-codebase investigation around this diff before judging it.",
+    "Review this complex change with broad repository exploration and surrounding tests."
+  ],
+  "negative_boundaries": [
+    "Check only whether the tests adequately cover the acceptance criteria.",
+    "Give a fast changed-lines-only opinion without broader exploration.",
+    "Scan the change exclusively for security vulnerabilities."
+  ]
+}
+```
+
+<!-- sd0x-routing-contract:v1 unit=review/default -->
+```json
+{
+  "positive_triggers": [
+    "Perform the standard fingerprint-bound code review before verification.",
+    "Review the current dirty worktree and close the repository review gate.",
+    "Run the required configured primary review for these changes."
+  ],
+  "negative_boundaries": [
+    "Assess project-wide maintainability and repository health without focusing on a diff.",
+    "Create missing regression tests for this implementation.",
+    "Summarize the pull request without judging correctness."
+  ]
+}
+```
+
+<!-- sd0x-routing-contract:v1 unit=review/fast -->
+```json
+{
+  "positive_triggers": [
+    "Give me a quick diff-only review of the current changed lines.",
+    "Inspect this small patch for obvious correctness issues without running checks.",
+    "Provide a preliminary fast review before the full repository gate."
+  ],
+  "negative_boundaries": [
+    "Deeply investigate the architectural implications of this cross-cutting change.",
+    "Review the complete feature branch commit range against main.",
+    "Run local checks and inspect all affected dependencies before reviewing."
+  ]
+}
+```
+
+<!-- sd0x-routing-contract:v1 unit=review/full -->
+```json
+{
+  "positive_triggers": [
+    "Complete a comprehensive review with read-only local checks and dependency context.",
+    "Inspect this worktree thoroughly and include available build and lint evidence.",
+    "Run the full change review, including affected integrations and repository checks."
+  ],
+  "negative_boundaries": [
+    "Audit dependency freshness and advisories without reviewing application logic.",
+    "Inspect only this documentation page for clarity and factual accuracy.",
+    "Provide a quick diff-only review with no project checks."
+  ]
+}
+```

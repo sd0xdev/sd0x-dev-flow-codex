@@ -12,6 +12,7 @@ const {
   CLAUDE_OUTPUT_SCHEMA,
   DEFAULT_TIMEOUT_MS,
   MAX_PROCESS_OUTPUT_BYTES,
+  RUN_SKILL_SCRIPT_TOOL,
   REVIEW_SYSTEM_PROMPT,
   buildClaudeArgs,
   buildClaudeEnv,
@@ -22,6 +23,7 @@ const {
   executeClaudeAttempt,
   resolveClaudeExecutable,
   reviewWorktree,
+  runSkillScript,
   serve
 } = require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server');
 const {
@@ -75,7 +77,7 @@ function fakeClaudeChild(onStart) {
   return child;
 }
 
-function protocolHarness(review) {
+function protocolHarness(review, executeRuntime) {
   const input = new PassThrough();
   const output = new PassThrough();
   const pending = new Map();
@@ -97,7 +99,7 @@ function protocolHarness(review) {
       }
     }
   });
-  const lines = serve({ input, output, review });
+  const lines = serve({ input, output, review, runSkillScript: executeRuntime });
   return {
     request(message) {
       return new Promise((resolve, reject) => {
@@ -137,7 +139,20 @@ test('MCP server negotiates, lists, and calls the Claude review tool', async (t)
     findings: [],
     duration_ms: 1
   };
-  const harness = protocolHarness(async () => cleanResult);
+  const runtimeResult = {
+    schema_version: 1,
+    entrypoint: 'review/provider.js',
+    node_executable: process.execPath,
+    cwd: '/repo',
+    exit_code: 0,
+    signal: null,
+    stdout: '{"provider":"codex"}\n',
+    stderr: ''
+  };
+  const harness = protocolHarness(
+    async () => cleanResult,
+    async () => runtimeResult
+  );
   t.after(() => harness.close());
 
   const initialized = await harness.request({
@@ -155,7 +170,7 @@ test('MCP server negotiates, lists, and calls the Claude review tool', async (t)
     method: 'tools/list',
     params: {}
   });
-  assert.equal(listed.result.tools.length, 1);
+  assert.equal(listed.result.tools.length, 2);
   assert.equal(listed.result.tools[0].name, 'review_worktree');
   assert.equal(listed.result.tools[0].annotations.readOnlyHint, true);
   assert.equal(listed.result.tools[0].inputSchema.properties.prior_findings.maxItems, 50);
@@ -163,6 +178,7 @@ test('MCP server negotiates, lists, and calls the Claude review tool', async (t)
     .properties.findings.items.required;
   assert.ok(findingRequired.includes('root_cause'));
   assert.ok(findingRequired.includes('regression_protection'));
+  assert.deepEqual(listed.result.tools[1], RUN_SKILL_SCRIPT_TOOL);
 
   const called = await harness.request({
     jsonrpc: '2.0',
@@ -176,6 +192,112 @@ test('MCP server negotiates, lists, and calls the Claude review tool', async (t)
   assert.equal(called.result.isError, false);
   assert.equal(called.result.content[0].text, 'No actionable findings remain.');
   assert.deepEqual(called.result.structuredContent, cleanResult);
+
+  const runtimeCalled = await harness.request({
+    jsonrpc: '2.0',
+    id: 4,
+    method: 'tools/call',
+    params: {
+      name: 'run_skill_script',
+      arguments: {
+        entrypoint: 'review/provider.js',
+        cwd: '/repo'
+      }
+    }
+  });
+  assert.equal(runtimeCalled.result.isError, false);
+  assert.equal(runtimeCalled.result.content[0].text, '{"provider":"codex"}\n');
+  assert.deepEqual(runtimeCalled.result.structuredContent, runtimeResult);
+});
+
+test('runtime tool pins the host Node executable and installed script in hostile environments',
+  async (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-runtime-tool-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const pluginRoot = path.join(root, 'plugin');
+    const cwd = path.join(root, 'hostile-project');
+    const script = path.join(
+      pluginRoot,
+      'skills',
+      'remind',
+      'scripts',
+      'status.js'
+    );
+    const shadowNode = path.join(cwd, process.platform === 'win32' ? 'node.cmd' : 'node');
+    const shadowMarker = path.join(root, 'shadow-executed');
+    fs.mkdirSync(path.dirname(script), { recursive: true });
+    fs.mkdirSync(cwd, { recursive: true });
+    fs.writeFileSync(script, [
+      "'use strict';",
+      'process.stdout.write(JSON.stringify({',
+      '  execPath: process.execPath,',
+      '  cwd: process.cwd(),',
+      '  nodeOptions: process.env.NODE_OPTIONS || null,',
+      '  nodePath: process.env.NODE_PATH || null',
+      '}));'
+    ].join('\n'));
+    if (process.platform === 'win32') {
+      fs.writeFileSync(shadowNode, `@echo shadow>${shadowMarker}\r\n`);
+    } else {
+      fs.writeFileSync(
+        shadowNode,
+        `#!/bin/sh\nprintf shadow > ${JSON.stringify(shadowMarker)}\n`
+      );
+      fs.chmodSync(shadowNode, 0o755);
+    }
+
+    const result = await runSkillScript({
+      entrypoint: 'remind/status.js',
+      cwd
+    }, {
+      pluginRoot,
+      environment: {
+        ...process.env,
+        PATH: `${cwd}${path.delimiter}${process.env.PATH || ''}`,
+        NODE_OPTIONS: '--require=/definitely/untrusted.js',
+        NODE_PATH: cwd
+      }
+    });
+
+    assert.equal(result.exit_code, 0);
+    assert.equal(fs.existsSync(shadowMarker), false);
+    assert.deepEqual(JSON.parse(result.stdout), {
+      execPath: fs.realpathSync(process.execPath),
+      cwd: fs.realpathSync(cwd),
+      nodeOptions: null,
+      nodePath: null
+    });
+  });
+
+test('runtime tool rejects malformed inputs and installed entrypoint escapes', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-runtime-tool-reject-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const pluginRoot = path.join(root, 'plugin');
+  const cwd = path.join(root, 'repo');
+  fs.mkdirSync(cwd, { recursive: true });
+
+  for (const input of [
+    { entrypoint: 'unknown/script.js', cwd },
+    { entrypoint: 'review/gate.js', cwd: 'relative' },
+    { entrypoint: 'review/gate.js', cwd, args: Array(65).fill('x') },
+    { entrypoint: 'review/gate.js', cwd, unexpected: true }
+  ]) {
+    assert.throws(
+      () => runSkillScript(input, { pluginRoot }),
+      /(?:allowlisted|absolute path|at most 64|unsupported fields)/
+    );
+  }
+
+  if (process.platform === 'win32') return;
+  const outside = path.join(root, 'outside.js');
+  const entrypoint = path.join(pluginRoot, 'skills', 'remind', 'scripts', 'status.js');
+  fs.writeFileSync(outside, 'process.stdout.write("outside");\n');
+  fs.mkdirSync(path.dirname(entrypoint), { recursive: true });
+  fs.symlinkSync(outside, entrypoint);
+  assert.throws(
+    () => runSkillScript({ entrypoint: 'remind/status.js', cwd }, { pluginRoot }),
+    /escapes the installed plugin payload/
+  );
 });
 
 test('Claude CLI invocation is non-persistent and exposes only read tools', () => {
@@ -542,29 +664,114 @@ test('Claude preflight uses the resolved native Windows executable without a she
   ]);
 });
 
-test('doctor MCP smoke test verifies initialize and review tool discovery', () => {
+test('doctor MCP smoke test verifies runtime and review tool discovery', () => {
   const pluginRoot = path.resolve(__dirname, '..', 'plugin', 'sd0x-dev-flow-codex');
   const status = mcpServerStatus(pluginRoot);
   assert.equal(status.ready, true);
+  assert.equal(status.runtime_ready, true);
+  assert.equal(status.review_ready, true);
   assert.equal(status.server_name, 'sd0x-claude-review');
   assert.equal(status.tool, 'review_worktree');
+  assert.equal(status.runtime_tool, 'run_skill_script');
 });
 
-test('doctor skips Claude checks for the default Codex provider', (t) => {
+test('MCP readiness separates provider-independent runtime and Claude review tools', (t) => {
+  const pluginRoot = path.resolve(__dirname, '..', 'plugin', 'sd0x-dev-flow-codex');
+  const statusFor = (names) => mcpServerStatus(pluginRoot, () => ({
+    status: 0,
+    stdout: [
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        result: {
+          protocolVersion: '2025-11-25',
+          serverInfo: { name: 'sd0x-claude-review', version: '1.0.0' }
+        }
+      }),
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        result: { tools: names.map((name) => ({ name })) }
+      })
+    ].join('\n')
+  }));
+  const reviewOnly = statusFor(['review_worktree']);
+  const runtimeOnly = statusFor(['run_skill_script']);
+  const both = statusFor(['review_worktree', 'run_skill_script']);
+  assert.deepEqual(
+    [reviewOnly.runtime_ready, reviewOnly.review_ready, reviewOnly.reason],
+    [false, true, 'runtime-tool-missing']
+  );
+  assert.deepEqual(
+    [runtimeOnly.runtime_ready, runtimeOnly.review_ready, runtimeOnly.reason],
+    [true, false, 'review-tool-missing']
+  );
+  assert.deepEqual(
+    [both.runtime_ready, both.review_ready, both.reason],
+    [true, true, null]
+  );
+
+  const codexRoot = createRepo();
+  const claudeRoot = createRepo();
+  t.after(() => {
+    fs.rmSync(codexRoot, { recursive: true, force: true });
+    fs.rmSync(claudeRoot, { recursive: true, force: true });
+  });
+  fs.mkdirSync(path.join(claudeRoot, '.codex'), { recursive: true });
+  fs.writeFileSync(path.join(claudeRoot, '.codex', 'sd0x-dev-flow.json'), JSON.stringify({
+    schema_version: 1,
+    enabled: true,
+    review: { provider: 'claude' }
+  }));
+  assert.equal(doctor(codexRoot, {
+    mcpStatus: () => runtimeOnly
+  }).checks.find((check) => check.check === 'skill-runtime-mcp-handshake').ok, true);
+  assert.equal(doctor(codexRoot, {
+    mcpStatus: () => reviewOnly
+  }).ok, false);
+  const claudeOptions = {
+    claudeStatus: () => ({
+      installed: true,
+      compatible: true,
+      authenticated: true
+    })
+  };
+  assert.equal(doctor(claudeRoot, {
+    ...claudeOptions,
+    mcpStatus: () => runtimeOnly
+  }).ok, false);
+  assert.equal(doctor(claudeRoot, {
+    ...claudeOptions,
+    mcpStatus: () => both
+  }).ok, true);
+});
+
+test('doctor always checks the skill runtime but skips Claude checks for Codex', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let mcpChecks = 0;
   const status = doctor(root, {
     claudeStatus: () => {
       throw new Error('Claude status must not run in Codex mode');
     },
     mcpStatus: () => {
-      throw new Error('Claude MCP status must not run in Codex mode');
+      mcpChecks += 1;
+      return { runtime_ready: true, review_ready: false };
     }
   });
   assert.equal(status.review_provider, 'codex');
   assert.equal(status.claude.checked, false);
-  assert.equal(status.mcp.checked, false);
+  assert.equal(mcpChecks, 1);
+  assert.equal(status.mcp.runtime_ready, true);
+  assert.equal(
+    status.checks.find((check) => check.check === 'skill-runtime-mcp-handshake').ok,
+    true
+  );
   assert.equal(status.checks.some((check) => check.check === 'claude-cli'), false);
+  assert.equal(
+    status.checks.some((check) => check.check === 'claude-review-mcp-handshake'),
+    false
+  );
 });
 
 test('doctor requires Node.js 24 or newer', (t) => {
@@ -620,13 +827,17 @@ test('doctor requires Claude readiness only when the project opts in', (t) => {
       compatible: false,
       authenticated: false
     }),
-    mcpStatus: () => ({ ready: false })
+    mcpStatus: () => ({ runtime_ready: false, review_ready: false })
   });
   assert.equal(status.review_provider, 'claude');
   assert.equal(status.ok, false);
   assert.equal(status.checks.find((check) => check.check === 'claude-cli').ok, false);
   assert.equal(
     status.checks.find((check) => check.check === 'claude-review-mcp-handshake').ok,
+    false
+  );
+  assert.equal(
+    status.checks.find((check) => check.check === 'skill-runtime-mcp-handshake').ok,
     false
   );
 });
@@ -640,7 +851,7 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
   const options = {
     pluginRoot,
     claudeStatus: () => ({ installed: true, compatible: true, authenticated: true }),
-    mcpStatus: () => ({ ready: true })
+    mcpStatus: () => ({ runtime_ready: true, review_ready: true })
   };
 
   const skillArtifacts = [
@@ -664,11 +875,12 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
     'skills/review/scripts/snapshot.js',
     'skills/setup/SKILL.md',
     'skills/setup/scripts/setup.js',
+    'skills/test-review/SKILL.md',
+    'skills/test-review/migration-contract.json',
     'skills/verify/SKILL.md',
     'skills/verify/scripts/verify.js',
     'templates/agents/sd0x-claude-primary-reviewer.toml',
-    'templates/agents/sd0x-codex-primary-reviewer.toml',
-    'templates/agents/sd0x-test-reviewer.toml'
+    'templates/agents/sd0x-codex-primary-reviewer.toml'
   ];
 
   for (const relative of skillArtifacts) {

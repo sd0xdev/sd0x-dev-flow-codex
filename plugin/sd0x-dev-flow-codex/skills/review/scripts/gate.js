@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 'use strict';
 
 const { main } = require('../../../scripts/runtime/cli');
@@ -42,7 +41,7 @@ function runReviewGate(status, args, cwd = process.cwd(), hooks = {}) {
       }
     } catch (error) {
       let failure = null;
-      if (!/being updated concurrently/.test(error.message)) {
+      if (!error.message.includes('being updated concurrently')) {
         const provider = imported.provider;
         failure = recordCollaborationFailure(cwd, {
           expected_fingerprint: imported.fingerprint,
@@ -51,12 +50,11 @@ function runReviewGate(status, args, cwd = process.cwd(), hooks = {}) {
           expected_round_id: imported.round_id
         }, {
           provider,
-          reviewers: 2,
+          reviewers: 1,
           agents: [
             provider === 'claude'
               ? 'sd0x_claude_primary_reviewer'
-              : 'sd0x_codex_primary_reviewer',
-            'sd0x_test_reviewer'
+              : 'sd0x_codex_primary_reviewer'
           ],
           findings: 1,
           summary: 'collaboration evidence changed before gate completion'
@@ -80,7 +78,7 @@ if (require.main === module) {
     try {
       process.exitCode = runReviewGate(status, args);
     } catch (error) {
-      process.stderr.write(`sd0x review gate: ${error.message}\n`);
+      process.stderr.write('sd0x review gate: ' + error.message + '\n');
       process.exitCode = 1;
     }
   }

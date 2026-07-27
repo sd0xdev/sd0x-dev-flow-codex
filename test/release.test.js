@@ -14,12 +14,16 @@ const {
   checkRelease,
   expectedReleaseAssets,
   migrationDeliveryCheckpoint,
+  migrationDeliveryHeading,
   migrationDeliveryMarker,
   migrationDeliverySummary,
   releasePlan,
   setVersion,
   verifyReleaseAssets
 } = require('../scripts/release');
+const {
+  TIMEOUT_MS: VERIFY_TIMEOUT_MS
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/verify');
 const { commit, git, initRepository } = require('./helpers/git');
 
 function writeJson(filePath, value) {
@@ -134,6 +138,7 @@ function fixture() {
   fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
   fs.writeFileSync(path.join(root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'),
     '> Codex 版本：`sd0x-dev-flow-codex` `0.1.0`\n\n' +
+    `${migrationDeliveryHeading(checkpoint)}\n\n` +
     `${migrationDeliverySummary(checkpoint)}\n` +
     `${migrationDeliveryMarker(checkpoint)}\n`);
   writeJson(path.join(root, '.agents', 'plugins', 'marketplace.json'), {
@@ -209,17 +214,22 @@ test('current repository satisfies the public release contract', () => {
 test('migration guide delivery checkpoint matches the current registry', () => {
   const root = path.resolve(__dirname, '..');
   const result = checkRelease(root);
-  assert.deepEqual(result.migrationDelivery, {
-    rows: 100,
-    units: 95,
-    delivered: 29,
-    pending: 66,
-    waves: {
-      1: { delivered: 9, total: 10 },
-      2: { delivered: 12, total: 12 },
-      3: { delivered: 8, total: 8 }
-    },
-    create_request_state: 'candidate'
+  const disposition = JSON.parse(fs.readFileSync(path.join(
+    root, 'migration', 'source-disposition.json'
+  ), 'utf8'));
+  assert.deepEqual(result.migrationDelivery,
+    migrationDeliveryCheckpoint(disposition));
+  assert.equal(result.migrationDelivery.rows, 100);
+  assert.equal(result.migrationDelivery.units, 95);
+  assert.equal(result.migrationDelivery.delivered +
+    result.migrationDelivery.pending, result.migrationDelivery.units);
+  assert.deepEqual(Object.fromEntries(Object.entries(
+    result.migrationDelivery.waves
+  ).map(([wave, value]) => [wave, value.total])), {
+    1: 10,
+    2: 12,
+    3: 8,
+    4: 15
   });
 });
 
@@ -261,8 +271,9 @@ test('CI and release budgets cover the aggregate repository check', () => {
     /^\s*timeout-minutes:\s*(\d+)\s*$/m.exec(workflow)?.[1]
   );
 
-  assert.ok(timeout(ci) >= 40);
-  assert.ok(timeout(release) >= 45);
+  const verifyMinutes = VERIFY_TIMEOUT_MS / (60 * 1000);
+  assert.ok(timeout(ci) >= verifyMinutes + 5);
+  assert.ok(timeout(release) >= verifyMinutes + 10);
   assert.match(ci, /npm run check/);
   assert.match(release, /npm run check/);
 });
@@ -414,6 +425,19 @@ test('release check rejects a stale visible migration delivery checkpoint', (t) 
   ));
   assert.throws(() => checkRelease(values.root),
     /visible delivery checkpoint must match the current registry/);
+});
+
+test('release check rejects a stale migration delivery checkpoint heading', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const guidePath = path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md');
+  const guide = fs.readFileSync(guidePath, 'utf8');
+  fs.writeFileSync(guidePath, guide.replace(
+    'Current delivery checkpoint：',
+    '2026-07-25 checkpoint：'
+  ));
+  assert.throws(() => checkRelease(values.root),
+    /delivery checkpoint heading must match the current registry/);
 });
 
 test('release check rejects a stale alias capability plugin fingerprint', (t) => {

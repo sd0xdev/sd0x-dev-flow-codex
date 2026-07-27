@@ -2,7 +2,7 @@
 
 This rubric adapts the reviewer model from `sd0x-dev-flow` to a Codex-hosted,
 fingerprint-bound workflow. Review quality comes from independent research and
-orthogonal perspectives, not from reviewer count alone.
+complete evidence, not from reviewer count alone.
 
 ## Source Alignment
 
@@ -10,11 +10,11 @@ The provider switch changes execution, not the review contract. These principles
 are preserved from `sd0x-dev-flow`'s `codex-invocation`, `auto-loop`,
 `fix-all-issues`, code-review, and test-review workflows:
 
-- Give reviewers change metadata and an independent-research mandate, never the
-  implementer's conclusions or another reviewer's verdict. Reviewers must read
+- Give the configured reviewer change metadata and an independent-research
+  mandate, never the implementer's conclusions. The reviewer must read
   the actual diff, full changed files, related code, tests, guidance, and specs.
-- Dispatch orthogonal perspectives in parallel on the first review and every
-  re-review. An edit resets the review cycle for every perspective.
+- Dispatch the configured primary on the first review and every re-review. An
+  edit resets the review cycle for that primary.
 - Treat fixing and verifying as separate actions: fix the root cause, add
   recurrence protection, then re-observe the new change set.
 - Deliberate over evidence, surrounding context, false positives, impact-based
@@ -26,8 +26,8 @@ are preserved from `sd0x-dev-flow`'s `codex-invocation`, `auto-loop`,
 - Persist the loop through review and deterministic verification; saying that a
   review should run is not evidence that it ran.
 
-Codex-native intentional differences are stricter and explicit: both
-perspectives are blocking, P0/P1/P2 all block, Nits are excluded, provider and
+Codex-native intentional differences are stricter and explicit: the configured
+primary is blocking, P0/P1/P2 all block, Nits are excluded, provider and
 worktree fingerprint changes invalidate evidence, and no degraded pass exists.
 Instead of the source workflow's fixed round cap and stateful-primary shortcut,
 every new fingerprint gets a fresh full scan; a user-operated reset is the only
@@ -35,16 +35,16 @@ escape hatch for stale runtime evidence and never bypasses a gate.
 
 ## Invariants
 
-1. **Independent research, not anchoring.** Give each reviewer the changed-file
+1. **Independent research, not anchoring.** Give the reviewer the changed-file
    scope, then let it inspect the diff, full files, callers, tests, repository
-   guidance, and relevant specifications itself. Never seed one reviewer with
-   another reviewer's conclusions.
+   guidance, and relevant specifications itself. Do not seed the reviewer with
+   conclusions from an earlier fingerprint.
 2. **Change causality plus full context.** Report only defects caused or exposed
    by this worktree, but follow dependencies far enough to prove the runtime
    effect. Evidence may live in unchanged surrounding code.
-3. **Orthogonal perspectives.** The configured Codex or Claude primary covers
-   implementation and tests; the native Codex test reviewer independently
-   emphasizes test and acceptance adequacy. Their union is the useful result.
+3. **Complete primary perspective.** The configured Codex or Claude primary
+   covers implementation, security, tests, acceptance criteria, flakiness, and
+   verification gaps in one coherent review.
 4. **Impact-based severity.** Severity describes credible user or engineering
    impact, not reviewer confidence. Unverified suspicions are omitted rather
    than downgraded.
@@ -53,7 +53,7 @@ escape hatch for stale runtime evidence and never bypasses a gate.
    violated invariant or root cause, actionable recommendation, and regression
    protection without exposing secrets.
 6. **Convergence is re-observation.** Fixing is not verifying. Any edit changes
-   the fingerprint and requires both perspectives to review again.
+   the fingerprint and requires the primary reviewer to review again.
 7. **Fail closed.** A missing, stale, malformed, cancelled, or failed reviewer
    cannot contribute clean evidence.
 
@@ -112,7 +112,9 @@ Only findings that survive all five checks are actionable.
 
 This Codex-native implementation is deliberately stricter than the source
 workflow's merge-ready sentinel: every P0/P1/P2 blocks until fixed and re-reviewed.
-Both perspectives are blocking; there is no degraded pass. Re-review starts
-with a fresh full scan on the new fingerprint. A reviewer may receive only its own
-prior finding identities as non-authoritative hypotheses so it can verify the
-root-cause fix without being anchored by another perspective.
+The configured primary is blocking; there is no degraded pass. Re-review starts
+with a fresh full scan on the new fingerprint. It may receive only its own prior
+finding identities as non-authoritative hypotheses so it can verify the
+root-cause fix without being anchored by stale conclusions. The optional
+`test-review` skill remains a separate read-only assessment and never records or
+satisfies this gate.
