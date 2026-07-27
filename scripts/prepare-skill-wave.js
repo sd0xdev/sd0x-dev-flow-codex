@@ -5,6 +5,13 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { openBoundDirectory } = require('./bound-directory');
+const { acquireCandidateTransaction } = require('./candidate-transaction');
+const {
+  assertBoundTree,
+  captureBoundTree,
+  linkBoundTree,
+  removeBoundTree,
+} = require('./bound-tree');
 const { atomicWriteContainedFile } = require('./contained-file');
 const { captureRegularTree } = require('./promote-skill-wave');
 const { createRecoveryDirectory } = require('./recovery-directory');
@@ -394,56 +401,91 @@ function withPreparedCandidateDirectory(root, target, callback, options = {}) {
   }
   captureContainedDirectory(root, candidates, 'candidate preparation');
   const candidatesDirectory = openBoundDirectory(candidates);
-  const candidateRoot = path.join(candidates, target);
-  let identity;
-  const hadExisting = candidatesDirectory.run((child) => {
-    const existing = fs.lstatSync(child(target), { throwIfNoEntry: false });
-    if (existing && (existing.isSymbolicLink() || !existing.isDirectory())) {
-      fail(`${target}: existing candidate must be a real directory`);
-    }
-    return Boolean(existing);
-  });
-  const retirement = hadExisting
-    ? createRecoveryDirectory(root, 'candidate-preparation-', {
-        beforeAssertRestore: options.beforeRetirementAssertRestore
-      })
-    : null;
+  const transaction = acquireCandidateTransaction(root, target);
   try {
-    candidatesDirectory.run((child) => {
-      const name = child(target);
-      const existing = fs.lstatSync(name, { throwIfNoEntry: false });
-      if (hadExisting) {
-        if (!existing || existing.isSymbolicLink() || !existing.isDirectory()) {
-          fail(`${target}: existing candidate changed before retirement`);
-        }
-        if (typeof options.afterCandidateCapture === 'function') {
-          options.afterCandidateCapture({ candidate: candidateRoot });
-        }
-        retirement.assertSafe();
-        const retiredCandidate = path.join(retirement.directory, 'retired-candidate');
-        fs.renameSync(name, retiredCandidate);
-        if (typeof options.afterCandidateQuarantine === 'function') {
-          options.afterCandidateQuarantine({ retiredCandidate });
-        }
-        retirement.run(() => {
-          const moved = fs.lstatSync('retired-candidate', {
-            throwIfNoEntry: false
-          });
-          if (!moved || moved.isSymbolicLink() || !moved.isDirectory() ||
-              moved.dev !== existing.dev || moved.ino !== existing.ino) {
-            fail(`${target}: retired candidate identity changed after quarantine`);
+    const candidateRoot = path.join(candidates, target);
+    let identity;
+    const hadExisting = candidatesDirectory.run((child) => {
+      const existing = fs.lstatSync(child(target), { throwIfNoEntry: false });
+      if (existing && (existing.isSymbolicLink() || !existing.isDirectory())) {
+        fail(`${target}: existing candidate must be a real directory`);
+      }
+      return Boolean(existing);
+    });
+    const retirement = hadExisting
+      ? createRecoveryDirectory(root, 'candidate-preparation-', {
+          beforeAssertRestore: options.beforeRetirementAssertRestore
+        })
+      : null;
+    if (hadExisting) {
+      const existingTree = captureBoundTree(
+        candidatesDirectory,
+        target,
+        `${target}: existing candidate`
+      );
+      if (typeof options.afterCandidateCapture === 'function') {
+        options.afterCandidateCapture({ candidate: candidateRoot });
+      }
+      assertBoundTree(
+        candidatesDirectory,
+        target,
+        existingTree,
+        { label: `${target}: existing candidate` }
+      );
+      candidatesDirectory.run(() => retirement.assertSafe());
+      retirement.run(() => {
+        const recoveryDirectory = openBoundDirectory('.');
+        try {
+          const retiredTree = linkBoundTree(
+            candidatesDirectory,
+            target,
+            recoveryDirectory,
+            'retired-candidate',
+            existingTree,
+            { label: `${target}: retired candidate` }
+          );
+          const retiredCandidate = path.join(
+            retirement.directory,
+            'retired-candidate'
+          );
+          if (typeof options.afterCandidateQuarantine === 'function') {
+            options.afterCandidateQuarantine({ retiredCandidate });
           }
+          assertBoundTree(
+            recoveryDirectory,
+            'retired-candidate',
+            retiredTree,
+            { label: `${target}: retired candidate` }
+          );
           fs.writeFileSync('retirement.json', `${JSON.stringify({
-            schema_version: 1,
+            schema_version: 2,
             target,
             retired_candidate: 'retired-candidate',
-            original_identity: {
-              dev: String(existing.dev),
-              ino: String(existing.ino)
-            }
+            original_identity: existingTree.identity
           }, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
-        });
-      } else if (existing) {
+        } finally {
+          recoveryDirectory.close();
+        }
+      });
+      removeBoundTree(
+        candidatesDirectory,
+        target,
+        existingTree,
+        {
+          label: `${target}: existing candidate`,
+          allowContentDrift: true
+        }
+      );
+    } else {
+      candidatesDirectory.run((child) => {
+        if (fs.lstatSync(child(target), { throwIfNoEntry: false })) {
+          fail(`${target}: candidate appeared during preparation`);
+        }
+      });
+    }
+    candidatesDirectory.run((child) => {
+      const name = child(target);
+      if (fs.lstatSync(name, { throwIfNoEntry: false })) {
         fail(`${target}: candidate appeared during preparation`);
       }
       fs.mkdirSync(name);
@@ -456,7 +498,11 @@ function withPreparedCandidateDirectory(root, target, callback, options = {}) {
       candidateDirectory.close();
     }
   } finally {
-    candidatesDirectory.close();
+    try {
+      transaction.release();
+    } finally {
+      candidatesDirectory.close();
+    }
   }
 }
 

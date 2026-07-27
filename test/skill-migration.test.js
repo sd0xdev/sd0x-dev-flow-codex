@@ -55,6 +55,15 @@ const {
   treeDigest: promotionTreeDigest
 } = require('../scripts/promote-skill-wave');
 const { openBoundDirectory } = require('../scripts/bound-directory');
+const {
+  captureBoundTree,
+  linkBoundTree,
+  removeBoundTree,
+  writeBoundTree
+} = require('../scripts/bound-tree');
+const {
+  acquireCandidateTransaction
+} = require('../scripts/candidate-transaction');
 const { atomicWriteContainedFile } = require('../scripts/contained-file');
 const {
   restageCoreCandidate
@@ -106,7 +115,7 @@ function activeReviewSkillPath(root = ROOT) {
 
 function restageFixtureRoot() {
   const values = fixtureRoot();
-  fs.rmSync(path.join(values.root, 'migration/candidates/review'), {
+  fs.rmSync(path.join(values.root, 'migration/candidates'), {
     recursive: true,
     force: true
   });
@@ -5346,9 +5355,27 @@ test('wave preparation rejects a symlinked candidates ancestor without external 
   assert.deepEqual(fs.readdirSync(path.join(outside, 'fixture')), ['KEEP']);
 });
 
-test('wave preparation moves the captured candidate to recoverable retirement', (t) => {
+test('wave preparation releases its lease after candidate preflight failure', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-release-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const candidate = path.join(root, 'migration', 'candidates', 'fixture');
+  fs.mkdirSync(path.dirname(candidate), { recursive: true });
+  fs.writeFileSync(candidate, 'invalid candidate\n');
+  assert.throws(() => withPreparedCandidateDirectory(
+    root, 'fixture', () => {}
+  ), /existing candidate must be a real directory/);
+
+  fs.unlinkSync(candidate);
+  let called = false;
+  withPreparedCandidateDirectory(root, 'fixture', () => { called = true; });
+  assert.equal(called, true);
+});
+
+test('wave preparation rejects replacement after candidate capture', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-retire-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
   const candidates = path.join(root, 'migration', 'candidates');
   const candidate = path.join(candidates, 'fixture');
   fs.mkdirSync(candidate, { recursive: true });
@@ -5362,12 +5389,8 @@ test('wave preparation moves the captured candidate to recoverable retirement', 
       fs.mkdirSync(candidate);
       fs.writeFileSync(path.join(candidate, 'KEEP'), 'replacement survives\n');
     }
-  }), /retired candidate identity changed after quarantine/);
-  const recovery = path.join(root, '.sd0x', fs.readdirSync(path.join(root, '.sd0x'))
-    .find((name) => name.startsWith('candidate-preparation-')));
-  assert.equal(fs.readFileSync(path.join(
-    recovery, 'retired-candidate', 'KEEP'
-  ), 'utf8'),
+  }), /existing candidate root identity changed/);
+  assert.equal(fs.readFileSync(path.join(candidate, 'KEEP'), 'utf8'),
     'replacement survives\n');
   assert.equal(fs.readFileSync(path.join(`${candidate}-captured`, 'ORIGINAL'), 'utf8'),
     'original candidate\n');
@@ -5376,6 +5399,7 @@ test('wave preparation moves the captured candidate to recoverable retirement', 
 test('wave preparation never deletes a replaced retirement quarantine', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-quarantine-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
   const candidate = path.join(root, 'migration', 'candidates', 'fixture');
   fs.mkdirSync(candidate, { recursive: true });
   fs.writeFileSync(path.join(candidate, 'ORIGINAL'), 'captured candidate\n');
@@ -5392,12 +5416,38 @@ test('wave preparation never deletes a replaced retirement quarantine', (t) => {
       fs.mkdirSync(replacement);
       fs.writeFileSync(path.join(replacement, 'KEEP'), 'replacement survives\n');
     }
-  }), /retired candidate identity changed after quarantine/);
+  }), /retired candidate root identity changed|retired candidate content changed/);
   assert.equal(fs.readFileSync(path.join(captured, 'ORIGINAL'), 'utf8'),
     'captured candidate\n');
   assert.equal(fs.readFileSync(path.join(replacement, 'KEEP'), 'utf8'),
     'replacement survives\n');
-  assert.equal(fs.existsSync(candidate), false);
+  assert.equal(fs.readFileSync(path.join(candidate, 'ORIGINAL'), 'utf8'),
+    'captured candidate\n');
+});
+
+test('wave preparation retirement preserves open-descriptor writes', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-prepare-inode-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const candidate = path.join(root, 'migration', 'candidates', 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  const source = path.join(candidate, 'ORIGINAL');
+  fs.writeFileSync(source, 'captured candidate\n');
+  const descriptor = fs.openSync(source, 'a');
+  t.after(() => fs.closeSync(descriptor));
+  let retiredCandidate;
+
+  withPreparedCandidateDirectory(root, 'fixture', () => {
+    fs.writeSync(descriptor, 'late accepted edit\n');
+  }, {
+    afterCandidateQuarantine(details) {
+      retiredCandidate = details.retiredCandidate;
+    }
+  });
+  assert.equal(fs.readFileSync(path.join(
+    retiredCandidate, 'ORIGINAL'
+  ), 'utf8'), 'captured candidate\nlate accepted edit\n');
+  assert.deepEqual(fs.readdirSync(candidate), []);
 });
 
 test('wave preparation rejects a candidates swap during recovery-bound restore', (t) => {
@@ -5407,6 +5457,7 @@ test('wave preparation rejects a candidates swap during recovery-bound restore',
     fs.rmSync(root, { recursive: true, force: true });
     fs.rmSync(outside, { recursive: true, force: true });
   });
+  initRepository(root);
   const candidates = path.join(root, 'migration', 'candidates');
   const candidate = path.join(candidates, 'fixture');
   fs.mkdirSync(candidate, { recursive: true });
@@ -5422,7 +5473,7 @@ test('wave preparation rejects a candidates swap during recovery-bound restore',
       fs.renameSync(candidates, `${candidates}-captured`);
       fs.symlinkSync(outside, candidates);
     }
-  }), /Previous directory changed before Recovery root \.sd0x restore/);
+  }), /Previous directory changed before Recovery root \.sd0x restore|bound directory changed before it could be entered/);
   assert.equal(fs.readFileSync(path.join(outside, 'fixture', 'KEEP'), 'utf8'),
     'outside unchanged\n');
   assert.equal(fs.readFileSync(path.join(
@@ -5519,7 +5570,7 @@ test('contained atomic writes bind temporary and final-boundary identities', (t)
       fs.rmSync(temporary);
       fs.writeFileSync(temporary, 'ATTACKER\n');
     }
-  }), /temporary file identity changed/);
+  }), /temporary file (?:identity|content) changed/);
   assert.equal(fs.readFileSync(existing, 'utf8'), 'ORIGINAL\n');
 
   assert.throws(() => atomicWriteContainedFile(root, existing, 'REPLACED\n', {
@@ -5543,6 +5594,164 @@ test('contained atomic writes bind temporary and final-boundary identities', (t)
     }
   }), /appeared during atomic installation/);
   assert.equal(fs.readFileSync(missing, 'utf8'), 'CREATED!\n');
+});
+
+test('bound tree removal quarantines a same-name replacement', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-bound-remove-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const parent = path.join(root, 'parent');
+  const payload = path.join(parent, 'payload');
+  fs.mkdirSync(payload, { recursive: true });
+  fs.writeFileSync(path.join(payload, 'FILE'), 'accepted\n');
+  const bound = openBoundDirectory(parent);
+  const captured = captureBoundTree(bound, 'payload', 'payload');
+  const original = path.join(payload, 'FILE-original');
+  let replaced = false;
+  let failure;
+  try {
+    removeBoundTree(bound, 'payload', captured, {
+      beforeEntryClaim(details) {
+        if (details.name !== 'FILE' || replaced) return;
+        replaced = true;
+        fs.renameSync(details.path, original);
+        fs.writeFileSync(details.path, 'concurrent replacement\n');
+      }
+    });
+  } catch (error) {
+    failure = error;
+  } finally {
+    bound.close();
+  }
+  assert.ok(failure);
+  const retained = /replacement retained at (.+)$/.exec(failure.message)?.[1];
+  assert.ok(retained, failure.message);
+  assert.equal(fs.readFileSync(retained, 'utf8'), 'concurrent replacement\n');
+  assert.equal(fs.readFileSync(original, 'utf8'), 'accepted\n');
+});
+
+test('bound tree removal supports maximum-length payload names', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-bound-name-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const parent = path.join(root, 'parent');
+  const payload = path.join(parent, 'payload');
+  const longFile = `f${'x'.repeat(239)}`;
+  const longDirectory = `d${'y'.repeat(239)}`;
+  fs.mkdirSync(path.join(payload, longDirectory), { recursive: true });
+  fs.writeFileSync(path.join(payload, longFile), 'long file\n');
+  fs.writeFileSync(path.join(payload, longDirectory, 'child'), 'long directory\n');
+  const bound = openBoundDirectory(parent);
+  try {
+    const captured = captureBoundTree(bound, 'payload', 'payload');
+    removeBoundTree(bound, 'payload', captured);
+  } finally {
+    bound.close();
+  }
+  assert.equal(fs.existsSync(payload), false);
+});
+
+test('bound tree creation closes descriptors when root reopening fails', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-bound-reopen-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sourceParent = path.join(root, 'source-parent');
+  const destinationParent = path.join(root, 'destination-parent');
+  const source = path.join(sourceParent, 'source');
+  fs.mkdirSync(path.join(source, 'nested'), { recursive: true });
+  fs.mkdirSync(destinationParent);
+  fs.writeFileSync(path.join(source, 'FILE'), 'source file\n');
+  fs.writeFileSync(path.join(source, 'nested', 'CHILD'), 'nested file\n');
+  const sourceBound = openBoundDirectory(sourceParent);
+  const destinationBound = openBoundDirectory(destinationParent);
+  t.after(() => {
+    sourceBound.close();
+    destinationBound.close();
+  });
+  const tree = captureBoundTree(sourceBound, 'source', 'source tree');
+
+  const expectClosed = (targetName, operation) => {
+    const realOpen = fs.openSync;
+    const realClose = fs.closeSync;
+    let descriptor;
+    let closed = false;
+    fs.openSync = function(name, ...args) {
+      const opened = realOpen.call(this, name, ...args);
+      if (name === targetName && descriptor === undefined) descriptor = opened;
+      return opened;
+    };
+    fs.closeSync = function(opened) {
+      if (opened === descriptor) closed = true;
+      return realClose.call(this, opened);
+    };
+    try {
+      assert.throws(operation,
+        /bound directory changed before it could be opened/);
+    } finally {
+      fs.openSync = realOpen;
+      fs.closeSync = realClose;
+    }
+    assert.notEqual(descriptor, undefined);
+    assert.equal(closed, true);
+  };
+
+  const swapCreatedRoot = ({ destination }) => {
+    fs.renameSync(destination, `${destination}-held`);
+    fs.mkdirSync(destination);
+  };
+  expectClosed('written', () => writeBoundTree(
+    destinationBound,
+    'written',
+    tree,
+    { label: 'written tree', afterRootCreate: swapCreatedRoot }
+  ));
+  expectClosed('linked', () => linkBoundTree(
+    sourceBound,
+    'source',
+    destinationBound,
+    'linked',
+    tree,
+    { label: 'linked tree', afterRootCreate: swapCreatedRoot }
+  ));
+});
+
+test('bound tree write and link support native Windows mode semantics', {
+  skip: process.platform !== 'win32'
+}, (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-bound-win32-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sourceParent = path.join(root, 'source-parent');
+  const destinationParent = path.join(root, 'destination-parent');
+  const source = path.join(sourceParent, 'source');
+  fs.mkdirSync(path.join(source, 'nested'), { recursive: true });
+  fs.mkdirSync(destinationParent);
+  fs.writeFileSync(path.join(source, 'WRITABLE'), 'writable\n');
+  fs.writeFileSync(path.join(source, 'nested', 'READONLY'), 'read-only\n');
+  fs.chmodSync(path.join(source, 'nested', 'READONLY'), 0o444);
+  const sourceBound = openBoundDirectory(sourceParent);
+  const destinationBound = openBoundDirectory(destinationParent);
+  t.after(() => {
+    sourceBound.close();
+    destinationBound.close();
+  });
+  const tree = captureBoundTree(sourceBound, 'source', 'Windows source tree');
+  writeBoundTree(destinationBound, 'written', tree, {
+    label: 'Windows written tree'
+  });
+  linkBoundTree(sourceBound, 'source', destinationBound, 'linked', tree, {
+    label: 'Windows linked tree'
+  });
+  for (const name of ['written', 'linked']) {
+    assert.equal(fs.readFileSync(path.join(
+      destinationParent, name, 'WRITABLE'
+    ), 'utf8'), 'writable\n');
+    assert.equal(fs.readFileSync(path.join(
+      destinationParent, name, 'nested', 'READONLY'
+    ), 'utf8'), 'read-only\n');
+    assert.notEqual(fs.statSync(path.join(
+      destinationParent, name, 'WRITABLE'
+    )).mode & 0o200, 0);
+    assert.equal(fs.statSync(path.join(
+      destinationParent, name, 'nested', 'READONLY'
+    )).mode & 0o200, 0);
+  }
 });
 
 test('promotion ancestor swaps and the displaced-live crash window stay contained', (t) => {
@@ -6157,6 +6366,10 @@ test('core restaging ignores hostile Git selectors and rejects symlinked managed
     /managed path must contain only real directories/);
   assert.deepEqual(fs.readdirSync(outsideCandidatesAncestor), []);
   fs.rmSync(candidatesAncestor);
+  fs.writeFileSync(candidatesAncestor, 'not a directory\n');
+  assert.throws(() => restageCoreCandidate(values.root, 'review'),
+    /managed path must contain only real directories/);
+  fs.rmSync(candidatesAncestor);
   fs.mkdirSync(candidatesAncestor);
 
   const outsideLive = path.join(outside, 'live');
@@ -6183,20 +6396,16 @@ test('core restaging restores accepted live bytes after a recoverable install fa
   const accepted = fs.readFileSync(path.join(live, 'SKILL.md'));
   const marker = path.join(outside, 'keep.txt');
   fs.writeFileSync(marker, 'external\n');
-  let renameCalls = 0;
   let temporary;
 
   assert.throws(() => restageCoreCandidate(values.root, 'review', {
     onTemporary(directory) {
       temporary = directory;
     },
-    rename(source, destination) {
-      renameCalls += 1;
-      if (renameCalls === 2) throw new Error('injected install failure');
-      fs.renameSync(source, destination);
+    afterLiveRemoval() {
+      throw new Error('injected install failure');
     }
   }), (error) => error.message === 'injected install failure');
-  assert.equal(renameCalls, 3);
   assert.deepEqual(fs.readFileSync(path.join(live, 'SKILL.md')), accepted);
   assert.equal(fs.existsSync(path.join(
     values.root, 'migration/candidates/review'
@@ -6206,24 +6415,30 @@ test('core restaging restores accepted live bytes after a recoverable install fa
   assert.equal(process.cwd(), initialCwd);
 });
 
-test('core restaging atomically preserves a concurrent live edit in the candidate', (t) => {
+test('core restaging preserves an open-descriptor edit after live removal', (t) => {
   const initialCwd = process.cwd();
   const values = restageFixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  assert.equal(fs.existsSync(path.join(
+    values.root, 'migration/candidates'
+  )), false);
   const relative = 'plugin/sd0x-dev-flow-codex/skills/review';
   const candidateRelative = 'migration/candidates/review/SKILL.md';
   const liveSkill = path.join(values.root, relative, 'SKILL.md');
   const accepted = fs.readFileSync(liveSkill, 'utf8');
   const concurrent = '\nConcurrent user edit.\n';
-  let renameCalls = 0;
+  const descriptor = fs.openSync(liveSkill, 'a');
+  t.after(() => fs.closeSync(descriptor));
   assert.equal(restageCoreCandidate(values.root, 'review', {
-    rename(source, destination) {
-      renameCalls += 1;
-      if (renameCalls === 1) fs.appendFileSync(liveSkill, concurrent);
-      fs.renameSync(source, destination);
+    beforeCandidatePublish() {
+      assert.throws(() => withPreparedCandidateDirectory(
+        values.root, 'review', () => {}
+      ), /candidate transaction is already active/);
+    },
+    afterLiveRemoval() {
+      fs.writeSync(descriptor, concurrent);
     }
   }).ok, true);
-  assert.equal(renameCalls, 2);
   assert.equal(
     fs.readFileSync(path.join(values.root, candidateRelative), 'utf8'),
     accepted + concurrent
@@ -6235,25 +6450,278 @@ test('core restaging atomically preserves a concurrent live edit in the candidat
   assert.equal(process.cwd(), initialCwd);
 });
 
-test('core restaging retains candidate and recovery after install rollback failure', (t) => {
+test('core restaging supports maximum-length accepted payload names', (t) => {
+  const values = restageFixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const live = path.join(
+    values.root,
+    'plugin/sd0x-dev-flow-codex/skills/review'
+  );
+  const longFile = `f${'x'.repeat(239)}`;
+  const longDirectory = `d${'y'.repeat(239)}`;
+  fs.mkdirSync(path.join(live, longDirectory));
+  fs.writeFileSync(path.join(live, longFile), 'long file\n');
+  fs.writeFileSync(path.join(live, longDirectory, 'child'), 'long directory\n');
+
+  assert.equal(restageCoreCandidate(values.root, 'review').ok, true);
+  const candidate = path.join(values.root, 'migration', 'candidates', 'review');
+  assert.equal(fs.readFileSync(path.join(candidate, longFile), 'utf8'), 'long file\n');
+  assert.equal(fs.readFileSync(path.join(
+    candidate, longDirectory, 'child'
+  ), 'utf8'), 'long directory\n');
+});
+
+test('core restaging applies exact modes independently of the caller umask', (t) => {
+  const values = restageFixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const live = path.join(
+    values.root,
+    'plugin/sd0x-dev-flow-codex/skills/review'
+  );
+  const liveSkill = path.join(live, 'SKILL.md');
+  const references = path.join(live, 'references');
+  fs.chmodSync(live, 0o751);
+  fs.chmodSync(liveSkill, 0o640);
+  fs.chmodSync(references, 0o750);
+
+  const previousUmask = process.umask(0o077);
+  try {
+    assert.equal(restageCoreCandidate(values.root, 'review').ok, true);
+  } finally {
+    process.umask(previousUmask);
+  }
+
+  const candidate = path.join(values.root, 'migration', 'candidates', 'review');
+  const mode = (name) => fs.statSync(name).mode & 0o777;
+  assert.equal(mode(candidate), 0o751);
+  assert.equal(mode(path.join(candidate, 'SKILL.md')), 0o640);
+  assert.equal(mode(path.join(candidate, 'references')), 0o750);
+  assert.equal(mode(live), 0o751);
+  assert.equal(mode(path.join(live, 'SKILL.md')), 0o644);
+  assert.equal(mode(path.join(live, 'references')), 0o755);
+});
+
+test('core restaging binds a newly created candidates parent', (t) => {
+  const initialCwd = process.cwd();
+  const values = restageFixtureRoot();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidates-swap-'));
+  t.after(() => {
+    fs.rmSync(values.workspace, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  const migration = path.join(values.root, 'migration');
+  assert.throws(() => restageCoreCandidate(values.root, 'review', {
+    beforeCandidatesCreate() {
+      fs.renameSync(migration, `${migration}-held`);
+      fs.symlinkSync(outside, migration);
+    }
+  }), /managed path must contain only real directories|bound directory changed before it could be entered|candidate parent changed during the transaction/);
+  assert.deepEqual(fs.readdirSync(outside), []);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging never removes candidates created by a pre-move race', (t) => {
+  const initialCwd = process.cwd();
+  const concurrent = restageFixtureRoot();
+  const swapped = restageFixtureRoot();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-race-'));
+  t.after(() => {
+    fs.rmSync(concurrent.workspace, { recursive: true, force: true });
+    fs.rmSync(swapped.workspace, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+
+  const concurrentCandidate = path.join(
+    concurrent.root, 'migration/candidates/review'
+  );
+  assert.throws(() => restageCoreCandidate(concurrent.root, 'review', {
+    onTemporary() {
+      fs.mkdirSync(concurrentCandidate);
+      fs.writeFileSync(path.join(concurrentCandidate, 'KEEP'), 'concurrent\n');
+    }
+  }), /candidate appeared before publication|managed directory must be absent/);
+  assert.equal(fs.readFileSync(path.join(
+    concurrentCandidate, 'KEEP'
+  ), 'utf8'), 'concurrent\n');
+
+  const outsideCandidate = path.join(outside, 'review');
+  fs.mkdirSync(outsideCandidate);
+  fs.writeFileSync(path.join(outsideCandidate, 'KEEP'), 'external\n');
+  const candidates = path.join(swapped.root, 'migration/candidates');
+  assert.throws(() => restageCoreCandidate(swapped.root, 'review', {
+    onTemporary() {
+      fs.renameSync(candidates, `${candidates}-held`);
+      fs.symlinkSync(outside, candidates);
+    }
+  }), /managed path must contain only real directories|bound directory changed before it could be entered|candidate parent changed during the transaction/);
+  assert.equal(fs.readFileSync(path.join(
+    outsideCandidate, 'KEEP'
+  ), 'utf8'), 'external\n');
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging retains accepted recovery after parent namespace swaps', (t) => {
+  const initialCwd = process.cwd();
+  const liveSwap = restageFixtureRoot();
+  const candidateSwap = restageFixtureRoot();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-parent-swap-'));
+  t.after(() => {
+    fs.rmSync(liveSwap.workspace, { recursive: true, force: true });
+    fs.rmSync(candidateSwap.workspace, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+
+  const liveAccepted = fs.readFileSync(path.join(
+    liveSwap.root, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  ));
+  const skills = path.join(
+    liveSwap.root, 'plugin/sd0x-dev-flow-codex/skills'
+  );
+  let liveFailure;
+  try {
+    restageCoreCandidate(liveSwap.root, 'review', {
+      afterRestoredRootCreate() {
+        fs.renameSync(skills, `${skills}-held`);
+        fs.symlinkSync(outside, skills);
+      }
+    });
+  } catch (error) {
+    liveFailure = error;
+  }
+  assert.ok(liveFailure);
+  const liveRecovery = /accepted payload recovery retained at ([^; ]+)/
+    .exec(liveFailure.message)?.[1];
+  assert.ok(liveRecovery, liveFailure.message);
+  assert.deepEqual(fs.readFileSync(path.join(liveRecovery, 'SKILL.md')), liveAccepted);
+  assert.deepEqual(fs.readdirSync(outside), []);
+
+  const candidateAccepted = fs.readFileSync(path.join(
+    candidateSwap.root, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  ));
+  const candidates = path.join(candidateSwap.root, 'migration/candidates');
+  const outsideCandidate = path.join(outside, 'review');
+  fs.mkdirSync(outsideCandidate);
+  fs.writeFileSync(path.join(outsideCandidate, 'KEEP'), 'external\n');
+  let candidateFailure;
+  try {
+    restageCoreCandidate(candidateSwap.root, 'review', {
+      afterCandidateRootCreate() {
+        fs.renameSync(candidates, `${candidates}-held`);
+        fs.symlinkSync(outside, candidates);
+      }
+    });
+  } catch (error) {
+    candidateFailure = error;
+  }
+  assert.ok(candidateFailure);
+  const candidateRecovery = /accepted payload recovery retained at ([^; ]+)/
+    .exec(candidateFailure.message)?.[1];
+  assert.ok(candidateRecovery, candidateFailure.message);
+  assert.deepEqual(
+    fs.readFileSync(path.join(candidateRecovery, 'SKILL.md')),
+    candidateAccepted
+  );
+  assert.equal(fs.readFileSync(path.join(
+    outsideCandidate, 'KEEP'
+  ), 'utf8'), 'external\n');
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging binds recovery before using its accepted backup', (t) => {
+  const initialCwd = process.cwd();
+  const values = restageFixtureRoot();
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-recovery-swap-'));
+  t.after(() => {
+    fs.rmSync(values.workspace, { recursive: true, force: true });
+    fs.rmSync(outside, { recursive: true, force: true });
+  });
+  const live = path.join(
+    values.root,
+    'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  );
+  const accepted = fs.readFileSync(live);
+  const outsideMarker = path.join(outside, 'KEEP');
+  fs.writeFileSync(outsideMarker, 'outside unchanged\n');
+  let heldRecovery;
+
+  assert.throws(() => restageCoreCandidate(values.root, 'review', {
+    afterAcceptedBackup(acceptedRecovery) {
+      const recovery = path.dirname(acceptedRecovery);
+      heldRecovery = `${recovery}-held`;
+      fs.renameSync(recovery, heldRecovery);
+      fs.symlinkSync(outside, recovery);
+    }
+  }), /recovery directory changed during the transaction/);
+  assert.deepEqual(fs.readFileSync(path.join(
+    heldRecovery, 'accepted-live', 'SKILL.md'
+  )), accepted);
+  assert.deepEqual(fs.readFileSync(live), accepted);
+  assert.equal(fs.readFileSync(outsideMarker, 'utf8'), 'outside unchanged\n');
+  assert.deepEqual(fs.readdirSync(outside), ['KEEP']);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging retains a relocated accepted backup before mutation', (t) => {
+  const initialCwd = process.cwd();
+  const values = restageFixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const live = path.join(
+    values.root,
+    'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  );
+  const accepted = fs.readFileSync(live);
+  let relocated;
+
+  assert.throws(() => restageCoreCandidate(values.root, 'review', {
+    afterAcceptedBackup(acceptedRecovery) {
+      relocated = `${acceptedRecovery}-relocated`;
+      fs.renameSync(acceptedRecovery, relocated);
+      fs.mkdirSync(acceptedRecovery);
+      fs.writeFileSync(path.join(acceptedRecovery, 'FOREIGN'), 'foreign\n');
+    }
+  }), /accepted recovery tree root identity changed/);
+  assert.deepEqual(fs.readFileSync(path.join(relocated, 'SKILL.md')), accepted);
+  assert.deepEqual(fs.readFileSync(live), accepted);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging preserves a final competing candidate', (t) => {
+  const initialCwd = process.cwd();
+  const values = restageFixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const live = path.join(
+    values.root, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md'
+  );
+  const accepted = fs.readFileSync(live);
+  const candidate = path.join(values.root, 'migration/candidates/review');
+  let competingIdentity;
+  assert.throws(() => restageCoreCandidate(values.root, 'review', {
+    beforeCandidatePublish() {
+      fs.mkdirSync(candidate);
+      competingIdentity = fs.lstatSync(candidate);
+    }
+  }), /candidate appeared before publication/);
+  const current = fs.lstatSync(candidate);
+  assert.equal(current.dev, competingIdentity.dev);
+  assert.equal(current.ino, competingIdentity.ino);
+  assert.deepEqual(fs.readdirSync(candidate), []);
+  assert.deepEqual(fs.readFileSync(live), accepted);
+  assert.equal(process.cwd(), initialCwd);
+});
+
+test('core restaging retains recovery after restored-live replacement', (t) => {
   const initialCwd = process.cwd();
   const values = restageFixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   const relative = 'plugin/sd0x-dev-flow-codex/skills/review';
-  const candidateRelative = 'migration/candidates/review/SKILL.md';
   const accepted = fs.readFileSync(path.join(values.root, relative, 'SKILL.md'));
-  let renameCalls = 0;
   let rollbackFailure;
   try {
     restageCoreCandidate(values.root, 'review', {
-      rename(source, destination) {
-        renameCalls += 1;
-        if (renameCalls >= 2) {
-          throw new Error(renameCalls === 2
-            ? 'injected install failure'
-            : 'injected rollback failure');
-        }
-        fs.renameSync(source, destination);
+      afterRestoredInstall(live) {
+        fs.rmSync(live, { recursive: true });
+        fs.mkdirSync(live);
+        fs.writeFileSync(path.join(live, 'FOREIGN'), 'foreign live\n');
       }
     });
   } catch (error) {
@@ -6261,16 +6729,215 @@ test('core restaging retains candidate and recovery after install rollback failu
   }
   assert.ok(rollbackFailure);
   assert.match(rollbackFailure.message,
-    /installation and rollback failed.*recovery retained at/);
-  assert.deepEqual(fs.readFileSync(path.join(values.root, candidateRelative)), accepted);
-  const rollbackRecovery =
-    /recovery retained at ([^ (]+)/.exec(rollbackFailure.message)?.[1];
-  assert.ok(rollbackRecovery);
-  assert.equal(fs.existsSync(path.join(rollbackRecovery, 'recovery.json')), true);
+    /restaging did not commit; accepted payload recovery retained at/);
+  const acceptedRecovery =
+    /accepted payload recovery retained at ([^; ]+)/
+      .exec(rollbackFailure.message)?.[1];
+  assert.ok(acceptedRecovery);
   assert.deepEqual(fs.readFileSync(path.join(
-    rollbackRecovery, 'review', 'SKILL.md'
-  )), git(values.root, ['show', `HEAD:${relative}/SKILL.md`]));
+    acceptedRecovery, 'SKILL.md'
+  )), accepted);
+  assert.equal(fs.existsSync(path.join(
+    path.dirname(acceptedRecovery), 'recovery.json'
+  )), true);
+  assert.equal(fs.readFileSync(path.join(
+    values.root, relative, 'FOREIGN'
+  ), 'utf8'), 'foreign live\n');
   assert.equal(process.cwd(), initialCwd);
+});
+
+test('candidate transaction recovers a crashed child lease through Git CAS', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-lock-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const candidate = path.join(root, 'migration', 'candidates', 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'KEEP'), 'candidate unchanged\n');
+  const modulePath = path.join(ROOT, 'scripts', 'candidate-transaction.js');
+  const child = spawnSync(process.execPath, ['-e', `
+    const { acquireCandidateTransaction } = require(process.argv[1]);
+    acquireCandidateTransaction(process.argv[2], 'fixture');
+    process.exit(17);
+  `, modulePath, root], { encoding: 'utf8' });
+  assert.equal(child.status, 17, child.stderr);
+
+  const transaction = acquireCandidateTransaction(root, 'fixture');
+  const ref = transaction.ref;
+  transaction.release();
+  assert.equal(fs.readFileSync(path.join(candidate, 'KEEP'), 'utf8'),
+    'candidate unchanged\n');
+  assert.throws(() => git(root, ['rev-parse', '--verify', '--quiet', ref], {
+    stdio: 'pipe'
+  }));
+});
+
+test('candidate transaction crash before ref publication does not block acquisition', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-publish-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const modulePath = path.join(ROOT, 'scripts', 'candidate-transaction.js');
+  const child = spawnSync(process.execPath, ['-e', `
+    const { acquireCandidateTransaction } = require(process.argv[1]);
+    acquireCandidateTransaction(process.argv[2], 'fixture', {
+      afterOwnerWrite() { process.exit(17); }
+    });
+  `, modulePath, root], { encoding: 'utf8' });
+  assert.equal(child.status, 17, child.stderr);
+
+  const transaction = acquireCandidateTransaction(root, 'fixture');
+  transaction.release();
+  assert.throws(() => git(root, [
+    'rev-parse', '--verify', '--quiet', transaction.ref
+  ], { stdio: 'pipe' }));
+});
+
+test('delayed stale reclaimer cannot move a newer active lease', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-cas-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const modulePath = path.join(ROOT, 'scripts', 'candidate-transaction.js');
+  const child = spawnSync(process.execPath, ['-e', `
+    const { acquireCandidateTransaction } = require(process.argv[1]);
+    acquireCandidateTransaction(process.argv[2], 'fixture');
+    process.exit(17);
+  `, modulePath, root], { encoding: 'utf8' });
+  assert.equal(child.status, 17, child.stderr);
+
+  let winner;
+  assert.throws(() => acquireCandidateTransaction(root, 'fixture', {
+    beforeStaleClaim() {
+      if (!winner) winner = acquireCandidateTransaction(root, 'fixture');
+    }
+  }), /candidate transaction is already active/);
+  winner.assert();
+  assert.throws(() => acquireCandidateTransaction(root, 'fixture'),
+    /candidate transaction is already active/);
+  winner.release();
+});
+
+test('candidate transaction reclaims a reused PID generation', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-pid-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const probe = acquireCandidateTransaction(root, 'fixture');
+  const ref = probe.ref;
+  probe.release();
+
+  const fakeOwner = path.join(root, 'fake-owner.json');
+  fs.writeFileSync(fakeOwner, `${JSON.stringify({
+    schema_version: 3,
+    pid: process.pid,
+    process_started_at_ms: Date.now(),
+    process_generation: 'different-process-generation',
+    nonce: crypto.randomUUID()
+  })}\n`);
+  const oid = git(root, ['hash-object', '-w', fakeOwner], {
+    encoding: 'utf8'
+  }).trim();
+  fs.unlinkSync(fakeOwner);
+  git(root, ['update-ref', ref, oid, '0'.repeat(40)]);
+
+  const transaction = acquireCandidateTransaction(root, 'fixture');
+  transaction.release();
+  assert.throws(() => git(root, ['rev-parse', '--verify', '--quiet', ref], {
+    stdio: 'pipe'
+  }));
+});
+
+test('candidate transaction preserves an active lease when generation lookup fails',
+  (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-unknown-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    initRepository(root);
+    const owner = acquireCandidateTransaction(root, 'fixture');
+    const modulePath = path.join(ROOT, 'scripts', 'candidate-transaction.js');
+    const child = spawnSync(process.execPath, ['-e', `
+      const fs = require('node:fs');
+      const childProcess = require('node:child_process');
+      const ownerPid = Number(process.argv[3]);
+      const realRead = fs.readFileSync;
+      fs.readFileSync = function(name, ...args) {
+        if (String(name) === '/proc/' + ownerPid + '/stat') {
+          const error = new Error('injected process generation lookup failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        return realRead.call(this, name, ...args);
+      };
+      const realExec = childProcess.execFileSync;
+      childProcess.execFileSync = function(file, args, options) {
+        const generationProbe = file === '/bin/ps' || file === 'powershell.exe';
+        const probesOwner = args.some((argument) =>
+          String(argument).includes(String(ownerPid)));
+        if (generationProbe && probesOwner) {
+          const error = new Error('injected process generation lookup failure');
+          error.code = 'EIO';
+          throw error;
+        }
+        return realExec.call(this, file, args, options);
+      };
+      const { acquireCandidateTransaction } = require(process.argv[1]);
+      try {
+        acquireCandidateTransaction(process.argv[2], 'fixture');
+        process.exit(0);
+      } catch (error) {
+        process.stderr.write(error.message + '\\n');
+        process.exit(17);
+      }
+    `, modulePath, root, String(process.pid)], { encoding: 'utf8' });
+    assert.equal(child.status, 17, child.stderr);
+    assert.match(child.stderr, /owner generation is unavailable/);
+    owner.assert();
+    assert.throws(() => acquireCandidateTransaction(root, 'fixture'),
+      /candidate transaction is already active/);
+    owner.release();
+  });
+
+test('candidate transaction generation is stable across locale and timezone', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-locale-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const owner = acquireCandidateTransaction(root, 'fixture');
+  const modulePath = path.join(ROOT, 'scripts', 'candidate-transaction.js');
+  const child = spawnSync(process.execPath, ['-e', `
+    const { acquireCandidateTransaction } = require(process.argv[1]);
+    try {
+      acquireCandidateTransaction(process.argv[2], 'fixture');
+      process.exit(0);
+    } catch (error) {
+      process.stderr.write(error.message + '\\n');
+      process.exit(17);
+    }
+  `, modulePath, root], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      LANG: 'fr_FR.UTF-8',
+      LANGUAGE: 'fr_FR.UTF-8',
+      LC_ALL: 'fr_FR.UTF-8',
+      TZ: 'Asia/Tokyo'
+    }
+  });
+  assert.equal(child.status, 17, child.stderr);
+  assert.match(child.stderr, /candidate transaction is already active/);
+  owner.assert();
+  owner.release();
+});
+
+test('candidate transaction acquisition supports native Windows process identity', {
+  skip: process.platform !== 'win32'
+}, (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-candidate-win32-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  const owner = acquireCandidateTransaction(root, 'fixture');
+  owner.assert();
+  assert.throws(() => acquireCandidateTransaction(root, 'fixture'),
+    /candidate transaction is already active/);
+  owner.release();
+  const successor = acquireCandidateTransaction(root, 'fixture');
+  successor.assert();
+  successor.release();
 });
 
 test('candidate audit requires declared sensitive operations and explicit later approval', (t) => {
