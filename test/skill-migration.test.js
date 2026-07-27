@@ -7073,12 +7073,13 @@ test('native Windows closed Git environments support request tool and audits', {
     encoding: 'utf8',
     env: cleanGitEnvironment()
   }).trim();
-  assert.equal(path.resolve(auditRoot), path.resolve(root));
+  const canonicalRoot = fs.realpathSync.native(root).toLowerCase();
+  assert.equal(fs.realpathSync.native(auditRoot).toLowerCase(), canonicalRoot);
 
   const manifestRoot = String(runManifestGit(root, [
     'rev-parse', '--show-toplevel'
   ], { encoding: 'utf8' })).trim();
-  assert.equal(path.resolve(manifestRoot), path.resolve(root));
+  assert.equal(fs.realpathSync.native(manifestRoot).toLowerCase(), canonicalRoot);
 });
 
 test('candidate audit requires declared sensitive operations and explicit later approval', (t) => {
