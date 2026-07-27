@@ -147,7 +147,7 @@ function restageFixtureRoot() {
   return values;
 }
 
-function completionEvidenceSnapshot(root = ROOT) {
+function completionEvidenceRecords(root = ROOT) {
   const ref = 'refs/sd0x-dev-flow-codex/evidence/v1';
   const oid = git(root, ['rev-parse', ref]).toString().trim();
   const paths = git(root, ['ls-tree', '-r', '--name-only', oid])
@@ -155,15 +155,43 @@ function completionEvidenceSnapshot(root = ROOT) {
     .trim()
     .split('\n')
     .filter((file) => /^records\/(?:promotion|pack-ready|retirement)\//.test(file));
+  return paths.map((file) =>
+    JSON.parse(git(root, ['show', `${oid}:${file}`]).toString())
+  );
+}
+
+function completionEvidenceSnapshot(root = ROOT) {
   const byUnit = new Map();
-  for (const file of paths) {
-    const record = JSON.parse(git(root, ['show', `${oid}:${file}`]).toString());
+  for (const record of completionEvidenceRecords(root)) {
     const current = byUnit.get(record.promotion_unit_id);
     if (!current || Date.parse(record.recorded_at) > Date.parse(current.recorded_at)) {
       byUnit.set(record.promotion_unit_id, record);
     }
   }
   return [...byUnit.values()];
+}
+
+function restoreHistoricalCompletionLineage(root, disposition, excludedUnits) {
+  for (const completion of completionEvidenceSnapshot(root)) {
+    if (excludedUnits.has(completion.promotion_unit_id)) continue;
+    const rows = disposition.skills.filter((entry) =>
+      entry.promotion_unit_id === completion.promotion_unit_id
+    );
+    const currentOwner = rows[0]?.promotion_request;
+    if (!currentOwner || currentOwner === completion.request_path) continue;
+    assert.ok(rows.every((row) => row.promotion_request === currentOwner));
+    const requestPath = path.join(root, currentOwner);
+    const dependency = path.posix.relative(
+      path.posix.dirname(currentOwner),
+      completion.request_path
+    );
+    const request = fs.readFileSync(requestPath, 'utf8');
+    assert.match(request, /^> \*\*Depends On\*\*:.*$/m);
+    fs.writeFileSync(requestPath, request.replace(
+      /^> \*\*Depends On\*\*:.*$/m,
+      `> **Depends On**: [Historical durable completion](./${dependency})`
+    ));
+  }
 }
 
 function demoteUnboundCompletedCandidateOwners(root, disposition) {
@@ -725,6 +753,11 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
       'docs/features/skill-toolkit-migration/requests', request));
   }
   demoteUnboundCompletedCandidateOwners(values.root, candidate);
+  restoreHistoricalCompletionLineage(
+    values.root,
+    candidate,
+    new Set(units.map((unit) => unit.id))
+  );
   const wave3Rows = candidate.skills.filter((row) =>
     units.some((unit) => unit.id === row.promotion_unit_id)
   );
@@ -929,6 +962,11 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
       `2026-07-25-wave4-review-${mode}-promotion.md`;
   }
   demoteUnboundCompletedCandidateOwners(values.root, candidate);
+  restoreHistoricalCompletionLineage(
+    values.root,
+    candidate,
+    new Set(replayUnits.map((unit) => unit.id))
+  );
   for (const mode of ['branch', 'deep', 'default', 'fast', 'full']) {
     for (const request of [
       `2026-07-26-wave4-review-${mode}-runtime-repromotion.md`,
