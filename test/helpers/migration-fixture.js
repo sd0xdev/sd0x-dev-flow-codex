@@ -40,7 +40,11 @@ function fixtureRoot(options = {}) {
       `${subjectRefs}:${subjectRefs}`
     ], {
       cwd: root,
-      env: { ...process.env, GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1' }
+      env: {
+        ...process.env,
+        GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : os.devNull,
+        GIT_CONFIG_NOSYSTEM: '1'
+      }
     });
   }
   copy(path.join(ROOT, 'migration'), path.join(root, 'migration'));

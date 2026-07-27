@@ -656,7 +656,7 @@
       "wave": 1,
       "routing_owner": "create-request",
       "promotion_unit_id": "create-request/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-23-create-request-recovery-repromotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-27-create-request-windows-git-repromotion.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },

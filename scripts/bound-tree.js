@@ -54,18 +54,20 @@ function appliedMode(mode) {
   return writableMode(mode) ? 0o666 : 0o444;
 }
 
-function modeMatches(stat, mode) {
+function modeMatches(stat, mode, kind = 'file') {
   const observed = permissionMode(stat);
   if (process.platform !== 'win32') return observed === mode;
+  if (kind === 'directory') return true;
   return Boolean(observed & 0o200) === writableMode(mode);
 }
 
-function projectedMode(mode) {
+function projectedMode(mode, kind = 'file') {
   if (process.platform !== 'win32') return mode;
+  if (kind === 'directory') return 'directory';
   return writableMode(mode) ? 'writable' : 'read-only';
 }
 
-function createBoundDirectory(bound, name, label, onCreate) {
+function createBoundDirectory(bound, name, mode, label, onCreate) {
   let descriptor;
   let directoryPath;
   let opened;
@@ -73,7 +75,9 @@ function createBoundDirectory(bound, name, label, onCreate) {
   try {
     bound.run((child) => {
       const target = child(name);
-      fs.mkdirSync(target, { mode: 0o700 });
+      fs.mkdirSync(target, {
+        mode: 0o700
+      });
       descriptor = fs.openSync(target,
         fs.constants.O_RDONLY |
         (fs.constants.O_DIRECTORY || 0) |
@@ -84,9 +88,11 @@ function createBoundDirectory(bound, name, label, onCreate) {
           !opened.isDirectory() || !sameObject(observed, opened)) {
         fail(`${label} directory identity changed during creation`);
       }
-      fs.fchmodSync(descriptor, appliedMode(0o700));
+      if (process.platform !== 'win32') fs.fchmodSync(descriptor, 0o700);
       opened = fs.fstatSync(descriptor, { bigint: true });
-      if (!opened.isDirectory() || !modeMatches(opened, 0o700)) {
+      const creationMode = process.platform === 'win32' ? mode : 0o700;
+      if (!opened.isDirectory() ||
+          !modeMatches(opened, creationMode, 'directory')) {
         fail(`${label} temporary directory mode could not be applied`);
       }
       pathIdentity = fs.lstatSync(target);
@@ -111,10 +117,12 @@ function createBoundDirectory(bound, name, label, onCreate) {
 }
 
 function finishBoundDirectory(bound, name, created, mode, label) {
-  fs.fchmodSync(created.descriptor, appliedMode(mode));
+  if (process.platform !== 'win32') {
+    fs.fchmodSync(created.descriptor, mode);
+  }
   const opened = fs.fstatSync(created.descriptor, { bigint: true });
   if (!opened.isDirectory() || !sameObject(opened, created.identity) ||
-      !modeMatches(opened, mode)) {
+      !modeMatches(opened, mode, 'directory')) {
     fail(`${label} directory mode or identity changed after creation`);
   }
   bound.run((child) => {
@@ -123,7 +131,8 @@ function finishBoundDirectory(bound, name, created, mode, label) {
       throwIfNoEntry: false
     });
     if (!observed || observed.isSymbolicLink() || !observed.isDirectory() ||
-        !sameObject(observed, opened) || !modeMatches(observed, mode)) {
+        !sameObject(observed, opened) ||
+        !modeMatches(observed, mode, 'directory')) {
       fail(`${label} directory changed while applying its mode`);
     }
   });
@@ -137,14 +146,16 @@ function writeBoundFile(bound, node, label) {
       fs.constants.O_CREAT |
       fs.constants.O_EXCL |
       (fs.constants.O_NOFOLLOW || 0),
-      0o600);
+      process.platform === 'win32' ? appliedMode(node.mode) : 0o600);
     try {
       const created = fs.fstatSync(descriptor, { bigint: true });
       if (!created.isFile()) {
         fail(`${label}/${node.name} was not created as a regular file`);
       }
       fs.writeFileSync(descriptor, node.bytes);
-      fs.fchmodSync(descriptor, appliedMode(node.mode));
+      if (process.platform !== 'win32') {
+        fs.fchmodSync(descriptor, node.mode);
+      }
       const completed = fs.fstatSync(descriptor, { bigint: true });
       if (!completed.isFile() || !sameObject(created, completed) ||
           !modeMatches(completed, node.mode) ||
@@ -170,7 +181,7 @@ function projection(node, includeName = true) {
   if (node.kind === 'file') {
     const result = {
       kind: node.kind,
-      mode: projectedMode(node.mode),
+      mode: projectedMode(node.mode, node.kind),
       sha256: node.sha256
     };
     if (includeName) result.name = node.name;
@@ -178,7 +189,7 @@ function projection(node, includeName = true) {
   }
   const result = {
     kind: node.kind,
-    mode: projectedMode(node.mode),
+    mode: projectedMode(node.mode, node.kind),
     children: node.children.map((child) => projection(child, true))
   };
   if (includeName) result.name = node.name;
@@ -301,6 +312,7 @@ function writeChildren(bound, children, label) {
     const created = createBoundDirectory(
       bound,
       node.name,
+      node.mode,
       `${label}/${node.name}`
     );
     let nested;
@@ -327,6 +339,7 @@ function writeBoundTree(bound, name, tree, options = {}) {
   const created = createBoundDirectory(
     bound,
     name,
+    tree.mode,
     options.label || name,
     options.afterRootCreate
   );
@@ -373,6 +386,7 @@ function linkChildren(sourcePath, destination, children, label) {
     const created = createBoundDirectory(
       destination,
       node.name,
+      node.mode,
       `${label}/${node.name}`
     );
     let nested;
@@ -413,6 +427,7 @@ function linkBoundTree(sourceBound, sourceName, destinationBound,
   const created = createBoundDirectory(
     destinationBound,
     destinationName,
+    sourceTree.mode,
     label,
     options.afterRootCreate
   );

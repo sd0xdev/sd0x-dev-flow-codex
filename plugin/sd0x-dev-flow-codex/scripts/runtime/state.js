@@ -182,7 +182,9 @@ function runEvidenceGit(root, args, options = {}) {
   }
   const env = {
     ...(options.env || process.env),
-    GIT_CONFIG_GLOBAL: require('node:os').devNull,
+    GIT_CONFIG_GLOBAL: process.platform === 'win32'
+      ? 'NUL'
+      : require('node:os').devNull,
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_NO_REPLACE_OBJECTS: '1'
   };

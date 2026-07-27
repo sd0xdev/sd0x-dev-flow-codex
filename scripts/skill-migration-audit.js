@@ -80,7 +80,7 @@ const AUTHORIZATION_INSTRUCTION = 'This byte-exact block is the sole authorizati
 const AUTHORIZATION_BLOCK = `<!-- sd0x-authorization-policy:v1:start -->\n${AUTHORIZATION_INSTRUCTION}\n<!-- sd0x-authorization-policy:v1:end -->`;
 const CLEAN_GIT_OS_DECLARATION = "const os = require('node:os');";
 const CLEAN_GIT_PROCESS_DECLARATION = "const nodeProcess = require('node:process');";
-const CLEAN_GIT_ENV_DECLARATION = "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });";
+const CLEAN_GIT_ENV_DECLARATION = "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: nodeProcess.platform === 'win32' ? 'NUL' : os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });";
 const CLOSED_GIT_ENV_DECLARATION = "const CLOSED_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' });";
 const GIT_ENVIRONMENT_PATTERN = /\b(?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))\b/;
 const GIT_ENVIRONMENT_QUOTED_KEY_PATTERN = /['"](?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))['"]\s*\]?\s*:/;
@@ -1655,7 +1655,7 @@ function auditDeliveredPayload(root, relative, options = {}, audit = () => {}) {
 function cleanGitEnvironment() {
   const env = {
     ...process.env,
-    GIT_CONFIG_GLOBAL: os.devNull,
+    GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : os.devNull,
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_NO_REPLACE_OBJECTS: '1'
   };
@@ -8065,6 +8065,7 @@ module.exports = {
   auditDeliveredPayload,
   auditSource,
   compareCheckout,
+  cleanGitEnvironment,
   parseArguments,
   parseFrontmatter,
   validateDisposition,

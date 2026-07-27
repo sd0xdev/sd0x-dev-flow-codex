@@ -33,7 +33,9 @@ function cleanGitEnvironment() {
   for (const key of Object.keys(env)) {
     if (/^GIT_CONFIG_(?:KEY|VALUE)_\d+$/.test(key)) delete env[key];
   }
-  env.GIT_CONFIG_GLOBAL = require('node:os').devNull;
+  env.GIT_CONFIG_GLOBAL = process.platform === 'win32'
+    ? 'NUL'
+    : require('node:os').devNull;
   env.GIT_CONFIG_NOSYSTEM = '1';
   env.GIT_NO_REPLACE_OBJECTS = '1';
   return env;

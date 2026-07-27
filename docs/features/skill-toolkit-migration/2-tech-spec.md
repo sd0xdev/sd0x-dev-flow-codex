@@ -48,7 +48,7 @@ Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flo
 | References | 139 | review theory + existing refs | Progressive-loading migration required |
 | Bundled scripts | 25 | deterministic runtime scripts | Runtime/API audit required |
 
-Current Codex skills are `bug-fix`、`create-request`、`doctor`、`feature-dev`、`remind`、`req-analyze`、`reset`、`review`、`setup`、`tech-spec`、`test-review`、`verify`。其中 review 已把來源的 reviewer/auto-loop 理論改成單一 configured Codex-first/Claude-wrapper primary gate，並綁定 exact worktree fingerprint 與 provider policy；`test-review` 則保留為獨立、read-only、non-gating 的 test/AC quality assessment。R1/R2 infrastructure 已實作，R3 durable closure/ledger 已完成；R4 對 Codex `0.145.0` 的 registry capability probe 已完成並永久選定 version-bound `mapping-only` fallback；`create-request` 的 Wave 1 promotion 已完成，後續 recovery hardening 由新的唯一 gate-owner ticket進行 re-promotion。
+Current Codex skills are `bug-fix`、`create-request`、`doctor`、`feature-dev`、`remind`、`req-analyze`、`reset`、`review`、`setup`、`tech-spec`、`test-review`、`verify`。其中 review 已把來源的 reviewer/auto-loop 理論改成單一 configured Codex-first/Claude-wrapper primary gate，並綁定 exact worktree fingerprint 與 provider policy；`test-review` 則保留為獨立、read-only、non-gating 的 test/AC quality assessment。R1/R2 infrastructure 已實作，R3 durable closure/ledger 已完成；R4 對 Codex `0.145.0` 的 registry capability probe 已完成並永久選定 version-bound `mapping-only` fallback；`create-request` 的 Wave 1 promotion 與最新 Windows Git/recovery hardening re-promotion 均已完成，且綁定新的唯一 gate-owner ticket。
 
 Composite provenance 不把 dirty working tree 假裝成 commit：primary Git tree 固定為 98/263/138/25；`readme-i18n-sync` 與 `update-readme` 是明列 raw-byte hash 的 local overlay。R1 只能在 hashes 全部相符時匯入；完成後 overlay bytes 由本 repository 的 tracked staging 固定。
 
@@ -713,7 +713,7 @@ Wave 1 gate-owner tickets（每票恰好一個 promotion unit）：
 | Promotion unit | Delivery | Request |
 |---|---|---|
 | `architecture/default` | planning-pack handoff | [Architecture pack-ready](./requests/2026-07-14-wave1-architecture-pack-ready.md) |
-| `create-request/default` | core re-promotion | [Create-request recovery re-promotion](./requests/2026-07-23-create-request-recovery-repromotion.md) |
+| `create-request/default` | core re-promotion | [Create-request Windows Git re-promotion](./requests/2026-07-27-create-request-windows-git-repromotion.md) |
 | `feasibility-study/default` | planning-pack handoff | [Feasibility-study pack-ready](./requests/2026-07-14-wave1-feasibility-study-pack-ready.md) |
 | `necessity-audit/default` | planning-pack handoff | [Necessity-audit pack-ready](./requests/2026-07-14-wave1-necessity-audit-pack-ready.md) |
 | `plan-review/default` | planning-pack handoff | [Plan-review pack-ready](./requests/2026-07-14-wave1-plan-review-pack-ready.md) |

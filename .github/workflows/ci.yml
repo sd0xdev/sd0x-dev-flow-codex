@@ -102,3 +102,6 @@ jobs:
           if ($text -notmatch '(?m)^ok \d+ - candidate transaction preserves an active lease when generation lookup fails$') {
             throw 'Native Windows unknown-generation test did not run to completion.'
           }
+          if ($text -notmatch '(?m)^ok \d+ - native Windows closed Git environments support request tool and audits$') {
+            throw 'Native Windows closed-Git environment test did not run to completion.'
+          }

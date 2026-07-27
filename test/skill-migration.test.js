@@ -13,6 +13,7 @@ const {
   auditCandidateStatic,
   auditDeliveredPayload,
   auditSource,
+  cleanGitEnvironment,
   compareCheckout,
   selectActiveCandidatePayload,
   validateAliasCapability,
@@ -22,6 +23,7 @@ const {
   validateRequestDag,
   validateWave1Readiness
 } = require('../scripts/skill-migration-audit');
+const { runGit: runManifestGit } = require('../scripts/generate-skill-manifest');
 const {
   routingContractBlock,
   routingDescription,
@@ -56,6 +58,7 @@ const {
 } = require('../scripts/promote-skill-wave');
 const { openBoundDirectory } = require('../scripts/bound-directory');
 const {
+  assertTreeContent,
   captureBoundTree,
   linkBoundTree,
   removeBoundTree,
@@ -111,6 +114,28 @@ function activeReviewSkillPath(root = ROOT) {
   return fs.existsSync(candidate)
     ? candidate
     : path.join(root, 'plugin/sd0x-dev-flow-codex/skills/review/SKILL.md');
+}
+
+function activeCreateRequestToolPath(root = ROOT) {
+  const candidate = path.join(
+    root,
+    'migration',
+    'candidates',
+    'create-request',
+    'scripts',
+    'request-tool.js'
+  );
+  return fs.existsSync(candidate)
+    ? candidate
+    : path.join(
+      root,
+      'plugin',
+      'sd0x-dev-flow-codex',
+      'skills',
+      'create-request',
+      'scripts',
+      'request-tool.js'
+    );
 }
 
 function restageFixtureRoot() {
@@ -1473,8 +1498,10 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
     }
   }
   writeJson(values.root, 'migration/source-disposition.json', active);
-  const currentOwnerPath = path.join(values.root,
-    'docs/features/skill-toolkit-migration/requests/2026-07-23-create-request-recovery-repromotion.md');
+  const currentOwnerRelative = active.skills.find((row) =>
+    row.promotion_unit_id === 'create-request/default'
+  ).promotion_request;
+  const currentOwnerPath = path.join(values.root, currentOwnerRelative);
   const currentOwner = fs.readFileSync(currentOwnerPath, 'utf8');
   fs.writeFileSync(currentOwnerPath, currentOwner
     .replace(/^> \*\*Depends On\*\*:.*\n/m, ''));
@@ -1487,11 +1514,8 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
     }
   }
   writeJson(values.root, 'migration/source-disposition.json', active);
-  fs.writeFileSync(currentOwnerPath,
-    currentOwner.replace('> **Status**: Candidate Complete', '> **Status**: Completed'));
   assert.throws(() => auditSource({ root: values.root }),
     /Evidence completion mismatch for (?:disposition_row_sha256|payload_tree_sha256|request_path)/);
-  fs.writeFileSync(currentOwnerPath, currentOwner);
   const repositoryDisposition = readJson(ROOT, 'migration/source-disposition.json');
   const repositoryStateBySource = new Map(repositoryDisposition.skills.map((row) =>
     [row.source_name, row.delivery_state]
@@ -1515,6 +1539,43 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
     /Current request no longer matches durable completion evidence/);
 });
 
+test('active create-request owner tamper fails in candidate and move-window states', (t) => {
+  const exercise = (values, lifecycle) => {
+    t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+    const disposition = readJson(values.root, 'migration/source-disposition.json');
+    const repositoryDisposition = readJson(ROOT, 'migration/source-disposition.json');
+    const repositoryStateBySource = new Map(repositoryDisposition.skills.map((row) =>
+      [row.source_name, row.delivery_state]
+    ));
+    for (const row of disposition.skills) {
+      if (row.promotion_unit_id !== 'create-request/default') {
+        row.delivery_state = repositoryStateBySource.get(row.source_name);
+      }
+    }
+    writeJson(values.root, 'migration/source-disposition.json', disposition);
+    const owner = disposition.skills.find((row) =>
+      row.promotion_unit_id === 'create-request/default'
+    ).promotion_request;
+    const result = auditActiveCandidates({ root: values.root });
+    assert.equal(result.units.find((unit) =>
+      unit.promotion_unit_id === 'create-request/default'
+    ).lifecycle, lifecycle);
+    const ownerPath = path.join(values.root, owner);
+    const markdown = fs.readFileSync(ownerPath, 'utf8');
+    fs.writeFileSync(ownerPath, markdown
+      .replace('> **Status**: Completed', '> **Status**: Candidate Complete')
+      .replace(/^\| Acceptance \| Complete \|.*$/m,
+        '| Acceptance | Candidate Complete | Candidate evidence remains pending. |'));
+    assert.throws(() => auditActiveCandidates({ root: values.root }),
+      /Current request no longer matches durable completion evidence/);
+  };
+
+  exercise(fixtureRoot({ copyEvidenceRef: true }), 'move-window');
+  const candidate = fixtureRoot({ copyEvidenceRef: true });
+  restageCoreCandidate(candidate.root, 'create-request');
+  exercise(candidate, 'preflight');
+});
+
 test('candidate replacement owner requires its own durable closure before Completed', (t) => {
   const values = fixtureRoot({ copyEvidenceRef: true });
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
@@ -1531,6 +1592,16 @@ test('candidate replacement owner requires its own durable closure before Comple
     promotion_unit_id: 'create-request/default',
     kind: 'request-closure'
   }).selected;
+  const priorPending = JSON.parse(git(values.root, ['show',
+    `refs/sd0x-dev-flow-codex/evidence/v1:records/request-closure-pending/${priorClosure.pending_record_sha256}.json`
+  ]).toString());
+  const recordedAfter = Math.max(
+    Date.parse(priorPending.recorded_at),
+    Date.parse(priorClosure.recorded_at)
+  );
+  const recordedAt = (seconds) => new Date(
+    recordedAfter + seconds * 1000
+  ).toISOString();
   const requestPath = writeRequest(
     values.root, '2026-07-26-fixture-create-request-transition.md'
   );
@@ -1593,7 +1664,7 @@ test('candidate replacement owner requires its own durable closure before Comple
       },
       checks: { commands: [{ argv: ['node', '--test'], exit_code: 0 }] }
     },
-    recorded_at: '2026-07-26T15:00:00.000Z',
+    recorded_at: recordedAt(1),
     supersedes_record_sha256: priorClosure.pending_record_sha256
   });
   applyRequestClosure(values.root, {
@@ -1602,7 +1673,7 @@ test('candidate replacement owner requires its own durable closure before Comple
   recordPassingGates(values.root, 'candidate-closure-docs');
   finalizeRequestClosure(values.root, {
     pending_record_sha256: pending.record_sha256,
-    recorded_at: '2026-07-26T15:01:00.000Z',
+    recorded_at: recordedAt(2),
     supersedes_record_sha256: priorClosure.record_sha256
   });
   assert.equal(auditSource({ root: values.root }).ok, true);
@@ -1633,6 +1704,13 @@ test('durable owner revisions preserve prior requests and chain every successor'
       record.promotion_unit_id === row.promotion_unit_id
     );
     assert.ok(current);
+    if (row.delivery_state === 'candidate') {
+      assert.notEqual(current.request_path, row.promotion_request);
+      const request = fs.readFileSync(path.join(ROOT, row.promotion_request), 'utf8');
+      assert.match(request, new RegExp(path.basename(current.request_path)
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+      return;
+    }
     assert.equal(current.request_path, row.promotion_request);
     assert.match(current.supersedes_record_sha256, /^[0-9a-f]{64}$/);
     const prior = JSON.parse(git(ROOT, ['show',
@@ -5724,7 +5802,9 @@ test('bound tree write and link support native Windows mode semantics', {
   fs.mkdirSync(destinationParent);
   fs.writeFileSync(path.join(source, 'WRITABLE'), 'writable\n');
   fs.writeFileSync(path.join(source, 'nested', 'READONLY'), 'read-only\n');
+  fs.chmodSync(path.join(source, 'nested'), 0o444);
   fs.chmodSync(path.join(source, 'nested', 'READONLY'), 0o444);
+  assert.equal(fs.statSync(path.join(source, 'nested')).mode & 0o200, 0);
   const sourceBound = openBoundDirectory(sourceParent);
   const destinationBound = openBoundDirectory(destinationParent);
   t.after(() => {
@@ -5739,6 +5819,14 @@ test('bound tree write and link support native Windows mode semantics', {
     label: 'Windows linked tree'
   });
   for (const name of ['written', 'linked']) {
+    const observed = captureBoundTree(
+      destinationBound,
+      name,
+      `Windows ${name} tree`
+    );
+    assertTreeContent(observed, tree, `Windows ${name} tree`);
+    assert.notEqual(observed.identity.dev, '');
+    assert.notEqual(observed.identity.ino, '');
     assert.equal(fs.readFileSync(path.join(
       destinationParent, name, 'WRITABLE'
     ), 'utf8'), 'writable\n');
@@ -6938,6 +7026,59 @@ test('candidate transaction acquisition supports native Windows process identity
   const successor = acquireCandidateTransaction(root, 'fixture');
   successor.assert();
   successor.release();
+});
+
+test('create-request test probes follow the active candidate payload', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-active-request-tool-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const live = path.join(
+    root,
+    'plugin/sd0x-dev-flow-codex/skills/create-request/scripts/request-tool.js'
+  );
+  const candidate = path.join(
+    root,
+    'migration/candidates/create-request/scripts/request-tool.js'
+  );
+  fs.mkdirSync(path.dirname(live), { recursive: true });
+  fs.writeFileSync(live, 'live');
+  assert.equal(activeCreateRequestToolPath(root), live);
+  fs.mkdirSync(path.dirname(candidate), { recursive: true });
+  fs.writeFileSync(candidate, 'candidate');
+  assert.equal(activeCreateRequestToolPath(root), candidate);
+});
+
+test('native Windows closed Git environments support request tool and audits', {
+  skip: process.platform !== 'win32'
+}, (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-git-null-win32-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  fs.mkdirSync(path.join(root, 'docs', 'features'), { recursive: true });
+
+  const requestTool = activeCreateRequestToolPath();
+  const requestResult = spawnSync(process.execPath, [
+    requestTool, 'scan', '--today', '2026-07-27'
+  ], {
+    cwd: root,
+    encoding: 'utf8'
+  });
+  assert.equal(requestResult.status, 0,
+    requestResult.stderr || requestResult.stdout);
+  assert.equal(JSON.parse(requestResult.stdout).total, 0);
+
+  const auditRoot = execFileSync('git', [
+    '--no-replace-objects', 'rev-parse', '--show-toplevel'
+  ], {
+    cwd: root,
+    encoding: 'utf8',
+    env: cleanGitEnvironment()
+  }).trim();
+  assert.equal(path.resolve(auditRoot), path.resolve(root));
+
+  const manifestRoot = String(runManifestGit(root, [
+    'rev-parse', '--show-toplevel'
+  ], { encoding: 'utf8' })).trim();
+  assert.equal(path.resolve(manifestRoot), path.resolve(root));
 });
 
 test('candidate audit requires declared sensitive operations and explicit later approval', (t) => {
@@ -9960,7 +10101,7 @@ test('clean Git subprocess environment is canonical and cannot be shadowed', (t)
     "const os = require('node:os');",
     "const nodeProcess = require('node:process');",
     "const { execFileSync } = require('node:child_process');",
-    "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });"
+    "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: nodeProcess.platform === 'win32' ? 'NUL' : os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });"
   ];
   fs.writeFileSync(scriptPath, [
     ...prefix,
