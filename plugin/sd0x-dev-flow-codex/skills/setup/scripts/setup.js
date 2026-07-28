@@ -16,7 +16,7 @@ const MANAGED_MARKER = '# Managed by sd0x-dev-flow-codex.';
 const BLOCK = `${START}
 ## sd0x Dev Flow
 
-<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
+<!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->
 
 - Treat the current worktree fingerprint as the unit of review and verification.
 - Before completing code or configuration changes, run \`$sd0x-dev-flow-codex:review\`, then \`$sd0x-dev-flow-codex:verify\`.
