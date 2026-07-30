@@ -7,6 +7,7 @@ const { execFileSync } = require('node:child_process');
 const { configureRepository, isolateGitEnvironment } = require('./git');
 
 const ROOT = path.resolve(__dirname, '../..');
+const LEGACY_FIXTURE_COMMIT = '6bbdfbcf1294fb8cacd4efaa712ed3c51dfabc20';
 
 function copy(source, destination) {
   fs.rmSync(destination, { recursive: true, force: true });
@@ -103,6 +104,10 @@ function fixtureRoot(options = {}) {
     env: process.env
   });
   configureRepository(root);
+  execFileSync('git', ['checkout', '--detach', '--quiet', LEGACY_FIXTURE_COMMIT], {
+    cwd: root,
+    env: process.env
+  });
   const historicalDisposition = readJson(root, 'migration/source-disposition.json');
   if (options.copyEvidenceRef) {
     const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
@@ -195,6 +200,7 @@ function fixtureRoot(options = {}) {
     'docs/MIGRATION.md',
     'docs/PROJECT-MIGRATION-GUIDE.md',
     'plugin/sd0x-dev-flow-codex/.codex-plugin/plugin.json',
+    'plugin/sd0x-dev-flow-codex/skills/setup/scripts/setup.js',
     'scripts/supplemental-behavior-tests.json',
     'scripts/skill-routing-test.js'
   ]) {
