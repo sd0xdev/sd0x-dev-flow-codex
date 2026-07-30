@@ -714,6 +714,75 @@ test('request closure prepare and finalize bind proposal, projection, subject re
   assert.equal(restarted.record_sha256, closure.record_sha256);
 });
 
+test('batched request closures bind a shared canonical projection and apply sequentially', (t) => {
+  const root = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const firstPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
+  const secondPath = 'docs/features/fixture/requests/2026-07-12-fixture-two.md';
+  fs.copyFileSync(path.join(root, firstPath), path.join(root, secondPath));
+  const subject = dirtySubject(root);
+  const evidence = passingClosureEvidence(root, subject);
+  const projectionRequestPaths = [firstPath, secondPath].sort();
+  const baseInput = {
+    proposed_request: completedRequestBytes(root),
+    subject,
+    evidence,
+    supersedes_record_sha256: null
+  };
+
+  for (const projection_request_paths of [
+    [secondPath],
+    [firstPath, secondPath],
+    [firstPath, firstPath, secondPath],
+    [firstPath, secondPath, 'docs/features/fixture/requests/../escape.md']
+  ]) {
+    assert.throws(() => prepareRequestClosure(root, {
+      ...baseInput,
+      promotion_unit_id: 'fixture/default',
+      request_path: firstPath,
+      projection_request_paths,
+      recorded_at: '2026-07-12T01:03:00.000Z'
+    }), /projection request path/);
+  }
+
+  const first = prepareRequestClosure(root, {
+    ...baseInput,
+    promotion_unit_id: 'fixture/default',
+    request_path: firstPath,
+    projection_request_paths: projectionRequestPaths,
+    recorded_at: '2026-07-12T01:04:00.000Z'
+  });
+  const second = prepareRequestClosure(root, {
+    ...baseInput,
+    promotion_unit_id: 'fixture-two/default',
+    request_path: secondPath,
+    projection_request_paths: projectionRequestPaths,
+    recorded_at: '2026-07-12T01:05:00.000Z'
+  });
+
+  applyRequestClosure(root, { pending_record_sha256: first.record_sha256 });
+  applyRequestClosure(root, { pending_record_sha256: second.record_sha256 });
+  assert.equal(fs.readFileSync(path.join(root, firstPath), 'utf8'),
+    completedRequestBytes(root));
+  assert.equal(fs.readFileSync(path.join(root, secondPath), 'utf8'),
+    completedRequestBytes(root));
+
+  recordCleanReview(root);
+  const firstClosure = finalizeRequestClosure(root, {
+    pending_record_sha256: first.record_sha256,
+    recorded_at: '2026-07-12T01:06:00.000Z',
+    supersedes_record_sha256: null
+  });
+  const secondClosure = finalizeRequestClosure(root, {
+    pending_record_sha256: second.record_sha256,
+    recorded_at: '2026-07-12T01:07:00.000Z',
+    supersedes_record_sha256: null
+  });
+  assert.equal(firstClosure.record.pending_record_sha256, first.record_sha256);
+  assert.equal(secondClosure.record.pending_record_sha256, second.record_sha256);
+  assert.equal(auditEvidenceLedger(root).ok, true);
+});
+
 test('closure apply preserves unowned edits and restores every failed write stage', (t) => {
   const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
   for (const interposition of ['before-apply', 'write-boundary']) {
@@ -3009,7 +3078,7 @@ test('promotion records require final closure and current review/verify gates', 
     runner: 'sd0x-deterministic-v1',
     commands: [{ command: 'node --test', exit_code: 0 }]
   }, state.worktree.fingerprint, 'codex');
-  const promotion = recordPromotionEvidence(root, {
+  const promotionInput = {
     kind: 'promotion',
     promotion_unit_id: 'fixture/default',
     request_closure_record_sha256: closure.record_sha256,
@@ -3018,10 +3087,16 @@ test('promotion records require final closure and current review/verify gates', 
     reason: null,
     recorded_at: '2026-07-12T03:03:00.000Z',
     supersedes_record_sha256: null
-  });
+  };
+  const promotion = recordPromotionEvidence(root, promotionInput);
   assert.equal(promotion.record.kind, 'promotion');
   assert.equal(promotion.record.request_closure_record_sha256,
     closure.record_sha256);
+  const promotionOid = evidenceGit(root, ['rev-parse', EVIDENCE_REF]);
+  const replayedPromotion = recordPromotionEvidence(root, promotionInput);
+  assert.equal(replayedPromotion.reused, true);
+  assert.equal(replayedPromotion.record_sha256, promotion.record_sha256);
+  assert.equal(evidenceGit(root, ['rev-parse', EVIDENCE_REF]), promotionOid);
   assert.equal(snapshot(root).fingerprint, state.worktree.fingerprint);
   const audit = auditEvidenceLedger(root, {
     promotion_unit_id: 'fixture/default',

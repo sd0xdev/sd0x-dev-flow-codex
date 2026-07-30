@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "request-tracking",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/request-tracking-default-routing.test.js"
+      ],
+      "promotion_unit_id": "request-tracking/default",
+      "routing": {
+        "negative_boundaries": [
+          "Create or update a date-prefixed execution request ticket.",
+          "Scan only incomplete requests and show the operational work queue.",
+          "Verify one request acceptance criteria and mark its completion status."
+        ],
+        "positive_triggers": [
+          "Build a read-only cross-feature request portfolio report with status, priority, age, blockers, and parse errors.",
+          "Show request health trends and broken dependency links without editing any tickets.",
+          "Summarize all active and terminal request metadata for planning governance."
+        ]
+      },
+      "source_names": [
+        "request-tracking"
+      ],
+      "target_mode": null
+    }
+  ]
+}

@@ -11,6 +11,7 @@ const { compileFunction } = require('node:vm');
 const { DEFAULT_CONFIG } = require('./generate-skill-manifest');
 const {
   ALIAS_CANDIDATES,
+  legacyTargetPackage,
   targetPackage
 } = require('./initialize-skill-disposition');
 const {
@@ -82,6 +83,7 @@ const CLEAN_GIT_OS_DECLARATION = "const os = require('node:os');";
 const CLEAN_GIT_PROCESS_DECLARATION = "const nodeProcess = require('node:process');";
 const CLEAN_GIT_ENV_DECLARATION = "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: nodeProcess.platform === 'win32' ? 'NUL' : os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });";
 const CLOSED_GIT_ENV_DECLARATION = "const CLOSED_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' });";
+const CLOSED_GIT_NO_LAZY_ENV_DECLARATION = "const CLOSED_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_LAZY_FETCH: '1', GIT_NO_REPLACE_OBJECTS: '1', GIT_OPTIONAL_LOCKS: '0', GIT_TERMINAL_PROMPT: '0' });";
 const GIT_ENVIRONMENT_PATTERN = /\b(?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))\b/;
 const GIT_ENVIRONMENT_QUOTED_KEY_PATTERN = /['"](?:GIT_CONFIG_(?:COUNT|GLOBAL|KEY_\d+|NOSYSTEM|PARAMETERS|SYSTEM|VALUE_\d+)|GIT_(?:ALTERNATE_OBJECT_DIRECTORIES|CEILING_DIRECTORIES|COMMON_DIR|DIR|DISCOVERY_ACROSS_FILESYSTEM|EXEC_PATH|EXTERNAL_DIFF|INDEX_FILE|NAMESPACE|OBJECT_DIRECTORY|PAGER|REPLACE_REF_BASE|SSH|SSH_COMMAND|WORK_TREE))['"]\s*\]?\s*:/;
 const ENVIRONMENT_MUTATION_PATTERN = /\bdelete\s*\(?\s*process\.env\b|\b(?:Object\.assign|Object\.defineProperty|Reflect\.(?:deleteProperty|set))\s*\(\s*process\.env\b|(?:\+\+|--)\s*\(?\s*process\.env(?:\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])|\bprocess\.env(?:\s*|\.[A-Za-z_$][\w$]*|\[['"][^'"]+['"]\])[\s)\]}]*(?:=(?!=)|\+=|-=|\*=|\*\*=|\/=|%=|<<=|>>=|>>>=|&=|\^=|\|=|\?\?=|&&=|\|\|=|\+\+|--)|[\[{][^\]}\n]*process\.env[^\]}\n]*[\]}]\s*=/;
@@ -112,35 +114,36 @@ const SUPPLEMENTAL_BUILTINS = new Set([
 const PINNED_SUPPLEMENTAL_MODULES = new Map([
   [
     'test/debug-probe-policy.test.js',
-    '5f7020b49d420b498d0e589a26f32f7caa2d3c0a25e3fd3c4eb40094ed247be4'
+    'b3fd91f38a61a18e0a52f44636cacf214e7e6b2615e55340a6ad37769b84199b'
   ],
   [
     'scripts/debug-probe/probe-spawn.js',
     '1f22d9572bd399d92c9595afea9e4307a2ab3f4bf3ba40ad13100322e80549d2'
+  ],
+  [
+    'scripts/supplemental-active-skill.js',
+    '5f946c75108dfca2c94e04b4126231022e642251cdb1e5e3550a0afafc122a0c'
   ]
 ]);
 const ACTIVE_CANDIDATE_MOVE_WINDOW = Symbol('active-candidate-move-window');
 const ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS = new Map([
   ['create-request/default', 'Complete']
 ]);
-const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->';
+const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->';
 const TRUSTED_RUNTIME_TOOL = 'mcp__sd0x_claude_review__run_skill_script';
-const CORE_TARGETS = Object.freeze([
-  'bug-fix',
-  'create-request',
-  'doctor',
-  'feature-dev',
-  'remind',
-  'req-analyze',
-  'review',
-  'setup',
-  'tech-spec',
-  'test-review',
-  'verify'
+const READ_ONLY_RUNTIME_ENTRYPOINTS = new Set([
+  'doctor/doctor.js',
+  'remind/status.js'
 ]);
 const GRANDFATHERED_LIVE_TARGETS = Object.freeze(['reset']);
-const APPROVED_ROUTING_CATALOG_SHA256 =
-  'ac750a3b2e80e5d6aec7be7c0476b219f7fc27c195ab39f491c8e9278994649e';
+const APPROVED_ROUTING_CATALOG_SHA256 = Object.freeze({
+  formal: '21886416a7719d32475840270ebd8926467bdf2ef2f7a51493dd1c12923562f4',
+  legacy: 'ac750a3b2e80e5d6aec7be7c0476b219f7fc27c195ab39f491c8e9278994649e'
+});
+const LEGACY_CORE_TARGETS = Object.freeze([
+  'bug-fix', 'create-request', 'doctor', 'feature-dev', 'remind',
+  'req-analyze', 'review', 'setup', 'tech-spec', 'test-review', 'verify'
+]);
 const MAX_JAVASCRIPT_ARRAY_PROBES = 16;
 const MAX_JAVASCRIPT_ARRAY_PROBES_PER_AUDIT = 32;
 const MAX_JAVASCRIPT_FILES_PER_CANDIDATE = 64;
@@ -355,10 +358,15 @@ function validateDisposition(disposition, inventoryNames) {
     'inventory and disposition source-name sets differ');
   const aliases = new Set(ALIAS_CANDIDATES);
   const catalogModes = new Map();
+  const formalPluginCatalog = disposition.skills.every((row) =>
+    row.target_package === 'core' && row.disposition !== 'retire');
   for (const row of disposition.skills) {
     assert(DISPOSITIONS.has(row.disposition), `${row.source_name}: invalid disposition`);
     assert(PACKAGES.has(row.target_package), `${row.source_name}: invalid target_package`);
-    assert(row.target_package === targetPackage(row), `${row.source_name}: target_package drift`);
+    const expectedPackage = formalPluginCatalog
+      ? targetPackage(row)
+      : legacyTargetPackage(row);
+    assert(row.target_package === expectedPackage, `${row.source_name}: target_package drift`);
     assert(Number.isInteger(row.wave) && row.wave >= 1 && row.wave <= 7,
       `${row.source_name}: wave must be 1..7`);
     const retired = row.disposition === 'retire';
@@ -409,13 +417,21 @@ function validateDisposition(disposition, inventoryNames) {
     'source_name', 'disposition', 'target_package', 'target_skill', 'target_mode',
     'wave', 'routing_owner', 'promotion_unit_id'
   ].map((field) => [field, row[field]])));
-  assert(sha256(canonicalJson(routingCatalog)) === APPROVED_ROUTING_CATALOG_SHA256,
+  const routingCatalogSha256 = sha256(canonicalJson(routingCatalog));
+  assert(routingCatalogSha256 === APPROVED_ROUTING_CATALOG_SHA256[
+    formalPluginCatalog ? 'formal' : 'legacy'
+  ],
     'disposition routing/package fields differ from the approved R1 catalog');
   const coreTargets = sortedUnique(disposition.skills
     .filter((row) => row.target_package === 'core')
     .map((row) => row.target_skill));
-  assert(JSON.stringify(coreTargets) === JSON.stringify(CORE_TARGETS),
-    'core targets differ from the approved eleven-target catalog');
+  if (formalPluginCatalog) {
+    assert(coreTargets.length === 85 && !coreTargets.includes(null),
+      'formal plugin targets differ from the approved 85-target catalog');
+  } else {
+    assert(JSON.stringify(coreTargets) === JSON.stringify(LEGACY_CORE_TARGETS),
+      'legacy core targets differ from the approved eleven-target catalog');
+  }
 
   const expectedTargets = {};
   for (const target of [...catalogModes.keys()].sort(BYTEWISE)) {
@@ -564,9 +580,13 @@ function validateWave1Readiness(root, disposition, options = {}) {
       row.promotion_unit_id === promotionUnitId
     );
     assert(currentRows.length > 0 && currentRows.every((row) =>
-      row.wave === 1 && deliveryStates.has(row.delivery_state) &&
-      row.target_skill === unit.target_skill &&
-      row.target_package === unit.target_package),
+      row.wave === 1 && row.target_skill === unit.target_skill && (
+        (deliveryStates.has(row.delivery_state) &&
+          row.target_package === unit.target_package) ||
+        (unit.target_package.endsWith('-pack') &&
+          ['candidate', 'promoted'].includes(row.delivery_state) &&
+          row.target_package === 'core')
+      )),
     `${promotionUnitId}: current readiness unit is outside candidate/delivered evidence`);
     const expectedPayloadPath = unit.target_package === 'core'
       ? `plugin/sd0x-dev-flow-codex/skills/${unit.target_skill}`
@@ -1120,7 +1140,10 @@ function validateDistribution(root, disposition) {
         `${row.source_name}: delivered target cannot retain a populated candidate directory`);
     }
   }
-  const approvedLiveNames = new Set([...CORE_TARGETS, ...GRANDFATHERED_LIVE_TARGETS]);
+  const approvedLiveNames = new Set([
+    ...disposition.skills.map((row) => row.target_skill).filter(Boolean),
+    ...GRANDFATHERED_LIVE_TARGETS
+  ]);
   for (const liveName of liveNames) {
     const packages = targetPackages.get(liveName);
     if (packages) {
@@ -1192,10 +1215,12 @@ function validateDurableRequestLineage(disposition, bindings, options = {}) {
       ? options.durableClosuresByUnit.get(unit)
       : null;
     const currentOwnerClosed = durableClosure?.request_path === currentOwner;
-    const expectedStatus = provisional && !deliveredSuccessor && !currentOwnerClosed
-      ? 'candidate complete'
-      : 'completed';
-    assert(records.get(currentOwner)?.status === expectedStatus &&
+    const expectedStatuses = provisional && !deliveredSuccessor && !currentOwnerClosed
+      ? new Set(options.allowInProgress
+        ? ['in progress', 'candidate complete']
+        : ['candidate complete'])
+      : new Set(['completed']);
+    assert(expectedStatuses.has(records.get(currentOwner)?.status) &&
         records.get(priorOwner)?.status === 'completed' &&
         records.get(currentOwner)?.dependencies.includes(priorOwner),
     `${unit}: replacement gate owner lacks latest durable lineage`);
@@ -1486,7 +1511,8 @@ function auditSourceTransaction(options = {}, initialIdentity = null, context = 
   ]));
   validateDurableRequestLineage(disposition, requestLineage, {
     durableOwnersByUnit,
-    durableClosuresByUnit
+    durableClosuresByUnit,
+    allowInProgress: context.candidateSandbox === true
   });
   if (!context.candidateSandbox) {
     validateCandidateCompletePackEvidence(root, disposition, {
@@ -1985,17 +2011,30 @@ function parseFrontmatter(markdown) {
   return values;
 }
 
+function markdownTableColumns(line) {
+  let delimiters = 0;
+  for (let index = 0; index < line.length; index += 1) {
+    if (line[index] !== '|') continue;
+    let escapes = 0;
+    for (let cursor = index - 1; cursor >= 0 && line[cursor] === '\\'; cursor -= 1) {
+      escapes += 1;
+    }
+    if (escapes % 2 === 0) delimiters += 1;
+  }
+  return delimiters - 1;
+}
+
 function validateMarkdownTables(markdown, relative) {
   const lines = markdown.replace(/\r\n/g, '\n').split('\n');
   for (let index = 0; index < lines.length - 1; index += 1) {
     if (!/^\s*\|.*\|\s*$/.test(lines[index]) ||
         !/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(lines[index + 1])) continue;
-    const columns = lines[index].split('|').length - 2;
-    assert(lines[index + 1].split('|').length - 2 === columns,
+    const columns = markdownTableColumns(lines[index]);
+    assert(markdownTableColumns(lines[index + 1]) === columns,
       `${relative}:${index + 2}: Markdown table separator count mismatch`);
     let row = index + 2;
     while (row < lines.length && /^\s*\|.*\|\s*$/.test(lines[row])) {
-      assert(lines[row].split('|').length - 2 === columns,
+      assert(markdownTableColumns(lines[row]) === columns,
         `${relative}:${row + 1}: Markdown table column count mismatch`);
       row += 1;
     }
@@ -2064,8 +2103,7 @@ function candidateTreeDigest(tree) {
   ])));
 }
 
-function trustedCoreResourceFiles(root, tree, target) {
-  if (!CORE_TARGETS.includes(target)) return new Set();
+function trustedCoreResourceFiles(root, tree, target, options = {}) {
   const candidateMatch = /^migration\/candidates\/([a-z0-9][a-z0-9-]*)$/.exec(
     tree.relative
   );
@@ -2094,6 +2132,14 @@ function trustedCoreResourceFiles(root, tree, target) {
         ], null);
       } catch {
         baseBytes = null;
+      }
+      const runtimeEntrypoint = file.startsWith('scripts/')
+        ? `${target}/${file.slice('scripts/'.length)}`
+        : null;
+      if (options.allowMoveWindowRuntime === true && runtimeEntrypoint &&
+          Object.hasOwn(RUNTIME_ENTRYPOINTS, runtimeEntrypoint) &&
+          RUNTIME_ENTRYPOINTS[runtimeEntrypoint] === `skills/${target}/${file}`) {
+        baseBytes = candidateFileBytes(tree, file);
       }
     }
     if (Buffer.isBuffer(baseBytes) &&
@@ -4520,13 +4566,21 @@ function shellCommandContexts(text) {
     const commandLine = activeFence?.kind === 'shell'
       ? stripMarkdownBlockquote(rawLine).trim()
       : normalizeMarkdownCommandLine(rawLine);
+    const markdownTableRow = !activeFence && /^\s*\|.*\|\s*$/.test(rawLine);
+    const markdownHeading = !activeFence && /^\s*#{1,6}\s/.test(rawLine);
     if (activeFence?.kind === 'shell') {
       contexts.push(commandLine);
       fenceLines.push(commandLine);
     }
     for (const match of rawLine.matchAll(/`([^`]+)`/g)) {
+      if (/^\$sd0x-dev-flow-codex:[a-z0-9][a-z0-9-]*(?:\s+[^;&|`$()]*)?$/.test(
+        match[1]
+      )) continue;
       const before = rawLine.slice(0, match.index);
       const after = rawLine.slice(match.index + match[0].length).trim();
+      if (/^(?:\.?\.?\/)?[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*\.[A-Za-z0-9_-]+$/.test(
+        match[1]
+      ) && !/\b(?:run|execute|invoke|call|command)\s*$/i.test(before)) continue;
       const inlineUnknownCommand = shellUnknownExecutableCandidate(match[1]) &&
         (!/^[A-Za-z0-9_]+$/.test(match[1]) || !after ||
           /^(?:[-—:]\s*)?(?:call|command|execute|invoke|run)\b/i.test(after));
@@ -4547,6 +4601,7 @@ function shellCommandContexts(text) {
         contexts.push(match[1]);
       }
     }
+    if (markdownTableRow || markdownHeading) continue;
     if (/^(?: {4}|\t)/.test(rawLine)) contexts.push(commandLine);
     if (/^(?:\$\s+)?(?:[A-Z_][A-Z0-9_]*(?:\[[^\]]+\])?\s*(?:\+?=)|call\b|cmd(?:\.exe)?\b|declare\b|export\b|getopts\b|local\b|mapfile\b|path\b|powershell(?:\.exe)?\b|pwsh\b|read(?:array)?\b|readonly\b|set(?:env|x)?\b|start\b|trap\b|typeset\b|unset(?:env)?\b|env\b|printf\s+-v(?=\s|['"]?[A-Za-z_])|source\b|\.\s|git\b|gh\b)/.test(commandLine)) {
       contexts.push(commandLine.replace(/^\$\s+/, ''));
@@ -5410,7 +5465,7 @@ function markdownHasShellRedirection(text, options = {}) {
 }
 
 const READ_ONLY_FS_APIS = new Set([
-  'access', 'accessSync', 'constants', 'createReadStream', 'existsSync', 'fstat',
+  'access', 'accessSync', 'close', 'closeSync', 'constants', 'createReadStream', 'existsSync', 'fstat',
   'fstatSync', 'lstat', 'lstatSync', 'read', 'readFile', 'readFileSync', 'readSync',
   'readdir', 'readdirSync', 'readlink', 'readlinkSync', 'realpath', 'realpathSync',
   'stat', 'statSync', 'statfs', 'statfsSync', 'watch', 'watchFile'
@@ -5478,9 +5533,19 @@ function classifyFilesystemUsage(text, recordPath, operations) {
     for (const match of text.matchAll(promisesPattern)) {
       classifyFsApi(match[1], recordPath, operations);
     }
+    const readOnlyOpenPattern = new RegExp(
+      `\\b${escaped}\\.openSync\\(\\s*[A-Za-z_$][\\w$]*\\s*,\\s*` +
+      `${escaped}\\.constants\\.O_RDONLY\\s*\\|\\s*\\(` +
+      `${escaped}\\.constants\\.O_NOFOLLOW\\s*\\|\\|\\s*0\\)\\s*\\)`,
+      'g'
+    );
+    const readOnlyOpenOffsets = new Set(
+      [...text.matchAll(readOnlyOpenPattern)].map((match) => match.index)
+    );
     const apiPattern = new RegExp(`\\b${escaped}\\.([A-Za-z_$][\\w$]*)`, 'g');
     for (const match of text.matchAll(apiPattern)) {
       if (match[1] === 'promises') continue;
+      if (match[1] === 'openSync' && readOnlyOpenOffsets.has(match.index)) continue;
       classifyFsApi(match[1], recordPath, operations);
     }
     let residual = text
@@ -5598,15 +5663,18 @@ function validateChildProcessUsage(text, recordPath) {
       const providerSource = stripJavaScriptComments(text, recordPath);
       const providerSyntax = maskJavaScriptStringsForCapabilities(providerSource);
       const osSyntax = maskJavaScriptStringsForCapabilities(CLEAN_GIT_OS_DECLARATION);
-      const environmentSyntax = maskJavaScriptStringsForCapabilities(
-        CLOSED_GIT_ENV_DECLARATION
-      );
+      const environmentSyntaxes = [
+        CLOSED_GIT_ENV_DECLARATION,
+        CLOSED_GIT_NO_LAZY_ENV_DECLARATION
+      ].map(maskJavaScriptStringsForCapabilities);
+      const matchingEnvironments = environmentSyntaxes.filter((declaration) =>
+        providerSyntax.split(declaration).length === 2);
       assert(providerSyntax.split(osSyntax).length === 2 &&
-        providerSyntax.split(environmentSyntax).length === 2,
+        matchingEnvironments.length === 1,
       `${recordPath}: closed Git environment must use the canonical frozen declaration`);
       const remainingBindings = maskJavaScriptStrings(providerSyntax
         .replace(osSyntax, '')
-        .replace(environmentSyntax, '')
+        .replace(matchingEnvironments[0], '')
       ).replace(/\benv\s*:\s*CLOSED_GIT_ENV\b/g, '');
       assert(!/\b(?:CLOSED_GIT_ENV|nodeProcess|os)\b/.test(remainingBindings),
         `${recordPath}: closed Git environment providers cannot be shadowed or aliased`);
@@ -5624,7 +5692,7 @@ function validateChildProcessUsage(text, recordPath) {
   }
 }
 
-function trustedRuntimeToolInstruction(
+function trustedRuntimeToolEntrypoint(
   records,
   executableIndex,
   trustedFiles,
@@ -5660,10 +5728,26 @@ function trustedRuntimeToolInstruction(
   const match = /^([a-z0-9][a-z0-9-]*)\/([a-z0-9][a-z0-9-]*\.js)$/.exec(
     input.entrypoint || ''
   );
-  return Boolean(match &&
+  return match &&
     match[1] === trustedSkill &&
     Object.hasOwn(RUNTIME_ENTRYPOINTS, input.entrypoint) &&
-    trustedFiles.has(`scripts/${match[2]}`));
+    trustedFiles.has(`scripts/${match[2]}`)
+    ? input.entrypoint
+    : null;
+}
+
+function trustedRuntimeToolInstruction(
+  records,
+  executableIndex,
+  trustedFiles,
+  trustedSkill
+) {
+  return Boolean(trustedRuntimeToolEntrypoint(
+    records,
+    executableIndex,
+    trustedFiles,
+    trustedSkill
+  ));
 }
 
 function nodeCommandResolutionMutation(records) {
@@ -5802,6 +5886,30 @@ function hasTrustedRuntimeToolInstruction(text, trustedFiles, trustedSkill) {
   return false;
 }
 
+function hasTrustedRuntimeWriteInstruction(text, trustedFiles, trustedSkill) {
+  const trustedWriteInValue = (value) =>
+    shellCommandSegments(value.replace(/\\\r?\n/g, '')).some((segment) => {
+      const records = shellTokenRecords(segment);
+      const entrypoint = trustedRuntimeToolEntrypoint(
+        records,
+        shellExecutableIndex(records),
+        trustedFiles,
+        trustedSkill
+      );
+      return Boolean(entrypoint && !READ_ONLY_RUNTIME_ENTRYPOINTS.has(entrypoint));
+    });
+  if (shellCommandContexts(text).some(trustedWriteInValue)) return true;
+  for (const rawLine of shellLogicalLines(text)) {
+    if (trustedWriteInValue(
+      normalizeMarkdownCommandLine(rawLine).replace(/^\$\s+/, '')
+    )) return true;
+    for (const match of rawLine.matchAll(/`([^`]+)`/g)) {
+      if (trustedWriteInValue(match[1])) return true;
+    }
+  }
+  return false;
+}
+
 function stripTrustedRuntimeToolInstructions(text, trustedFiles, trustedSkill) {
   const trustedInValue = (value) => {
     const records = shellTokenRecords(value.replace(/\\\r?\n/g, ''));
@@ -5892,6 +6000,8 @@ function observedOperations(records, options = {}) {
     const text = isMarkdown ? stripRoutingContracts(decodedText) : decodedText;
     const trustsRuntimeInstruction =
       hasTrustedRuntimeToolInstruction(text, trustedFiles, trustedSkill);
+    const trustsRuntimeWriteInstruction =
+      hasTrustedRuntimeWriteInstruction(text, trustedFiles, trustedSkill);
     const shellText = stripTrustedRuntimeToolInstructions(
       text,
       trustedFiles,
@@ -5908,7 +6018,8 @@ function observedOperations(records, options = {}) {
       : text;
     const gitEnvironmentSource = text
       .replace(CLEAN_GIT_ENV_DECLARATION, '')
-      .replace(CLOSED_GIT_ENV_DECLARATION, '');
+      .replace(CLOSED_GIT_ENV_DECLARATION, '')
+      .replace(CLOSED_GIT_NO_LAZY_ENV_DECLARATION, '');
     const gitEnvironmentCommentFree = isInstructionText
       ? gitEnvironmentSource
       : stripJavaScriptComments(gitEnvironmentSource, record.path);
@@ -5931,7 +6042,7 @@ function observedOperations(records, options = {}) {
     if (/\b(?:apply_patch|(?:promises\.)?(?:writeFile|appendFile|copyFile|cp|mkdir|rm|unlink|rename)(?:Sync)?|touch|sed\s+-i|tee|chmod|ln\s+-s|truncate|dd\s+)\b/.test(text)) {
       operations.add('local-write');
     }
-    if (trustsRuntimeInstruction) operations.add('local-write');
+    if (trustsRuntimeWriteInstruction) operations.add('local-write');
     if (isInstructionText && shellCommandContexts(shellText).some((context) =>
       shellCommandSegments(context).some((segment) =>
         shellTimeWrites(shellTokenRecords(segment))
@@ -6593,6 +6704,15 @@ function observedOperations(records, options = {}) {
     if (/\bmcp__[A-Za-z0-9_-]+__[A-Za-z0-9_-]*(?:create|update|delete|send|write)[A-Za-z0-9_-]*\b/i.test(text)) {
       operations.add('connector-write');
     }
+    if (text.includes('sd0x-operation-evidence:')) {
+      const exactPrReview = '<!-- sd0x-operation-evidence:v1 operation=pr-write provider=github action=create-pull-request-review -->';
+      const markers = [...text.matchAll(/<!--\s*sd0x-operation-evidence:[^>]*-->/g)]
+        .map((match) => match[0]);
+      assert(markers.length === 1 && markers[0] === exactPrReview &&
+        text.split('sd0x-operation-evidence:').length === 2,
+      `${record.path}: candidate contains unsupported operation evidence marker`);
+      operations.add('pr-write');
+    }
     if (isInstructionText) {
       for (const operation of markdownCommandOperations(shellText, 'git')) operations.add(operation);
       for (const operation of markdownCommandOperations(shellText, 'gh')) operations.add(operation);
@@ -6686,8 +6806,21 @@ function observedOperations(records, options = {}) {
 function validateCandidateOperationRecords(records, declaredOperations, options = {}) {
   const observed = observedOperations(records, options);
   for (const operation of observed) {
-    assert(declaredOperations.includes(operation),
-      `candidate uses undeclared operation: ${operation}; observed=${JSON.stringify(observed)}`);
+    if (declaredOperations.includes(operation)) continue;
+    const sources = records
+      .filter((record) => observedOperations([record], options).includes(operation))
+      .map((record) => record.path);
+    const sourceLines = records.flatMap((record) =>
+      (path.posix.extname(record.path) === '.json'
+        ? [{ path: record.path, text: record.text, line: 1 }]
+        : record.text.split('\n')
+          .map((text, index) => ({ path: record.path, text, line: index + 1 })))
+      .filter((line) => observedOperations([
+        { path: line.path, text: line.text }
+      ], options).includes(operation))
+      .map((line) => `${line.path}:${line.line}`));
+    assert(false,
+      `candidate uses undeclared operation: ${operation}; observed=${JSON.stringify(observed)}; sources=${JSON.stringify(sources)}; lines=${JSON.stringify(sourceLines)}`);
   }
   return observed;
 }
@@ -7107,7 +7240,7 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
   for (const unit of units) {
     const routingPath = `test/${target}-${unit.target_mode || 'default'}-routing.test.js`;
     const semanticPath = `test/${target}-${unit.target_mode || 'default'}-semantics.test.js`;
-    const expectedPaths = targetPackageName === 'research-pack'
+    const expectedPaths = options.semanticContract
       ? [routingPath, semanticPath].sort(BYTEWISE)
       : [routingPath];
     assert(JSON.stringify(unit.behavior_tests) === JSON.stringify(expectedPaths),
@@ -7118,7 +7251,7 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
       registry,
       routing: unit.routing
     });
-    if (targetPackageName === 'research-pack') {
+    if (options.semanticContract) {
       validateSemanticContract(skillText, {
         unit: unit.promotion_unit_id,
         required: unit.semantic_requirements.required,
@@ -7329,9 +7462,9 @@ function candidateAuditIdentity(details) {
   })));
 }
 
-function assertExistingLiveTargetUnmodified(root, target) {
+function assertExistingLiveTargetUnmodified(root, target, tree, trustedResources) {
   const relative = `plugin/sd0x-dev-flow-codex/skills/${target}`;
-  if (!fs.existsSync(path.join(root, ...relative.split('/')))) return;
+  if (!fs.existsSync(path.join(root, ...relative.split('/')))) return new Map();
   const changed = runGit(root, ['diff', '--name-only', 'HEAD', '--', relative])
     .trim()
     .split('\n')
@@ -7339,8 +7472,24 @@ function assertExistingLiveTargetUnmodified(root, target) {
   const untracked = runGit(root, [
     'ls-files', '--others', '--exclude-standard', '--', relative
   ]).trim().split('\n').filter(Boolean);
-  assert(changed.length === 0 && untracked.length === 0,
+  const changedPaths = sortedUnique([...changed, ...untracked]);
+  const captured = new Map();
+  for (const livePath of changedPaths) {
+    const prefix = `${relative}/`;
+    assert(livePath.startsWith(prefix),
+      'candidate preflight live target change escaped its target');
+    const resource = livePath.slice(prefix.length);
+    assert(resource !== 'SKILL.md' && resource !== 'migration-contract.json' &&
+      trustedResources instanceof Set && trustedResources.has(resource),
     'candidate preflight requires the existing live target to remain unchanged until its matching preflight identity is accepted');
+    const bytes = captureContainedRegularFile(
+      root, livePath, 'candidate preflight live resource'
+    ).bytes;
+    assert(bytes.equals(candidateFileBytes(tree, resource)),
+      'candidate preflight live resource must exactly match candidate bytes');
+    captured.set(livePath, Buffer.from(bytes));
+  }
+  return captured;
 }
 
 function auditCandidate(options = {}) {
@@ -7422,9 +7571,6 @@ function auditCandidate(options = {}) {
   assert(units.length === 1, `target/mode maps to multiple promotion units: ${target}`);
   const packages = sortedUnique(rows.map((row) => row.target_package));
   assert(packages.length === 1, `target rows disagree on target_package: ${target}`);
-  if (phase === 'preflight' && packages[0] === 'core') {
-    assertExistingLiveTargetUnmodified(root, target);
-  }
   if (liveMatch) assert(packages[0] === 'core', 'core-live audit requires core target_package');
   if (packMatch) assert(packMatch[1] === packages[0], 'pack-final path must equal target_package');
   for (const row of rows) {
@@ -7445,7 +7591,12 @@ function auditCandidate(options = {}) {
   }
 
   const tree = candidateTree(root, relative);
-  const trustedResources = trustedCoreResourceFiles(root, tree, target);
+  const trustedResources = trustedCoreResourceFiles(root, tree, target, {
+    allowMoveWindowRuntime: activeCandidateMoveWindow
+  });
+  const liveResourceSnapshot = phase === 'preflight' && packages[0] === 'core'
+    ? assertExistingLiveTargetUnmodified(root, target, tree, trustedResources)
+    : new Map();
   if (typeof options.afterCandidateTreeRead === 'function') {
     options.afterCandidateTreeRead({ directory: tree.directory, files: [...tree.files] });
   }
@@ -7470,6 +7621,9 @@ function auditCandidate(options = {}) {
   if (packages[0] === 'research-pack') {
     assert(contract.schema_version === 2,
       `candidate contract schema_version must be 2 for ${packages[0]}`);
+  } else if (packages[0] === 'core') {
+    assert([1, 2, 3].includes(contract.schema_version),
+      'candidate contract schema_version must be 1, 2, or 3 for core');
   } else {
     assert([1, 3].includes(contract.schema_version),
       `candidate contract schema_version must be 1 or 3 for ${packages[0]}`);
@@ -7508,7 +7662,7 @@ function auditCandidate(options = {}) {
     if (contract.schema_version === 3) {
       expectedUnitKeys.push('supplemental_behavior_tests');
     }
-    if (contract.target_package === 'research-pack') {
+    if (contract.schema_version === 2) {
       expectedUnitKeys.push('semantic_requirements');
     }
     assertExactKeys(unit, expectedUnitKeys,
@@ -7545,7 +7699,7 @@ function auditCandidate(options = {}) {
       assert(unit.supplemental_behavior_tests.length > 0,
         `${unit.promotion_unit_id}.supplemental_behavior_tests cannot be empty`);
     }
-    if (contract.target_package === 'research-pack') {
+    if (contract.schema_version === 2) {
       assert(unit.semantic_requirements && typeof unit.semantic_requirements === 'object' &&
         !Array.isArray(unit.semantic_requirements),
       `${unit.promotion_unit_id}.semantic_requirements must be an object`);
@@ -7578,6 +7732,7 @@ function auditCandidate(options = {}) {
     {
       candidateTree: tree,
       capturedBehaviorTests,
+      semanticContract: contract.schema_version === 2,
       trustedSemanticRegistry,
       trustBytes
     }
@@ -7683,6 +7838,12 @@ function auditCandidate(options = {}) {
         beforeRevalidation: options.beforeSourceTransactionRevalidation
       })
     : repositoryIdentity(root);
+  for (const [livePath, bytes] of liveResourceSnapshot) {
+    assert(captureContainedRegularFile(
+      root, livePath, 'candidate preflight live resource completion'
+    ).bytes.equals(bytes),
+    'candidate preflight live resource changed while auditing');
+  }
   if (phase !== 'preflight') {
     assert(!physicalDirectoryState(
       root,
@@ -7717,6 +7878,19 @@ function auditCandidate(options = {}) {
       ? `plugin/sd0x-dev-flow-codex/skills/${target}`
       : `separate-plugin/${packages[0]}/skills/${target}`
   };
+}
+
+function auditActiveMoveWindowIdentity(options = {}) {
+  const target = options.target;
+  assert(/^[a-z0-9][a-z0-9-]*$/.test(target || ''),
+    'active move-window identity requires a canonical target');
+  return auditCandidate({
+    root: options.root || ROOT,
+    candidate: `plugin/sd0x-dev-flow-codex/skills/${target}`,
+    target,
+    mode: options.mode || 'default',
+    internalMoveWindowToken: ACTIVE_CANDIDATE_MOVE_WINDOW
+  });
 }
 
 function requestProgressRows(request, phase, requestPath) {
@@ -7940,6 +8114,7 @@ function auditActiveCandidates(options = {}) {
       target,
       lifecycle: result.move_window ? 'move-window' : 'preflight',
       request_path: requestPath,
+      audit_fingerprint: result.audit_fingerprint,
       ...validateCandidateRequestEvidence(request, result, requestPath, {
         root,
         closureExpectations
@@ -8059,15 +8234,19 @@ if (require.main === module) {
 
 module.exports = {
   BOUNDARY_MARKER,
+  assertExistingLiveTargetUnmodified,
   auditActiveCandidates,
   auditCandidate,
   auditCandidateStatic,
+  auditActiveMoveWindowIdentity,
   auditDeliveredPayload,
   auditSource,
+  candidateTree,
   compareCheckout,
   cleanGitEnvironment,
   parseArguments,
   parseFrontmatter,
+  markdownTableColumns,
   validateDisposition,
   validateDistribution,
   validateInventory,
@@ -8075,6 +8254,7 @@ module.exports = {
   validateRequestDag,
   validateMarkdownTables,
   selectActiveCandidatePayload,
+  trustedCoreResourceFiles,
   validateCandidateRequestEvidence,
   validateCandidateCompletePackEvidence,
   validateWave1Readiness

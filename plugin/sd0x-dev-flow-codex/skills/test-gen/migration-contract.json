@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "test-gen",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/test-gen-default-routing.test.js"
+      ],
+      "promotion_unit_id": "test-gen/default",
+      "routing": {
+        "negative_boundaries": [
+          "Implement the refund service behavior before tests exist.",
+          "Run the existing test suite and report its failures.",
+          "Trace the root cause of the current parser regression without writing tests."
+        ],
+        "positive_triggers": [
+          "Add focused regression tests for this uncovered parser behavior.",
+          "Generate tests for the new refund service using the repository conventions.",
+          "Write missing happy-path, error, and edge-case tests for this method."
+        ]
+      },
+      "source_names": [
+        "codex-test-gen"
+      ],
+      "target_mode": null
+    }
+  ]
+}

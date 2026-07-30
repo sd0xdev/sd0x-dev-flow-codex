@@ -446,6 +446,10 @@ function checkRelease(root = ROOT) {
   assert(JSON.stringify(deliverySummaries) === JSON.stringify([
     migrationDeliverySummary(migrationDelivery)
   ]), 'migration guide visible delivery checkpoint must match the current registry');
+  assert(migrationDelivery.pending === 0 &&
+    migrationDelivery.delivered === migrationDelivery.units,
+  'release requires all migration units to be durably promoted or retired; ' +
+    `${migrationDelivery.pending} pending migration units remain`);
   assert(
     aliasCapability.plugin_fingerprint === sha256(paths.manifestPath),
     'alias capability plugin fingerprint must match the plugin manifest'

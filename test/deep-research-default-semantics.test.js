@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "deep-research",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "deep-research/default",
   "required": [
     "Evidence is `{source_id, publisher_id, author_id, identity_binding_hash, independence_key, source_type, agent_role, locator, content_hash, relation, weight}`",

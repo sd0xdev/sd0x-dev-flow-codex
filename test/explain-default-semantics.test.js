@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "explain",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "explain/default",
   "required": [
     "Check the explanation against tests and caller expectations",

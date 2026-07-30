@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "code-explore",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "code-explore/default",
   "required": [
     "Record file and symbol evidence at every material hop",

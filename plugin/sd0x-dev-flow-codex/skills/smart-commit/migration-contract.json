@@ -1,0 +1,38 @@
+{
+  "schema_version": 3,
+  "target_skill": "smart-commit",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": [
+      "commit"
+    ]
+  },
+  "units": [
+    {
+      "promotion_unit_id": "smart-commit/default",
+      "target_mode": null,
+      "source_names": [
+        "smart-commit"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run smart-commit; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical smart-commit workflow and report its evidence.",
+          "Help me run the smart-commit workflow for this repository.",
+          "I need the canonical smart-commit procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/smart-commit-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/smart-commit-default-workflow.test.js"
+      ]
+    }
+  ]
+}

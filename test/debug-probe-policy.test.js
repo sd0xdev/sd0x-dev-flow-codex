@@ -64,6 +64,9 @@ function payloadPolicyRoot(root = ROOT) {
   const pack = path.join(
     root, 'migration', 'packs', 'development-pack', 'debug', 'scripts'
   );
+  const live = path.join(
+    root, 'plugin', 'sd0x-dev-flow-codex', 'skills', 'debug', 'scripts'
+  );
   if (states[0] === 'candidate') {
     const candidateComplete = completePolicyRoot(candidate);
     const packComplete = completePolicyRoot(pack);
@@ -80,6 +83,12 @@ function payloadPolicyRoot(root = ROOT) {
     assert.equal(populated(candidate), false, 'debug candidate and pack payloads are ambiguous');
     assert.equal(completePolicyRoot(pack), true, 'debug pack policy is incomplete');
     return pack;
+  }
+  if (states[0] === 'promoted') {
+    assert.equal(populated(candidate), false,
+      'debug promoted lifecycle cannot retain a candidate payload');
+    assert.equal(completePolicyRoot(live), true, 'debug live policy is incomplete');
+    return live;
   }
   throw new Error('debug policy cannot run for lifecycle state: ' + states[0]);
 }
@@ -122,6 +131,9 @@ test('debug probe payload selection follows lifecycle and rejects ambiguity', (t
   };
   const candidate = path.join(root, 'migration', 'candidates', 'debug', 'scripts');
   const pack = path.join(root, 'migration', 'packs', 'development-pack', 'debug', 'scripts');
+  const live = path.join(
+    root, 'plugin', 'sd0x-dev-flow-codex', 'skills', 'debug', 'scripts'
+  );
 
   writeDisposition('candidate');
   installPolicy(candidate);
@@ -137,6 +149,16 @@ test('debug probe payload selection follows lifecycle and rejects ambiguity', (t
 
   fs.writeFileSync(path.join(candidate, 'stale.js'), 'stale\n');
   assert.throws(() => payloadPolicyRoot(root), /candidate and pack payloads are ambiguous/);
+
+  fs.rmSync(candidate, { recursive: true, force: true });
+  writeDisposition('promoted');
+  installPolicy(live);
+  assert.equal(payloadPolicyRoot(root), live);
+
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'stale.js'), 'stale\n');
+  assert.throws(() => payloadPolicyRoot(root),
+    /promoted lifecycle cannot retain a candidate payload/);
 });
 
 test('debug probe runner never spawns stateful or destructive commands', async (t) => {

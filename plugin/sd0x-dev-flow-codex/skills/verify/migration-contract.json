@@ -1,0 +1,86 @@
+{
+  "schema_version": 3,
+  "target_skill": "verify",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "verify/default",
+      "target_mode": null,
+      "source_names": [
+        "verify"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run verify; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical verify workflow and report its evidence.",
+          "Help me run the verify workflow for this repository.",
+          "I need the canonical verify procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/verify-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/verify-default-workflow.test.js"
+      ]
+    },
+    {
+      "promotion_unit_id": "verify/fast",
+      "target_mode": "fast",
+      "source_names": [
+        "precommit-fast"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run verify fast mode; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical verify fast mode workflow and report its evidence.",
+          "Help me run the verify fast mode workflow for this repository.",
+          "I need the canonical verify fast mode procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/verify-fast-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/verify-fast-workflow.test.js"
+      ]
+    },
+    {
+      "promotion_unit_id": "verify/precommit",
+      "target_mode": "precommit",
+      "source_names": [
+        "precommit"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run verify precommit mode; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical verify precommit mode workflow and report its evidence.",
+          "Help me run the verify precommit mode workflow for this repository.",
+          "I need the canonical verify precommit mode procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/verify-precommit-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/verify-precommit-workflow.test.js"
+      ]
+    }
+  ]
+}

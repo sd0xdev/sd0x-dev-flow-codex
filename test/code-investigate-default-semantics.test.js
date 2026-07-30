@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "code-investigate",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "code-investigate/default",
   "required": [
     "A configured Claude adapter receives the same neutral question and scope",

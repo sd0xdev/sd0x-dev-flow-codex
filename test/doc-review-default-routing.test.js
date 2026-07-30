@@ -3,7 +3,7 @@
 const { defineRoutingContractTests } = require('../scripts/skill-routing-test');
 defineRoutingContractTests({
   "target": "doc-review",
-  "targetPackage": "quality-pack",
+  "targetPackage": "core",
   "unit": "doc-review/default",
   "registry": [
     {

@@ -111,7 +111,7 @@ function fixture() {
         source_name: 'create-request',
         promotion_unit_id: 'create-request/default',
         wave: 1,
-        delivery_state: 'candidate'
+        delivery_state: 'promoted'
       },
       {
         source_name: 'codex-implement',
@@ -196,7 +196,11 @@ function fixture() {
 }
 
 test('current repository satisfies the public release contract', () => {
-  const result = checkRelease();
+  const root = path.resolve(__dirname, '..');
+  const disposition = JSON.parse(fs.readFileSync(path.join(
+    root, 'migration', 'source-disposition.json'
+  ), 'utf8'));
+  const checkpoint = migrationDeliveryCheckpoint(disposition);
   const migrationGuide = fs.readFileSync(path.resolve(
     __dirname,
     '..',
@@ -206,6 +210,13 @@ test('current repository satisfies the public release contract', () => {
   const documentedVersion = /> Codex 版本：`sd0x-dev-flow-codex` `([^`]+)`/.exec(
     migrationGuide
   )?.[1];
+  if (checkpoint.pending > 0) {
+    assert.throws(() => checkRelease(root), /pending migration units remain/);
+    assert.equal(documentedVersion,
+      JSON.parse(fs.readFileSync(path.join(root, 'package.json'))).version);
+    return;
+  }
+  const result = checkRelease(root);
   assert.equal(result.selector, `${PLUGIN_NAME}@${MARKETPLACE_NAME}`);
   assert.match(result.version, /^\d+\.\d+\.\d+/);
   assert.equal(documentedVersion, result.version);
@@ -213,18 +224,20 @@ test('current repository satisfies the public release contract', () => {
 
 test('migration guide delivery checkpoint matches the current registry', () => {
   const root = path.resolve(__dirname, '..');
-  const result = checkRelease(root);
   const disposition = JSON.parse(fs.readFileSync(path.join(
     root, 'migration', 'source-disposition.json'
   ), 'utf8'));
-  assert.deepEqual(result.migrationDelivery,
-    migrationDeliveryCheckpoint(disposition));
-  assert.equal(result.migrationDelivery.rows, 100);
-  assert.equal(result.migrationDelivery.units, 95);
-  assert.equal(result.migrationDelivery.delivered +
-    result.migrationDelivery.pending, result.migrationDelivery.units);
+  const checkpoint = migrationDeliveryCheckpoint(disposition);
+  const guide = fs.readFileSync(path.join(
+    root, 'docs', 'PROJECT-MIGRATION-GUIDE.md'
+  ), 'utf8');
+  assert.match(guide, new RegExp(migrationDeliveryMarker(checkpoint)
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.equal(checkpoint.rows, 100);
+  assert.equal(checkpoint.units, 95);
+  assert.equal(checkpoint.delivered + checkpoint.pending, checkpoint.units);
   assert.deepEqual(Object.fromEntries(Object.entries(
-    result.migrationDelivery.waves
+    checkpoint.waves
   ).map(([wave, value]) => [wave, value.total])), {
     1: 10,
     2: 12,
@@ -420,11 +433,31 @@ test('release check rejects a stale visible migration delivery checkpoint', (t) 
   const guidePath = path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md');
   const guide = fs.readFileSync(guidePath, 'utf8');
   fs.writeFileSync(guidePath, guide.replace(
-    '`create-request/default` = `candidate`',
-    '`create-request/default` = `promoted`'
+    '`create-request/default` = `promoted`',
+    '`create-request/default` = `candidate`'
   ));
   assert.throws(() => checkRelease(values.root),
     /visible delivery checkpoint must match the current registry/);
+});
+
+test('release check rejects live candidate payloads until every unit is delivered', (t) => {
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const dispositionPath = path.join(
+    values.root, 'migration', 'source-disposition.json'
+  );
+  const disposition = JSON.parse(fs.readFileSync(dispositionPath));
+  disposition.skills[0].delivery_state = 'candidate';
+  writeJson(dispositionPath, disposition);
+  const checkpoint = migrationDeliveryCheckpoint(disposition);
+  const guidePath = path.join(values.root, 'docs', 'PROJECT-MIGRATION-GUIDE.md');
+  fs.writeFileSync(guidePath,
+    '> Codex 版本：`sd0x-dev-flow-codex` `0.1.0`\n\n' +
+    `${migrationDeliveryHeading(checkpoint)}\n\n` +
+    `${migrationDeliverySummary(checkpoint)}\n` +
+    `${migrationDeliveryMarker(checkpoint)}\n`);
+
+  assert.throws(() => checkRelease(values.root), /1 pending migration units remain/);
 });
 
 test('release check rejects a stale migration delivery checkpoint heading', (t) => {

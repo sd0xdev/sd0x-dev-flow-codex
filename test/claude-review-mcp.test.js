@@ -854,36 +854,18 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
     mcpStatus: () => ({ runtime_ready: true, review_ready: true })
   };
 
-  const skillArtifacts = [
+  const representativeArtifacts = [
     'scripts/runtime/collaboration.js',
-    'skills/bug-fix/SKILL.md',
-    'skills/create-request/SKILL.md',
-    'skills/create-request/references/request-format.md',
-    'skills/create-request/scripts/request-tool.js',
-    'skills/doctor/SKILL.md',
-    'skills/doctor/scripts/doctor.js',
-    'skills/feature-dev/SKILL.md',
-    'skills/remind/SKILL.md',
-    'skills/remind/scripts/status.js',
-    'skills/reset/SKILL.md',
-    'skills/reset/scripts/reset.js',
-    'skills/review/SKILL.md',
-    'skills/review/references/review-theory.md',
+    'skills/architecture/SKILL.md',
+    'skills/architecture/migration-contract.json',
+    'skills/feature-verify/references/blackbox-testing.md',
+    'skills/orchestrate/scripts/validate-plan.js',
     'skills/review/scripts/gate.js',
-    'skills/review/scripts/provider.js',
-    'skills/review/scripts/round.js',
-    'skills/review/scripts/snapshot.js',
-    'skills/setup/SKILL.md',
-    'skills/setup/scripts/setup.js',
     'skills/test-review/SKILL.md',
-    'skills/test-review/migration-contract.json',
-    'skills/verify/SKILL.md',
-    'skills/verify/scripts/verify.js',
-    'templates/agents/sd0x-claude-primary-reviewer.toml',
     'templates/agents/sd0x-codex-primary-reviewer.toml'
   ];
 
-  for (const relative of skillArtifacts) {
+  for (const relative of representativeArtifacts) {
     const artifact = path.join(pluginRoot, relative);
     const contents = fs.readFileSync(artifact);
     fs.rmSync(artifact);
@@ -896,6 +878,58 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
     fs.mkdirSync(path.dirname(artifact), { recursive: true });
     fs.writeFileSync(artifact, contents);
   }
+
+  const extra = path.join(pluginRoot, 'skills', 'unmanifested.txt');
+  fs.writeFileSync(extra, 'not declared\n');
+  const status = doctor(root, options);
+  assert.equal(status.ok, false);
+  assert.deepEqual(
+    status.checks.find((check) => check.check === 'skills/unmanifested.txt'),
+    { check: 'skills/unmanifested.txt', ok: false }
+  );
+});
+
+test('doctor rejects symbolic payload files and a symbolic manifest', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const source = path.resolve(__dirname, '..', 'plugin', 'sd0x-dev-flow-codex');
+  const pluginRoot = path.join(root, 'plugin-fixture');
+  const outside = path.join(root, 'outside');
+  fs.cpSync(source, pluginRoot, { recursive: true });
+  fs.mkdirSync(outside);
+  const options = {
+    pluginRoot,
+    claudeStatus: () => ({ installed: true, compatible: true, authenticated: true }),
+    mcpStatus: () => ({ runtime_ready: true, review_ready: true })
+  };
+
+  const relative = 'skills/test-review/SKILL.md';
+  const artifact = path.join(pluginRoot, relative);
+  const outsideArtifact = path.join(outside, 'SKILL.md');
+  fs.copyFileSync(artifact, outsideArtifact);
+  fs.rmSync(artifact);
+  fs.symlinkSync(outsideArtifact, artifact);
+  let status = doctor(root, options);
+  assert.equal(status.ok, false);
+  assert.deepEqual(status.checks.find((check) => check.check === relative),
+    { check: relative, ok: false });
+  assert.deepEqual(status.checks.find((check) =>
+    check.check === `${relative}#symbolic-link`),
+  { check: `${relative}#symbolic-link`, ok: false });
+
+  fs.rmSync(artifact);
+  fs.copyFileSync(outsideArtifact, artifact);
+  const manifestRelative = '.codex-plugin/payload-manifest.json';
+  const manifest = path.join(pluginRoot, manifestRelative);
+  const outsideManifest = path.join(outside, 'payload-manifest.json');
+  fs.copyFileSync(manifest, outsideManifest);
+  fs.rmSync(manifest);
+  fs.symlinkSync(outsideManifest, manifest);
+  status = doctor(root, options);
+  assert.equal(status.ok, false);
+  assert.deepEqual(status.checks.find((check) =>
+    check.check === manifestRelative),
+  { check: manifestRelative, ok: false });
 });
 
 test('MCP cancellation aborts the active Claude review request', async (t) => {

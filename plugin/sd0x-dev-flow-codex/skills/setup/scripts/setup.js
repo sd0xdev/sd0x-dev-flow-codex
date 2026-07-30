@@ -97,20 +97,38 @@ function projectConfig(existing) {
   }, null, 2)}\n`;
 }
 
-function setup(cwd = process.cwd()) {
+function parseSetupArgs(argv) {
+  if (argv.length === 0) return 'default';
+  const modes = new Map([
+    ['--guidance', 'guidance'],
+    ['--hooks', 'hooks'],
+    ['--scripts', 'scripts']
+  ]);
+  if (argv.length !== 1 || !modes.has(argv[0])) {
+    throw new Error('Usage: setup.js [--guidance|--hooks|--scripts]');
+  }
+  return modes.get(argv[0]);
+}
+
+function setup(cwd = process.cwd(), options = {}) {
+  const mode = options.mode || 'default';
+  if (!['default', 'guidance', 'hooks', 'scripts'].includes(mode)) {
+    throw new Error(`Unsupported setup mode: ${mode}`);
+  }
   const root = findRepoRoot(cwd);
   const pluginRoot = path.resolve(__dirname, '..', '..', '..');
   const agentsPath = path.join(root, 'AGENTS.md');
-  const currentAgents = fs.existsSync(agentsPath)
-    ? fs.readFileSync(agentsPath, 'utf8')
-    : '';
-  const desiredAgents = updateManagedBlock(currentAgents);
-
   const configPath = path.join(root, '.codex', 'sd0x-dev-flow.json');
-  const existingConfig = fs.existsSync(configPath)
-    ? fs.readFileSync(configPath, 'utf8')
+  const desiredAgents = ['default', 'guidance'].includes(mode)
+    ? updateManagedBlock(fs.existsSync(agentsPath)
+      ? fs.readFileSync(agentsPath, 'utf8')
+      : '')
     : null;
-  const desiredConfig = projectConfig(existingConfig);
+  const desiredConfig = ['default', 'hooks'].includes(mode)
+    ? projectConfig(fs.existsSync(configPath)
+      ? fs.readFileSync(configPath, 'utf8')
+      : null)
+    : null;
   const agentPlans = [
     'sd0x-codex-primary-reviewer.toml',
     'sd0x-claude-primary-reviewer.toml'
@@ -119,32 +137,59 @@ function setup(cwd = process.cwd()) {
     destination: path.join(root, '.codex', 'agents', name)
   }));
   for (const plan of agentPlans) {
-    assertAgentOwnership(plan.destination, fs.readFileSync(plan.source, 'utf8'));
+    if (mode === 'default') {
+      assertAgentOwnership(plan.destination, fs.readFileSync(plan.source, 'utf8'));
+    }
   }
 
-  const results = [{
-    file: agentsPath,
-    status: writeIfChanged(agentsPath, desiredAgents)
-  }, {
-    file: configPath,
-    status: writeIfChanged(configPath, desiredConfig)
-  }, {
-    file: path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml'),
-    status: removeRetiredManagedAgent(path.join(
-      root, '.codex', 'agents', 'sd0x-reviewer.toml'
-    ))
-  }, {
-    file: path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
-    status: removeRetiredManagedAgent(path.join(
-      root, '.codex', 'agents', 'sd0x-test-reviewer.toml'
-    ))
-  }];
-
-  for (const plan of agentPlans) {
+  const results = [];
+  if (['default', 'guidance'].includes(mode)) {
     results.push({
-      file: plan.destination,
-      status: installAgent(plan.source, plan.destination)
+      file: agentsPath,
+      status: writeIfChanged(agentsPath, desiredAgents)
     });
+  }
+  if (['default', 'hooks'].includes(mode)) {
+    results.push({
+      file: configPath,
+      status: writeIfChanged(configPath, desiredConfig)
+    });
+  }
+  if (mode === 'default') {
+    results.push({
+      file: path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml'),
+      status: removeRetiredManagedAgent(path.join(
+        root, '.codex', 'agents', 'sd0x-reviewer.toml'
+      ))
+    }, {
+      file: path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
+      status: removeRetiredManagedAgent(path.join(
+        root, '.codex', 'agents', 'sd0x-test-reviewer.toml'
+      ))
+    });
+  }
+
+  if (mode === 'default') {
+    for (const plan of agentPlans) {
+      results.push({
+        file: plan.destination,
+        status: installAgent(plan.source, plan.destination)
+      });
+    }
+  }
+  if (mode === 'scripts') {
+    for (const relative of [
+      'scripts/runtime/collaboration.js',
+      'scripts/runtime/hook.js',
+      'scripts/runtime/state.js',
+      'scripts/runtime/worktree.js'
+    ]) {
+      const file = path.join(pluginRoot, ...relative.split('/'));
+      if (!fs.statSync(file, { throwIfNoEntry: false })?.isFile()) {
+        throw new Error(`Bundled runtime entrypoint is missing: ${relative}`);
+      }
+      results.push({ file, status: 'unchanged' });
+    }
   }
 
   const activationFiles = new Set([
@@ -161,6 +206,7 @@ function setup(cwd = process.cwd()) {
 
   return {
     root,
+    mode,
     results,
     activation_deferred: activationDeferred,
     setup_claim: claimToken ? {
@@ -173,7 +219,8 @@ function setup(cwd = process.cwd()) {
 
 if (require.main === module) {
   try {
-    process.stdout.write(`${JSON.stringify(setup(), null, 2)}\n`);
+    const mode = parseSetupArgs(process.argv.slice(2));
+    process.stdout.write(`${JSON.stringify(setup(process.cwd(), { mode }), null, 2)}\n`);
   } catch (error) {
     process.stderr.write(`sd0x setup: ${error.message}\n`);
     process.exitCode = 1;
@@ -185,6 +232,7 @@ module.exports = {
   END,
   START,
   assertAgentOwnership,
+  parseSetupArgs,
   projectConfig,
   removeRetiredManagedAgent,
   setup,

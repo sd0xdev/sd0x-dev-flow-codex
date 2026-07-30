@@ -25,6 +25,9 @@ const ROOT = path.resolve(__dirname, '..');
 const PLAN_PATH = path.join(ROOT, 'scripts', 'skill-wave-plans.json');
 const DISPOSITION_PATH = path.join(ROOT, 'migration', 'source-disposition.json');
 const AUTHORIZATION_POLICY = 'later-turn-separate-explicit-user-approval-v1';
+const SENSITIVE_OPERATIONS = new Set([
+  'commit', 'connector-write', 'history-rewrite', 'pr-write', 'push'
+]);
 const BYTEWISE = (left, right) => Buffer.from(left).compare(Buffer.from(right));
 
 function fail(message) {
@@ -76,8 +79,8 @@ function requestSlug(unit) {
 }
 
 function requestPath(wave, date, unit, targetPackage) {
-  const action = targetPackage === 'core' ? 'promotion' : 'pack-ready';
-  return `docs/features/skill-toolkit-migration/requests/${date}-wave${wave}-${requestSlug(unit)}-${action}.md`;
+  if (targetPackage !== 'core') fail(`${unit}: formal plugin target_package must be core`);
+  return `docs/features/skill-toolkit-migration/requests/${date}-wave${wave}-${requestSlug(unit)}-promotion.md`;
 }
 
 function requestTitle(wave, unit, targetPackage) {
@@ -86,7 +89,8 @@ function requestTitle(wave, unit, targetPackage) {
       `${part.charAt(0).toUpperCase()}${part.slice(1)}`
     ).join(' ')
   ).join(' ');
-  return `Wave ${wave} ${label} ${targetPackage === 'core' ? 'Core Promotion' : 'Pack Readiness'}`;
+  if (targetPackage !== 'core') fail(`${unit}: formal plugin target_package must be core`);
+  return `Wave ${wave} ${label} Core Promotion`;
 }
 
 function renderRequest(wave, plan, target, unit, request) {
@@ -96,19 +100,23 @@ function renderRequest(wave, plan, target, unit, request) {
   ];
   if (unit.target_mode !== null) {
     const defaultUnit = target.units.find((entry) => entry.target_mode === null);
-    if (!defaultUnit) fail(`${unit.promotion_unit_id}: mode target requires a default unit`);
-    const defaultRequest = requestPath(
-      wave, plan.date, defaultUnit.promotion_unit_id, target.target_package
-    );
-    dependencies.push(
-      `[${requestTitle(wave, defaultUnit.promotion_unit_id, target.target_package)}]` +
-      `(./${path.posix.basename(defaultRequest)})`
-    );
+    if (!defaultUnit && !target.allow_mode_without_default) {
+      fail(`${unit.promotion_unit_id}: mode target requires a default unit`);
+    }
+    if (defaultUnit) {
+      const defaultRequest = requestPath(
+        wave, plan.date, defaultUnit.promotion_unit_id, target.target_package
+      );
+      dependencies.push(
+        `[${requestTitle(wave, defaultUnit.promotion_unit_id, target.target_package)}]` +
+        `(./${path.posix.basename(defaultRequest)})`
+      );
+    }
   }
-  const finalPath = target.target_package === 'core'
-    ? `plugin/sd0x-dev-flow-codex/skills/${target.target}/`
-    : `migration/packs/${target.target_package}/${target.target}/`;
-  const action = target.target_package === 'core' ? 'promote' : 'prepare';
+  if (target.target_package !== 'core') {
+    fail(`${unit.promotion_unit_id}: formal plugin target_package must be core`);
+  }
+  const finalPath = `plugin/sd0x-dev-flow-codex/skills/${target.target}/`;
   return [
     `# ${requestTitle(wave, unit.promotion_unit_id, target.target_package)}`,
     '',
@@ -136,8 +144,8 @@ function renderRequest(wave, plan, target, unit, request) {
     '',
     '| Scope | Description |',
     '|---|---|',
-    `| In | Audit and ${action} the \`${unit.promotion_unit_id}\` payload, routing contract, and durable completion evidence. |`,
-    '| Out | Other wave units, compatibility entrypoints, and publication of separate pack repositories |',
+    `| In | Audit and promote the \`${unit.promotion_unit_id}\` payload, routing contract, and durable completion evidence. |`,
+    '| Out | Other wave units, compatibility entrypoints, and external service authentication |',
     '',
     '## Related Files',
     '',
@@ -145,7 +153,7 @@ function renderRequest(wave, plan, target, unit, request) {
     '|---|---|---|',
     `| \`migration/staging/${unit.source_names[0]}/\` | Read | Canonical source evidence |`,
     `| \`migration/candidates/${target.target}/\` | New | Audited Codex-native candidate |`,
-    `| \`${finalPath}\` | ${target.target_package === 'core' ? 'Update' : 'New'} | Final ${target.target_package} payload |`,
+    `| \`${finalPath}\` | Update | Final distributable plugin payload |`,
     `| \`test/${unit.promotion_unit_id.replace('/', '-')}-routing.test.js\` | New | Trusted routing contract |`,
     '| `migration/source-disposition.json` | Update | Unit ownership and delivery evidence |',
     '',
@@ -156,7 +164,7 @@ function renderRequest(wave, plan, target, unit, request) {
     '- [ ] Compatibility aliases remain mapping-only and add no discovered skill entrypoints.',
     '- [ ] Trusted routing tests distinguish positive prompts from adjacent skill boundaries.',
     '- [ ] Candidate preflight binds exact payload and behavioral-test identity.',
-    `- [ ] Final ${target.target_package === 'core' ? 'core' : 'pack'} destination and move-window comparison are fixed for the accepted candidate bytes.`,
+    '- [ ] Final plugin destination and move-window comparison are fixed for the accepted candidate bytes.',
     '- [ ] R3 closure inputs identify this exact request, promotion unit, evidence kind, and final-fingerprint fields.',
     '',
     '## Progress',
@@ -195,6 +203,8 @@ function stripFrontmatter(text) {
       'Ask the user before running `$sd0x-dev-flow-codex:reset`',
       'Ask the user before running the sd0x Dev Flow reset skill'
     )
+    .replaceAll('`$sd0x-dev-flow-codex:review`', 'the sd0x review skill')
+    .replaceAll('`$sd0x-dev-flow-codex:verify`', 'the sd0x verify skill')
     .trim();
 }
 
@@ -212,7 +222,9 @@ function renderSkill(target, preservedBody = null) {
     if (typeof preservedBody !== 'string') {
       fail(`${target.target}: preserved live body snapshot is unavailable`);
     }
-    body = `${stripFrontmatter(preservedBody)}\n\n${body}`;
+    body = target.prepend_body_lines
+      ? `${body}\n\n${stripFrontmatter(preservedBody)}`
+      : `${stripFrontmatter(preservedBody)}\n\n${body}`;
   }
   return [
     '---',
@@ -262,9 +274,14 @@ function readCapturedFile(parent, name, entry) {
 
 function capturePreservedLive(target) {
   if (!target.preserve_live_body && !target.preserve_live_resources) return null;
-  const liveRoot = path.join(
-    ROOT, 'plugin', 'sd0x-dev-flow-codex', 'skills', target.target
-  );
+  const liveRoot = target.preserve_source_root
+    ? path.resolve(target.preserve_source_root)
+    : path.join(ROOT, 'plugin', 'sd0x-dev-flow-codex', 'skills', target.target);
+  const containment = path.relative(ROOT, liveRoot);
+  if (!containment || containment === '..' ||
+      containment.startsWith(`..${path.sep}`) || path.isAbsolute(containment)) {
+    fail(`${target.target}: preserved source root escapes the repository`);
+  }
   const snapshot = captureRegularTree(liveRoot);
   const rootStat = fs.lstatSync(liveRoot, { throwIfNoEntry: false });
   if (!rootStat || rootStat.isSymbolicLink() || !rootStat.isDirectory() ||
@@ -280,8 +297,32 @@ function capturePreservedLive(target) {
     }
     const body = skill ? readCapturedFile(rootDirectory, 'SKILL.md', skill)
       .toString('utf8') : null;
+    let detachedFiles = null;
+    if (target.detach_preserved_resources) {
+      detachedFiles = new Map();
+      for (const entry of snapshot.entries.filter((item) => item.kind === 'file')) {
+        const absolute = path.join(liveRoot, ...entry.relative.split('/'));
+        const descriptor = fs.openSync(absolute,
+          fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+        try {
+          const opened = fs.fstatSync(descriptor, { bigint: true });
+          const bytes = fs.readFileSync(descriptor);
+          const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+          if (!opened.isFile() || statIdentity(opened) !== entry.identity ||
+              digest !== entry.sha256) {
+            fail(`preserved resource changed during detached capture: ${entry.relative}`);
+          }
+          detachedFiles.set(entry.relative, {
+            bytes,
+            mode: Number(opened.mode & 0o777n)
+          });
+        } finally {
+          fs.closeSync(descriptor);
+        }
+      }
+    }
     assertPreservedSnapshot(liveRoot, snapshot);
-    return { liveRoot, snapshot, body, rootStat };
+    return { liveRoot, snapshot, body, rootStat, detachedFiles };
   } finally {
     rootDirectory.close();
   }
@@ -290,6 +331,53 @@ function capturePreservedLive(target) {
 function copyPreservedLiveFiles(target, candidateDirectory, preserved, hooks = {}) {
   if (!preserved || !target.preserve_live_resources) return;
   const { liveRoot, snapshot, rootStat } = preserved;
+  if (preserved.detachedFiles) {
+    const destinations = new Map([['', candidateDirectory]]);
+    const opened = [];
+    try {
+      for (const entry of snapshot.entries) {
+        if (['SKILL.md', 'migration-contract.json'].includes(entry.relative)) continue;
+        if (target.excluded_preserved_resources?.includes(entry.relative)) continue;
+        if (target.exclude_non_javascript_scripts &&
+            entry.kind === 'file' && entry.relative.startsWith('scripts/') &&
+            !/\.(?:cjs|js|mjs)$/.test(entry.relative)) continue;
+        const parentRelative = path.posix.dirname(entry.relative) === '.'
+          ? ''
+          : path.posix.dirname(entry.relative);
+        const destinationParent = destinations.get(parentRelative);
+        if (!destinationParent) {
+          fail(`detached resource parent is unavailable: ${entry.relative}`);
+        }
+        const name = path.posix.basename(entry.relative);
+        if (entry.kind === 'directory') {
+          let destinationIdentity;
+          destinationParent.run((child) => {
+            const destination = child(name);
+            fs.mkdirSync(destination);
+            destinationIdentity = fs.lstatSync(destination);
+          });
+          const destination = openBoundDirectory(
+            path.join(candidateDirectory.directory, ...entry.relative.split('/')),
+            { identity: destinationIdentity }
+          );
+          destinations.set(entry.relative, destination);
+          opened.push(destination);
+        } else {
+          const captured = preserved.detachedFiles.get(entry.relative);
+          if (!captured) fail(`detached resource is missing: ${entry.relative}`);
+          destinationParent.run((child) => {
+            fs.writeFileSync(child(name), captured.bytes, {
+              flag: 'wx',
+              mode: captured.mode
+            });
+          });
+        }
+      }
+    } finally {
+      for (const destination of opened.reverse()) destination.close();
+    }
+    return;
+  }
   const sourceRoot = openBoundDirectory(liveRoot, { identity: rootStat });
   const opened = [sourceRoot];
   const sources = new Map([['', sourceRoot]]);
@@ -298,6 +386,10 @@ function copyPreservedLiveFiles(target, candidateDirectory, preserved, hooks = {
     for (const entry of snapshot.entries) {
       const top = entry.relative.split('/')[0];
       if (top === 'SKILL.md' || top === 'migration-contract.json') continue;
+      if (target.excluded_preserved_resources?.includes(entry.relative)) continue;
+      if (target.exclude_non_javascript_scripts &&
+          entry.kind === 'file' && entry.relative.startsWith('scripts/') &&
+          !/\.(?:cjs|js|mjs)$/.test(entry.relative)) continue;
       const parentRelative = path.posix.dirname(entry.relative) === '.'
         ? ''
         : path.posix.dirname(entry.relative);
@@ -507,13 +599,16 @@ function withPreparedCandidateDirectory(root, target, callback, options = {}) {
 }
 
 function renderContract(target) {
+  const supplemental = Boolean(target.supplemental_behavior_tests);
   return {
-    schema_version: 1,
+    schema_version: supplemental ? 3 : 1,
     target_skill: target.target,
     target_package: target.target_package,
     authorization: {
       policy: AUTHORIZATION_POLICY,
-      sensitive_operations: []
+      sensitive_operations: sorted((target.operations || []).filter((operation) =>
+        SENSITIVE_OPERATIONS.has(operation)
+      ))
     },
     units: target.units.map((unit) => ({
       promotion_unit_id: unit.promotion_unit_id,
@@ -522,7 +617,12 @@ function renderContract(target) {
       routing: normalizedRouting(unit.routing),
       behavior_tests: [
         `test/${unit.promotion_unit_id.replace('/', '-')}-routing.test.js`
-      ]
+      ],
+      ...(supplemental ? {
+        supplemental_behavior_tests: [
+          `test/${unit.promotion_unit_id.replace('/', '-')}-workflow.test.js`
+        ]
+      } : {})
     }))
   };
 }

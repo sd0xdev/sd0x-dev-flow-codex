@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "load-pr-review",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "load-pr-review/default",
+      "target_mode": null,
+      "source_names": [
+        "load-pr-review"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run load-pr-review; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical load-pr-review workflow and report its evidence.",
+          "Help me run the load-pr-review workflow for this repository.",
+          "I need the canonical load-pr-review procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/load-pr-review-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/load-pr-review-default-workflow.test.js"
+      ]
+    }
+  ]
+}

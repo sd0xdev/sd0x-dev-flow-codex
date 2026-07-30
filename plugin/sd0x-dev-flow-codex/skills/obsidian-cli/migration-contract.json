@@ -1,0 +1,38 @@
+{
+  "schema_version": 3,
+  "target_skill": "obsidian-cli",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": [
+      "connector-write"
+    ]
+  },
+  "units": [
+    {
+      "promotion_unit_id": "obsidian-cli/default",
+      "target_mode": null,
+      "source_names": [
+        "obsidian-cli"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run obsidian-cli; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical obsidian-cli workflow and report its evidence.",
+          "Help me run the obsidian-cli workflow for this repository.",
+          "I need the canonical obsidian-cli procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/obsidian-cli-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/obsidian-cli-default-workflow.test.js"
+      ]
+    }
+  ]
+}

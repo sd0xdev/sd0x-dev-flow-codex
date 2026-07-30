@@ -108,7 +108,7 @@ codex plugin remove sd0x-dev-flow-codex@sd0xdev-marketplace
 
 ## 日常使用
 
-主要 skills：
+正式 plugin 提供 86 個 skills；100 個來源 rows 已收斂成 85 個 canonical migration targets，另加 `reset` runtime recovery。以下是最常用的入口：
 
 - `create-request`：建立、更新、批次同步或掃描單一任務 request tickets；以安全 resolver、`Candidate Complete` 邊界與 durable two-phase closure 避免猜測 feature 或偽造完成證據。Closure evidence schema v2 要求每個 Complete AC 至少引用一個 request 外部位置；舊 schema v1 pending 只能稽核並被明確 supersede，不能 fresh apply 或 finalize，但仍可 recovery 已存在的 legacy journal。
 - `feature-dev`：從範圍確認、實作、獨立 review 到 deterministic verification 的完整功能流程。

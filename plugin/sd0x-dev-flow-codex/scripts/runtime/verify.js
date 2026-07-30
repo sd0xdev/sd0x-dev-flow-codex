@@ -11,8 +11,173 @@ const {
 } = require('./state');
 
 const OUTPUT_LIMIT = 12_000;
-const TIMEOUT_MS = 60 * 60 * 1000;
+const TIMEOUT_MS = 120 * 60 * 1000;
 const WINDOWS_COMMAND_RUNNERS = new Set(['npm', 'yarn', 'pnpm']);
+const MODE_STEPS = {
+  fast: ['lint:fix', 'test'],
+  precommit: ['lint:fix', 'build', 'test']
+};
+
+function nodeModePlan(root, mode) {
+  const manifestPath = path.join(root, 'package.json');
+  if (!fs.existsSync(manifestPath)) return null;
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch {
+    throw new Error('verify precommit mode requires a valid package.json');
+  }
+  const scripts = manifest?.scripts && typeof manifest.scripts === 'object'
+    ? manifest.scripts
+    : {};
+  const manager = packageRunner(root);
+  const select = (names) => names.find((name) =>
+    typeof scripts[name] === 'string' && scripts[name].trim());
+  const selected = {
+    'lint:fix': select(['lint:fix']),
+    build: select(['build']),
+    test: select(mode === 'fast'
+      ? ['test:fast', 'test:unit', 'test']
+      : ['test:ci', 'test', 'test:fast', 'test:unit'])
+  };
+  return MODE_STEPS[mode].map((step) => selected[step]
+    ? { step, executable: manager, args: ['run', selected[step]] }
+    : { step, skip: 'package script is missing' });
+}
+
+function ecosystemPlan(root, mode) {
+  const node = nodeModePlan(root, mode);
+  if (node) return { ecosystem: 'node', commands: node };
+  const definitions = [
+    ['pyproject.toml', 'python', {
+      'lint:fix': ['ruff', ['check', '--fix', '.']],
+      test: ['pytest', ['tests/unit/']]
+    }],
+    ['Cargo.toml', 'rust', {
+      'lint:fix': ['cargo', ['clippy', '--fix']],
+      build: ['cargo', ['build']],
+      test: ['cargo', ['test']]
+    }],
+    ['go.mod', 'go', {
+      'lint:fix': ['golangci-lint', ['run', '--fix']],
+      build: ['go', ['build', './...']],
+      test: ['go', ['test', './...']]
+    }],
+    ['build.gradle', 'gradle', {
+      'lint:fix': ['./gradlew', ['spotlessApply']],
+      build: ['./gradlew', ['build']],
+      test: ['./gradlew', ['test']]
+    }],
+    ['pom.xml', 'maven', {
+      'lint:fix': ['mvn', ['spotless:apply']],
+      build: ['mvn', ['compile']],
+      test: ['mvn', ['test']]
+    }],
+    ['Gemfile', 'ruby', {
+      'lint:fix': ['bundle', ['exec', 'rubocop', '-a']],
+      test: ['bundle', ['exec', 'rspec']]
+    }]
+  ];
+  const found = definitions.find(([manifest]) =>
+    fs.existsSync(path.join(root, manifest)));
+  if (!found) {
+    return {
+      ecosystem: null,
+      commands: MODE_STEPS[mode].map((step) => ({
+        step,
+        skip: 'no supported project ecosystem was detected'
+      }))
+    };
+  }
+  const [, ecosystem, commands] = found;
+  return {
+    ecosystem,
+    commands: MODE_STEPS[mode].map((step) => commands[step]
+      ? { step, executable: commands[step][0], args: commands[step][1] }
+      : { step, skip: 'step is unavailable for this ecosystem' })
+  };
+}
+
+function executeModeCommand(executable, args, root, options) {
+  const platform = options.platform || process.platform;
+  const command = commandForPlatform(executable, platform);
+  const spawnOptions = {
+    cwd: root,
+    encoding: 'utf8',
+    shell: platform === 'win32' && command.endsWith('.cmd'),
+    timeout: options.timeoutMs || TIMEOUT_MS,
+    maxBuffer: 16 * 1024 * 1024,
+    windowsHide: true
+  };
+  const result = (typeof options.runCommand === 'function'
+    ? options.runCommand(command, args, spawnOptions)
+    : spawnSync(command, args, spawnOptions)) || {};
+  return {
+    argv: [executable, ...args],
+    exit_code: result.error?.code === 'ETIMEDOUT'
+      ? 124
+      : (Number.isInteger(result.status) ? result.status : 1),
+    timed_out: result.error?.code === 'ETIMEDOUT',
+    signal: result.signal || null,
+    stdout: String(result.stdout || ''),
+    stderr: String(result.stderr || result.error?.message || '')
+  };
+}
+
+function runPrecommitMode(root, mode, options = {}) {
+  if (!Object.hasOwn(MODE_STEPS, mode)) {
+    throw new Error(`unsupported verify mode: ${mode}`);
+  }
+  const plan = ecosystemPlan(root, mode);
+  const mutating = plan.commands.some((command) =>
+    command.step === 'lint:fix' && !command.skip);
+  if (mutating && options.allowFixes !== true) {
+    const error = new Error(
+      'verify precommit modes require separate explicit approval for lint fixes'
+    );
+    error.code = 'SD0X_APPROVAL_REQUIRED';
+    throw error;
+  }
+  const results = [];
+  for (const command of plan.commands) {
+    if (command.skip) {
+      results.push({ step: command.step, status: 'skipped', reason: command.skip });
+      continue;
+    }
+    const result = executeModeCommand(
+      command.executable,
+      command.args,
+      root,
+      options
+    );
+    results.push({
+      step: command.step,
+      status: result.exit_code === 0 ? 'passed' : 'failed',
+      ...result
+    });
+  }
+  const diff = executeModeCommand('git', ['diff', '--name-only'], root, options);
+  const changedFiles = diff.exit_code === 0
+    ? diff.stdout.split(/\r?\n/).map((value) => value.trim()).filter(Boolean)
+    : [];
+  const ran = results.filter((result) => result.status !== 'skipped');
+  return {
+    schema_version: 1,
+    mode,
+    gating: false,
+    runtime_gate_written: false,
+    authorization: mutating ? 'explicit-lint-fix-approved' : 'not-required',
+    failure_behavior: 'continue-all',
+    ecosystem: plan.ecosystem,
+    results,
+    changed_files: changedFiles,
+    changed_files_check: diff,
+    outcome: diff.exit_code === 0 && ran.length > 0 &&
+      ran.every((result) => result.status === 'passed')
+      ? 'pass'
+      : 'fail'
+  };
+}
 
 function commandSpec(command, args) {
   return { command, args };
@@ -237,8 +402,10 @@ module.exports = {
   TIMEOUT_MS,
   commandForPlatform,
   detectCommands,
+  ecosystemPlan,
   execute,
   printable,
+  runPrecommitMode,
   runVerification,
   stagedWorktreeDivergence
 };

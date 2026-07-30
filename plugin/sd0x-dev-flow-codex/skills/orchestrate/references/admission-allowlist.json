@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "mode": "deny-by-default",
+  "fanout_allowlist": {
+    "type": "data",
+    "value": [
+      {
+        "name": "explorer",
+        "role": "codex-collaboration",
+        "read_only": true,
+        "scope": "bounded repository evidence discovery",
+        "residual_risk": "Repository drift is detected against the original baseline."
+      },
+      {
+        "name": "performance-optimizer",
+        "role": "repository-defined",
+        "read_only": true,
+        "scope": "performance evidence analysis",
+        "residual_risk": "Availability and read-only definition must be verified before dispatch."
+      }
+    ]
+  },
+  "explicit_exclusions": {
+    "type": "data",
+    "value": [
+      {
+        "name": "coverage-analyst",
+        "reason": "Its executable surface is broader than the report-only workflow."
+      },
+      {
+        "name": "git-investigator",
+        "reason": "History analysis belongs to the canonical git-investigate skill."
+      }
+    ]
+  },
+  "executable_denylist": {
+    "type": "data",
+    "value": [
+      "bash",
+      "sh",
+      "zsh",
+      "node",
+      "npm",
+      "npx",
+      "pnpm",
+      "yarn",
+      "git",
+      "gh",
+      "curl",
+      "wget",
+      "rm",
+      "cp",
+      "mv",
+      "chmod",
+      "sudo"
+    ]
+  }
+}

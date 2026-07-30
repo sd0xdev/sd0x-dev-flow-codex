@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "dep-audit",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/dep-audit-default-routing.test.js"
+      ],
+      "promotion_unit_id": "dep-audit/default",
+      "routing": {
+        "negative_boundaries": [
+          "Bump the package version for the next release.",
+          "Implement the recommended dependency upgrades and regenerate lockfiles.",
+          "Review application code correctness without focusing on dependencies."
+        ],
+        "positive_triggers": [
+          "Audit all locked dependencies for current advisories and maintenance risk.",
+          "Inspect this repository's dependency graph for vulnerable or abandoned packages.",
+          "Review manifest and lockfile health without changing package versions."
+        ]
+      },
+      "source_names": [
+        "dep-audit"
+      ],
+      "target_mode": null
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "brainstorm",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "brainstorm/default",
   "required": [
     "Apply precedence `divergent → conditional → pure → pareto`",

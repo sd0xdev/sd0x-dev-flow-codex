@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "watch-ci",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "watch-ci/default",
+      "target_mode": null,
+      "source_names": [
+        "watch-ci"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run watch-ci; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical watch-ci workflow and report its evidence.",
+          "Help me run the watch-ci workflow for this repository.",
+          "I need the canonical watch-ci procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/watch-ci-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/watch-ci-default-workflow.test.js"
+      ]
+    }
+  ]
+}

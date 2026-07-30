@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "update-docs",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "update-docs/default",
+      "target_mode": null,
+      "source_names": [
+        "update-docs"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run update-docs; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical update-docs workflow and report its evidence.",
+          "Help me run the update-docs workflow for this repository.",
+          "I need the canonical update-docs procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/update-docs-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/update-docs-default-workflow.test.js"
+      ]
+    }
+  ]
+}

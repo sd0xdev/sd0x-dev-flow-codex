@@ -8,14 +8,18 @@ const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
 const test = require('node:test');
 const {
+  assertExistingLiveTargetUnmodified,
   auditActiveCandidates,
   auditCandidate,
   auditCandidateStatic,
   auditDeliveredPayload,
   auditSource,
+  candidateTree,
   cleanGitEnvironment,
   compareCheckout,
+  markdownTableColumns,
   selectActiveCandidatePayload,
+  trustedCoreResourceFiles,
   validateAliasCapability,
   validateCandidateCompletePackEvidence,
   validateCandidateRequestEvidence,
@@ -45,7 +49,9 @@ const {
   recordRequest
 } = require('../scripts/record-skill-wave-preflight');
 const {
+  capturePreservedLive,
   copyPreservedLiveFiles,
+  renderContract,
   withPreparedCandidateDirectory,
   writeText: writePreparedText
 } = require('../scripts/prepare-skill-wave');
@@ -54,6 +60,7 @@ const {
   buildPromotionPlan,
   captureRegularTree,
   copyCapturedTree,
+  recoverPromotion,
   treeDigest: promotionTreeDigest
 } = require('../scripts/promote-skill-wave');
 const { openBoundDirectory } = require('../scripts/bound-directory');
@@ -71,6 +78,28 @@ const { atomicWriteContainedFile } = require('../scripts/contained-file');
 const {
   restageCoreCandidate
 } = require('../scripts/restage-core-candidate');
+
+test('Markdown table column counting ignores escaped cell pipes', () => {
+  assert.equal(markdownTableColumns('| Pattern | Regex |'), 2);
+  assert.equal(markdownTableColumns('| Rule | `a\\|b\\|c` |'), 2);
+  assert.equal(markdownTableColumns('| Rule | `a\\\\|b` | Extra |'), 4);
+});
+
+test('prepared contracts declare their observed sensitive operations', () => {
+  const contract = renderContract({
+    target: 'fixture',
+    target_package: 'core',
+    operations: ['read', 'pr-write', 'local-write', 'push'],
+    units: [{
+      promotion_unit_id: 'fixture/default',
+      target_mode: null,
+      source_names: ['fixture'],
+      routing: { positive_triggers: ['fixture'], negative_boundaries: ['other'] }
+    }]
+  });
+  assert.deepEqual(contract.authorization.sensitive_operations,
+    ['pr-write', 'push']);
+});
 const {
   acquireProbeLease,
   buildDump,
@@ -260,7 +289,10 @@ function copyResearchBehaviorTests(root) {
     const contract = readJson(root,
       `migration/packs/research-pack/${target}/migration-contract.json`);
     for (const behaviorTest of contract.units.flatMap((unit) => unit.behavior_tests)) {
-      fs.copyFileSync(path.join(ROOT, behaviorTest), path.join(root, behaviorTest));
+      const destination = path.join(root, behaviorTest);
+      if (!fs.existsSync(destination)) {
+        fs.copyFileSync(path.join(ROOT, behaviorTest), destination);
+      }
     }
   }
 }
@@ -681,8 +713,10 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
     assert.notEqual(historicalCompletions.get(unit)?.request_path,
       currentOwners.get(unit), `${unit}: replacement owner must supersede old evidence`);
   }
-  const assertRepositoryWave3State = (disposition, completions) => {
+  const assertRepositoryWave3State = (disposition, completions, current = false) => {
     for (const unit of units) {
+      const final = current ? 'promoted' : unit.final;
+      const kind = current ? 'promotion' : unit.kind;
       const rows = disposition.skills.filter((row) =>
         row.promotion_unit_id === unit.id
       );
@@ -692,13 +726,13 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
         assert.equal(row.target_skill, unit.target,
           `${unit.id}:${row.source_name} target must remain exact`);
         assert.equal(row.delivery_state,
-          completions.has(unit.id) ? unit.final : 'candidate',
+          completions.has(unit.id) ? final : 'candidate',
           `${unit.id}:${row.source_name} must be ${
-            completions.has(unit.id) ? unit.final : 'candidate'
+            completions.has(unit.id) ? final : 'candidate'
           }`);
       }
       if (completions.has(unit.id)) {
-        assert.equal(completions.get(unit.id)?.kind, unit.kind,
+        assert.equal(completions.get(unit.id)?.kind, kind,
           `${unit.id}: completion kind must match the final overlay`);
       }
     }
@@ -707,13 +741,17 @@ test('Wave 3 delivery overlay follows all eight durable completion records', (t)
     assert.equal(disposition.skills.find((row) =>
       row.source_name === 'codex-test-gen').alias_policy, 'mapping-only');
   };
-  assertRepositoryWave3State(repositoryDisposition, repositoryCompletions);
+  assertRepositoryWave3State(repositoryDisposition, repositoryCompletions, true);
+  const deliveredUnit = units.find((unit) => repositoryCompletions.has(unit.id));
+  assert.ok(deliveredUnit, 'at least one Wave 3 unit must retain current durable completion');
   const reverted = structuredClone(repositoryDisposition);
   reverted.skills.find((row) =>
-    row.promotion_unit_id === 'debug/default'
+    row.promotion_unit_id === deliveredUnit.id
   ).delivery_state = 'candidate';
-  assert.throws(() => assertRepositoryWave3State(reverted, repositoryCompletions),
-    /debug\/default:debug must be pack-ready/);
+  assert.throws(() => assertRepositoryWave3State(
+    reverted, repositoryCompletions, true
+  ),
+    new RegExp(`${deliveredUnit.id.replace('/', '\\/')}:`));
   const lifecycleSpec = fs.readFileSync(path.join(
     ROOT, 'docs/features/skill-toolkit-migration/2-tech-spec.md'
   ), 'utf8');
@@ -879,9 +917,15 @@ test('Wave 4 delivery overlay follows current request lineage across re-promotio
       ['codex-test-review', 'test-review'], 'pack-ready', 'pack-ready',
       'e81086ac619967dabec65a8ed7edc11ea8b80726b918b36bdfd865202b270611',
       'promotion', 'promoted']
-  ].map(([id, target, sources, kind, final, closure,
-    currentKind = kind, currentFinal = final]) => ({
-    id, target, sources, kind, final, closure, currentKind, currentFinal
+  ].map(([id, target, sources, kind, final, closure]) => ({
+    id,
+    target,
+    sources,
+    kind,
+    final,
+    closure,
+    currentKind: 'promotion',
+    currentFinal: 'promoted'
   }));
   const assertWave4State = (disposition, completions, current = false) => {
     for (const unit of units) {
@@ -1466,7 +1510,7 @@ test('Candidate Complete validation rejects transient behavior-test ABA swaps', 
   }
 });
 
-test('all research-pack SKILL bytes are trusted semantic authority', () => {
+test('all formally promoted research SKILL bytes are trusted semantic authority', () => {
   for (const target of [
     'architecture-advice', 'ask', 'brainstorm', 'code-explore',
     'code-investigate', 'deep-explore', 'deep-research', 'explain',
@@ -1475,7 +1519,7 @@ test('all research-pack SKILL bytes are trusted semantic authority', () => {
     const unit = `${target}/default`;
     const requirements = trustedSemanticContract(unit);
     const skill = fs.readFileSync(path.join(
-      ROOT, 'migration/packs/research-pack', target, 'SKILL.md'
+      ROOT, 'plugin/sd0x-dev-flow-codex/skills', target, 'SKILL.md'
     ), 'utf8');
     assert.equal(validateSemanticContract(skill, { unit, ...requirements }), true);
     const active = semanticActiveContractBlock(unit, requirements);
@@ -1554,7 +1598,9 @@ test('Wave 1 readiness is an immutable subject checkpoint, not current delivery 
   writeJson(values.root, 'migration/source-disposition.json', active);
   assert.throws(() => auditSource({ root: values.root }),
     /Evidence completion mismatch for (?:disposition_row_sha256|payload_tree_sha256|request_path)/);
-  const repositoryDisposition = readJson(ROOT, 'migration/source-disposition.json');
+  const repositoryDisposition = JSON.parse(git(values.root, [
+    'show', 'HEAD:migration/source-disposition.json'
+  ]).toString());
   const repositoryStateBySource = new Map(repositoryDisposition.skills.map((row) =>
     [row.source_name, row.delivery_state]
   ));
@@ -1581,7 +1627,9 @@ test('active create-request owner tamper fails in candidate and move-window stat
   const exercise = (values, lifecycle) => {
     t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
     const disposition = readJson(values.root, 'migration/source-disposition.json');
-    const repositoryDisposition = readJson(ROOT, 'migration/source-disposition.json');
+    const repositoryDisposition = JSON.parse(git(values.root, [
+      'show', 'HEAD:migration/source-disposition.json'
+    ]).toString());
     const repositoryStateBySource = new Map(repositoryDisposition.skills.map((row) =>
       [row.source_name, row.delivery_state]
     ));
@@ -2978,7 +3026,8 @@ test('source audit rejects staged bytes, disposition, attribution, markers, and 
   const dispositionPath = path.join(values.root, 'migration', 'source-disposition.json');
   const dispositionBytes = fs.readFileSync(dispositionPath);
   const disposition = JSON.parse(dispositionBytes);
-  disposition.skills[0].target_package = 'core';
+  disposition.skills[0].target_package =
+    disposition.skills[0].target_package === 'core' ? 'planning-pack' : 'core';
   writeJson(values.root, 'migration/source-disposition.json', disposition);
   assert.throws(() => auditSource({ root: values.root }), /target_package drift/);
   fs.writeFileSync(dispositionPath, dispositionBytes);
@@ -3064,9 +3113,14 @@ test('source audit rejects staged bytes, disposition, attribution, markers, and 
 
   const invalidRetire = JSON.parse(dispositionBytes);
   const retired = invalidRetire.skills.find((row) => row.source_name === 'statusline-config');
-  retired.target_skill = 'statusline-config';
+  if (retired.disposition === 'retire') {
+    retired.target_skill = 'statusline-config';
+  } else {
+    retired.disposition = 'retire';
+  }
   writeJson(values.root, 'migration/source-disposition.json', invalidRetire);
-  assert.throws(() => auditSource({ root: values.root }), /retired row cannot have a target/);
+  assert.throws(() => auditSource({ root: values.root }),
+    /retired row cannot have a target|formal-plugin disposition cannot derive a retired package/);
   fs.writeFileSync(dispositionPath, dispositionBytes);
 
   const license = path.join(values.root, 'migration', 'staging', 'LICENSE.upstream');
@@ -3077,7 +3131,7 @@ test('source audit rejects staged bytes, disposition, attribution, markers, and 
 
   const agents = path.join(values.root, 'AGENTS.md');
   const agentsBytes = fs.readFileSync(agents, 'utf8');
-  fs.writeFileSync(agents, agentsBytes.replace('sd0x-skill-migration-boundary:v1', 'removed'));
+  fs.writeFileSync(agents, agentsBytes.replace('sd0x-skill-migration-boundary:v2', 'removed'));
   assert.throws(() => auditSource({ root: values.root }), /AGENTS\.md is missing/);
   fs.writeFileSync(agents, agentsBytes);
 
@@ -5309,7 +5363,665 @@ test('core promotion rollback restores the full accepted candidate after partial
   }), /injected cleanup failure/);
   assert.equal(promotionTreeDigest(destination), prior);
   assert.equal(promotionTreeDigest(candidate), accepted);
+  assert.deepEqual(fs.readdirSync(root).filter((name) => name !== '.sd0x').sort(),
+    ['candidate', 'live']);
   assert.equal(process.cwd(), initialCwd);
+});
+
+test('promotion replacement staging leaves exact parent inventories on mid-copy failure', (t) => {
+  for (const targetPackage of ['core', 'quality-pack']) {
+    const root = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-${targetPackage}-replacement-failure-`
+    ));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = targetPackage === 'core'
+      ? path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills')
+      : path.join(root, 'migration', 'packs', 'quality-pack');
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destinationParent, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'A'), 'first\n');
+    fs.writeFileSync(path.join(candidate, 'B'), 'second\n');
+    if (targetPackage === 'core') {
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    }
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    let writes = 0;
+    assert.throws(() => applyPromotionMoves(root, [{
+      target: 'fixture', target_package: targetPackage, action: 'move',
+      candidate, destination,
+      payload_tree_sha256: promotionTreeDigest(candidate)
+    }], {
+      beforeReplacementWrite() {
+        writes += 1;
+        if (writes === 2) throw new Error('injected replacement copy failure');
+      }
+    }), /injected replacement copy failure/);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+  }
+});
+
+test('promotion recovery removes fingerprinted partial replacement staging', (t) => {
+  for (const targetPackage of ['core', 'quality-pack']) {
+    const root = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-${targetPackage}-replacement-crash-`
+    ));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = targetPackage === 'core'
+      ? path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills')
+      : path.join(root, 'migration', 'packs', 'quality-pack');
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destinationParent, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'A'), 'first\n');
+    fs.writeFileSync(path.join(candidate, 'B'), 'second\n');
+    if (targetPackage === 'core') {
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    }
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+    const result = spawnSync(process.execPath, ['-e', [
+      "const {applyPromotionMoves,treeDigest}=require(process.argv[1]);",
+      'const [root,candidate,destination,targetPackage]=process.argv.slice(2);',
+      'let writes=0;',
+      "applyPromotionMoves(root,[{target:'fixture',target_package:targetPackage,",
+      "action:'move',candidate,destination,payload_tree_sha256:treeDigest(candidate)}],",
+      '{beforeReplacementWrite(){writes+=1;if(writes===2)process.exit(86);}});'
+    ].join(''), modulePath, root, candidate, destination, targetPackage]);
+    assert.equal(result.status, 86);
+    const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+      .map((name) => path.join(root, '.sd0x', name))
+      .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+    assert.ok(recovery);
+    const manifest = JSON.parse(fs.readFileSync(
+      path.join(recovery, 'recovery.json'), 'utf8'
+    ));
+    assert.equal(manifest.moves[0].replacement_identity, null);
+    recoverPromotion(root, recovery);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+  }
+});
+
+test('promotion crash recovery contains roots created before managed installation', (t) => {
+  const scenarios = [
+    { targetPackage: 'core', hook: 'afterReplacementStagingRootCreate' },
+    { targetPackage: 'quality-pack', hook: 'afterReplacementStagingRootCreate' },
+    { targetPackage: 'core', hook: 'afterCandidateBackupStagingRootCreate' }
+  ];
+  for (const scenario of scenarios) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-staging-root-crash-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = scenario.targetPackage === 'core'
+      ? path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills')
+      : path.join(root, 'migration', 'packs', 'quality-pack');
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destinationParent, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'A'), 'first\n');
+    fs.writeFileSync(path.join(candidate, 'B'), 'second\n');
+    if (scenario.targetPackage === 'core') {
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    }
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+    const result = spawnSync(process.execPath, ['-e', [
+      "const {applyPromotionMoves,treeDigest}=require(process.argv[1]);",
+      'const [root,candidate,destination,targetPackage,hook]=process.argv.slice(2);',
+      'const options={[hook](){process.exit(86);}};',
+      "applyPromotionMoves(root,[{target:'fixture',target_package:targetPackage,",
+      "action:'move',candidate,destination,payload_tree_sha256:treeDigest(candidate)}],",
+      'options);'
+    ].join(''), modulePath, root, candidate, destination,
+    scenario.targetPackage, scenario.hook]);
+    assert.equal(result.status, 86);
+    const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+      .map((name) => path.join(root, '.sd0x', name))
+      .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+    assert.ok(recovery);
+    recoverPromotion(root, recovery);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+  }
+});
+
+test('managed promotion publication recovers root-create and first-child crashes', (t) => {
+  const scenarios = [
+    {
+      targetPackage: 'core',
+      hook: 'beforeReplacementManagedRootRegister'
+    },
+    {
+      targetPackage: 'quality-pack',
+      hook: 'beforeReplacementManagedRootRegister'
+    },
+    {
+      targetPackage: 'core',
+      hook: 'beforeCandidateBackupManagedRootRegister'
+    },
+    {
+      targetPackage: 'core',
+      hook: 'afterReplacementManagedChildWrite'
+    },
+    {
+      targetPackage: 'quality-pack',
+      hook: 'afterReplacementManagedChildWrite'
+    },
+    {
+      targetPackage: 'core',
+      hook: 'afterCandidateBackupManagedChildWrite'
+    }
+  ];
+  for (const scenario of scenarios) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-managed-crash-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = scenario.targetPackage === 'core'
+      ? path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills')
+      : path.join(root, 'migration', 'packs', 'quality-pack');
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destinationParent, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'A'), 'first\n');
+    fs.writeFileSync(path.join(candidate, 'B'), 'second\n');
+    if (scenario.targetPackage === 'core') {
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    }
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+    const result = spawnSync(process.execPath, ['-e', [
+      "const {applyPromotionMoves,treeDigest}=require(process.argv[1]);",
+      'const [root,candidate,destination,targetPackage,hook]=process.argv.slice(2);',
+      'let called=false;',
+      'const options={[hook](){if(!called){called=true;process.exit(86);}}};',
+      "applyPromotionMoves(root,[{target:'fixture',target_package:targetPackage,",
+      "action:'move',candidate,destination,payload_tree_sha256:treeDigest(candidate)}],",
+      'options);'
+    ].join(''), modulePath, root, candidate, destination,
+    scenario.targetPackage, scenario.hook]);
+    assert.equal(result.status, 86, scenario.hook);
+    const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+      .map((name) => path.join(root, '.sd0x', name))
+      .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+    assert.ok(recovery, scenario.hook);
+    recoverPromotion(root, recovery);
+    assert.deepEqual(
+      fs.readdirSync(candidateParent).sort(),
+      candidateInventory,
+      scenario.hook
+    );
+    assert.deepEqual(
+      fs.readdirSync(destinationParent).sort(),
+      destinationInventory,
+      scenario.hook
+    );
+  }
+});
+
+test('registered promotion staging rejects recovery path swaps for core and pack', (t) => {
+  for (const targetPackage of ['core', 'quality-pack']) {
+    const root = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-${targetPackage}-registered-path-swap-`
+    ));
+    const outside = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-${targetPackage}-registered-path-outside-`
+    ));
+    t.after(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(outside, { recursive: true, force: true });
+    });
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = targetPackage === 'core'
+      ? path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills')
+      : path.join(root, 'migration', 'packs', 'quality-pack');
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destinationParent, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+    if (targetPackage === 'core') {
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    }
+    fs.writeFileSync(path.join(outside, 'KEEP'), 'outside unchanged\n');
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    let recovery;
+    let heldRecovery;
+    assert.throws(() => applyPromotionMoves(root, [{
+      target: 'fixture', target_package: targetPackage, action: 'move',
+      candidate, destination,
+      payload_tree_sha256: promotionTreeDigest(candidate)
+    }], {
+      afterReplacementStagingRegistered(details) {
+        recovery = details.recoveryDirectory;
+        heldRecovery = `${recovery}-held`;
+        fs.renameSync(recovery, heldRecovery);
+        fs.mkdirSync(path.join(outside, details.stagingName));
+        fs.writeFileSync(path.join(
+          outside, details.stagingName, 'SKILL.md'
+        ), '# attacker replacement\n');
+        fs.symlinkSync(outside, recovery);
+      }
+    }), /recovery|Recovery|bound|rollback was incomplete/);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    if (targetPackage === 'core') {
+      assert.equal(fs.readFileSync(path.join(destination, 'SKILL.md'), 'utf8'),
+        '# prior\n');
+    } else {
+      assert.equal(fs.existsSync(destination), false);
+    }
+    assert.equal(fs.readFileSync(path.join(outside, 'KEEP'), 'utf8'),
+      'outside unchanged\n');
+    assert.equal(fs.readFileSync(path.join(
+      outside,
+      fs.readdirSync(outside).find((name) => name.startsWith('.staging-')),
+      'SKILL.md'
+    ), 'utf8'), '# attacker replacement\n');
+    if (fs.existsSync(recovery)) fs.unlinkSync(recovery);
+    fs.renameSync(heldRecovery, recovery);
+    recoverPromotion(root, recovery);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+  }
+});
+
+test('registered promotion staging contains destination parent swaps', (t) => {
+  for (const targetPackage of ['core', 'quality-pack']) {
+    const root = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-${targetPackage}-destination-path-swap-`
+    ));
+    const outside = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-${targetPackage}-destination-path-outside-`
+    ));
+    t.after(() => {
+      fs.rmSync(root, { recursive: true, force: true });
+      fs.rmSync(outside, { recursive: true, force: true });
+    });
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = targetPackage === 'core'
+      ? path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills')
+      : path.join(root, 'migration', 'packs', 'quality-pack');
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destinationParent, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+    if (targetPackage === 'core') {
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    }
+    fs.writeFileSync(path.join(outside, 'KEEP'), 'outside unchanged\n');
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    const heldDestinationParent = `${destinationParent}-held`;
+    assert.throws(() => applyPromotionMoves(root, [{
+      target: 'fixture', target_package: targetPackage, action: 'move',
+      candidate, destination,
+      payload_tree_sha256: promotionTreeDigest(candidate)
+    }], {
+      afterReplacementStagingRegistered() {
+        fs.renameSync(destinationParent, heldDestinationParent);
+        fs.symlinkSync(outside, destinationParent);
+      }
+    }), /bound|rollback was incomplete|identity changed/);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    assert.deepEqual(fs.readdirSync(outside), ['KEEP']);
+    fs.unlinkSync(destinationParent);
+    fs.renameSync(heldDestinationParent, destinationParent);
+    const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+      .map((name) => path.join(root, '.sd0x', name))
+      .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+    assert.ok(recovery);
+    recoverPromotion(root, recovery);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+    assert.deepEqual(fs.readdirSync(outside), ['KEEP']);
+  }
+});
+
+test('registered promotion payloads are revalidated after registration', (t) => {
+  for (const targetPackage of ['core', 'quality-pack']) {
+    const root = fs.mkdtempSync(path.join(
+      os.tmpdir(), `sd0x-${targetPackage}-registered-content-`
+    ));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = targetPackage === 'core'
+      ? path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills')
+      : path.join(root, 'migration', 'packs', 'quality-pack');
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destinationParent, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+    if (targetPackage === 'core') {
+      fs.mkdirSync(destination);
+      fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    }
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    assert.throws(() => applyPromotionMoves(root, [{
+      target: 'fixture', target_package: targetPackage, action: 'move',
+      candidate, destination,
+      payload_tree_sha256: promotionTreeDigest(candidate)
+    }], {
+      afterReplacementStagingRegistered(details) {
+        fs.writeFileSync(path.join(
+          details.destinationParent,
+          details.destinationName,
+          'SKILL.md'
+        ), '# modified after registration\n');
+      }
+    }), /content changed|accepted payload/);
+    assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+    assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+    assert.deepEqual(fs.readdirSync(path.join(root, '.sd0x')), []);
+  }
+});
+
+test('core recovery restores a candidate retired immediately before a crash', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-core-retire-crash-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidateParent = path.join(root, 'migration', 'candidates');
+  const destinationParent = path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills');
+  const candidate = path.join(candidateParent, 'fixture');
+  const destination = path.join(destinationParent, 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(destination, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+  const candidateInventory = fs.readdirSync(candidateParent).sort();
+  const destinationInventory = fs.readdirSync(destinationParent).sort();
+  const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+  const result = spawnSync(process.execPath, ['-e', [
+    "const {applyPromotionMoves,treeDigest}=require(process.argv[1]);",
+    'const [root,candidate,destination]=process.argv.slice(2);',
+    "applyPromotionMoves(root,[{target:'fixture',target_package:'core',action:'move',",
+    'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+    '{afterCoreCandidateRetire(){process.exit(86);}});'
+  ].join(''), modulePath, root, candidate, destination]);
+  assert.equal(result.status, 86);
+  const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+    .map((name) => path.join(root, '.sd0x', name))
+    .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+  assert.ok(recovery);
+  recoverPromotion(root, recovery);
+  assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+  assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+});
+
+test('core recovery fallback is registered and retry-safe after a mid-copy failure', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-core-retry-restore-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidateParent = path.join(root, 'migration', 'candidates');
+  const destinationParent = path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills');
+  const candidate = path.join(candidateParent, 'fixture');
+  const destination = path.join(destinationParent, 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(destination, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'A'), 'first\n');
+  fs.writeFileSync(path.join(candidate, 'B'), 'second\n');
+  fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+  const candidateInventory = fs.readdirSync(candidateParent).sort();
+  const destinationInventory = fs.readdirSync(destinationParent).sort();
+  const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+  const result = spawnSync(process.execPath, ['-e', [
+    "const {applyPromotionMoves,treeDigest}=require(process.argv[1]);",
+    'const [root,candidate,destination]=process.argv.slice(2);',
+    "applyPromotionMoves(root,[{target:'fixture',target_package:'core',action:'move',",
+    'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+    '{afterCoreCandidateRetire(){process.exit(86);}});'
+  ].join(''), modulePath, root, candidate, destination]);
+  assert.equal(result.status, 86);
+  const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+    .map((name) => path.join(root, '.sd0x', name))
+    .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+  assert.ok(recovery);
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(recovery, 'recovery.json'), 'utf8'
+  ));
+  const move = manifest.moves[0];
+  fs.rmSync(path.join(candidateParent, move.candidate_removed), {
+    recursive: true
+  });
+  fs.rmSync(path.join(candidateParent, move.candidate_sibling_backup), {
+    recursive: true
+  });
+  let writes = 0;
+  assert.throws(() => recoverPromotion(root, recovery, {
+    beforeRecoveryCandidateRestoreWrite() {
+      writes += 1;
+      if (writes === 2) throw new Error('injected recovery restore failure');
+    }
+  }), /injected recovery restore failure/);
+  assert.deepEqual(fs.readdirSync(candidateParent).sort(), []);
+  assert.equal(fs.existsSync(recovery), true);
+  assert.throws(() => recoverPromotion(root, recovery, {
+    afterRecoveryCandidateRestore() {
+      throw new Error('injected post-restore recovery failure');
+    }
+  }), /injected post-restore recovery failure/);
+  assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+  assert.equal(fs.existsSync(recovery), true);
+  recoverPromotion(root, recovery);
+  assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+  assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+  assert.equal(fs.existsSync(recovery), false);
+});
+
+test('recovery candidate sibling publication resets stale phase before retry', (t) => {
+  for (const hook of [
+    'beforeRecoveryCandidateRestoreManagedRootRegister',
+    'afterRecoveryCandidateRestoreManagedChildWrite'
+  ]) {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-recovery-phase-'));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const candidateParent = path.join(root, 'migration', 'candidates');
+    const destinationParent = path.join(
+      root, 'plugin', 'sd0x-dev-flow-codex', 'skills'
+    );
+    const candidate = path.join(candidateParent, 'fixture');
+    const destination = path.join(destinationParent, 'fixture');
+    fs.mkdirSync(candidate, { recursive: true });
+    fs.mkdirSync(destination, { recursive: true });
+    fs.writeFileSync(path.join(candidate, 'A'), 'first\n');
+    fs.writeFileSync(path.join(candidate, 'B'), 'second\n');
+    fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+    const candidateInventory = fs.readdirSync(candidateParent).sort();
+    const destinationInventory = fs.readdirSync(destinationParent).sort();
+    const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+    const interruptedPromotion = spawnSync(process.execPath, ['-e', [
+      "const {applyPromotionMoves,treeDigest}=require(process.argv[1]);",
+      'const [root,candidate,destination]=process.argv.slice(2);',
+      "applyPromotionMoves(root,[{target:'fixture',target_package:'core',action:'move',",
+      'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+      '{afterCoreCandidateRetire(){process.exit(86);}});'
+    ].join(''), modulePath, root, candidate, destination]);
+    assert.equal(interruptedPromotion.status, 86, hook);
+    const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+      .map((name) => path.join(root, '.sd0x', name))
+      .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+    assert.ok(recovery, hook);
+    const initialManifest = JSON.parse(fs.readFileSync(
+      path.join(recovery, 'recovery.json'), 'utf8'
+    ));
+    const move = initialManifest.moves[0];
+    assert.equal(move.candidate_sibling_backup_complete, true, hook);
+    fs.rmSync(path.join(candidateParent, move.candidate_removed), {
+      recursive: true
+    });
+    fs.rmSync(path.join(candidateParent, move.candidate_sibling_backup), {
+      recursive: true
+    });
+    const interruptedRecovery = spawnSync(process.execPath, ['-e', [
+      "const {recoverPromotion}=require(process.argv[1]);",
+      'const [root,recovery,hook]=process.argv.slice(2);',
+      'let called=false;',
+      'recoverPromotion(root,recovery,{[hook](){if(!called){called=true;process.exit(86);}}});'
+    ].join(''), modulePath, root, recovery, hook]);
+    assert.equal(interruptedRecovery.status, 86, hook);
+    const interruptedManifest = JSON.parse(fs.readFileSync(
+      path.join(recovery, 'recovery.json'), 'utf8'
+    ));
+    assert.equal(
+      interruptedManifest.moves[0].candidate_sibling_backup_complete,
+      false,
+      hook
+    );
+    recoverPromotion(root, recovery);
+    assert.deepEqual(
+      fs.readdirSync(candidateParent).sort(),
+      candidateInventory,
+      hook
+    );
+    assert.deepEqual(
+      fs.readdirSync(destinationParent).sort(),
+      destinationInventory,
+      hook
+    );
+  }
+});
+
+test('core recovery rejects a modified registered sibling before mutation', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-core-sibling-content-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidateParent = path.join(root, 'migration', 'candidates');
+  const destinationParent = path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills');
+  const candidate = path.join(candidateParent, 'fixture');
+  const destination = path.join(destinationParent, 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(destination, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  fs.writeFileSync(path.join(destination, 'SKILL.md'), '# prior\n');
+  const candidateInventory = fs.readdirSync(candidateParent).sort();
+  const destinationInventory = fs.readdirSync(destinationParent).sort();
+  const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+  const result = spawnSync(process.execPath, ['-e', [
+    "const {applyPromotionMoves,treeDigest}=require(process.argv[1]);",
+    'const [root,candidate,destination]=process.argv.slice(2);',
+    "applyPromotionMoves(root,[{target:'fixture',target_package:'core',action:'move',",
+    'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+    '{afterCoreCandidateRetire(){process.exit(86);}});'
+  ].join(''), modulePath, root, candidate, destination]);
+  assert.equal(result.status, 86);
+  const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+    .map((name) => path.join(root, '.sd0x', name))
+    .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+  assert.ok(recovery);
+  const manifest = JSON.parse(fs.readFileSync(
+    path.join(recovery, 'recovery.json'), 'utf8'
+  ));
+  const move = manifest.moves[0];
+  fs.rmSync(path.join(candidateParent, move.candidate_removed), {
+    recursive: true
+  });
+  const siblingSkill = path.join(
+    candidateParent, move.candidate_sibling_backup, 'SKILL.md'
+  );
+  const accepted = fs.readFileSync(siblingSkill);
+  fs.writeFileSync(siblingSkill, '# modified registered sibling\n');
+  assert.throws(() => recoverPromotion(root, recovery),
+    /content differs from the accepted payload/);
+  assert.equal(fs.existsSync(candidate), false);
+  fs.writeFileSync(siblingSkill, accepted);
+  recoverPromotion(root, recovery);
+  assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+  assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+});
+
+test('pack post-install failure rolls back without retaining recovery', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-pack-install-failure-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidateParent = path.join(root, 'migration', 'candidates');
+  const destinationParent = path.join(root, 'migration', 'packs', 'quality-pack');
+  const candidate = path.join(candidateParent, 'fixture');
+  const destination = path.join(destinationParent, 'fixture');
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(destinationParent, { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  const candidateInventory = fs.readdirSync(candidateParent).sort();
+  const destinationInventory = fs.readdirSync(destinationParent).sort();
+  assert.throws(() => applyPromotionMoves(root, [{
+    target: 'fixture', target_package: 'quality-pack', action: 'move',
+    candidate, destination,
+    payload_tree_sha256: promotionTreeDigest(candidate)
+  }], {
+    afterPackInstall() {
+      throw new Error('injected post-install failure');
+    }
+  }), /injected post-install failure/);
+  assert.deepEqual(fs.readdirSync(candidateParent).sort(), candidateInventory);
+  assert.deepEqual(fs.readdirSync(destinationParent).sort(), destinationInventory);
+  assert.deepEqual(fs.readdirSync(path.join(root, '.sd0x')), []);
+});
+
+test('multi-core promotion rollback restores exact managed parent inventories', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-multi-core-rollback-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidateParent = path.join(root, 'migration', 'candidates');
+  const destinationParent = path.join(
+    root, 'plugin', 'sd0x-dev-flow-codex', 'skills'
+  );
+  fs.mkdirSync(candidateParent, { recursive: true });
+  fs.mkdirSync(destinationParent, { recursive: true });
+  const expected = new Map();
+  const moves = ['alpha', 'beta'].map((target) => {
+    const candidate = path.join(candidateParent, target);
+    const destination = path.join(destinationParent, target);
+    fs.mkdirSync(candidate);
+    fs.mkdirSync(destination);
+    fs.writeFileSync(path.join(candidate, 'SKILL.md'), `# accepted ${target}\n`);
+    fs.writeFileSync(path.join(destination, 'SKILL.md'), `# prior ${target}\n`);
+    expected.set(target, {
+      candidate: promotionTreeDigest(candidate),
+      destination: promotionTreeDigest(destination)
+    });
+    return {
+      target,
+      target_package: 'core',
+      payload_tree_sha256: expected.get(target).candidate,
+      action: 'move',
+      candidate,
+      destination
+    };
+  });
+  let removals = 0;
+  assert.throws(() => applyPromotionMoves(root, moves, {
+    removeCoreCandidate(directory) {
+      removals += 1;
+      if (removals === 1) {
+        fs.rmSync(directory, { recursive: true });
+        return;
+      }
+      fs.rmSync(path.join(directory, 'SKILL.md'));
+      throw new Error('injected second candidate cleanup failure');
+    }
+  }), /injected second candidate cleanup failure/);
+  assert.deepEqual(fs.readdirSync(candidateParent).sort(), ['alpha', 'beta']);
+  assert.deepEqual(fs.readdirSync(destinationParent).sort(), ['alpha', 'beta']);
+  for (const move of moves) {
+    assert.equal(promotionTreeDigest(move.candidate),
+      expected.get(move.target).candidate);
+    assert.equal(promotionTreeDigest(move.destination),
+      expected.get(move.target).destination);
+  }
 });
 
 test('core promotion rejects a live-file symlink swap without external writes', (t) => {
@@ -5676,10 +6388,48 @@ test('preserved resource copies reject same-size edits and directory swaps', (t)
     'external\n');
 });
 
+test('detached preserved resources recreate nested files through bound parents', (t) => {
+  const recoveryRoot = path.resolve(__dirname, '..', '.sd0x');
+  fs.mkdirSync(recoveryRoot, { recursive: true });
+  const root = fs.mkdtempSync(path.join(recoveryRoot, 'preserved-detached-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const liveRoot = path.join(root, 'live');
+  const candidate = path.join(root, 'candidate');
+  fs.mkdirSync(path.join(liveRoot, 'scripts', 'nested'), { recursive: true });
+  fs.mkdirSync(candidate);
+  fs.writeFileSync(path.join(liveRoot, 'SKILL.md'), '# preserved body\n');
+  fs.writeFileSync(path.join(liveRoot, 'migration-contract.json'), '{}\n');
+  fs.writeFileSync(path.join(liveRoot, 'scripts', 'nested', 'run.js'),
+    'module.exports = true;\n', { mode: 0o744 });
+  const target = {
+    target: 'fixture',
+    preserve_live_body: true,
+    preserve_live_resources: true,
+    preserve_source_root: liveRoot,
+    detach_preserved_resources: true
+  };
+  const preserved = capturePreservedLive(target);
+  fs.rmSync(liveRoot, { recursive: true });
+  const candidateDirectory = openBoundDirectory(candidate);
+  try {
+    copyPreservedLiveFiles(target, candidateDirectory, preserved);
+  } finally {
+    candidateDirectory.close();
+  }
+  const copied = path.join(candidate, 'scripts', 'nested', 'run.js');
+  assert.equal(fs.readFileSync(copied, 'utf8'), 'module.exports = true;\n');
+  assert.equal(fs.statSync(copied).mode & 0o777, 0o744);
+  assert.equal(fs.existsSync(path.join(candidate, 'SKILL.md')), false);
+  assert.equal(fs.existsSync(path.join(candidate, 'migration-contract.json')), false);
+});
+
 test('contained atomic writes bind temporary and final-boundary identities', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-contained-cas-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const existing = path.join(root, 'existing.md');
+  fs.writeFileSync(existing, 'ORIGINAL\n');
+  atomicWriteContainedFile(root, existing, 'REPLACED\n');
+  assert.equal(fs.readFileSync(existing, 'utf8'), 'REPLACED\n');
   fs.writeFileSync(existing, 'ORIGINAL\n');
   assert.throws(() => atomicWriteContainedFile(root, existing, 'REPLACED\n', {
     beforeCommit({ temporary }) {
@@ -5710,6 +6460,124 @@ test('contained atomic writes bind temporary and final-boundary identities', (t)
     }
   }), /appeared during atomic installation/);
   assert.equal(fs.readFileSync(missing, 'utf8'), 'CREATED!\n');
+});
+
+test('core promotion installs a new canonical target and rolls back before install', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-new-core-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidates = path.join(root, 'migration', 'candidates');
+  const live = path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills');
+  fs.mkdirSync(candidates, { recursive: true });
+  fs.mkdirSync(live, { recursive: true });
+
+  const candidate = path.join(candidates, 'fixture');
+  const destination = path.join(live, 'fixture');
+  fs.mkdirSync(candidate);
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  const accepted = promotionTreeDigest(candidate);
+  assert.throws(() => applyPromotionMoves(root, [{
+    target: 'fixture', target_package: 'core', action: 'move',
+    candidate, destination, payload_tree_sha256: accepted
+  }], {
+    beforeInstall() {
+      throw new Error('stop before new core install');
+    }
+  }), /stop before new core install/);
+  assert.equal(fs.existsSync(destination), false);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+  assert.deepEqual(fs.readdirSync(candidates), ['fixture']);
+  assert.deepEqual(fs.readdirSync(live), []);
+
+  assert.throws(() => applyPromotionMoves(root, [{
+    target: 'fixture', target_package: 'core', action: 'move',
+    candidate, destination, payload_tree_sha256: accepted
+  }], {
+    removeCoreCandidate(directory) {
+      fs.rmSync(path.join(directory, 'SKILL.md'));
+      throw new Error('stop during new core cleanup');
+    }
+  }), /stop during new core cleanup/);
+  assert.equal(fs.existsSync(destination), false);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+  assert.deepEqual(fs.readdirSync(candidates), ['fixture']);
+  assert.deepEqual(fs.readdirSync(live), []);
+
+  applyPromotionMoves(root, [{
+    target: 'fixture', target_package: 'core', action: 'move',
+    candidate, destination, payload_tree_sha256: accepted
+  }]);
+  assert.equal(fs.existsSync(candidate), false);
+  assert.equal(promotionTreeDigest(destination), accepted);
+});
+
+test('new core promotion crash recovery restores an absent destination', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-new-core-recovery-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidate = path.join(root, 'migration', 'candidates', 'fixture');
+  const destination = path.join(
+    root, 'plugin', 'sd0x-dev-flow-codex', 'skills', 'fixture'
+  );
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  const accepted = promotionTreeDigest(candidate);
+  const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+  const result = spawnSync(process.execPath, ['-e', [
+    "const { applyPromotionMoves, treeDigest } = require(process.argv[1]);",
+    'const [root, candidate, destination] = process.argv.slice(2);',
+    "applyPromotionMoves(root, [{target:'fixture',target_package:'core',action:'move',",
+    'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+    '{removeCoreCandidate(){process.exit(86);}});'
+  ].join(''), modulePath, root, candidate, destination]);
+  assert.equal(result.status, 86);
+  const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+    .map((name) => path.join(root, '.sd0x', name))
+    .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+  assert.ok(recovery);
+  recoverPromotion(root, recovery);
+  assert.equal(fs.existsSync(destination), false);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+});
+
+test('new core promotion recovery resumes after retaining the installed payload', (t) => {
+  const root = fs.mkdtempSync(path.join(
+    os.tmpdir(), 'sd0x-new-core-recovery-retry-'
+  ));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const candidate = path.join(root, 'migration', 'candidates', 'fixture');
+  const destination = path.join(
+    root, 'plugin', 'sd0x-dev-flow-codex', 'skills', 'fixture'
+  );
+  fs.mkdirSync(candidate, { recursive: true });
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.writeFileSync(path.join(candidate, 'SKILL.md'), '# accepted\n');
+  const accepted = promotionTreeDigest(candidate);
+  const modulePath = path.join(__dirname, '..', 'scripts', 'promote-skill-wave.js');
+  const result = spawnSync(process.execPath, ['-e', [
+    "const { applyPromotionMoves, treeDigest } = require(process.argv[1]);",
+    'const [root, candidate, destination] = process.argv.slice(2);',
+    "applyPromotionMoves(root, [{target:'fixture',target_package:'core',action:'move',",
+    'candidate,destination,payload_tree_sha256:treeDigest(candidate)}],',
+    '{removeCoreCandidate(){process.exit(86);}});'
+  ].join(''), modulePath, root, candidate, destination]);
+  assert.equal(result.status, 86);
+  const recovery = fs.readdirSync(path.join(root, '.sd0x'))
+    .map((name) => path.join(root, '.sd0x', name))
+    .find((entry) => fs.existsSync(path.join(entry, 'recovery.json')));
+  assert.ok(recovery);
+
+  const retained = path.join(
+    path.dirname(destination), 'fixture-recovery-installed'
+  );
+  fs.renameSync(destination, retained);
+  assert.equal(promotionTreeDigest(retained), accepted);
+  assert.equal(fs.existsSync(destination), false);
+
+  recoverPromotion(root, recovery);
+  assert.equal(fs.existsSync(destination), false);
+  assert.equal(fs.existsSync(retained), false);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+  assert.equal(fs.existsSync(recovery), false);
 });
 
 test('bound tree removal quarantines a same-name replacement', (t) => {
@@ -6595,6 +7463,49 @@ test('core restaging supports maximum-length accepted payload names', (t) => {
   assert.equal(fs.readFileSync(path.join(
     candidate, longDirectory, 'child'
   ), 'utf8'), 'long directory\n');
+});
+
+test('core restaging restores an untracked accepted target to absent HEAD state', (t) => {
+  const values = restageFixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const target = 'untracked-core';
+  const live = path.join(
+    values.root, 'plugin', 'sd0x-dev-flow-codex', 'skills', target
+  );
+  fs.mkdirSync(path.join(live, 'references'), { recursive: true });
+  fs.writeFileSync(path.join(live, 'SKILL.md'), '# accepted untracked\n');
+  fs.writeFileSync(path.join(live, 'references', 'guide.md'), '# guide\n');
+  const accepted = promotionTreeDigest(live);
+
+  const result = restageCoreCandidate(values.root, target);
+  const candidate = path.join(values.root, 'migration', 'candidates', target);
+  assert.equal(result.ok, true);
+  assert.equal(result.restored_live, null);
+  assert.equal(result.restored_live_absent, true);
+  assert.equal(fs.existsSync(live), false);
+  assert.equal(promotionTreeDigest(candidate), accepted);
+});
+
+test('untracked core restaging rolls accepted bytes back after a failed removal', (t) => {
+  const values = restageFixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const target = 'untracked-core';
+  const live = path.join(
+    values.root, 'plugin', 'sd0x-dev-flow-codex', 'skills', target
+  );
+  fs.mkdirSync(live, { recursive: true });
+  fs.writeFileSync(path.join(live, 'SKILL.md'), '# accepted untracked\n');
+  const accepted = fs.readFileSync(path.join(live, 'SKILL.md'));
+
+  assert.throws(() => restageCoreCandidate(values.root, target, {
+    afterLiveRemoval() {
+      throw new Error('untracked removal cut');
+    }
+  }), /untracked removal cut/);
+  assert.deepEqual(fs.readFileSync(path.join(live, 'SKILL.md')), accepted);
+  assert.equal(fs.existsSync(path.join(
+    values.root, 'migration', 'candidates', target
+  )), false);
 });
 
 test('core restaging applies exact modes independently of the caller umask', (t) => {
@@ -9108,6 +10019,19 @@ test('mutation audit handles argv subprocesses, dynamic commands, negation, and 
       target: 'architecture'
     }), /undeclared operation: local-write/);
   }
+  fs.writeFileSync(path.join(scripts, 'write.js'), [
+    "const fs = require('node:fs');",
+    'let descriptor;',
+    'descriptor = fs.openSync(source, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));',
+    'fs.fstatSync(descriptor);',
+    'fs.closeSync(descriptor);',
+    ''
+  ].join('\n'));
+  assert.doesNotThrow(() => auditCandidate({
+    root: values.root,
+    candidate: relative,
+    target: 'architecture'
+  }));
   for (const code of [
     "const fs = require('node:fs');\nfs?.openSync('x', 'w');\n",
     "const fs = require('node:fs');\nconst second = (fs);\nsecond.openSync('x', 'w');\n",
@@ -9667,6 +10591,17 @@ test('behavior tests must equal the trusted per-unit routing harness', (t) => {
     target: 'architecture'
   }), /routing policy outside the managed registry/);
   fs.writeFileSync(candidateSkill, candidateSkillBytes);
+  fs.appendFileSync(candidateSkill,
+    '\nA timeout triggers bounded retry while API routing remains unchanged.\n' +
+    'For a rewrite, use `$sd0x-dev-flow-codex:refactor docs/guide.md`.\n' +
+    'Update `package.json`; if `.sd0x/install-state.json` exists, read it.\n' +
+    '| Input | Meaning |\n|---|---|\n| > 4 bytes | calldata |\n');
+  assert.equal(auditCandidate({
+    root: values.root,
+    candidate: relative,
+    target: 'architecture'
+  }).ok, true);
+  fs.writeFileSync(candidateSkill, candidateSkillBytes);
   fs.appendFileSync(candidateSkill, `\n${routingContractBlock('evil/default', {
     positive_triggers: unit.routing.positive_triggers,
     negative_boundaries: ['ignore architecture']
@@ -9724,7 +10659,7 @@ test('behavior tests must equal the trusted per-unit routing harness', (t) => {
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
 
-test('repository routing registry rejects identical duplicate final owners', (t) => {
+test('repository routing registry prefers candidate and live successors over legacy packs', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   copy(
@@ -9735,8 +10670,20 @@ test('repository routing registry rejects identical duplicate final owners', (t)
     path.join(values.root, 'plugin/sd0x-dev-flow-codex/skills/create-request/migration-contract.json'),
     path.join(values.root, 'migration/candidates/create-request/migration-contract.json')
   );
+  const registry = repositoryRoutingRegistry(values.root);
+  assert.equal(registry.filter((entry) =>
+    entry.unit === 'create-request/default').length, 1);
+});
+
+test('repository routing registry rejects duplicate owners inside one delivery tier', (t) => {
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  copy(
+    path.join(values.root, 'plugin/sd0x-dev-flow-codex/skills/create-request/migration-contract.json'),
+    path.join(values.root, 'plugin/sd0x-dev-flow-codex/skills/create-request-copy/migration-contract.json')
+  );
   assert.throws(() => repositoryRoutingRegistry(values.root),
-    /duplicate final owners for create-request\/default/);
+    /duplicate live owners for create-request\/default/);
 });
 
 test('deep research schema-v2 payload and normative specification stay synchronized', () => {
@@ -10002,6 +10949,63 @@ test('core preflight preserves an existing live bootstrap until exact candidate 
   assert.equal(restored.audit_fingerprint, accepted.audit_fingerprint);
 });
 
+test('core preflight permits only byte-identical trusted live resource updates', (t) => {
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-live-resource-'));
+  const root = path.join(workspace, 'repo');
+  t.after(() => fs.rmSync(workspace, { recursive: true, force: true }));
+  fs.mkdirSync(root, { recursive: true });
+  initRepository(root);
+  const liveRoot = path.join(
+    root, 'plugin', 'sd0x-dev-flow-codex', 'skills', 'setup'
+  );
+  fs.mkdirSync(path.join(liveRoot, 'scripts'), { recursive: true });
+  fs.writeFileSync(path.join(liveRoot, 'SKILL.md'), '# Setup\n');
+  fs.writeFileSync(path.join(liveRoot, 'scripts', 'setup.js'), 'old runtime\n');
+  git(root, ['add', 'plugin/sd0x-dev-flow-codex/skills/setup']);
+  commit(root, 'establish setup live payload');
+
+  const candidateBytes = Buffer.from('new runtime\n');
+  fs.writeFileSync(path.join(liveRoot, 'scripts', 'setup.js'), candidateBytes);
+  const tree = {
+    bytes: new Map([['scripts/setup.js', candidateBytes]])
+  };
+  const trusted = new Set(['scripts/setup.js']);
+  const accepted = assertExistingLiveTargetUnmodified(
+    root, 'setup', tree, trusted
+  );
+  assert.deepEqual([...accepted.keys()], [
+    'plugin/sd0x-dev-flow-codex/skills/setup/scripts/setup.js'
+  ]);
+  const liveTree = candidateTree(
+    root, 'plugin/sd0x-dev-flow-codex/skills/setup'
+  );
+  assert.equal(trustedCoreResourceFiles(root, liveTree, 'setup')
+    .has('scripts/setup.js'), false);
+  assert.equal(trustedCoreResourceFiles(root, liveTree, 'setup', {
+    allowMoveWindowRuntime: true
+  }).has('scripts/setup.js'), true);
+  const unregisteredTree = {
+    relative: 'plugin/sd0x-dev-flow-codex/skills/setup',
+    files: ['scripts/unregistered.js'],
+    bytes: new Map([['scripts/unregistered.js', Buffer.from('unregistered\n')]])
+  };
+  assert.equal(trustedCoreResourceFiles(root, unregisteredTree, 'setup', {
+    allowMoveWindowRuntime: true
+  }).size, 0);
+
+  fs.appendFileSync(path.join(liveRoot, 'SKILL.md'), 'changed instructions\n');
+  assert.throws(() => assertExistingLiveTargetUnmodified(
+    root, 'setup', tree, trusted
+  ), /existing live target to remain unchanged/);
+  git(root, ['restore', '--',
+    'plugin/sd0x-dev-flow-codex/skills/setup/SKILL.md']);
+
+  fs.writeFileSync(path.join(liveRoot, 'scripts', 'setup.js'), 'different runtime\n');
+  assert.throws(() => assertExistingLiveTargetUnmodified(
+    root, 'setup', tree, trusted
+  ), /must exactly match candidate bytes/);
+});
+
 test('candidate scripts allow only direct require.main entrypoint reads', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
@@ -10249,20 +11253,21 @@ test('clean Git subprocess environment is canonical and cannot be shadowed', (t)
   }), /unsupported Git environment configuration/);
 });
 
-test('distribution audit rejects a non-core target in the core plugin', (t) => {
+test('distribution audit rejects a target outside the formal plugin catalog', (t) => {
   const values = fixtureRoot();
   t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
   const directory = path.join(values.root,
-    'plugin', 'sd0x-dev-flow-codex', 'skills', 'architecture');
+    'plugin', 'sd0x-dev-flow-codex', 'skills', 'unapproved-target');
   fs.mkdirSync(directory);
   fs.writeFileSync(path.join(directory, 'SKILL.md'), [
     '---',
-    'name: architecture',
-    'description: Invalid non-core live target.',
+    'name: unapproved-target',
+    'description: Invalid unapproved live target.',
     '---',
     ''
   ].join('\n'));
-  assert.throws(() => auditSource({ root: values.root }), /non-core target is present in core plugin/);
+  assert.throws(() => auditSource({ root: values.root }),
+    /live core skill is outside the approved target catalog/);
 });
 
 test('pack-final audit binds moved bytes, gates, and pack-ready lifecycle', (t) => {
@@ -10606,7 +11611,7 @@ test('source and candidate transactions bind clean HEAD and post-source changes'
     beforeSourceSnapshotRevalidation() {
       const agentsPath = path.join(sourceValues.root, 'AGENTS.md');
       fs.writeFileSync(agentsPath, fs.readFileSync(agentsPath, 'utf8')
-        .replace('sd0x-skill-migration-boundary:v1', 'removed-boundary'));
+        .replace('sd0x-skill-migration-boundary:v2', 'removed-boundary'));
       git(sourceValues.root, ['add', 'AGENTS.md']);
       commit(sourceValues.root, 'concurrent source change');
     }
@@ -10835,14 +11840,6 @@ test('active candidate audit binds non-routing payload bytes to request evidence
       candidate
     );
   }
-  fs.copyFileSync(
-    path.join(ROOT, 'migration', 'source-disposition.json'),
-    path.join(values.root, 'migration', 'source-disposition.json')
-  );
-  copy(
-    path.join(ROOT, 'docs', 'features', 'skill-toolkit-migration'),
-    path.join(values.root, 'docs', 'features', 'skill-toolkit-migration')
-  );
   const fixtureDisposition = JSON.parse(fs.readFileSync(
     path.join(values.root, 'migration', 'source-disposition.json'), 'utf8'
   ));
@@ -10890,19 +11887,27 @@ test('active candidate audit binds non-routing payload bytes to request evidence
   }
   writeJson(values.root, 'migration/source-disposition.json',
     fixtureDisposition);
-  for (const target of [
-    'bug-fix', 'debug', 'feature-dev', 'post-dev-test',
-    'refactor', 'simplify', 'test-deep', 'test-gen'
-  ]) {
-    fs.copyFileSync(
-      path.join(ROOT, 'test', `${target}-default-routing.test.js`),
-      path.join(values.root, 'test', `${target}-default-routing.test.js`)
-    );
-  }
   fs.copyFileSync(
     path.join(ROOT, 'test', 'debug-probe-policy.test.js'),
     path.join(values.root, 'test', 'debug-probe-policy.test.js')
   );
+  const debugFixtureRow = fixtureDisposition.skills.find((row) =>
+    row.promotion_unit_id === 'debug/default'
+  );
+  assert.ok(debugFixtureRow?.promotion_request,
+    'debug fixture promotion request is missing');
+  const debugFixtureRequest = path.join(values.root, debugFixtureRow.promotion_request);
+  const debugFixtureAudit = auditCandidate({
+    root: values.root,
+    candidate: 'migration/candidates/debug',
+    target: 'debug'
+  });
+  const debugFixtureMarkdown = fs.readFileSync(debugFixtureRequest, 'utf8');
+  assert.match(debugFixtureMarkdown, /Preflight `[0-9a-f]{64}`/);
+  fs.writeFileSync(debugFixtureRequest, debugFixtureMarkdown.replace(
+    /Preflight `[0-9a-f]{64}`/,
+    `Preflight \`${debugFixtureAudit.audit_fingerprint}\``
+  ));
 
   const baseline = auditActiveCandidates({ root: values.root });
   assert.equal(baseline.ok, true);
@@ -10921,7 +11926,7 @@ test('active candidate audit binds non-routing payload bytes to request evidence
 
   const debugRequest = path.join(values.root, 'docs', 'features',
     'skill-toolkit-migration', 'requests', '2026-07-15-wave3-debug-pack-ready.md');
-  const originalRequest = fs.readFileSync(debugRequest, 'utf8');
+  let originalRequest = fs.readFileSync(debugRequest, 'utf8');
   const debugBaseline = baseline.units.find((unit) =>
     unit.promotion_unit_id === 'debug/default');
   const validateDebugRequest = (request) => validateCandidateRequestEvidence(
@@ -11076,6 +12081,19 @@ test('active candidate audit binds non-routing payload bytes to request evidence
   );
   fs.mkdirSync(path.dirname(packTarget), { recursive: true });
   fs.renameSync(packCandidate, packTarget);
+  fs.writeFileSync(debugRequest, originalRequest.replace(
+    / Final pack audit `[0-9a-f]{64}` passed\./,
+    ''
+  ));
+  const debugMoveWindowAudit = auditActiveCandidates({ root: values.root })
+    .units.find((unit) => unit.promotion_unit_id === 'debug/default');
+  assert.ok(debugMoveWindowAudit?.audit_fingerprint,
+    'debug move-window audit identity is missing');
+  originalRequest = originalRequest.replace(
+    /Final pack audit `[0-9a-f]{64}`/,
+    `Final pack audit \`${debugMoveWindowAudit.audit_fingerprint}\``
+  );
+  fs.writeFileSync(debugRequest, originalRequest);
   const moveWindows = auditActiveCandidates({ root: values.root });
   assert.equal(moveWindows.units.find((unit) =>
     unit.promotion_unit_id === 'bug-fix/default').lifecycle, 'move-window');

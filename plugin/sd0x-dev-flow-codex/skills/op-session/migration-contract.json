@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "op-session",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "op-session/default",
+      "target_mode": null,
+      "source_names": [
+        "op-session"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run op-session; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical op-session workflow and report its evidence.",
+          "Help me run the op-session workflow for this repository.",
+          "I need the canonical op-session procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/op-session-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/op-session-default-workflow.test.js"
+      ]
+    }
+  ]
+}

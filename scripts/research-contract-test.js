@@ -102,10 +102,13 @@ function skillPath(root, spec) {
   const candidate = containedRegularFile(root,
     `migration/candidates/${spec.target}/SKILL.md`);
   if (candidate) return candidate;
+  const livePlugin = containedRegularFile(root,
+    `plugin/sd0x-dev-flow-codex/skills/${spec.target}/SKILL.md`);
+  if (livePlugin) return livePlugin;
   const finalPayload = containedRegularFile(root,
     `migration/packs/${spec.targetPackage}/${spec.target}/SKILL.md`);
   assert.ok(finalPayload,
-    `semantic test requires a candidate or pack SKILL.md for ${spec.target}`);
+    `semantic test requires a candidate, live plugin, or pack SKILL.md for ${spec.target}`);
   return finalPayload;
 }
 
