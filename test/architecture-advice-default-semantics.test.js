@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "architecture-advice",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "architecture-advice/default",
   "required": [
     "Challenge the preferred option with the strongest counterexample",

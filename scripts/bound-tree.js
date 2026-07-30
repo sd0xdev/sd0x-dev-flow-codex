@@ -303,10 +303,14 @@ function assertBoundTree(bound, name, expected, options = {}) {
   return observed;
 }
 
-function writeChildren(bound, children, label) {
+function writeChildren(bound, children, label, options = {}, relative = '') {
   for (const node of children) {
+    const nodeRelative = relative ? `${relative}/${node.name}` : node.name;
     if (node.kind === 'file') {
       writeBoundFile(bound, node, label);
+      if (typeof options.afterChildWrite === 'function') {
+        options.afterChildWrite({ kind: node.kind, relative: nodeRelative });
+      }
       continue;
     }
     const created = createBoundDirectory(
@@ -320,7 +324,13 @@ function writeChildren(bound, children, label) {
       nested = openBoundDirectory(created.path, {
         identity: created.identity
       });
-      writeChildren(nested, node.children, `${label}/${node.name}`);
+      writeChildren(
+        nested,
+        node.children,
+        `${label}/${node.name}`,
+        options,
+        nodeRelative
+      );
       finishBoundDirectory(
         bound,
         node.name,
@@ -328,6 +338,9 @@ function writeChildren(bound, children, label) {
         node.mode,
         `${label}/${node.name}`
       );
+      if (typeof options.afterChildWrite === 'function') {
+        options.afterChildWrite({ kind: node.kind, relative: nodeRelative });
+      }
     } finally {
       if (nested) nested.close();
       fs.closeSync(created.descriptor);
@@ -348,7 +361,7 @@ function writeBoundTree(bound, name, tree, options = {}) {
     destination = openBoundDirectory(created.path, {
       identity: created.identity
     });
-    writeChildren(destination, tree.children, options.label || name);
+    writeChildren(destination, tree.children, options.label || name, options);
     finishBoundDirectory(
       bound,
       name,

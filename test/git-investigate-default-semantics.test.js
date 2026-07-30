@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "git-investigate",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "git-investigate/default",
   "required": [
     "Correlation with a commit is not proof of causation",

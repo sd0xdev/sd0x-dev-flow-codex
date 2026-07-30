@@ -1,10 +1,10 @@
 # sd0x Dev Flow Codex 專案遷移與續作指南
 
-<!-- sd0x-skill-migration-boundary:v1 core=bug-fix,create-request,doctor,feature-dev,remind,req-analyze,review,setup,tech-spec,test-review,verify non-core=migration/packs staging=migration/staging candidates=migration/candidates -->
+<!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->
 
 > 最後校準日期：2026-07-25
 > 來源版本：Claude plugin `sd0x-dev-flow` `3.0.12`  
-> Codex 版本：`sd0x-dev-flow-codex` `0.3.4`
+> Codex 版本：`sd0x-dev-flow-codex` `0.4.0`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -84,7 +84,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 
 ### 非目標
 
-- 不把 Claude 版約 100 個 skills bulk-copy 進 curated core；正式遷移以精簡 core、repository-only pack handoff 或有證據的 retirement 逐 unit 關閉。
+- 不把 Claude 版約 100 個 skills 原樣 bulk-copy；正式遷移逐 unit 轉成 Codex-native contract，再收斂到唯一 distributable plugin。
 - 不保留 Claude-only 的 `allowed-tools`、`Task`、`AskUserQuestion` 或 `.claude/` 假設。
 - 不使用 nested Codex MCP 來模擬 Claude 的 agent nesting。
 - 不把 hooks 宣稱為 OS security boundary。
@@ -100,26 +100,26 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 - 15 個 agent files。
 - 10 個 top-level hook files。
 
-Codex core 目前刻意只包含：
+正式 Codex plugin 目前包含：
 
-- 12 個 skills：`setup`、`review`、`verify`、`test-review`、`feature-dev`、`bug-fix`、`create-request`、`req-analyze`、`remind`、`reset`、`doctor`、`tech-spec`。
+- 86 個 skills：`architecture`、`architecture-advice`、`ask`、`best-practices`、`brainstorm`、`bug-fix`、`bump-version`、`check-coverage`、`code-explore`、`code-investigate`、`contract-decode`、`create-pr`、`create-request`、`de-ai-flavor`、`debug`、`deep-explore`、`deep-research`、`dep-audit`、`dev-security-audit`、`doc-refactor`、`doc-review`、`doctor`、`epic-merge`、`explain`、`feasibility-study`、`feature-dev`、`feature-verify`、`fp-brief`、`generate-runner`、`git-investigate`、`git-profile`、`issue-analyze`、`jira`、`load-pr-review`、`merge-prep`、`necessity-audit`、`next-step`、`obsidian-cli`、`op-session`、`orchestrate`、`plan-review`、`portfolio`、`post-dev-recap`、`post-dev-test`、`pr-comment`、`pr-review`、`pr-summary`、`pre-pr-audit`、`project-audit`、`project-brief`、`push-ci`、`readme-i18n-sync`、`recap-ask`、`recap-doc`、`refactor`、`remind`、`repo-intake`、`req-analyze`、`request-tracking`、`reset`、`review`、`review-spec`、`risk-assess`、`runbook`、`safe-remove`、`security-review`、`seek-verdict`、`setup`、`sharingan`、`simplify`、`skill-health-check`、`smart-commit`、`smart-rebase`、`statusline-config`、`tech-brief`、`tech-spec`、`test-deep`、`test-gen`、`test-health`、`test-review`、`ui-first-principles`、`update-docs`、`update-readme`、`verify`、`watch-ci`、`zh-tw`。
 - 1 個 bundled MCP server：`sd0x_claude_review`。所有 provider 都使用其 provider-independent、allowlisted `run_skill_script` runtime entrypoint；Claude provider 才額外透過本機 Claude CLI 使用唯讀 `review_worktree` primary 視角。
 - 2 個 project-scoped reviewer profiles：Codex primary 與 Claude wrapper；每個 project 只啟用 configured primary。
 - Session、prompt、edit、subagent 與 Stop lifecycle hooks。
 - Fingerprint state machine、deterministic verification、project setup、doctor 與 dev-link tooling。
 
-這是 curated core，不是遷移未完成的暫時缺漏。新增能力必須符合第 13 節的選擇準則。
+85 個 canonical migration targets 全數位於 distributable payload；`reset` 是額外的 runtime recovery skill。新增能力仍必須符合第 13 節的選擇準則。
 
 Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。Current delivery checkpoint：
 
-- Registry checkpoint：45/95 canonical units delivered；50 pending；Wave 1 10/10、Wave 2 12/12、Wave 3 8/8、Wave 4 15/15 delivered；`create-request/default` = `promoted`。
-<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=45 pending=50 wave3=8/8 wave4=15/15 create-request=promoted -->
+- Registry checkpoint：95/95 canonical units delivered；0 pending；Wave 1 10/10、Wave 2 12/12、Wave 3 8/8、Wave 4 15/15 delivered；`create-request/default` = `promoted`。
+<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=95 pending=0 wave3=8/8 wave4=15/15 create-request=promoted -->
 - Wave 1 的 10 個 units 均已有 durable closure 與 delivery evidence；`create-request/default` 的 recovery re-promotion 綁定最新 replacement owner、payload 與 single-primary gate fingerprint，promotion revision 為 `e1dd44ef4bd1278022ce1f2746dec2e2399d9c158095820987e40f56adddf1ae`。
 - Wave 2 的 12 個 research units 已完成 12/12 preflights、125/125 focused tests、adversarial probes、final-fingerprint review/verification、R3 durable request closures 與 exact `pack-ready` evidence；accepted bytes 位於 `migration/packs/research-pack/`，owner tickets 為 `Completed`。
 - Wave 3 的 8 個 development units 已完成 8/8 durable closure 與 delivery；`feature-dev/default` 的 single-primary payload re-promotion 已綁定最新 evidence。
 - Wave 4 的 15 個 quality/review units 已完成 15/15 durable closure 與 delivery；5 個 `review` modes 與獨立 non-gating 的 `test-review/default` 已完成 core re-promotion，其餘 quality-pack delivery 保持不變。
 - `release:check` 會從 `migration/source-disposition.json` 重算上方可見 checkpoint 與 machine marker，防止只更新版本卻發布過期進度。
-- `migration/packs/` 仍是 repository-only transferable payload，不進 plugin manifest、core discovery 或目前 release artifact。每個 later separate-plugin repository 必須自有 manifest、dependency declaration、installation tests、fingerprint-bound gates 與 release authorization。
+- `migration/packs/` 僅保留已完成 handoff 的歷史 bytes 與 durable evidence；active routing 以正式 plugin payload 優先，release artifact 不包含 migration workspace。
 
 ## 4. Repository 結構
 
@@ -642,7 +642,7 @@ Reset 會保留可信 state 的 active sessions 與目前 worktree snapshot、ro
 - Custom agents 是 setup 到 project `.codex/agents/` 的副本，template 修改後要 rerun setup。
 - PreToolUse 無法攔截所有等價 shell 寫入方式。
 - Verify detector 目前只涵蓋 Node、Python、Go、Rust 的基本策略。
-- Plugin core 尚未覆蓋 Claude 版大多數 domain-specific skills，這是刻意範圍控制。
+- 正式 plugin 已提供 86 個 discovered canonical skills（85 個遷移 targets 加上 `reset`）；legacy packs 只保留 immutable migration evidence，不再是 runtime routing surface。
 - Codex `0.145.0` 的 skill registry 沒有可檢查的 manual-only/implicit-route exclusion flag；compatibility aliases 因此只保留 mapping，不建立 live alias skill。任何 Codex/plugin registry 變更都必須重跑 repository-only R4 probe與 version-bound audit，不能用 prompt sampling 直接升級。Current decision 另以從原始 R4 request 起算、不可截斷的 canonical ordered `owner_history` path/hash與逐票 `Depends On` 鎖住所有 prior R4 owner bytes；缺少首筆或中間 owner 都 fail closed，版本 refresh 不得悄悄改寫歷史證據。
 - `create-request` 已可安全建立、更新與掃描 tickets；`Completed` 只能透過 bundled runtime 的 durable `closure prepare` → runtime-owned descriptor-bound `closure apply` → docs review → `closure finalize` transaction。Pending record持久化 exact prior/proposed bytes、request 的 immutable canonical Implementation Base SHA與每個 AC location的 reconstructable content identity；base 必須是 subject HEAD ancestor，commit subject的 `base_sha` 另須完全相等。Candidate delivery 的 gate owner 只有在 exact durable request closure 與目前 request path 相符時才可保持 `Completed`；缺少 evidence ref、closure 或 path binding 一律 fail closed，不能靠把 delivered overlay 降回 candidate 取得 authority。Apply 以 inode-bound durable journal與 write-all loop工作：prepare後既有或 write-boundary 使用者編輯原樣 fail closed；mutation開始後任一失敗都保留 journal，不做無法原子 CAS 的自動 rollback。Unknown bytes即使有 journal也不會自動覆寫；明確 operator 必須連同 inspected `expected_current_sha256`使用 `closure recover action=restore-prior`恢復 persisted prior後重播，或用 `action=abandon`保留 request bytes並移除 recovery ownership。Restore通常要求 journaled inode；唯一的 exact-success exception 是成功 apply 已移除原 journal、但 current bytes 與 operator-inspected hash 仍同時等於 pending proposal，此時 explicit `restore-prior`可合成 runtime-owned journal。Prior、unknown 或 replacement bytes仍 fail closed；合成 journal與 prepared recovery journal可在 restart後續跑。Restore先把當下 file原子移到回傳的 `.sd0x/closure-recovery/` displaced backup，再以 no-overwrite link安裝 prior，因此最後瞬間的 edit不會被銷毀；post-rename identity驗證失敗時也會以 no-overwrite方式把 displaced bytes恢復到 live path並保留 operator recovery，rollback link後的 crash會在 restart辨識同 inode並只完成 metadata cleanup。Finalized pending對 recovery是 terminal（含既有 journal），不得把 durable closure/promotion倒退，後續修正必須建立 superseding closure revision。每個已閉環 owner request 的 bytes 永久保持不變；replacement ticket 必須 `Depends On` 該 unit 最新 completion record 的 owner，closure/promotion 再各自以 `supersedes_record_sha256` 接續 ledger，因此非 Wave 1 與多次 re-promotion 都不會回指過時 checkpoint。Abandon可處理 editor atomic-save replacement inode；runtime不得自行選擇。Apply/recover/finalize/promotion與 low-level append只接受 unit目前最新 commit-order pending/closure revision，而且 latest closure必須消費 latest pending；mutation與 journal removal前都在 state lock內重驗。Finalize、selected audit request讀取、source/promotion payload traversal均綁 no-follow descriptor、ancestor/file identity及完整目錄 entry manifest，source audit在 ledger audit後再 hash並重驗 ledger OID。Evidence Git root discovery、metadata path、ref/history/tree reads清除 ambient repository/index selectors並綁單一 captured OID。任何 gate、subject、AC/check、path containment、ref 或 restart evidence 不符都停在 `Candidate Complete`。
 

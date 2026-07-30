@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "check-coverage",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/check-coverage-default-routing.test.js"
+      ],
+      "promotion_unit_id": "check-coverage/default",
+      "routing": {
+        "negative_boundaries": [
+          "Add the missing unit and integration tests now.",
+          "Judge whether these individual tests are well written and non-flaky.",
+          "Run the repository verification gate and record its evidence."
+        ],
+        "positive_triggers": [
+          "Analyze unit, integration, and end-to-end coverage gaps for the refund feature.",
+          "Map this feature's source branches to existing tests and identify missing cases.",
+          "Review the three-layer test coverage for the authentication request."
+        ]
+      },
+      "source_names": [
+        "check-coverage"
+      ],
+      "target_mode": null
+    }
+  ]
+}

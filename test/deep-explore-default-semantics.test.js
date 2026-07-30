@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "deep-explore",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "deep-explore/default",
   "required": [
     "Stop complete only when score is at least 80 and critical_open equals zero",

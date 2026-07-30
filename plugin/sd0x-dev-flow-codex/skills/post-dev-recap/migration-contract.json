@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "post-dev-recap",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "post-dev-recap/default",
+      "target_mode": null,
+      "source_names": [
+        "post-dev-recap"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run post-dev-recap; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical post-dev-recap workflow and report its evidence.",
+          "Help me run the post-dev-recap workflow for this repository.",
+          "I need the canonical post-dev-recap procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/post-dev-recap-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/post-dev-recap-default-workflow.test.js"
+      ]
+    }
+  ]
+}

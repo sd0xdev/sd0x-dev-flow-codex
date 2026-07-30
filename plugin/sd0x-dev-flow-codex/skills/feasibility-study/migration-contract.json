@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "feasibility-study",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/feasibility-study-default-routing.test.js"
+      ],
+      "promotion_unit_id": "feasibility-study/default",
+      "routing": {
+        "negative_boundaries": [
+          "Decide whether the proposed feature is necessary for users or the business.",
+          "Document the final component architecture and integration ownership.",
+          "Write the implementation-ready technical specification and work breakdown."
+        ],
+        "positive_triggers": [
+          "Assess whether the proposed cache can be delivered within the stated technical and resource constraints.",
+          "Compare credible implementation approaches with evidence, uncertainty, effort bands, and risk.",
+          "Evaluate repository feasibility before committing to a technical design."
+        ]
+      },
+      "source_names": [
+        "feasibility-study"
+      ],
+      "target_mode": null
+    }
+  ]
+}

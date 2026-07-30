@@ -1,0 +1,112 @@
+{
+  "schema_version": 3,
+  "target_skill": "setup",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "setup/default",
+      "target_mode": null,
+      "source_names": [
+        "codex-setup",
+        "project-setup"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run setup; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical setup workflow and report its evidence.",
+          "Help me run the setup workflow for this repository.",
+          "I need the canonical setup procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/setup-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/setup-default-workflow.test.js"
+      ]
+    },
+    {
+      "promotion_unit_id": "setup/guidance",
+      "target_mode": "guidance",
+      "source_names": [
+        "install-rules"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run setup guidance mode; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical setup guidance mode workflow and report its evidence.",
+          "Help me run the setup guidance mode workflow for this repository.",
+          "I need the canonical setup guidance mode procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/setup-guidance-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/setup-guidance-workflow.test.js"
+      ]
+    },
+    {
+      "promotion_unit_id": "setup/hooks",
+      "target_mode": "hooks",
+      "source_names": [
+        "install-hooks"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run setup hooks mode; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical setup hooks mode workflow and report its evidence.",
+          "Help me run the setup hooks mode workflow for this repository.",
+          "I need the canonical setup hooks mode procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/setup-hooks-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/setup-hooks-workflow.test.js"
+      ]
+    },
+    {
+      "promotion_unit_id": "setup/scripts",
+      "target_mode": "scripts",
+      "source_names": [
+        "install-scripts"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run setup scripts mode; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical setup scripts mode workflow and report its evidence.",
+          "Help me run the setup scripts mode workflow for this repository.",
+          "I need the canonical setup scripts mode procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/setup-scripts-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/setup-scripts-workflow.test.js"
+      ]
+    }
+  ]
+}

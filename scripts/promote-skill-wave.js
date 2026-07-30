@@ -6,6 +6,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { auditActiveCandidates } = require('./skill-migration-audit');
 const { openBoundDirectory } = require('./bound-directory');
+const {
+  assertTreeContent: assertBoundTreeContent,
+  captureBoundTree,
+  removeBoundTree,
+  writeBoundTree
+} = require('./bound-tree');
 const { createRecoveryDirectory } = require('./recovery-directory');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -27,6 +33,10 @@ function statIdentity(stat) {
 
 function directoryIdentity(stat) {
   return [stat.dev, stat.ino, stat.mode].map(String).join(':');
+}
+
+function registeredRootIdentity(stat) {
+  return [stat.dev, stat.ino].map(String).join(':');
 }
 
 function captureContainedDirectory(root, directory) {
@@ -135,11 +145,25 @@ function copyCapturedTree(source, destination, captured, hooks = {}) {
     let destinationIdentity;
     destinationParent.run((child) => {
       const name = child(path.basename(destination));
-      fs.mkdirSync(name);
-      destinationIdentity = fs.lstatSync(name);
+      if (hooks.useExistingDestination) {
+        const existing = fs.lstatSync(name, { throwIfNoEntry: false });
+        if (!existing || existing.isSymbolicLink() || !existing.isDirectory() ||
+            fs.readdirSync(name).length !== 0) {
+          fail(`payload destination must be an empty real directory: ${destination}`);
+        }
+        destinationIdentity = existing;
+      } else {
+        fs.mkdirSync(name);
+        destinationIdentity = fs.lstatSync(name);
+      }
     });
-    if (typeof hooks.afterDestinationDirectoryCreate === 'function') {
-      hooks.afterDestinationDirectoryCreate({ relative: '', destination });
+    if (!hooks.useExistingDestination &&
+        typeof hooks.afterDestinationDirectoryCreate === 'function') {
+      hooks.afterDestinationDirectoryCreate({
+        relative: '',
+        destination,
+        identity: directoryIdentity(destinationIdentity)
+      });
     }
     const destinationRoot = openBoundDirectory(destination, {
       identity: destinationIdentity
@@ -243,7 +267,9 @@ function treeDigest(directory) {
 }
 
 function requestIsCandidateComplete(root, requestPath) {
-  return /^> \*\*Status\*\*: Candidate Complete$/m.test(
+  return new RegExp(
+    String.raw`^> \*\*Status\*\*: Candidate Complete$`, 'm'
+  ).test(
     fs.readFileSync(path.join(root, ...requestPath.split('/')), 'utf8')
   );
 }
@@ -272,13 +298,20 @@ function recoveryIntent(moves) {
       target: move.target,
       target_package: move.target_package,
       candidate: move.candidate,
+      candidate_identity: move.candidateIdentity || null,
       destination: move.destination,
       payload_tree_sha256: move.payload_tree_sha256,
+      destination_existed: move.destinationExisted !== false,
       backup: move.backup || null,
       candidate_backup: move.candidateBackup || null,
       candidate_sibling_backup: move.candidateSiblingBackup || null,
+      candidate_sibling_backup_identity: move.candidateSiblingBackupIdentity || null,
+      candidate_sibling_backup_complete:
+        move.candidateSiblingBackupComplete === true,
       displaced: move.displaced || null,
       replacement: move.replacement || null,
+      replacement_identity: move.replacementIdentity || null,
+      replacement_complete: move.replacementComplete === true,
       candidate_removed: move.candidateRemoved || null,
       destination_parent: move.destinationParent || null,
       candidate_parent: move.candidateParent || null
@@ -286,21 +319,167 @@ function recoveryIntent(moves) {
   };
 }
 
-function writeRecoveryIntent(moves, boundRecovery) {
-  const temporary = `.recovery-${crypto.randomUUID()}.json`;
-  const descriptor = fs.openSync(boundRecovery.child(temporary),
-    fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY |
-    (fs.constants.O_NOFOLLOW || 0), 0o600);
-  try {
-    fs.writeFileSync(descriptor, `${JSON.stringify(recoveryIntent(moves), null, 2)}\n`);
-    fs.fsyncSync(descriptor);
-  } finally {
-    fs.closeSync(descriptor);
+function captureRegisteredArtifact(bound, name, expectedIdentity, label,
+  expected = {}) {
+  if (!expectedIdentity) fail(`${label} identity was not durably registered`);
+  bound.run((child) => {
+    const observed = fs.lstatSync(child(name), {
+      throwIfNoEntry: false
+    });
+    if (!observed || observed.isSymbolicLink() || !observed.isDirectory() ||
+        registeredRootIdentity(observed) !== expectedIdentity) {
+      fail(`${label} root identity changed`);
+    }
+  });
+  const captured = captureBoundTree(bound, name, label);
+  if (registeredRootIdentity(captured.identity) !== expectedIdentity) {
+    fail(`${label} captured the wrong root identity`);
   }
-  fs.renameSync(boundRecovery.child(temporary), boundRecovery.child('recovery.json'));
+  if (expected.tree) {
+    assertBoundTreeContent(captured, expected.tree, label);
+  }
+  if (expected.digest) {
+    bound.run(() => {
+      if (treeDigest(name) !== expected.digest) {
+        fail(`${label} content differs from the accepted payload`);
+      }
+    });
+  }
+  return captured;
 }
 
-function recoverPromotion(root, recoveryDirectory) {
+function removeRegisteredArtifact(bound, name, expectedIdentity, label) {
+  const captured = captureRegisteredArtifact(bound, name, expectedIdentity, label);
+  removeBoundTree(bound, name, captured, { label });
+}
+
+function captureRecoverableArtifact(bound, name, expectedIdentity,
+  expectedComplete, expectedDigest, label) {
+  if (expectedComplete) {
+    return {
+      captured: captureRegisteredArtifact(
+        bound,
+        name,
+        expectedIdentity,
+        label,
+        { digest: expectedDigest }
+      ),
+      complete: true
+    };
+  }
+  const captured = captureBoundTree(bound, name, label);
+  if (expectedIdentity) {
+    if (registeredRootIdentity(captured.identity) !== expectedIdentity) {
+      fail(`${label} root identity changed`);
+    }
+    return { captured, complete: false };
+  }
+  if (captured.mode !== 0o700 || captured.children.length !== 0) {
+    fail(`${label} was materialized before its identity was durably registered`);
+  }
+  return { captured, complete: false };
+}
+
+function removeRecoverableArtifact(bound, name, expectedIdentity,
+  expectedComplete, expectedDigest, label) {
+  const artifact = captureRecoverableArtifact(
+    bound,
+    name,
+    expectedIdentity,
+    expectedComplete,
+    expectedDigest,
+    label
+  );
+  removeBoundTree(bound, name, artifact.captured, { label });
+}
+
+function stageRegisteredArtifact({
+  source,
+  captured,
+  recoveryDirectory,
+  boundRecovery,
+  destinationParent,
+  destinationName,
+  label,
+  beforeDestinationWrite,
+  afterStagingRootCreate,
+  afterStagingRegistered,
+  beforeManagedRootRegister,
+  afterManagedChildWrite,
+  register,
+  complete
+}) {
+  const stagingName = `.staging-${crypto.randomUUID()}`;
+  const stagingPath = path.join(recoveryDirectory, stagingName);
+  copyCapturedTree(source, stagingPath, captured, {
+    beforeDestinationWrite,
+    afterDestinationDirectoryCreate(details) {
+      if (details.relative === '' && typeof afterStagingRootCreate === 'function') {
+        afterStagingRootCreate(details);
+      }
+    }
+  });
+  assertTreeContent(stagingPath, captured);
+  const staged = captureBoundTree(boundRecovery, stagingName, `${label} staging`);
+  destinationParent.run((child) => {
+    if (fs.existsSync(child(destinationName))) {
+      fail(`${label} destination already exists`);
+    }
+  });
+  let registeredIdentity;
+  writeBoundTree(destinationParent, destinationName, staged, {
+    label,
+    afterRootCreate(details) {
+      if (typeof beforeManagedRootRegister === 'function') {
+        beforeManagedRootRegister(details);
+      }
+      registeredIdentity = registeredRootIdentity(details.identity);
+      register(registeredIdentity);
+    },
+    afterChildWrite: afterManagedChildWrite
+  });
+  if (typeof afterStagingRegistered === 'function') {
+    afterStagingRegistered({
+      recoveryDirectory,
+      stagingName,
+      destinationParent: destinationParent.directory,
+      destinationName,
+      identity: registeredIdentity
+    });
+  }
+  captureRegisteredArtifact(
+    destinationParent,
+    destinationName,
+    registeredIdentity,
+    label,
+    { tree: staged }
+  );
+  complete();
+  boundRecovery.run(() => {});
+  return registeredIdentity;
+}
+
+function writeRecoveryManifest(manifest, boundRecovery) {
+  boundRecovery.run((child) => {
+    const temporary = child(`.recovery-${crypto.randomUUID()}.json`);
+    const descriptor = fs.openSync(temporary,
+      fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY |
+      (fs.constants.O_NOFOLLOW || 0), 0o600);
+    try {
+      fs.writeFileSync(descriptor, `${JSON.stringify(manifest, null, 2)}\n`);
+      fs.fsyncSync(descriptor);
+    } finally {
+      fs.closeSync(descriptor);
+    }
+    fs.renameSync(temporary, child('recovery.json'));
+  });
+}
+
+function writeRecoveryIntent(moves, boundRecovery) {
+  writeRecoveryManifest(recoveryIntent(moves), boundRecovery);
+}
+
+function recoverPromotion(root, recoveryDirectory, options = {}) {
   const recoveryRoot = path.join(root, '.sd0x');
   const relative = path.relative(recoveryRoot, recoveryDirectory);
   if (!relative || relative.includes(path.sep) || path.isAbsolute(relative)) {
@@ -359,22 +538,28 @@ function recoverPromotion(root, recoveryDirectory) {
         root, path.dirname(move.destination), move.destination_parent
       );
       if (move.target_package === 'core') {
-        if (!move.backup || !move.candidate_backup || !move.displaced ||
-            !move.candidate_sibling_backup) {
+        const destinationExisted = move.destination_existed !== false;
+        if (!move.candidate_backup || !move.candidate_sibling_backup ||
+            !move.candidate_removed || !move.candidate_identity ||
+            (destinationExisted && (!move.backup || !move.displaced)) ||
+            (!destinationExisted && (move.backup || move.displaced))) {
           fail(`${move.target}: core recovery artifacts are incomplete`);
         }
         const recoveryArtifacts = boundRecovery.run(() => {
-          const backup = fs.lstatSync(move.backup, { throwIfNoEntry: false });
+          const backup = destinationExisted
+            ? fs.lstatSync(move.backup, { throwIfNoEntry: false })
+            : null;
           const candidateBackup = fs.lstatSync(move.candidate_backup,
             { throwIfNoEntry: false });
-          if (!backup || backup.isSymbolicLink() || !backup.isDirectory()) {
+          if (destinationExisted &&
+              (!backup || backup.isSymbolicLink() || !backup.isDirectory())) {
             fail(`${move.target}: core recovery live backup is unavailable`);
           }
           if (!candidateBackup || candidateBackup.isSymbolicLink() ||
               !candidateBackup.isDirectory()) {
             fail(`${move.target}: core recovery candidate backup is unavailable`);
           }
-          const priorPayload = treeDigest(move.backup);
+          const priorPayload = destinationExisted ? treeDigest(move.backup) : null;
           const candidateSnapshot = captureRegularTree(move.candidate_backup);
           if (treeDigest(move.candidate_backup) !== move.payload_tree_sha256) {
             fail(`${move.target}: core recovery candidate backup is invalid`);
@@ -385,12 +570,21 @@ function recoverPromotion(root, recoveryDirectory) {
           const destinationName = path.basename(move.destination);
           const installedName = `${move.target}-recovery-installed`;
           const destinationExists = fs.existsSync(destinationName);
-          const displacedExists = fs.existsSync(move.displaced);
+          const displacedExists = Boolean(move.displaced) && fs.existsSync(move.displaced);
           const installedExists = fs.existsSync(installedName);
-          if (!destinationExists && !displacedExists) {
+          const replacementExists = Boolean(move.replacement) &&
+            fs.existsSync(move.replacement);
+          if (destinationExisted && !destinationExists && !displacedExists) {
             fail(`${move.target}: recovery lost both live and displaced payloads`);
           }
-          if (displacedExists) {
+          if (!destinationExisted) {
+            if (displacedExists ||
+                (destinationExists && installedExists) ||
+                (destinationExists &&
+                  treeDigest(destinationName) !== move.payload_tree_sha256)) {
+              fail(`${move.target}: new core recovery payload is incoherent`);
+            }
+          } else if (displacedExists) {
             if (treeDigest(move.displaced) !== recoveryArtifacts.priorPayload) {
               fail(`${move.target}: displaced live payload differs from its backup`);
             }
@@ -410,22 +604,54 @@ function recoverPromotion(root, recoveryDirectory) {
               treeDigest(installedName) !== move.payload_tree_sha256) {
             fail(`${move.target}: retained installed payload is invalid`);
           }
+          const replacementArtifact = replacementExists
+            ? captureRecoverableArtifact(
+              destinationParent,
+              move.replacement,
+              move.replacement_identity,
+              move.replacement_complete === true,
+              move.payload_tree_sha256,
+              `${move.target} retained replacement payload`
+            )
+            : null;
           return { destinationName, installedName, destinationExists,
-            displacedExists, installedExists };
+            displacedExists, installedExists, replacementExists,
+            replacementTree: replacementArtifact?.captured || null,
+            destinationExisted };
         });
         const candidateState = candidateParent.run(() => {
           const candidateName = path.basename(move.candidate);
           const candidateExists = fs.existsSync(candidateName);
           const siblingExists = fs.existsSync(move.candidate_sibling_backup);
+          const removedExists = fs.existsSync(move.candidate_removed);
+          if (candidateExists && removedExists) {
+            fail(`${move.target}: core recovery found duplicate candidate payloads`);
+          }
           if (candidateExists &&
-              treeDigest(candidateName) !== move.payload_tree_sha256) {
+              (captureRegularTree(candidateName).root !== move.candidate_identity ||
+                treeDigest(candidateName) !== move.payload_tree_sha256)) {
             fail(`${move.target}: existing candidate recovery payload is invalid`);
           }
-          if (siblingExists &&
-              treeDigest(move.candidate_sibling_backup) !== move.payload_tree_sha256) {
-            fail(`${move.target}: candidate sibling backup is invalid`);
+          if (removedExists) {
+            if (captureRegularTree(move.candidate_removed).root !==
+                move.candidate_identity ||
+                treeDigest(move.candidate_removed) !== move.payload_tree_sha256) {
+              fail(`${move.target}: retired core candidate recovery payload is invalid`);
+            }
           }
-          return { candidateName, candidateExists, siblingExists };
+          const siblingArtifact = siblingExists
+            ? captureRecoverableArtifact(
+              candidateParent,
+              move.candidate_sibling_backup,
+              move.candidate_sibling_backup_identity,
+              move.candidate_sibling_backup_complete === true,
+              move.payload_tree_sha256,
+              `${move.target} candidate sibling backup`
+            )
+            : null;
+          return { candidateName, candidateExists, removedExists,
+            siblingExists, siblingComplete: siblingArtifact?.complete || false,
+            siblingTree: siblingArtifact?.captured || null };
         });
         plans.push({
           kind: 'core', move, candidateParent, destinationParent,
@@ -437,6 +663,8 @@ function recoverPromotion(root, recoveryDirectory) {
           const installedName = `${move.target}-recovery-installed-pack`;
           const destinationExists = fs.existsSync(destinationName);
           const installedExists = fs.existsSync(installedName);
+          const replacementExists = Boolean(move.replacement) &&
+            fs.existsSync(move.replacement);
           if (destinationExists) {
             if (treeDigest(destinationName) !== move.payload_tree_sha256 ||
                 installedExists) {
@@ -447,8 +675,19 @@ function recoverPromotion(root, recoveryDirectory) {
               treeDigest(installedName) !== move.payload_tree_sha256) {
             fail(`${move.target}: retained installed pack is invalid`);
           }
+          const replacementArtifact = replacementExists
+            ? captureRecoverableArtifact(
+              destinationParent,
+              move.replacement,
+              move.replacement_identity,
+              move.replacement_complete === true,
+              move.payload_tree_sha256,
+              `${move.target} retained pack replacement`
+            )
+            : null;
           return { destinationName, installedName, destinationExists,
-            installedExists };
+            installedExists, replacementExists,
+            replacementTree: replacementArtifact?.captured || null };
         });
         const candidateState = candidateParent.run(() => {
           const candidateName = path.basename(move.candidate);
@@ -481,7 +720,11 @@ function recoverPromotion(root, recoveryDirectory) {
         destinationState, candidateState } = plan;
       if (plan.kind === 'core') {
         destinationParent.run(() => {
-          if (destinationState.displacedExists) {
+          if (!destinationState.destinationExisted &&
+              destinationState.destinationExists) {
+            fs.renameSync(destinationState.destinationName,
+              destinationState.installedName);
+          } else if (destinationState.displacedExists) {
             if (destinationState.destinationExists) {
               fs.renameSync(destinationState.destinationName,
                 destinationState.installedName);
@@ -490,18 +733,70 @@ function recoverPromotion(root, recoveryDirectory) {
           }
         });
         if (!candidateState.candidateExists) {
-          const replacement = `.${move.target}-sd0x-${crypto.randomUUID()}-recovered`;
-          boundRecovery.run(() => copyCapturedTree(
-            move.candidate_backup,
-            path.join(path.dirname(move.candidate), replacement),
-            plan.candidateSnapshot
-          ));
-          candidateParent.run(() =>
-            fs.renameSync(replacement, candidateState.candidateName));
+          if (candidateState.removedExists) {
+            candidateParent.run(() =>
+              fs.renameSync(move.candidate_removed, candidateState.candidateName));
+          } else {
+            if (candidateState.siblingExists && !candidateState.siblingComplete) {
+              candidateParent.run(() => removeBoundTree(
+                candidateParent,
+                move.candidate_sibling_backup,
+                candidateState.siblingTree,
+                { label: `${move.target} incomplete candidate sibling backup` }
+              ));
+              candidateState.siblingExists = false;
+            }
+            if (!candidateState.siblingExists) {
+              move.candidate_sibling_backup_identity = null;
+              move.candidate_sibling_backup_complete = false;
+              writeRecoveryManifest(manifest, boundRecovery);
+              stageRegisteredArtifact({
+                source: path.join(recoveryDirectory, move.candidate_backup),
+                captured: plan.candidateSnapshot,
+                recoveryDirectory,
+                boundRecovery,
+                destinationParent: candidateParent,
+                destinationName: move.candidate_sibling_backup,
+                label: `${move.target} recovery candidate sibling backup`,
+                beforeDestinationWrite: options.beforeRecoveryCandidateRestoreWrite,
+                afterStagingRootCreate:
+                  options.afterRecoveryCandidateRestoreStagingRootCreate,
+                beforeManagedRootRegister:
+                  options.beforeRecoveryCandidateRestoreManagedRootRegister,
+                afterManagedChildWrite:
+                  options.afterRecoveryCandidateRestoreManagedChildWrite,
+                register(identity) {
+                  move.candidate_sibling_backup_identity = identity;
+                  writeRecoveryManifest(manifest, boundRecovery);
+                },
+                complete() {
+                  move.candidate_sibling_backup_complete = true;
+                  writeRecoveryManifest(manifest, boundRecovery);
+                }
+              });
+              candidateState.siblingExists = true;
+            }
+            candidateParent.run(() => {
+              move.candidate_identity = captureRegularTree(
+                move.candidate_sibling_backup
+              ).root;
+            });
+            writeRecoveryManifest(manifest, boundRecovery);
+            candidateParent.run(() => fs.renameSync(
+              move.candidate_sibling_backup,
+              candidateState.candidateName
+            ));
+            if (typeof options.afterRecoveryCandidateRestore === 'function') {
+              options.afterRecoveryCandidateRestore(move);
+            }
+          }
         }
         destinationParent.run(() => {
-          if (!fs.existsSync(destinationState.destinationName) ||
-              treeDigest(destinationState.destinationName) !== plan.priorPayload) {
+          const exists = fs.existsSync(destinationState.destinationName);
+          if ((destinationState.destinationExisted &&
+              (!exists || treeDigest(destinationState.destinationName) !==
+                plan.priorPayload)) ||
+              (!destinationState.destinationExisted && exists)) {
             fail(`${move.target}: live recovery postcondition failed`);
           }
         });
@@ -519,14 +814,23 @@ function recoverPromotion(root, recoveryDirectory) {
             }
             fs.rmSync(destinationState.installedName, { recursive: true });
           }
+          if (destinationState.replacementExists) {
+            removeBoundTree(
+              destinationParent,
+              move.replacement,
+              destinationState.replacementTree,
+              { label: `${move.target} retained replacement payload` }
+            );
+          }
         });
         candidateParent.run(() => {
           if (fs.existsSync(move.candidate_sibling_backup)) {
-            if (treeDigest(move.candidate_sibling_backup) !==
-                move.payload_tree_sha256) {
-              fail(`${move.target}: candidate sibling backup is invalid`);
-            }
-            fs.rmSync(move.candidate_sibling_backup, { recursive: true });
+            removeBoundTree(
+              candidateParent,
+              move.candidate_sibling_backup,
+              candidateState.siblingTree,
+              { label: `${move.target} candidate sibling backup` }
+            );
           }
         });
       } else {
@@ -536,6 +840,14 @@ function recoverPromotion(root, recoveryDirectory) {
               destinationState.installedName);
           }
         });
+        if (destinationState.replacementExists) {
+          removeBoundTree(
+            destinationParent,
+            move.replacement,
+            destinationState.replacementTree,
+            { label: `${move.target} retained pack replacement` }
+          );
+        }
         candidateParent.run(() => {
           if (!candidateState.candidateExists) {
             fs.renameSync(move.candidate_removed, candidateState.candidateName);
@@ -613,13 +925,14 @@ function buildPromotionPlan(root, plan, disposition) {
       fail(`${target.target}: candidate drifted after Candidate Complete preflight`);
     }
     if (target.target_package === 'core') {
-      if (!fs.existsSync(destination)) fail(`${target.target}: core destination is missing`);
-      const candidateFiles = regularTree(candidate);
-      const missing = regularTree(destination).filter((file) =>
-        !candidateFiles.includes(file)
-      );
-      if (missing.length > 0) {
-        fail(`${target.target}: candidate omits existing core resources: ${missing.join(', ')}`);
+      if (fs.existsSync(destination)) {
+        const candidateFiles = regularTree(candidate);
+        const missing = regularTree(destination).filter((file) =>
+          !candidateFiles.includes(file)
+        );
+        if (missing.length > 0) {
+          fail(`${target.target}: candidate omits existing core resources: ${missing.join(', ')}`);
+        }
       }
     } else if (fs.existsSync(destination)) {
       fail(`${target.target}: pack destination already exists before promotion`);
@@ -652,23 +965,42 @@ function applyPromotionMoves(root, moves, options = {}) {
       if (typeof options.beforeRecoveryRemove === 'function') {
         options.beforeRecoveryRemove(recoveryRoot, name);
       }
+      for (const move of rollback) {
+        move.boundDestinationParent.run(() => {
+          if (move.replacement && fs.existsSync(move.replacement)) {
+            removeRecoverableArtifact(
+              move.boundDestinationParent,
+              move.replacement,
+              move.replacementIdentity,
+              move.replacementComplete,
+              move.payload_tree_sha256,
+              `${move.target} unused replacement payload`
+            );
+          }
+        });
+      }
       for (const move of rollback.filter((entry) =>
         entry.target_package === 'core')) {
         move.boundDestinationParent.run(() => {
-          if (fs.existsSync(move.displaced)) {
+          if (move.displaced && fs.existsSync(move.displaced)) {
             assertTreeSnapshot(move.displaced, move.liveSnapshot);
             fs.rmSync(move.displaced, { recursive: true });
           }
         });
         move.boundCandidateParent.run(() => {
-          const removed = `${move.target}-removed-candidate`;
-          if (fs.existsSync(removed)) {
-            assertTreeSnapshot(removed, move.candidateSnapshot);
-            fs.rmSync(removed, { recursive: true });
+          if (fs.existsSync(move.candidateRemoved)) {
+            assertTreeSnapshot(move.candidateRemoved, move.candidateSnapshot);
+            fs.rmSync(move.candidateRemoved, { recursive: true });
           }
           if (fs.existsSync(move.candidateSiblingBackup)) {
-            assertTreeContent(move.candidateSiblingBackup, move.candidateSnapshot);
-            fs.rmSync(move.candidateSiblingBackup, { recursive: true });
+            removeRecoverableArtifact(
+              move.boundCandidateParent,
+              move.candidateSiblingBackup,
+              move.candidateSiblingBackupIdentity,
+              move.candidateSiblingBackupComplete,
+              move.payload_tree_sha256,
+              `${move.target} candidate sibling backup`
+            );
           }
         });
       }
@@ -690,10 +1022,13 @@ function applyPromotionMoves(root, moves, options = {}) {
     return recovery.run(() => {
       for (const move of pending) {
         if (move.target_package === 'core') {
-          const backup = `${move.target}-live`;
+          const destinationExisted = fs.existsSync(move.destination);
+          const backup = destinationExisted ? `${move.target}-live` : null;
           const candidateBackup = `${move.target}-candidate`;
           const replacement = `.${move.target}-sd0x-${crypto.randomUUID()}-replacement`;
-          const destinationPath = assertContainedDirectory(root, move.destination);
+          const destinationPath = destinationExisted
+            ? assertContainedDirectory(root, move.destination)
+            : null;
           const candidatePath = assertContainedDirectory(root, move.candidate);
           const destinationParent = captureContainedDirectory(
             root, path.dirname(move.destination)
@@ -706,28 +1041,29 @@ function applyPromotionMoves(root, moves, options = {}) {
           );
           const boundCandidateParent = openBoundDirectory(path.dirname(move.candidate));
           boundDirectories.push(boundDestinationParent, boundCandidateParent);
-          const liveSnapshot = captureRegularTree(move.destination);
+          const liveSnapshot = destinationExisted
+            ? captureRegularTree(move.destination)
+            : null;
           const candidateSnapshot = captureRegularTree(move.candidate);
           const candidateSiblingBackup =
             `.${move.target}-sd0x-${crypto.randomUUID()}-candidate-backup`;
           if (treeDigest(move.candidate) !== move.payload_tree_sha256) {
             fail(`${move.target}: candidate identity changed before promotion`);
           }
-          copyCapturedTree(move.destination, backup, liveSnapshot, {
-            beforeDestinationWrite: options.beforeRecoveryBackupWrite
-          });
+          if (destinationExisted) {
+            copyCapturedTree(move.destination, backup, liveSnapshot, {
+              beforeDestinationWrite: options.beforeRecoveryBackupWrite
+            });
+          }
           copyCapturedTree(move.candidate, candidateBackup, candidateSnapshot);
-          boundDestinationParent.run(() => {
-            copyCapturedTree(move.candidate, replacement, candidateSnapshot);
-          });
-          boundCandidateParent.run(() => {
-            copyCapturedTree(move.candidate, candidateSiblingBackup, candidateSnapshot);
-          });
           const rollbackMove = {
             ...move,
             backup,
             candidateBackup,
-            displaced: `.${move.target}-sd0x-${crypto.randomUUID()}-displaced-live`,
+            displaced: destinationExisted
+              ? `.${move.target}-sd0x-${crypto.randomUUID()}-displaced-live`
+              : null,
+            destinationExisted,
             destinationParent,
             candidateParent,
             boundDestinationParent,
@@ -736,31 +1072,93 @@ function applyPromotionMoves(root, moves, options = {}) {
             candidatePath,
             liveSnapshot,
             candidateSnapshot,
+            candidateIdentity: candidateSnapshot.root,
             candidateSiblingBackup,
+            candidateSiblingBackupIdentity: null,
+            candidateSiblingBackupComplete: false,
+            candidateRemoved: `${move.target}-removed-candidate`,
+            replacement,
+            replacementIdentity: null,
+            replacementComplete: false,
             installed: false,
             displacedLive: false,
             candidateCleanupStarted: false
           };
           rollback.push(rollbackMove);
           writeRecoveryIntent(rollback, boundRecovery);
+          stageRegisteredArtifact({
+            source: move.candidate,
+            captured: candidateSnapshot,
+            recoveryDirectory: temporary,
+            boundRecovery,
+            destinationParent: boundDestinationParent,
+            destinationName: replacement,
+            label: `${move.target} replacement payload`,
+            beforeDestinationWrite: options.beforeReplacementWrite,
+            afterStagingRootCreate: options.afterReplacementStagingRootCreate,
+            afterStagingRegistered: options.afterReplacementStagingRegistered,
+            beforeManagedRootRegister:
+              options.beforeReplacementManagedRootRegister,
+            afterManagedChildWrite: options.afterReplacementManagedChildWrite,
+            register(identity) {
+                rollbackMove.replacementIdentity = identity;
+                writeRecoveryIntent(rollback, boundRecovery);
+            },
+            complete() {
+                rollbackMove.replacementComplete = true;
+                writeRecoveryIntent(rollback, boundRecovery);
+            }
+          });
+          stageRegisteredArtifact({
+            source: move.candidate,
+            captured: candidateSnapshot,
+            recoveryDirectory: temporary,
+            boundRecovery,
+            destinationParent: boundCandidateParent,
+            destinationName: candidateSiblingBackup,
+            label: `${move.target} candidate sibling backup`,
+            beforeDestinationWrite: options.beforeCandidateSiblingBackupWrite,
+            afterStagingRootCreate: options.afterCandidateBackupStagingRootCreate,
+            afterStagingRegistered:
+              options.afterCandidateBackupStagingRegistered,
+            beforeManagedRootRegister:
+              options.beforeCandidateBackupManagedRootRegister,
+            afterManagedChildWrite:
+              options.afterCandidateBackupManagedChildWrite,
+            register(identity) {
+                rollbackMove.candidateSiblingBackupIdentity = identity;
+                writeRecoveryIntent(rollback, boundRecovery);
+            },
+            complete() {
+                rollbackMove.candidateSiblingBackupComplete = true;
+                writeRecoveryIntent(rollback, boundRecovery);
+            }
+          });
           if (typeof options.beforeInstall === 'function') options.beforeInstall(move);
           assertContainedDirectory(root, path.dirname(move.destination), destinationParent);
           assertContainedDirectory(root, path.dirname(move.candidate), candidateParent);
-          assertContainedDirectory(root, move.destination, destinationPath);
+          if (destinationExisted) {
+            assertContainedDirectory(root, move.destination, destinationPath);
+          }
           assertContainedDirectory(root, move.candidate, candidatePath);
-          assertTreeSnapshot(move.destination, liveSnapshot);
+          if (destinationExisted) assertTreeSnapshot(move.destination, liveSnapshot);
           assertTreeSnapshot(move.candidate, candidateSnapshot);
           boundDestinationParent.run(() => {
-            fs.renameSync(path.basename(move.destination), rollbackMove.displaced);
-            rollbackMove.displacedLive = true;
-            if (typeof options.afterDisplace === 'function') {
-              options.afterDisplace(move, {
-                displaced: path.join(path.dirname(move.destination), rollbackMove.displaced)
-              });
+            const destinationName = path.basename(move.destination);
+            if (destinationExisted) {
+              fs.renameSync(destinationName, rollbackMove.displaced);
+              rollbackMove.displacedLive = true;
+              if (typeof options.afterDisplace === 'function') {
+                options.afterDisplace(move, {
+                  displaced: path.join(path.dirname(move.destination), rollbackMove.displaced)
+                });
+              }
+              assertTreeSnapshot(rollbackMove.displaced, liveSnapshot);
+            } else if (fs.existsSync(destinationName)) {
+              fail(`${move.target}: new core destination appeared before install`);
             }
-            assertTreeSnapshot(rollbackMove.displaced, liveSnapshot);
             assertTreeSnapshot(move.candidate, candidateSnapshot);
-            fs.renameSync(replacement, path.basename(move.destination));
+            fs.renameSync(replacement, destinationName);
           });
           rollbackMove.installed = true;
         } else {
@@ -782,8 +1180,45 @@ function applyPromotionMoves(root, moves, options = {}) {
           }
           const replacement = `.${move.target}-sd0x-${crypto.randomUUID()}-replacement`;
           const candidateRemoved = `.${move.target}-sd0x-${crypto.randomUUID()}-removed`;
-          boundDestinationParent.run(() =>
-            copyCapturedTree(move.candidate, replacement, candidateSnapshot));
+          const rollbackMove = {
+            ...move,
+            candidateParent,
+            destinationParent,
+            boundCandidateParent,
+            boundDestinationParent,
+            candidateSnapshot,
+            replacement,
+            replacementIdentity: null,
+            replacementComplete: false,
+            candidateRemoved,
+            installed: false,
+            moved: false
+          };
+          rollback.push(rollbackMove);
+          writeRecoveryIntent(rollback, boundRecovery);
+          stageRegisteredArtifact({
+            source: move.candidate,
+            captured: candidateSnapshot,
+            recoveryDirectory: temporary,
+            boundRecovery,
+            destinationParent: boundDestinationParent,
+            destinationName: replacement,
+            label: `${move.target} pack replacement`,
+            beforeDestinationWrite: options.beforeReplacementWrite,
+            afterStagingRootCreate: options.afterReplacementStagingRootCreate,
+            afterStagingRegistered: options.afterReplacementStagingRegistered,
+            beforeManagedRootRegister:
+              options.beforeReplacementManagedRootRegister,
+            afterManagedChildWrite: options.afterReplacementManagedChildWrite,
+            register(identity) {
+                rollbackMove.replacementIdentity = identity;
+                writeRecoveryIntent(rollback, boundRecovery);
+            },
+            complete() {
+                rollbackMove.replacementComplete = true;
+                writeRecoveryIntent(rollback, boundRecovery);
+            }
+          });
           if (typeof options.beforeInstall === 'function') {
             options.beforeInstall(move);
           }
@@ -795,20 +1230,6 @@ function applyPromotionMoves(root, moves, options = {}) {
             root, path.dirname(move.destination), destinationParent
           );
           assertTreeSnapshot(move.candidate, candidateSnapshot);
-          const rollbackMove = {
-            ...move,
-            candidateParent,
-            destinationParent,
-            boundCandidateParent,
-            boundDestinationParent,
-            candidateSnapshot,
-            replacement,
-            candidateRemoved,
-            installed: false,
-            moved: false
-          };
-          rollback.push(rollbackMove);
-          writeRecoveryIntent(rollback, boundRecovery);
           boundDestinationParent.run(() => {
             if (fs.existsSync(path.basename(move.destination))) {
               fail(`${move.target}: pack destination already exists`);
@@ -816,6 +1237,9 @@ function applyPromotionMoves(root, moves, options = {}) {
             fs.renameSync(replacement, path.basename(move.destination));
           });
           rollbackMove.installed = true;
+          if (typeof options.afterPackInstall === 'function') {
+            options.afterPackInstall(move);
+          }
           boundCandidateParent.run(() =>
             fs.renameSync(path.basename(move.candidate), candidateRemoved));
           rollbackMove.moved = true;
@@ -834,8 +1258,11 @@ function applyPromotionMoves(root, moves, options = {}) {
           removeCoreCandidate(move.candidate);
         } else {
           move.boundCandidateParent.run(() => fs.renameSync(
-            path.basename(move.candidate), `${move.target}-removed-candidate`
+            path.basename(move.candidate), move.candidateRemoved
           ));
+          if (typeof options.afterCoreCandidateRetire === 'function') {
+            options.afterCoreCandidateRetire(move);
+          }
         }
       }
       return moves;
@@ -856,7 +1283,18 @@ function applyPromotionMoves(root, moves, options = {}) {
               move.boundDestinationParent.run(() => {
                 const destinationName = path.basename(move.destination);
                 if (fs.existsSync(destinationName)) {
-                  fs.renameSync(destinationName, `${move.target}-failed-live`);
+                  assertTreeContent(destinationName, move.candidateSnapshot);
+                  const installed = captureBoundTree(
+                    move.boundDestinationParent,
+                    destinationName,
+                    `${move.target} failed installed payload`
+                  );
+                  removeBoundTree(
+                    move.boundDestinationParent,
+                    destinationName,
+                    installed,
+                    { label: `${move.target} failed installed payload` }
+                  );
                 }
                 captureRegularTree(move.displaced);
                 fs.renameSync(move.displaced, destinationName);
@@ -866,6 +1304,32 @@ function applyPromotionMoves(root, moves, options = {}) {
             rollbackErrors.push({
               target: move.target,
               tree: 'live',
+              message: rollbackError.message
+            });
+          }
+          if (!move.destinationExisted && move.installed) try {
+            move.boundDestinationParent.run(() => {
+              const destinationName = path.basename(move.destination);
+              if (!fs.existsSync(destinationName)) {
+                fail(`${move.target}: new core rollback destination is missing`);
+              }
+              assertTreeContent(destinationName, move.candidateSnapshot);
+              const installed = captureBoundTree(
+                move.boundDestinationParent,
+                destinationName,
+                `${move.target} failed new installed payload`
+              );
+              removeBoundTree(
+                move.boundDestinationParent,
+                destinationName,
+                installed,
+                { label: `${move.target} failed new installed payload` }
+              );
+            });
+          } catch (rollbackError) {
+            rollbackErrors.push({
+              target: move.target,
+              tree: 'new-live',
               message: rollbackError.message
             });
           }
@@ -880,10 +1344,21 @@ function applyPromotionMoves(root, moves, options = {}) {
               move.boundCandidateParent.run(() => {
                 const candidateName = path.basename(move.candidate);
                 if (fs.existsSync(candidateName)) {
-                  fs.renameSync(candidateName, `${move.target}-failed-candidate`);
+                  const incomplete = captureBoundTree(
+                    move.boundCandidateParent,
+                    candidateName,
+                    `${move.target} incomplete candidate cleanup`
+                  );
+                  removeBoundTree(
+                    move.boundCandidateParent,
+                    candidateName,
+                    incomplete,
+                    { label: `${move.target} incomplete candidate cleanup` }
+                  );
                 }
-                const removed = `${move.target}-removed-candidate`;
-                if (fs.existsSync(removed)) fs.renameSync(removed, candidateName);
+                if (fs.existsSync(move.candidateRemoved)) {
+                  fs.renameSync(move.candidateRemoved, candidateName);
+                }
                 else fs.renameSync(move.candidateSiblingBackup, candidateName);
               });
             }
@@ -907,10 +1382,20 @@ function applyPromotionMoves(root, moves, options = {}) {
               if (!fs.existsSync(destinationName)) {
                 fail(`${move.target}: pack rollback destination changed`);
               }
-              assertTreeSnapshot(destinationName, move.candidateSnapshot);
-              fs.renameSync(destinationName, `${move.target}-failed-pack`);
-              assertTreeSnapshot(`${move.target}-failed-pack`, move.candidateSnapshot);
-              fs.rmSync(`${move.target}-failed-pack`, { recursive: true });
+              assertTreeContent(destinationName, move.candidateSnapshot);
+              const installed = captureRegisteredArtifact(
+                move.boundDestinationParent,
+                destinationName,
+                move.replacementIdentity,
+                `${move.target} failed installed pack`,
+                { digest: move.payload_tree_sha256 }
+              );
+              removeBoundTree(
+                move.boundDestinationParent,
+                destinationName,
+                installed,
+                { label: `${move.target} failed installed pack` }
+              );
             });
             if (move.moved) move.boundCandidateParent.run(() => {
               const candidateName = path.basename(move.candidate);

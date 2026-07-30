@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "pr-summary",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "pr-summary/default",
+      "target_mode": null,
+      "source_names": [
+        "pr-summary"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run pr-summary; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical pr-summary workflow and report its evidence.",
+          "Help me run the pr-summary workflow for this repository.",
+          "I need the canonical pr-summary procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/pr-summary-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/pr-summary-default-workflow.test.js"
+      ]
+    }
+  ]
+}

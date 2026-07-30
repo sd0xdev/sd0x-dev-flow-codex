@@ -1,0 +1,34 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "doc-review",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/doc-review-default-routing.test.js"
+      ],
+      "promotion_unit_id": "doc-review/default",
+      "routing": {
+        "negative_boundaries": [
+          "Review the current code diff for implementation defects.",
+          "Rewrite this guide to improve its structure and wording.",
+          "Synchronize the English and Traditional Chinese README files."
+        ],
+        "positive_triggers": [
+          "Check this migration guide for factual accuracy, missing prerequisites, and broken examples.",
+          "Review the API documentation against the current implementation and report defects.",
+          "Verify this runbook is complete and usable by its intended operator."
+        ]
+      },
+      "source_names": [
+        "codex-review-doc",
+        "doc-review"
+      ],
+      "target_mode": null
+    }
+  ]
+}

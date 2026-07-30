@@ -1394,11 +1394,16 @@ function validateEvidenceBlobSemantics(record, blobs, root = null, options = {})
       throw new Error('Closure subject review and verify providers must match');
     }
     const requestBlob = blobs['request.json'];
-    assertExactKeys(requestBlob, [
+    const requestBlobFields = [
       'encoding', 'prior_bytes_base64', 'prior_sha256',
       'proposed_bytes_base64', 'proposed_sha256'
-    ],
+    ];
+    if (Object.hasOwn(requestBlob, 'projection_request_paths')) {
+      requestBlobFields.push('projection_request_paths');
+    }
+    assertExactKeys(requestBlob, requestBlobFields,
       'Closure proposed request blob');
+    closureProjectionPaths(requestBlob, record);
     let requestBytes;
     let priorBytes;
     try {
@@ -1477,12 +1482,36 @@ function validateEvidenceBlobSemantics(record, blobs, root = null, options = {})
   }
 }
 
+function closureProjectionPaths(requestBlob, pending) {
+  const paths = Object.hasOwn(requestBlob, 'projection_request_paths')
+    ? requestBlob.projection_request_paths
+    : [pending.request_path];
+  if (!Array.isArray(paths) || paths.length === 0 ||
+      JSON.stringify(paths) !== JSON.stringify([...new Set(paths)].sort()) ||
+      !paths.includes(pending.request_path)) {
+    throw new Error('Closure projection request paths must be sorted, unique, and include the owned request');
+  }
+  for (const relative of paths) {
+    if (!/^docs\/features\/[A-Za-z0-9._-]+\/requests\/[A-Za-z0-9._-]+\.md$/.test(
+      relative || ''
+    ) || path.posix.normalize(relative) !== relative ||
+        relative.split('/').some((segment) => segment === '.' || segment === '..')) {
+      throw new Error('Closure projection request path is invalid or non-canonical');
+    }
+  }
+  return paths;
+}
+
 function prepareRequestClosure(cwd, options, hooks = {}) {
   const root = findRepoRoot(cwd);
-  assertExactKeys(options, [
+  const optionFields = [
     'promotion_unit_id', 'request_path', 'proposed_request', 'subject', 'evidence',
     'recorded_at', 'supersedes_record_sha256'
-  ], 'closure prepare options');
+  ];
+  if (Object.hasOwn(options, 'projection_request_paths')) {
+    optionFields.push('projection_request_paths');
+  }
+  assertExactKeys(options, optionFields, 'closure prepare options');
   assertExactKeys(options.evidence, [
     'subject_review', 'verify', 'ac', 'checks'
   ], 'closure prepare evidence');
@@ -1574,9 +1603,16 @@ function prepareRequestClosure(cwd, options, hooks = {}) {
     prior_bytes_base64: currentBytes.toString('base64'),
     prior_sha256: sha256(currentBytes),
     proposed_bytes_base64: proposedBytes.toString('base64'),
-    proposed_sha256: sha256(proposedBytes)
+    proposed_sha256: sha256(proposedBytes),
+    ...(Object.hasOwn(options, 'projection_request_paths')
+      ? { projection_request_paths: [...options.projection_request_paths] }
+      : {})
   };
-  const projection = snapshotProjection(root, [request.relative]);
+  const projectionPaths = closureProjectionPaths(requestBlob, {
+    request_path: request.relative
+  });
+  for (const relative of projectionPaths) requestPathInRoot(root, relative);
+  const projection = snapshotProjection(root, projectionPaths);
   const record = {
     schema_version: EVIDENCE_SCHEMA_VERSION,
     kind: 'request-closure-pending',
@@ -1634,7 +1670,7 @@ function prepareRequestClosure(cwd, options, hooks = {}) {
     validateClosureSubject(root, options.subject, 'prepare');
     const currentRequest = requestPathInRoot(root, options.request_path);
     const currentBytes = fs.readFileSync(currentRequest.absolute);
-    const currentProjection = snapshotProjection(root, [currentRequest.relative]);
+    const currentProjection = snapshotProjection(root, projectionPaths);
     if (sha256(currentBytes) !== record.prior_request_content_sha256 ||
         sha256(Buffer.from(options.proposed_request)) !==
           record.proposed_request_content_sha256 ||
@@ -1723,6 +1759,7 @@ function applyRequestClosure(cwd, options, hooks = {}) {
   );
   const proposedBytes = Buffer.from(requestBlob.proposed_bytes_base64, 'base64');
   const priorBytes = Buffer.from(requestBlob.prior_bytes_base64, 'base64');
+  const projectionPaths = closureProjectionPaths(requestBlob, pending);
   const journalPath = closureApplyJournalPath(root, pending.record_sha256);
   let result;
   withStateLock(root, (state) => {
@@ -1746,7 +1783,7 @@ function applyRequestClosure(cwd, options, hooks = {}) {
       assertCurrentPending();
       assertPathIdentities(pathIdentities, label, true);
       if (!readAllSync(descriptor).equals(proposedBytes) ||
-          snapshotProjection(root, [request.relative]).fingerprint !==
+          snapshotProjection(root, projectionPaths).fingerprint !==
             pending.non_request_projection_sha256 ||
           currentHead(root) !== startingHead || currentHeadTree(root) !== startingTree) {
         throw new Error(`${label} changed before journal removal`);
@@ -1787,7 +1824,7 @@ function applyRequestClosure(cwd, options, hooks = {}) {
         pending.proposed_request_content_sha256].includes(currentHash)) {
         throw new Error('Closure apply request bytes drifted after prepare; refusing to overwrite');
       }
-      const projection = snapshotProjection(root, [request.relative]);
+      const projection = snapshotProjection(root, projectionPaths);
       if (projection.fingerprint !== pending.non_request_projection_sha256 ||
           sha256(proposedBytes) !== pending.proposed_request_content_sha256) {
         throw new Error('Closure apply inputs drifted from the pending record');
@@ -1849,7 +1886,7 @@ function applyRequestClosure(cwd, options, hooks = {}) {
       writeAllSync(descriptor, proposedBytes, 0, write);
       sync(descriptor);
       const appliedBytes = readAllSync(descriptor);
-      const appliedProjection = snapshotProjection(root, [request.relative]);
+      const appliedProjection = snapshotProjection(root, projectionPaths);
       if (!appliedBytes.equals(proposedBytes) ||
           sha256(appliedBytes) !== pending.proposed_request_content_sha256 ||
           appliedProjection.fingerprint !== pending.non_request_projection_sha256 ||
@@ -2434,7 +2471,8 @@ function finalizeRequestClosure(cwd, options, hooks = {}) {
   assertExactKeys(options, [
     'pending_record_sha256', 'recorded_at', 'supersedes_record_sha256'
   ], 'closure finalize options');
-  const pending = readEvidenceRecord(root, options.pending_record_sha256).record;
+  const pendingResult = readEvidenceRecord(root, options.pending_record_sha256);
+  const pending = pendingResult.record;
   if (pending.kind !== 'request-closure-pending') {
     throw new Error('Closure finalize requires a pending record');
   }
@@ -2448,6 +2486,14 @@ function finalizeRequestClosure(cwd, options, hooks = {}) {
   if (latestPending?.record_sha256 !== pending.record_sha256) {
     throw new Error('Closure finalize pending record is superseded or stale');
   }
+  const pendingPaths = String(runEvidenceGit(root, [
+    'ls-tree', '-r', '--name-only', pendingResult.oid
+  ])).trim().split('\n').filter(Boolean);
+  const requestBlob = validateEvidenceBlobAt(
+    root, pendingResult.oid, pending, 'request.json',
+    'proposed_request_blob_sha256', pendingPaths
+  );
+  const projectionPaths = closureProjectionPaths(requestBlob, pending);
   const recordedAt = options.recorded_at || now();
   const derive = (state) => {
     validateClosureSubject(root, pending.subject, 'finalize');
@@ -2459,7 +2505,7 @@ function finalizeRequestClosure(cwd, options, hooks = {}) {
         !completedRequest(requestBytes.toString('utf8'))) {
       throw new Error('Closure request bytes drifted from the pending Completed proposal');
     }
-    const projection = snapshotProjection(root, [request.relative]);
+    const projection = snapshotProjection(root, projectionPaths);
     if (projection.fingerprint !== pending.non_request_projection_sha256) {
       throw new Error('Closure non-request projection drifted after prepare');
     }
@@ -2874,6 +2920,10 @@ function recordPromotionEvidence(cwd, options, hooks = {}) {
     root, normalizedOptions, closure, refreshState(root), hooks
   );
   const expectedOldOid = evidenceRefOid(root);
+  const existing = expectedOldOid
+    ? evidenceRecordsAt(root, expectedOldOid).find((record) =>
+      record.record_sha256 === starting.record.record_sha256)
+    : null;
   if (typeof hooks.beforeAppend === 'function') hooks.beforeAppend(starting.record);
   let result;
   let finalRecord;
@@ -2912,10 +2962,27 @@ function recordPromotionEvidence(cwd, options, hooks = {}) {
         canonicalJson(current.blobs) !== canonicalJson(starting.blobs)) {
       throw new Error('Promotion evidence inputs drifted before append');
     }
-    finalRecord = current.record;
-    result = appendEvidenceRevisionUnlocked(root, current.record, current.blobs, {
-      expected_old_oid: expectedOldOid
-    });
+    if (existing) {
+      const latest = latestEvidenceRecord(
+        root, current.record.kind, current.record.promotion_unit_id
+      );
+      if (latest?.record_sha256 !== existing.record_sha256) {
+        throw new Error('Existing promotion evidence is no longer the latest revision');
+      }
+      finalRecord = existing;
+      result = {
+        ref: EVIDENCE_REF,
+        old_oid: expectedOldOid,
+        oid: expectedOldOid,
+        record_sha256: existing.record_sha256,
+        reused: true
+      };
+    } else {
+      finalRecord = current.record;
+      result = appendEvidenceRevisionUnlocked(root, current.record, current.blobs, {
+        expected_old_oid: expectedOldOid
+      });
+    }
     return state;
   });
   return { ...result, record: finalRecord };
@@ -5273,6 +5340,7 @@ module.exports = {
   hasSessionActivationFailure,
   hashPayloadTree,
   latestCompletionEvidence,
+  latestEvidenceRecord,
   latestCompletionEvidenceSnapshot,
   isCurrentPass,
   isSessionActive,

@@ -1,0 +1,42 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 2,
+  "target_package": "core",
+  "target_skill": "fp-brief",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/fp-brief-default-routing.test.js",
+        "test/fp-brief-default-semantics.test.js"
+      ],
+      "promotion_unit_id": "fp-brief/default",
+      "routing": {
+        "negative_boundaries": [
+          "Implement the service migration described in the proposal.",
+          "Perform a broad multi-source survey of service migration tools.",
+          "Write a feature technical specification with implementation tasks."
+        ],
+        "positive_triggers": [
+          "Create a first-principles brief from this technical proposal.",
+          "Decompose the assumptions behind our service migration decision.",
+          "Turn these design notes into a reasoning chain with sensitivity analysis."
+        ]
+      },
+      "semantic_requirements": {
+        "forbidden": [],
+        "required": [
+          "Build an assumptions register",
+          "Construct the reasoning chain from premises to conclusion",
+          "Test decision sensitivity"
+        ]
+      },
+      "source_names": [
+        "fp-brief"
+      ],
+      "target_mode": null
+    }
+  ]
+}

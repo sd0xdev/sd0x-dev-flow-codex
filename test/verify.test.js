@@ -132,7 +132,7 @@ test('package commands keep the timeout and Windows runner shim', () => {
   assert.equal(observed.command, 'npm.cmd');
   assert.deepEqual(observed.args, ['run', 'check']);
   assert.equal(observed.options.shell, true);
-  assert.equal(TIMEOUT_MS, 60 * 60 * 1000);
+  assert.equal(TIMEOUT_MS, 120 * 60 * 1000);
   assert.equal(observed.options.timeout, TIMEOUT_MS);
 });
 

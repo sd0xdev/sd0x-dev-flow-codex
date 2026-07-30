@@ -1,0 +1,38 @@
+{
+  "schema_version": 3,
+  "target_skill": "jira",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": [
+      "connector-write"
+    ]
+  },
+  "units": [
+    {
+      "promotion_unit_id": "jira/default",
+      "target_mode": null,
+      "source_names": [
+        "jira"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run jira; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical jira workflow and report its evidence.",
+          "Help me run the jira workflow for this repository.",
+          "I need the canonical jira procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/jira-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/jira-default-workflow.test.js"
+      ]
+    }
+  ]
+}

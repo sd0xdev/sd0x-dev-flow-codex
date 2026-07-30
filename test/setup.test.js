@@ -173,6 +173,54 @@ test('setup preflights invalid config before writing guidance', (t) => {
   assert.equal(fs.existsSync(path.join(root, 'AGENTS.md')), false);
 });
 
+test('setup submodes ignore damaged unrelated managed surfaces', (t) => {
+  const guidanceRoot = createRepo();
+  const hooksRoot = createRepo();
+  const scriptsRoot = createRepo();
+  t.after(() => {
+    for (const root of [guidanceRoot, hooksRoot, scriptsRoot]) {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  const guidanceConfig = path.join(
+    guidanceRoot, '.codex', 'sd0x-dev-flow.json'
+  );
+  fs.mkdirSync(path.dirname(guidanceConfig), { recursive: true });
+  fs.writeFileSync(guidanceConfig, '{broken config');
+  const guidance = setup(guidanceRoot, { mode: 'guidance' });
+  assert.equal(guidance.results.length, 1);
+  assert.match(
+    fs.readFileSync(path.join(guidanceRoot, 'AGENTS.md'), 'utf8'),
+    new RegExp(START)
+  );
+  assert.equal(fs.readFileSync(guidanceConfig, 'utf8'), '{broken config');
+
+  fs.writeFileSync(
+    path.join(hooksRoot, 'AGENTS.md'),
+    `${START}\nunterminated managed guidance\n`
+  );
+  const hooks = setup(hooksRoot, { mode: 'hooks' });
+  assert.equal(hooks.results.length, 1);
+  assert.equal(JSON.parse(fs.readFileSync(
+    path.join(hooksRoot, '.codex', 'sd0x-dev-flow.json'), 'utf8'
+  )).enabled, true);
+
+  fs.writeFileSync(
+    path.join(scriptsRoot, 'AGENTS.md'),
+    `${START}\nunterminated managed guidance\n`
+  );
+  const scriptsConfig = path.join(
+    scriptsRoot, '.codex', 'sd0x-dev-flow.json'
+  );
+  fs.mkdirSync(path.dirname(scriptsConfig), { recursive: true });
+  fs.writeFileSync(scriptsConfig, '{broken config');
+  const scripts = setup(scriptsRoot, { mode: 'scripts' });
+  assert.equal(scripts.results.length, 4);
+  assert.equal(scripts.results.every((item) => item.status === 'unchanged'), true);
+  assert.equal(fs.readFileSync(scriptsConfig, 'utf8'), '{broken config');
+});
+
 test('setup rejects non-object config without modifying project files', (t) => {
   for (const value of [[], 'abc', 42, null]) {
     const root = createRepo();
@@ -261,20 +309,15 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
     '2-tech-spec.md'
   ), 'utf8');
 
-  assert.deepEqual(skillNames, [
-    'bug-fix',
-    'create-request',
-    'doctor',
-    'feature-dev',
-    'remind',
-    'req-analyze',
-    'reset',
-    'review',
-    'setup',
-    'tech-spec',
-    'test-review',
-    'verify'
-  ]);
+  const disposition = JSON.parse(fs.readFileSync(path.join(
+    repositoryRoot, 'migration', 'source-disposition.json'
+  ), 'utf8'));
+  const expectedSkillNames = [...new Set([
+    ...disposition.skills.map((row) => row.target_skill).filter(Boolean),
+    'reset'
+  ])].sort();
+  assert.deepEqual(skillNames, expectedSkillNames);
+  assert.equal(skillNames.length, 86);
   const catalogNames = (text, pattern) => [...pattern.exec(text)[1]
     .matchAll(/`([a-z0-9-]+)`/g)].map((match) => match[1]).sort();
   const guideCatalog = /^- \d+ 個 skills：([^\n]+)$/m;
@@ -404,12 +447,10 @@ test('remind routes every review reason without unsafe retries', () => {
     'remind',
     'SKILL.md'
   ), 'utf8');
-  assert.match(skill, /reason[^\n]+reviewer-unavailable/i);
-  assert.match(skill, /do not run[^\n]+review/i);
-  assert.match(skill, /user-authorized reset|ask the user[^\n]+reset/i);
-  assert.match(skill, /reason[^\n]+review-in-progress/i);
-  assert.match(skill, /reason[^\n]+review-findings-remain/i);
-  assert.match(skill, /reason[^\n]+review-required/i);
-  assert.match(skill, /wait for[^\n]+terminal/i);
-  assert.match(skill, /fix[^\n]+findings/i);
+  assert.match(skill, /returned reason and next action exactly/i);
+  assert.match(skill, /reviewer-unavailable[^\n]+ask before reset/i);
+  assert.match(skill, /review-in-progress[^\n]+wait[^\n]+terminal/i);
+  assert.match(skill, /review-findings-remain[^\n]+fix root causes/i);
+  assert.match(skill, /review-required[^\n]+configured primary reviewer/i);
+  assert.match(skill, /never retry[^\n]+same fingerprint[^\n]+reset/i);
 });

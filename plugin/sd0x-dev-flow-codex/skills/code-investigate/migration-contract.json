@@ -1,0 +1,42 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 2,
+  "target_package": "core",
+  "target_skill": "code-investigate",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/code-investigate-default-routing.test.js",
+        "test/code-investigate-default-semantics.test.js"
+      ],
+      "promotion_unit_id": "code-investigate/default",
+      "routing": {
+        "negative_boundaries": [
+          "Determine why this cache invalidation path behaves differently in production.",
+          "Implement the cache invalidation fix now.",
+          "Map the entire service architecture and all data flows."
+        ],
+        "positive_triggers": [
+          "Ask Claude and Codex to independently confirm why this cache path differs in production.",
+          "Get independent Claude and Codex confirmation of this parser root cause.",
+          "Investigate this retry mechanism with separate Claude and Codex evidence."
+        ]
+      },
+      "semantic_requirements": {
+        "forbidden": [],
+        "required": [
+          "A configured Claude adapter receives the same neutral question and scope",
+          "Native Codex develops Position A",
+          "one model may not impersonate both positions"
+        ]
+      },
+      "source_names": [
+        "code-investigate"
+      ],
+      "target_mode": null
+    }
+  ]
+}

@@ -7,6 +7,7 @@ const { execFileSync } = require('node:child_process');
 const { configureRepository, isolateGitEnvironment } = require('./git');
 
 const ROOT = path.resolve(__dirname, '../..');
+const LEGACY_FIXTURE_COMMIT = '6bbdfbcf1294fb8cacd4efaa712ed3c51dfabc20';
 
 function copy(source, destination) {
   fs.rmSync(destination, { recursive: true, force: true });
@@ -24,6 +25,77 @@ function writeJson(root, relative, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function rewindEvidenceFixtureToStableClosureBoundary(root) {
+  const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
+  const gitEnv = {
+    ...process.env,
+    GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : os.devNull,
+    GIT_CONFIG_NOSYSTEM: '1',
+    GIT_NO_REPLACE_OBJECTS: '1'
+  };
+  const runGit = (args) => execFileSync('git', args, {
+    cwd: root,
+    encoding: 'utf8',
+    env: gitEnv
+  }).trim();
+  let output;
+  try {
+    output = runGit([
+      'grep', '-h', '-e', '"kind":"request-closure', evidenceRef, '--',
+      'records/request-closure', 'records/request-closure-pending'
+    ]);
+  } catch (error) {
+    if (error.status === 1) return;
+    throw error;
+  }
+  const latest = new Map();
+  const checkoutIncompatible = new Set();
+  for (const line of output.split('\n').filter(Boolean)) {
+    const record = JSON.parse(line);
+    if (typeof record.request_path === 'string' &&
+        !fs.existsSync(path.join(root, record.request_path))) {
+      checkoutIncompatible.add(record.record_sha256);
+    }
+    const key = `${record.kind}\0${record.promotion_unit_id}`;
+    const current = latest.get(key);
+    if (!current || Date.parse(record.recorded_at) > Date.parse(current.recorded_at)) {
+      latest.set(key, record);
+    }
+  }
+  const unmatchedPending = new Set();
+  for (const [key, closure] of latest) {
+    if (!key.startsWith('request-closure\0')) continue;
+    const pending = latest.get(
+      `request-closure-pending\0${closure.promotion_unit_id}`
+    );
+    if (pending && pending.record_sha256 !== closure.pending_record_sha256) {
+      unmatchedPending.add(pending.record_sha256);
+    }
+  }
+  const incompatibleRecords = new Set([
+    ...unmatchedPending,
+    ...checkoutIncompatible
+  ]);
+  if (incompatibleRecords.size === 0) return;
+  const history = runGit([
+    'log', '--reverse', '--format=%H%x00%s', evidenceRef, '--',
+    'records/request-closure-pending'
+  ]).split('\n').filter(Boolean);
+  const firstIncompatible = history.find((line) => {
+    const separator = line.indexOf('\0');
+    return separator !== -1 && incompatibleRecords.has(
+      line.slice(separator + 1).split(' ').at(-1)
+    );
+  });
+  if (!firstIncompatible) {
+    throw new Error('Unable to locate incompatible pending closure history');
+  }
+  const commit = firstIncompatible.slice(0, firstIncompatible.indexOf('\0'));
+  const current = runGit(['rev-parse', evidenceRef]);
+  const stable = runGit(['rev-parse', `${commit}^`]);
+  runGit(['update-ref', evidenceRef, stable, current]);
+}
+
 function fixtureRoot(options = {}) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-migration-audit-'));
   const root = path.join(workspace, 'repo');
@@ -32,6 +104,11 @@ function fixtureRoot(options = {}) {
     env: process.env
   });
   configureRepository(root);
+  execFileSync('git', ['checkout', '--detach', '--quiet', LEGACY_FIXTURE_COMMIT], {
+    cwd: root,
+    env: process.env
+  });
+  const historicalDisposition = readJson(root, 'migration/source-disposition.json');
   if (options.copyEvidenceRef) {
     const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
     const subjectRefs = 'refs/sd0x-dev-flow-codex/subjects/*';
@@ -46,9 +123,18 @@ function fixtureRoot(options = {}) {
         GIT_CONFIG_NOSYSTEM: '1'
       }
     });
+    // A copied development ledger can end at an intentionally unfinished
+    // prepare/apply transaction. Evidence tests need the latest ancestor where
+    // every existing closure still consumes the latest pending record; otherwise
+    // an unrelated in-progress closure masks the invariant each fixture mutates.
+    rewindEvidenceFixtureToStableClosureBoundary(root);
   }
   copy(path.join(ROOT, 'migration'), path.join(root, 'migration'));
-  const disposition = readJson(root, 'migration/source-disposition.json');
+  const currentAliasCapability = readJson(ROOT, 'migration/alias-capability.json');
+  const currentAliasOwner = currentAliasCapability.owner_request_path;
+  fs.mkdirSync(path.dirname(path.join(root, currentAliasOwner)), { recursive: true });
+  fs.copyFileSync(path.join(ROOT, currentAliasOwner), path.join(root, currentAliasOwner));
+  const disposition = structuredClone(historicalDisposition);
   for (const [sourceName, deliveryState] of Object.entries(
     options.deliveryStateOverrides || {}
   )) {
@@ -67,10 +153,6 @@ function fixtureRoot(options = {}) {
     }
   }
   writeJson(root, 'migration/source-disposition.json', disposition);
-  copy(path.join(ROOT, 'plugin', 'sd0x-dev-flow-codex', 'skills'),
-    path.join(root, 'plugin', 'sd0x-dev-flow-codex', 'skills'));
-  copy(path.join(ROOT, 'docs', 'features', 'skill-toolkit-migration'),
-    path.join(root, 'docs', 'features', 'skill-toolkit-migration'));
   if (!options.copyEvidenceRef && !options.preserveCompletedCandidateOwners) {
     const candidateOwners = new Map();
     for (const row of disposition.skills) {
@@ -118,8 +200,7 @@ function fixtureRoot(options = {}) {
     'docs/MIGRATION.md',
     'docs/PROJECT-MIGRATION-GUIDE.md',
     'plugin/sd0x-dev-flow-codex/.codex-plugin/plugin.json',
-    'scripts/research-contract-test.js',
-    'scripts/research-semantic-contracts.json',
+    'plugin/sd0x-dev-flow-codex/skills/setup/scripts/setup.js',
     'scripts/supplemental-behavior-tests.json',
     'scripts/skill-routing-test.js'
   ]) {

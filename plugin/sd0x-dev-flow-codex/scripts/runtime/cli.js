@@ -2,6 +2,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { readProjectConfig } = require('./config');
@@ -21,7 +22,7 @@ const {
   summarize
 } = require('./state');
 const { snapshot } = require('./worktree');
-const { runVerification } = require('./verify');
+const { runPrecommitMode, runVerification } = require('./verify');
 const {
   claudeRequiredFlags,
   resolveClaudeExecutable
@@ -211,45 +212,97 @@ function mcpServerStatus(pluginRoot, execute = spawnSync) {
   };
 }
 
+function payloadInventoryChecks(pluginRoot) {
+  const manifestRelative = '.codex-plugin/payload-manifest.json';
+  const manifestPath = path.join(pluginRoot, manifestRelative);
+  const readRegularNoFollow = (filePath) => {
+    const observed = fs.lstatSync(filePath, { bigint: true });
+    if (observed.isSymbolicLink() || !observed.isFile()) {
+      throw new Error('payload entry must be a regular file');
+    }
+    const descriptor = fs.openSync(filePath,
+      fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
+    try {
+      const opened = fs.fstatSync(descriptor, { bigint: true });
+      if (!opened.isFile() || opened.dev !== observed.dev ||
+          opened.ino !== observed.ino || opened.mode !== observed.mode ||
+          opened.size !== observed.size) {
+        throw new Error('payload entry changed while opening');
+      }
+      return fs.readFileSync(descriptor);
+    } finally {
+      fs.closeSync(descriptor);
+    }
+  };
+  let manifest;
+  try {
+    manifest = JSON.parse(readRegularNoFollow(manifestPath).toString('utf8'));
+  } catch {
+    return [{ check: manifestRelative, ok: false }];
+  }
+  const files = manifest?.schema_version === 1 && Array.isArray(manifest.files)
+    ? manifest.files
+    : null;
+  if (!files || files.length === 0) {
+    return [{ check: manifestRelative, ok: false }];
+  }
+  const paths = files.map((entry) => entry?.path);
+  const sorted = [...paths].sort((left, right) =>
+    Buffer.from(left || '').compare(Buffer.from(right || '')));
+  if (new Set(paths).size !== paths.length ||
+      JSON.stringify(paths) !== JSON.stringify(sorted) ||
+      files.some((entry) => typeof entry?.path !== 'string' ||
+        !/^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/.test(entry.path) ||
+        entry.path === manifestRelative ||
+        !/^[a-f0-9]{64}$/.test(entry.sha256 || ''))) {
+    return [{ check: manifestRelative, ok: false }];
+  }
+  const actualPaths = [];
+  const visit = (absolute, relative = '') => {
+    const entries = fs.readdirSync(absolute, { withFileTypes: true })
+      .sort((left, right) => Buffer.from(left.name).compare(Buffer.from(right.name)));
+    for (const entry of entries) {
+      const childRelative = relative ? `${relative}/${entry.name}` : entry.name;
+      if (childRelative === manifestRelative) continue;
+      const childAbsolute = path.join(absolute, entry.name);
+      if (entry.isDirectory()) visit(childAbsolute, childRelative);
+      else if (entry.isFile()) actualPaths.push(childRelative);
+      else if (entry.isSymbolicLink()) {
+        actualPaths.push(`${childRelative}#symbolic-link`);
+      }
+      else actualPaths.push(`${childRelative}#unsupported-file-type`);
+    }
+  };
+  try {
+    visit(pluginRoot);
+  } catch {
+    return [{ check: manifestRelative, ok: false }];
+  }
+  actualPaths.sort((left, right) => Buffer.from(left).compare(Buffer.from(right)));
+  const inventoryMatches = JSON.stringify(paths) === JSON.stringify(actualPaths);
+  const checks = [{ check: manifestRelative, ok: inventoryMatches }];
+  for (const entry of files) {
+    let ok = false;
+    try {
+      const bytes = readRegularNoFollow(
+        path.join(pluginRoot, ...entry.path.split('/'))
+      );
+      ok = crypto.createHash('sha256').update(bytes).digest('hex') === entry.sha256;
+    } catch {
+      ok = false;
+    }
+    checks.push({ check: entry.path, ok });
+  }
+  for (const extra of actualPaths.filter((relative) => !paths.includes(relative))) {
+    checks.push({ check: extra, ok: false });
+  }
+  return checks;
+}
+
 function doctor(cwd, options = {}) {
   const pluginRoot = options.pluginRoot || path.resolve(__dirname, '..', '..');
   const projectConfig = readProjectConfig(cwd);
-  const required = [
-    '.codex-plugin/plugin.json',
-    '.mcp.json',
-    'hooks/hooks.json',
-    'scripts/runtime/collaboration.js',
-    'scripts/mcp/server.js',
-    'skills/bug-fix/SKILL.md',
-    'skills/create-request/SKILL.md',
-    'skills/create-request/references/request-format.md',
-    'skills/create-request/scripts/request-tool.js',
-    'skills/doctor/SKILL.md',
-    'skills/doctor/scripts/doctor.js',
-    'skills/feature-dev/SKILL.md',
-    'skills/remind/SKILL.md',
-    'skills/remind/scripts/status.js',
-    'skills/reset/SKILL.md',
-    'skills/reset/scripts/reset.js',
-    'skills/review/SKILL.md',
-    'skills/review/references/review-theory.md',
-    'skills/review/scripts/gate.js',
-    'skills/review/scripts/provider.js',
-    'skills/review/scripts/round.js',
-    'skills/review/scripts/snapshot.js',
-    'skills/verify/SKILL.md',
-    'skills/verify/scripts/verify.js',
-    'skills/setup/SKILL.md',
-    'skills/setup/scripts/setup.js',
-    'skills/test-review/SKILL.md',
-    'skills/test-review/migration-contract.json',
-    'templates/agents/sd0x-claude-primary-reviewer.toml',
-    'templates/agents/sd0x-codex-primary-reviewer.toml'
-  ];
-  const checks = required.map((relative) => ({
-    check: relative,
-    ok: fs.existsSync(path.join(pluginRoot, relative))
-  }));
+  const checks = payloadInventoryChecks(pluginRoot);
   const nodeMajor = options.nodeMajor ?? Number(process.versions.node.split('.')[0]);
   checks.push({ check: 'node>=24', ok: nodeMajor >= 24 });
   checks.push({ check: 'state-path', ok: Boolean(resolveStatePath(cwd)) });
@@ -299,6 +352,7 @@ function usage() {
     '  cli.js reset',
     '  cli.js doctor',
     '  cli.js verify',
+    '  cli.js verify-mode <fast|precommit> [--allow-fixes]',
     '  cli.js gate review <pass|fail> --evidence JSON',
     '  cli.js closure prepare --input-file PATH',
     '  cli.js closure apply --input-file PATH',
@@ -340,6 +394,21 @@ function main(argv = process.argv.slice(2), cwd = process.cwd()) {
     });
     process.stdout.write(`\nVerification gate: ${result.status}\n`);
     return result.status === 'pass' ? 0 : 1;
+  }
+  if (command === 'verify-mode') {
+    const mode = gate;
+    const allowed = new Set(['verify-mode', mode, '--allow-fixes']);
+    if (!['fast', 'precommit'].includes(mode) ||
+        argv.some((arg) => !allowed.has(arg))) {
+      throw new Error(
+        'usage: cli.js verify-mode <fast|precommit> [--allow-fixes]'
+      );
+    }
+    const result = runPrecommitMode(cwd, mode, {
+      allowFixes: argv.includes('--allow-fixes')
+    });
+    print(result);
+    return result.outcome === 'pass' ? 0 : 1;
   }
   if (command === 'closure' && gate === 'prepare') {
     print(prepareRequestClosure(cwd, parseInput(argv)));
@@ -408,6 +477,7 @@ module.exports = {
   doctor,
   main,
   mcpServerStatus,
+  payloadInventoryChecks,
   parseInput,
   parseEvidence
 };

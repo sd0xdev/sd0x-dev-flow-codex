@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "seek-verdict",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "seek-verdict/default",
   "required": [
     "A P0/P1 candidate binds `finding_key + fingerprint + dismissal_evidence_hash`",

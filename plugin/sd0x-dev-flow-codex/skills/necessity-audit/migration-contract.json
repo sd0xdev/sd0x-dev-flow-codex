@@ -1,0 +1,33 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "necessity-audit",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/necessity-audit-default-routing.test.js"
+      ],
+      "promotion_unit_id": "necessity-audit/default",
+      "routing": {
+        "negative_boundaries": [
+          "Compare technical implementation approaches by feasibility, effort, and risk.",
+          "Implement the approved simplifications and modify production code.",
+          "Review whether the existing plan is internally coherent and complete."
+        ],
+        "positive_triggers": [
+          "Audit whether the proposed multi-tenant configuration is necessary now or is speculative over-design.",
+          "Challenge each requirement and abstraction against user value, status quo, and cheaper alternatives.",
+          "Identify removable scope and explicit stop criteria before feasibility or design begins."
+        ]
+      },
+      "source_names": [
+        "necessity-audit"
+      ],
+      "target_mode": null
+    }
+  ]
+}

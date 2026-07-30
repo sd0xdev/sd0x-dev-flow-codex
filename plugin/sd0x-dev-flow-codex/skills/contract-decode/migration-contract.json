@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "contract-decode",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "contract-decode/default",
+      "target_mode": null,
+      "source_names": [
+        "contract-decode"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run contract-decode; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical contract-decode workflow and report its evidence.",
+          "Help me run the contract-decode workflow for this repository.",
+          "I need the canonical contract-decode procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/contract-decode-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/contract-decode-default-workflow.test.js"
+      ]
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "issue-analyze",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "issue-analyze/default",
   "required": [
     "A Claude-origin finding goes to native Codex",

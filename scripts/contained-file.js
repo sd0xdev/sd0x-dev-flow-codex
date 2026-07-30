@@ -185,6 +185,21 @@ function assertFileIdentity(filePath, captured, label) {
   }
 }
 
+function readDescriptorBytes(descriptor, stat, label) {
+  const size = Number(stat.size);
+  if (!Number.isSafeInteger(size) || size < 0) {
+    fail(`${label} size cannot be represented safely`);
+  }
+  const bytes = Buffer.alloc(size);
+  let offset = 0;
+  while (offset < size) {
+    const count = fs.readSync(descriptor, bytes, offset, size - offset, offset);
+    if (count === 0) fail(`${label} ended before its captured size`);
+    offset += count;
+  }
+  return bytes;
+}
+
 function atomicWriteContainedFile(root, target, bytes, options = {}) {
   ensureAncestors(root, target);
   const captured = options.captured || captureTarget(root, target, true);
@@ -222,7 +237,7 @@ function atomicWriteContainedFile(root, target, bytes, options = {}) {
       priorDescriptor = fs.openSync(boundTarget,
         fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0));
       const opened = fs.fstatSync(priorDescriptor, { bigint: true });
-      const priorBytes = fs.readFileSync(priorDescriptor);
+      const priorBytes = readDescriptorBytes(priorDescriptor, opened, 'prior file');
       const priorSha256 = crypto.createHash('sha256').update(priorBytes).digest('hex');
       if (!captured.sha256) captured.sha256 = priorSha256;
       if (!sameIdentity(identity(opened), captured.target) ||
@@ -277,7 +292,7 @@ function atomicWriteContainedFile(root, target, bytes, options = {}) {
     if (displacedTarget) {
       assertFileIdentity(boundDisplaced, captured, 'displaced file');
       const opened = fs.fstatSync(priorDescriptor, { bigint: true });
-      const priorBytes = fs.readFileSync(priorDescriptor);
+      const priorBytes = readDescriptorBytes(priorDescriptor, opened, 'prior file');
       if (!sameIdentity(identity(opened), captured.target) ||
           crypto.createHash('sha256').update(priorBytes).digest('hex') !==
             captured.sha256) {

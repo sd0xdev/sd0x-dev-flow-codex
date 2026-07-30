@@ -1,9 +1,209 @@
 {
   "schema_version": 1,
   "units": {
+    "bump-version/default": {
+      "path": "test/bump-version-default-workflow.test.js",
+      "sha256": "c9001ef9f054af44655d3cf92bcd967af5d3a1cf869e2b0fa712e05fe2380696"
+    },
+    "contract-decode/default": {
+      "path": "test/contract-decode-default-workflow.test.js",
+      "sha256": "b2030fb1b942572d08fe659a9fb2256e6d3c6d793f81af1f13bf3290425d2046"
+    },
+    "create-pr/default": {
+      "path": "test/create-pr-default-workflow.test.js",
+      "sha256": "4999569f2f65a67543c85b521e302a5b0be0ea96f3e26bb5d66a4ace62dcd7d2"
+    },
+    "de-ai-flavor/default": {
+      "path": "test/de-ai-flavor-default-workflow.test.js",
+      "sha256": "dcad3bc5f140d60fdb520119c0c1c1657a8378907f37bc8fb6622dbb1adca409"
+    },
     "debug/default": {
       "path": "test/debug-probe-policy.test.js",
-      "sha256": "5f7020b49d420b498d0e589a26f32f7caa2d3c0a25e3fd3c4eb40094ed247be4"
+      "sha256": "b3fd91f38a61a18e0a52f44636cacf214e7e6b2615e55340a6ad37769b84199b"
+    },
+    "dev-security-audit/default": {
+      "path": "test/dev-security-audit-default-workflow.test.js",
+      "sha256": "8399d12edd53edbbb91743b84c6c214d47b661203a5cdc00772aef06134f7faa"
+    },
+    "doc-refactor/default": {
+      "path": "test/doc-refactor-default-workflow.test.js",
+      "sha256": "e290b3b435971927729dcb3d46fb385237a40b037619f71fd6d250936f706346"
+    },
+    "doctor/claude": {
+      "path": "test/doctor-claude-workflow.test.js",
+      "sha256": "da4434d11a147a1514113145c2ab19d9ccfb8b6c46fd99bd701d416b204a9729"
+    },
+    "epic-merge/default": {
+      "path": "test/epic-merge-default-workflow.test.js",
+      "sha256": "21058b20b4a928e07cd5bfc33fb0b59a71281ccb6a44a5a0a70f00f877eac0ad"
+    },
+    "feature-verify/default": {
+      "path": "test/feature-verify-default-workflow.test.js",
+      "sha256": "0d28c8ea7025a35ac9f950add3677f24e68b0603fae158a51a645a21242fc5b2"
+    },
+    "generate-runner/default": {
+      "path": "test/generate-runner-default-workflow.test.js",
+      "sha256": "76d817268f936dba8cfdeb071b173ff0c24368f5cc85adbbdbb19bdc21363923"
+    },
+    "git-profile/default": {
+      "path": "test/git-profile-default-workflow.test.js",
+      "sha256": "5515aaf6011ef89f79964f644b9b57823731d38ee24b531a74e98dc0151a8fc3"
+    },
+    "jira/default": {
+      "path": "test/jira-default-workflow.test.js",
+      "sha256": "6a1b400ab17a0eafab8172544a9493cb14b4df4bba167ac86d130259d387f7fa"
+    },
+    "load-pr-review/default": {
+      "path": "test/load-pr-review-default-workflow.test.js",
+      "sha256": "774ca487b54c3a673aa7cf96e15bbde82df50e7fab4a62d2345e5a28b91f7437"
+    },
+    "merge-prep/default": {
+      "path": "test/merge-prep-default-workflow.test.js",
+      "sha256": "b5ff5a6100516b949c17191f0c73847c3ba6b16c3aa8c618c8ddbad29f384582"
+    },
+    "next-step/default": {
+      "path": "test/next-step-default-workflow.test.js",
+      "sha256": "5ae9da4ec0ee9f77bddeab879072269686ec0c75b327a7eecaba2ecc510a1bb4"
+    },
+    "obsidian-cli/default": {
+      "path": "test/obsidian-cli-default-workflow.test.js",
+      "sha256": "b29640f43432a2074007dae766e17d4aed1766f0f75184663ba385dc4b878285"
+    },
+    "op-session/default": {
+      "path": "test/op-session-default-workflow.test.js",
+      "sha256": "9324a60a6795538526047318747e2ad8fa42fa784551f8f59693a7e7f425e72f"
+    },
+    "orchestrate/default": {
+      "path": "test/orchestrate-default-workflow.test.js",
+      "sha256": "0c8dd1a173f4676bc34b0f9c856d66612d3982af493e9a965d13c535732d8ef3"
+    },
+    "portfolio/default": {
+      "path": "test/portfolio-default-workflow.test.js",
+      "sha256": "a691fa3ae7ef71b192959794eb2d5954cbe5d292b5d3b16ce9275ab84addef73"
+    },
+    "post-dev-recap/default": {
+      "path": "test/post-dev-recap-default-workflow.test.js",
+      "sha256": "e393c9a21cd82a10c4ea00a628510b374c99662ee40346786d76b773b483d290"
+    },
+    "pr-comment/default": {
+      "path": "test/pr-comment-default-workflow.test.js",
+      "sha256": "958bfac184858247085752e81088cdc481bc6e779e3551839056ef144199f28f"
+    },
+    "pr-review/default": {
+      "path": "test/pr-review-default-workflow.test.js",
+      "sha256": "1eff8a18ffde052f34a177b320ae8d2756a9cd2cf5a931d0305456b0ce635e15"
+    },
+    "pr-summary/default": {
+      "path": "test/pr-summary-default-workflow.test.js",
+      "sha256": "55d3af0806639b4640ae8c738a8707a29980c29d80d55ff1a2b2dd071f6e2ab6"
+    },
+    "project-brief/default": {
+      "path": "test/project-brief-default-workflow.test.js",
+      "sha256": "40dc8dc565c5ca72dc3eb1c1d7daa9a8f4d8cb6cccde485b7ad60d2221a2abc3"
+    },
+    "push-ci/default": {
+      "path": "test/push-ci-default-workflow.test.js",
+      "sha256": "163674a3b1e20745900058ac87222d6f066975ab58b400f02040eedf9d4f2f5b"
+    },
+    "readme-i18n-sync/default": {
+      "path": "test/readme-i18n-sync-default-workflow.test.js",
+      "sha256": "f8bdb344271dd4686b050e85332f19ae6b86f8ca0b13346c9ad9e3ff23e9d14d"
+    },
+    "recap-ask/default": {
+      "path": "test/recap-ask-default-workflow.test.js",
+      "sha256": "de8c0413a48d90e1e7b011e1b886b6f2d7523fec96256b491a954dff054a7289"
+    },
+    "recap-doc/default": {
+      "path": "test/recap-doc-default-workflow.test.js",
+      "sha256": "e74b0acf101817916c583dd80e3bfd95f95e9b5a750d3d9453bd2a307da84a2c"
+    },
+    "remind/default": {
+      "path": "test/remind-default-workflow.test.js",
+      "sha256": "94a056ff4015a11cc61df627980b565c6854946cfc240c23a6a1888941290e01"
+    },
+    "repo-intake/default": {
+      "path": "test/repo-intake-default-workflow.test.js",
+      "sha256": "3dacb76de4925b80c3f68efe6ed66cdc3e95d34a5ba5bc23c12bfce80f7bae77"
+    },
+    "runbook/default": {
+      "path": "test/runbook-default-workflow.test.js",
+      "sha256": "8eb844c7aad0fa572683e73ce9b9ad602e762765ebcb26d44a5d16ea0bc7761a"
+    },
+    "safe-remove/default": {
+      "path": "test/safe-remove-default-workflow.test.js",
+      "sha256": "1286b8a6a36eb3c09d154c0122ae1f3c7e55fd9955616a21bcbc8e6dc25c37f7"
+    },
+    "setup/default": {
+      "path": "test/setup-default-workflow.test.js",
+      "sha256": "6c9721ed420f8c282b3e199857f1430b827ede325bf058bb6e9e710d35576592"
+    },
+    "setup/guidance": {
+      "path": "test/setup-guidance-workflow.test.js",
+      "sha256": "f61c374125393e51ac14643594e94305e0afa1e8f626bf0ee0074e58132f1837"
+    },
+    "setup/hooks": {
+      "path": "test/setup-hooks-workflow.test.js",
+      "sha256": "62ad4e04c378deb5328d94c53189a4b2d455f706b8a7fa907af761463d6f2e5e"
+    },
+    "setup/scripts": {
+      "path": "test/setup-scripts-workflow.test.js",
+      "sha256": "427a0c8e8dda63a4eca62dbe232e2062b123bb7da07d6a7dc67a9691d621a799"
+    },
+    "sharingan/default": {
+      "path": "test/sharingan-default-workflow.test.js",
+      "sha256": "c3f51b49f2125d9c23957abdf17ef03ccc7d3457860dd42e7caeefc12df0b165"
+    },
+    "skill-health-check/default": {
+      "path": "test/skill-health-check-default-workflow.test.js",
+      "sha256": "fc177fd52892694cee9268090e486ea8c97395d4eac82e994cd7bc10853b9d54"
+    },
+    "smart-commit/default": {
+      "path": "test/smart-commit-default-workflow.test.js",
+      "sha256": "eedaa9770b13c2b24530044c14c84a0554708e71a8285240ed9f54570e3649c4"
+    },
+    "smart-rebase/default": {
+      "path": "test/smart-rebase-default-workflow.test.js",
+      "sha256": "859c828c216cc11e8af21d25040b86acd3812aefe44c3dbb4fa68927c0af1b6f"
+    },
+    "statusline-config/default": {
+      "path": "test/statusline-config-default-workflow.test.js",
+      "sha256": "a36f10bf538496e3093cd4cd043eea5e265d083316044e4d51401076a10e43cc"
+    },
+    "tech-brief/default": {
+      "path": "test/tech-brief-default-workflow.test.js",
+      "sha256": "f56b808ccbb3619764660a77a4957d98d0b3ae17eaf97d51e3932520558f8099"
+    },
+    "ui-first-principles/default": {
+      "path": "test/ui-first-principles-default-workflow.test.js",
+      "sha256": "66e2d6bd15755528028557b7bef78005c45d7e4fbdc43d4f95dcac3758b605e0"
+    },
+    "update-docs/default": {
+      "path": "test/update-docs-default-workflow.test.js",
+      "sha256": "d23dc711f7741d9764579a01af2b38dde46c62bee87b7100ef6518d004f804a8"
+    },
+    "update-readme/default": {
+      "path": "test/update-readme-default-workflow.test.js",
+      "sha256": "dfbb62e4de59df9c77733221024f434fd0a61f20c5488d4a51f7f2e2e0f1f984"
+    },
+    "verify/default": {
+      "path": "test/verify-default-workflow.test.js",
+      "sha256": "5ed69abeca439daff4db8c0aaa45140a01537885a8af73b59c32c3a15a07dc57"
+    },
+    "verify/fast": {
+      "path": "test/verify-fast-workflow.test.js",
+      "sha256": "404046dac150242dcced4be75c559d5a711268212a390867f05b119096c3ba52"
+    },
+    "verify/precommit": {
+      "path": "test/verify-precommit-workflow.test.js",
+      "sha256": "7f1e54dbfec262d6c08f1c83ae462120babd9335698083fd116e86fdf98ec50a"
+    },
+    "watch-ci/default": {
+      "path": "test/watch-ci-default-workflow.test.js",
+      "sha256": "71373000cd30d7c226b8e3f02fc775e9b3cb347782861548382cafb0d00aed20"
+    },
+    "zh-tw/default": {
+      "path": "test/zh-tw-default-workflow.test.js",
+      "sha256": "6499a726af1c6827d1af91e91bbff6b5f1bc96fb177db79f7f275d62e8d7a44d"
     }
   }
 }

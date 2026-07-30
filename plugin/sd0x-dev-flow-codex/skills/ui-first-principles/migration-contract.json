@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "ui-first-principles",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "ui-first-principles/default",
+      "target_mode": null,
+      "source_names": [
+        "ui-first-principles"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run ui-first-principles; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical ui-first-principles workflow and report its evidence.",
+          "Help me run the ui-first-principles workflow for this repository.",
+          "I need the canonical ui-first-principles procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/ui-first-principles-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/ui-first-principles-default-workflow.test.js"
+      ]
+    }
+  ]
+}

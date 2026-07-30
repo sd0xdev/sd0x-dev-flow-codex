@@ -1,0 +1,5 @@
+# Orchestrate Planner Contract
+
+The planner receives the user's objective, its caller-computed SHA-256 digest, repository signals, canonical skill inventory, typed admission policy, budgets, and the plan schema. It independently derives a plan and returns only the closed typed data object expected by the validator. The objective prose remains outside the serialized plan; only its digest is recorded. It expresses the requested work through the closed operation, concern, canonical selector, evidence, and output fields. It does not write worker questions; the validator renders dispatch messages from typed task records.
+
+It may not receive a preferred conclusion, hidden mutation permission, secret values, fetched instructions, or a preselected worker sequence. Tasks, rationale, evidence, done criteria, stop conditions, and required outputs use only the schema enums and typed records. Repository evidence names existing regular files through no symlinks and excludes protected paths. Mutation ideas become proposed handoffs, and review or verification results cannot be encoded in the plan.

@@ -1,0 +1,34 @@
+{
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "schema_version": 1,
+  "target_package": "core",
+  "target_skill": "security-review",
+  "units": [
+    {
+      "behavior_tests": [
+        "test/security-review-default-routing.test.js"
+      ],
+      "promotion_unit_id": "security-review/default",
+      "routing": {
+        "negative_boundaries": [
+          "Assess general code quality and maintainability for merge readiness.",
+          "Check current dependency advisories across the whole lockfile.",
+          "Estimate release risk across compatibility, rollout, and operations."
+        ],
+        "positive_triggers": [
+          "Perform a threat-driven security review of this authentication change.",
+          "Review this API diff for authorization, injection, secrets, and data exposure risks.",
+          "Security-audit the selected module and provide evidence-backed findings."
+        ]
+      },
+      "source_names": [
+        "codex-security",
+        "security-review"
+      ],
+      "target_mode": null
+    }
+  ]
+}

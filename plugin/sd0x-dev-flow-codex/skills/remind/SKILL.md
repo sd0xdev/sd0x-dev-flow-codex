@@ -1,28 +1,37 @@
 ---
 name: remind
-description: Inspect sd0x Dev Flow state and resume the next required review or verification action. Use when a task was interrupted, after compaction, when asked what remains, or when the auto-loop reports an unfinished gate.
+description: "Route remind using exact migration registry [{\"unit\":\"remind/default\",\"routing\":{\"negative_boundaries\":[\"Do not run remind; only execute deterministic repository verification.\",\"Only assess test coverage, acceptance criteria, flakiness, and verification gaps.\",\"Only review the current code changes for correctness and defects.\"],\"positive_triggers\":[\"Apply the canonical remind workflow and report its evidence.\",\"Help me run the remind workflow for this repository.\",\"I need the canonical remind procedure with its safety boundaries.\"]}}]."
 ---
 
-# Resume the Loop
+# Resume the sd0x Loop
 
-Resolve this skill's installed directory from the current `SKILL.md`, then run:
+The allowlisted bundled entrypoint below performs the read-only status inspection. Follow the returned reason and next action exactly.
 
-```bash
-node "<this-skill-directory>/scripts/status.js"
+## Bounded runtime
+
+`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"remind/status.js","cwd":"<repository-root>","args":[]}'`
+
+- `reviewer-unavailable`: preserve failure evidence and ask before reset.
+- `review-in-progress`: wait for the configured primary terminal result.
+- `review-findings-remain`: fix root causes, then review the new fingerprint.
+- `review-required`: dispatch only the configured primary reviewer.
+- `verification-required` or `verification-failed`: default verify follows only after review passes.
+- `all-required-gates-pass`: report completion for that exact fingerprint.
+
+Never retry a failed reviewer on the same fingerprint without a user-authorized reset.
+
+<!-- sd0x-routing-contract:v1 unit=remind/default -->
+```json
+{
+  "positive_triggers": [
+    "Apply the canonical remind workflow and report its evidence.",
+    "Help me run the remind workflow for this repository.",
+    "I need the canonical remind procedure with its safety boundaries."
+  ],
+  "negative_boundaries": [
+    "Do not run remind; only execute deterministic repository verification.",
+    "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+    "Only review the current code changes for correctness and defects."
+  ]
+}
 ```
-
-Inspect `reason` before following `next_action`:
-
-- If `reason` is `reviewer-unavailable`, do not run `$sd0x-dev-flow-codex:review` again on the same fingerprint. Report that the failed gate and reviewer ledger remain intact, then ask the user before a user-authorized reset. Restoring reviewer identities may require a new Codex task, but restart alone does not clear evidence; reset or a genuine fingerprint change is still required.
-- If `reason` is `review-in-progress`, wait for every terminal reviewer result. If the ledger is stale, do not spawn replacements; ask the user before reset.
-- If `reason` is `review-findings-remain`, inspect and fix the recorded findings, then run `$sd0x-dev-flow-codex:review` against the new fingerprint.
-- If `reason` is `review-required`, run `$sd0x-dev-flow-codex:review`.
-
-For the remaining actions, follow `next_action` exactly:
-
-- `verify`: run `$sd0x-dev-flow-codex:verify`.
-- `complete`: report that all required gates pass for this fingerprint.
-
-The loop has no retry ceiling. If the runtime evidence is stale or the user wants
-to restart the workflow, explain that `$sd0x-dev-flow-codex:reset` clears only
-sd0x gate evidence and requires explicit user invocation.

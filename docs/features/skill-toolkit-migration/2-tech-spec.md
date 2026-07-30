@@ -2,7 +2,7 @@
 
 > **Doc class**: Lifecycle — Phase 2 technical specification
 > **Created**: 2026-07-10
-> **Updated**: 2026-07-12
+> **Updated**: 2026-07-28
 > **Status**: Proposed
 > **Primary source snapshot**: `sd0x-dev-flow@f4187c53eb746b6f84eb1f413e7210bd506e6db9` (`v3.0.12-18-gf4187c5`) + pinned two-skill local overlay
 > **Request tickets**: See [`requests/`](./requests/)
@@ -11,7 +11,7 @@
 
 ### 1.1 Problem
 
-Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flow` 的完整 skill 工具包。可重現 Git snapshot 有 98 個 skills / 263 files / 138 references / 25 scripts；目前 sibling 開發環境另有兩個 ignored local-only skills，共 3 files / 1 reference。Composite inventory 因此是 100 / 266 / 139 / 25；Wave 1 的 `req-analyze` 與 `tech-spec` final payload 已進入 gate transaction，目標 repository 只有 12 個核心 skills。若逐檔直拷，Claude Code tool names、hook payload、session state、Codex MCP 角色與 mutation authorization 會在 Codex runtime 失真；若只挑少數重寫，又會遺失來源長期累積的工作流理論。
+Codex-native review auto loop 已完成，來源 `sd0x-dev-flow` 的完整 skill 工具包也已完成 Codex-native adaptation。可重現 Git snapshot 有 98 個 skills / 263 files / 138 references / 25 scripts；sibling 開發環境另有兩個 pinned local-only skills，共 3 files / 1 reference。Composite inventory 因此是 100 / 266 / 139 / 25；100 個 source rows 收斂為 95 個 promotion units、85 個 canonical targets，目標 repository 只有 86 個核心 skills（含額外的 `reset` runtime recovery）。
 
 ### 1.2 Goals
 
@@ -19,13 +19,13 @@ Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flo
 2. 優先交付需求生命週期、研究決策、Git/CI 交付等高價值 skills。
 3. 保留來源核心理論：problem/solution/execution 文件分層、獨立研究、Nash 式對抗辯論、evidence-first synthesis、最小權限與顯式 mutation authorization。
 4. 所有 live skills 使用 Codex-native tools、events 與 state；不得把 Claude hook payload 當作 Codex runtime contract。
-5. 只有 curated-core allowlist 可 promotion 到 `plugin/sd0x-dev-flow-codex/skills/`；其餘 skills 產生 separate-pack-ready payload/spec，且各自通過相稱 gates，不能膨脹 core。
+5. 把所有 100 個 source skills 收斂為 95 個 canonical live promotion units，逐一 promotion 到唯一 distributable plugin；33 個既有 pack-ready payload 必須經 revision transaction 正式升級，不能把 repository-only handoff 當作完成。
 
 ### 1.3 Non-Goals
 
-- 本規格階段不一次建立 100 個 live entrypoints。
-- 不把 100-row inventory/table 等同於 100 個 core live skills；non-core destination 必須是 separate plugin pack。
-- 不複製 Claude-only statusline、`.claude/` installer 或 `mcp__codex__*` choreography 到 Codex runtime。
+- 不為 mapping-only compatibility aliases 建立重複 live entrypoints；100 個 source rows 仍由 canonical target/mode 收斂。
+- 不以一次未審核的 bulk copy 取代 per-unit candidate、closure、promotion 與 exact-fingerprint gates。
+- 不複製 Claude-only statusline、`.claude/` installer 或 `mcp__codex__*` choreography 到 Codex runtime；缺少 Codex capability 時以正式、read-only、fail-closed 的診斷 skill 提供服務。
 - 不讓 compatibility alias 與 canonical skill 同時競爭自動 routing。
 - 不以降低既有 fingerprint-bound review/verify gate 換取遷移速度。
 
@@ -34,7 +34,7 @@ Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flo
 | Scope | Included |
 |---|---|
 | In | Skill inventory、Codex adapter contracts、migration waves、canonical/alias 決策、測試策略、request tickets、reload/release gates |
-| Out | 本輪實際 promotion 大量 skills、外部服務登入、git commit/push、使用者層級 `CODEX_HOME` 變更 |
+| Out | 外部服務登入、未經顯式授權的 external mutation、使用者層級 `CODEX_HOME` 變更 |
 
 ## 2. Existing Code Analysis
 
@@ -42,13 +42,13 @@ Codex-native review auto loop 已完成，下一個缺口是來源 `sd0x-dev-flo
 
 | Metric | Composite source | Current Codex plugin | Gap |
 |---|---:|---:|---:|
-| Skills | 100 | 12 | 88 entrypoints, plus semantic merges |
-| SKILL.md lines | 16,849 | curated core | Large orchestration surface |
-| Skill payload files | 266 | bundled core only | 259 files require disposition |
+| Skills | 100 | 86 | 85 canonical migration targets plus `reset` |
+| SKILL.md lines | 16,849 | Codex-native formal plugin | Source theory adapted behind bounded contracts |
+| Skill payload files | 266 | bundled formal plugin | Historical source bytes remain outside the release payload |
 | References | 139 | review theory + existing refs | Progressive-loading migration required |
 | Bundled scripts | 25 | deterministic runtime scripts | Runtime/API audit required |
 
-Current Codex skills are `bug-fix`、`create-request`、`doctor`、`feature-dev`、`remind`、`req-analyze`、`reset`、`review`、`setup`、`tech-spec`、`test-review`、`verify`。其中 review 已把來源的 reviewer/auto-loop 理論改成單一 configured Codex-first/Claude-wrapper primary gate，並綁定 exact worktree fingerprint 與 provider policy；`test-review` 則保留為獨立、read-only、non-gating 的 test/AC quality assessment。R1/R2 infrastructure 已實作，R3 durable closure/ledger 已完成；R4 對 Codex `0.145.0` 的 registry capability probe 已完成並永久選定 version-bound `mapping-only` fallback；`create-request` 的 Wave 1 promotion 與最新 Windows Git/recovery hardening re-promotion 均已完成，且綁定新的唯一 gate-owner ticket。
+Current Codex skills are `architecture`、`architecture-advice`、`ask`、`best-practices`、`brainstorm`、`bug-fix`、`bump-version`、`check-coverage`、`code-explore`、`code-investigate`、`contract-decode`、`create-pr`、`create-request`、`de-ai-flavor`、`debug`、`deep-explore`、`deep-research`、`dep-audit`、`dev-security-audit`、`doc-refactor`、`doc-review`、`doctor`、`epic-merge`、`explain`、`feasibility-study`、`feature-dev`、`feature-verify`、`fp-brief`、`generate-runner`、`git-investigate`、`git-profile`、`issue-analyze`、`jira`、`load-pr-review`、`merge-prep`、`necessity-audit`、`next-step`、`obsidian-cli`、`op-session`、`orchestrate`、`plan-review`、`portfolio`、`post-dev-recap`、`post-dev-test`、`pr-comment`、`pr-review`、`pr-summary`、`pre-pr-audit`、`project-audit`、`project-brief`、`push-ci`、`readme-i18n-sync`、`recap-ask`、`recap-doc`、`refactor`、`remind`、`repo-intake`、`req-analyze`、`request-tracking`、`reset`、`review`、`review-spec`、`risk-assess`、`runbook`、`safe-remove`、`security-review`、`seek-verdict`、`setup`、`sharingan`、`simplify`、`skill-health-check`、`smart-commit`、`smart-rebase`、`statusline-config`、`tech-brief`、`tech-spec`、`test-deep`、`test-gen`、`test-health`、`test-review`、`ui-first-principles`、`update-docs`、`update-readme`、`verify`、`watch-ci`、`zh-tw`。其中 review 已把來源的 reviewer/auto-loop 理論改成單一 configured Codex-first/Claude-wrapper primary gate，並綁定 exact worktree fingerprint 與 provider policy；`test-review` 則保留為獨立、read-only、non-gating 的 test/AC quality assessment。85 個 canonical targets 均已安裝到唯一 distributable plugin，legacy packs 只保留 immutable migration evidence。
 
 Composite provenance 不把 dirty working tree 假裝成 commit：primary Git tree 固定為 98/263/138/25；`readme-i18n-sync` 與 `update-readme` 是明列 raw-byte hash 的 local overlay。R1 只能在 hashes 全部相符時匯入；完成後 overlay bytes 由本 repository 的 tracked staging 固定。
 
@@ -106,6 +106,27 @@ flowchart TD
     R --> V[Deterministic verify]
 ```
 
+Formal delivery lifecycle：
+
+```mermaid
+flowchart LR
+    S[staging or legacy pack] --> C[candidate adapter]
+    C --> P[static + behavior preflight]
+    P --> L[plugin/skills canonical target]
+    L --> G[primary review + verify]
+    G --> E[closure + promotion evidence]
+    E --> O[promoted overlay]
+    O --> F[post-overlay gates]
+    F --> D[discovered and released]
+```
+
+| Alternative | Decision | Reason |
+|---|---|---|
+| One canonical plugin with all units | Selected | Meets formal availability while canonical owners, modes and negative routing boundaries prevent alias duplication |
+| Keep repository-only packs | Rejected as final state | Pack-ready payloads are not discovered by downstream developers and therefore do not satisfy delivery |
+| Publish multiple independent plugins | Deferred | Adds dependency, release and cross-plugin routing contracts without improving the current user goal |
+| Bulk-copy all source entrypoints | Rejected | Bypasses Codex adaptation, authorization classification and per-fingerprint evidence |
+
 ### 3.2 Copy-First, Promote-Later Policy
 
 使用者要求「不確定就全抄再慢慢改」採以下安全版本：
@@ -114,10 +135,10 @@ flowchart TD
 2. **Shadow port**：Foundation R1 允許把 pinned `skills/` payload 完整複製到 tracked `migration/staging/`；它不在 plugin payload 下，也不得被 manifest 或 registry discovery 納入。
 3. **Adapter audit**：逐項處理 tools、hooks、state、paths、external writes、secrets、model-role reversal。
 4. **Canonicalization**：決定 live name、aliases、merge target 與 routing boundary。
-5. **Delivery**：`target_package=core` 才採 two-phase promotion 到唯一 distributable core payload；non-core 只移到 `migration/packs/<target-package>/` 成為 pack-ready handoff，不進 core manifest/discovery，未在獨立 pack repository 重跑 gates前不得稱 live。唯一例外是下述 user-authorized `create-request` bootstrap，它是受限 live workflow，不是已完成的 formal promotion。
+5. **Delivery**：所有 canonical units 最終都使用 `target_package=core`，採 two-phase promotion 到唯一 distributable plugin payload。既有 `migration/packs/<legacy-package>/` 是已審核的歷史 handoff，不是 live discovery root；升級時以它作 candidate input，建立 replacement owner、重跑 final gates、寫 `kind=promotion` revision，再移入 plugin。唯一例外是下述 user-authorized `create-request` bootstrap，它是受限 live workflow，不是已完成的 formal promotion。
 6. **Drift audit**：後續分開比較 primary Git SHA/tree 與 local-overlay hashes，列出新增、移除、修改的 source skills。
 
-Shadow copy 不是 live skill，不得出現在 plugin manifest 或 skill registry；因此不會違反「public skill set curated」與單一 distributable payload 原則。
+Shadow copy 與 legacy pack 都不是 live skill，不得出現在 plugin manifest 或 skill registry；public surface 由 canonical ownership、negative routing boundaries 與 mapping-only aliases 維持可控，而不是以不發佈功能來縮小。
 
 ### 3.3 Package Shape
 
@@ -144,7 +165,7 @@ migration/                       # repository-only, never distributed
 ├── evidence/
 │   └── alias-registry-dump.json
 ├── candidates/<canonical-skill>/... # adapted, not discovered/distributed
-├── packs/<target-package>/<canonical-skill>/... # pack-ready handoff only
+├── packs/<legacy-target-package>/<canonical-skill>/... # immutable historical handoff / promotion input
 └── staging/
     ├── LICENSE.upstream
     └── <source-skill>/...
@@ -162,7 +183,7 @@ Primary source 是 `https://github.com/sd0xdev/sd0x-dev-flow.git`，固定 commi
 | `skills/readme-i18n-sync/references/glossary.md` | 2,781 | `a7151b3130ee0ddaf7382b05e5809f07469879db8401545b5b181d664946130c` |
 | `skills/update-readme/SKILL.md` | 3,413 | `c2cea3d903e872ffb535c396764a47690cb8b112ce67fdcfe26fce4fac7fff95` |
 
-Local overlay 沒有可聲稱的 Git commit；R1 必須把 `kind=local-overlay`、base commit、path/size/hash 與 acquisition path 明記，hash mismatch 或檔案不存在就 block，要求新 pinned source decision，不能改讀任意 dirty bytes。資料分成 immutable generated inventory 與 mutable disposition overlay；audit 依 `source_name` compose 成 logical manifest，generator 永不讀寫 overlay。Foundation R1 以 Node.js 18 built-ins 執行：
+Local overlay 沒有可聲稱的 Git commit；R1 必須把 `kind=local-overlay`、base commit、path/size/hash 與 acquisition path 明記，hash mismatch 或檔案不存在就 block，要求新 pinned source decision，不能改讀任意 dirty bytes。資料分成 immutable generated inventory 與 mutable disposition overlay；audit 依 `source_name` compose 成 logical manifest，generator 永不讀寫 overlay。Foundation 與所有後續 migration tooling 以 Node.js 24 LTS built-ins 執行：
 
 1. Primary 只能由 Git object database 列舉/匯出（等價於 `git ls-tree -r <commit> -- skills` + `git archive`），禁止用 source working tree `find` 冒充 commit snapshot。
 2. Local overlay 只接受上表三個 exact paths；先驗 size/SHA-256，再匯入 tracked staging。所有 relative paths 正規化為 POSIX separators 並 bytewise stable sort。
@@ -257,21 +278,21 @@ Closed enums:
 | Field | Values / rule |
 |---|---|
 | `disposition` | `keep`, `port`, `adapt`, `merge`, `optional`, `retire` |
-| `target_package` | `core`, `planning-pack`, `research-pack`, `development-pack`, `quality-pack`, `delivery-pack`, `docs-ops-pack`, `domain-pack`, `retired` |
+| `target_package` | Current authoritative value is `core` for every live unit；legacy `planning-pack`, `research-pack`, `development-pack`, `quality-pack`, `delivery-pack`, `docs-ops-pack`, `domain-pack` remain valid only inside historical pack-ready evidence while its successor promotion is audited |
 | `delivery_state` | `planned`, `candidate`, `pack-ready`, `promoted`, `retired`；initial `planned`，transitions require matching evidence kind |
 | `alias_candidate` | Boolean；只有 root `compatibility_alias_candidates` exact list 為 `true`；其他 rows 為 `false` |
 | `alias_policy` | `none`, `mapping-only`, `manual-only`；candidate 初始 `mapping-only`，non-candidate `none`；Foundation R4 capability test 可決定是否升級 |
 | `capabilities[]` | Sorted unique values from `core`, `git`, `web`, `connector`, `local-cli`, `claude-mcp`；planning 可空，non-retire promotion 前不可空 |
 | `operations[]` | Sorted unique values from `read`, `local-write`, `commit`, `push`, `pr-write`, `history-rewrite`, `connector-write`；planning 可空，promotion 前至少含 `read` 並完整揭露 mutations；V1 不支援 index mutation |
 | `license_status` | `approved`, `blocked`, `unknown`；只有 `approved` 可 promotion |
-| `routing_owner` | Exactly one canonical live skill；retired entries為 `null` |
-| `promotion_unit_id` | `<target_skill>/<target_mode-or-default>`；同一 promoted artifact/mode 的 source aliases 共用；retired entry 使用 `retire/<source_name>` |
-| `promotion_request` | Planning 時可為 `null`；promotion 或 retirement closure 前必須是存在且 single-task 的 request path；每個 promotion unit 恰有一個 gate owner |
+| `routing_owner` | Exactly one canonical live skill；compatibility aliases point to that owner and never become a second entrypoint |
+| `promotion_unit_id` | `<target_skill>/<target_mode-or-default>`；同一 promoted artifact/mode 的 source aliases 共用 |
+| `promotion_request` | Planning 時可為 `null`；promotion closure 前必須是存在且 single-task 的 request path；每個 promotion unit 恰有一個 current gate owner |
 | `canonical_targets.*.modes[]` | Bytewise sorted closed list；R1 seed 可先宣告 planned modes，`audit-source` 只驗 overlay references；promotion 時 candidate audit 才要求 canonical skill contract/routing tests 實作每個 mode |
 
 Counting predicates 固定如下：`skill_files` 是 `skills/**` 全部 regular files；`references` 是其中 relative path 符合 `skills/<skill>/references/**` 的 files；`scripts` 是其中符合 `skills/<skill>/scripts/**` 的 files，後兩者是 266 的子集合。`external_dependencies.kind` 是 `rule | root-script | template | asset | other`；path、consumers 都以 POSIX bytewise sort，consumer 是 source skill name。相同 external path 只記一次，consumers 去重；其 missing/hash drift 會 fail，但不加入 skill totals。Compose 時 inventory 與 overlay 必須各自有 exactly 100 unique source names，集合完全相等；overlay precedence 只適用 disposition fields，絕不改 provenance/hash。
 
-Package assignment 是 closed derivation，不由 implementer 自由選：以下 source rows 對應 10 個 curated core canonical targets（`bug-fix`, `create-request`, `doctor`, `feature-dev`, `remind`, `req-analyze`, `review`, `setup`, `tech-spec`, `verify`），因此 `target_package=core`：`bug-fix`, `claude-health`, `codex-cli-review`, `codex-code-review`, `codex-implement`, `codex-review`, `codex-review-branch`, `codex-review-fast`, `codex-setup`, `create-request`, `deep-analyze`, `feature-dev`, `install-hooks`, `install-rules`, `install-scripts`, `precommit`, `precommit-fast`, `project-setup`, `remind`, `req-analyze`, `tech-spec`, `verify`。`statusline-config` 是 `retired`。其餘 rows 依 wave 固定：Wave 1 → planning、2 → research、3 → development、4 → quality、5 → delivery、6 → docs-ops、7 → domain pack。Core allowlist 或 package assignment 要改，必須先開獨立 architecture/guidance request；本規格不 supersede AGENTS.md 或 `docs/MIGRATION.md` expansion rule。
+Package assignment 是 closed derivation，不由 implementer 自由選：100 個 source rows 全部對應 canonical target/mode，且所有 current rows 使用 `target_package=core`。22 個 mapping-only compatibility aliases 仍只保留 registry mapping，不建立重複 live directory。Wave 1–4 已存在的 pack-ready evidence 是 immutable history；升級時 disposition 先由 `pack-ready` 進入新 replacement request 的 `candidate`，promotion record 接續該 unit 的 completion timeline，成功後成為 `promoted`。`statusline-config` 改為同名 canonical read-only capability skill：在沒有官方 Codex statusline API 的版本回報 unsupported 與安全替代方案，禁止寫入 Claude paths或宣稱配置成功。這個 formal-plugin delivery model 由獨立 architecture/guidance request 實作；本規格不 supersede AGENTS.md 或 `docs/MIGRATION.md` expansion rule。
 
 Wave owner 由 `wave 0..7 → Foundation R1-R4 / future Wave 1..7 request batch` 決定，不使用模糊的「owner」欄位。每個 future request 必須列出自己承接的 source names 與 promotion units；audit 在 promotion 時拒絕任何 unit 的 zero/multiple designated gate ownership。Supporting implementation tickets 可以有多張，但只有 disposition overlay 指向的 single-task gate owner 可以執行 promotion；owner designation 不因 ticket 完成而消失。
 
@@ -292,13 +313,13 @@ Wave owner 由 `wave 0..7 → Foundation R1-R4 / future Wave 1..7 request batch`
 | Review | One configured primary clean on the exact fingerprint and provider; optional `test-review` remains read-only and non-gating |
 | Verify | Deterministic repository checks pass on the reviewed fingerprint |
 
-Adapted payload 先放在 repo-contained、non-distributable `migration/candidates/<canonical-skill>/`。`audit-candidate` 先 derive/validate `target_package`：core row 使用 virtual target `plugin/sd0x-dev-flow-codex/skills/<canonical-skill>/`；pack row 使用 virtual separate-plugin root並額外證明不會進 core manifest/discovery。Audit 同時載入 composed inventory/overlay、core plugin manifest、所有 live core frontmatter 與 candidate row，判 global routing、ownership與 package boundary。Candidate tree 本身永不直接 distributed。
+Adapted payload 先放在 repo-contained、non-distributable `migration/candidates/<canonical-skill>/`。`audit-candidate` derive/validate `target_package=core`，使用 virtual target `plugin/sd0x-dev-flow-codex/skills/<canonical-skill>/`；對 legacy pack upgrade，工具必須先驗證 pack bytes 與最後 pack-ready evidence，再建立 candidate revision，禁止靜默重寫歷史 pack。Audit 同時載入 composed inventory/overlay、plugin manifest、所有 live frontmatter 與 candidate row，判 global routing、ownership與 package boundary。Candidate tree 本身永不直接 distributed。
 
 R2 candidate contract 固定放在 payload root 的 `migration-contract.json`。Core 與非-research packs 的基本 contract 使用 schema v1：`{schema_version,target_skill,target_package,authorization:{policy,sensitive_operations[]},units:[{promotion_unit_id,target_mode,source_names[],routing:{positive_triggers[],negative_boundaries[]},behavior_tests[]}]}`。Research pack 使用 schema v2，unit 另有 repository-owned `semantic_requirements:{required[],forbidden[]}`。需要把額外 repository-owned trusted harness 綁進 transferable identity 的非-research payload 使用 schema v3；v3 保留 v1 fields，且每個 unit 必須另有非空、bytewise-sorted `supplemental_behavior_tests[]`。V1 consumer 必須拒絕 v2/v3 與所有額外 unit fields；v2 只接受 research pack；v3 只接受 non-research package 且拒絕缺少 supplemental evidence 的 unit；unknown version 或 cross-version fields 一律 fail closed。每層 fields 都是 closed set。Schema v3 audit 會遞迴驗證 supplemental entrypoint 可達的 local module graph、把每一份 trusted module bytes 納入 transaction，並拒絕 direct、computed、aliased、dynamic loader capability 與任何 candidate/pack path，即使 forbidden load 藏在 helper module 亦同。`units[]` 必須 bytewise sorted，且完整等於該 target 已進入 `candidate|pack-ready|promoted` 的 disposition units；因此 `review` 等 multi-mode owner 可用一份 stable contract 同時保留既有 modes，再以 `--mode <mode|default>` 選定本輪 unit，不必覆寫先前 evidence。每個 unit 的 `source_names` 完整等於 disposition rows，routing cases 非空。
 
 Schema v1 的每個 unit 只能擁有 deterministic `test/<target>-<mode|default>-routing.test.js`；research schema v2 另且只能擁有 `test/<target>-<mode|default>-semantics.test.js`。Schema v3 的 `behavior_tests[]` 仍只能是 exact generated routing test，`supplemental_behavior_tests[]` 則只能指向 root `test/*.test.js`、必須以 exact `sd0x-migration-supplemental-test target=<target> unit=<unit>` marker 宣告 owner，且 path/raw SHA-256 必須 byte-for-byte 符合 `scripts/supplemental-behavior-tests.json` 的 repository-owned closed registry。Supplemental harness 由 repository `npm run check` 執行，raw bytes 與 unit 一起進 preflight/final identity；audit 靜態拒絕 direct、computed、dynamic candidate/pack code loading，candidate payload code 本身不能被 supplemental test 直接載入，trusted repository harness 只能先驗證 payload bytes 等於 repository-owned implementation 後再執行 trusted copy。Audit 分別以 `scripts/skill-routing-test.js` 與 `scripts/research-contract-test.js` 產生 expected bytes，要求 generated tests byte-for-byte 相同，並要求 `SKILL.md` 內每個 unit 的 machine-readable routing JSON、完整 multi-mode registry、Codex authoritative frontmatter description與 trusted semantic registry一致。Description 是最多 4,096 bytes 的 JSON-quoted YAML scalar，routing cases 是最多 256 characters 的 single-line strings，因此 `: `、` #`、quotes與 backslashes不會改變 frontmatter。Full-registry predicate要求每個 positive prompt只有一個 unit owner，且不得同時出現在任何 mode 的 negative set；逐 case test 對 exact positives 回傳唯一 owner、對 exact negatives回傳 excluded。反向、無關或 registry 外的 routing prose都會失敗。Harness 在 preflight 同時存在舊 live owner 時 deterministic 優先 candidate，final 才讀 core/pack path；每個 path component 都必須 real、non-symlink且 realpath-contained。因此 pasted markers、empty/no-op tests、filesystem API、network calls或任意 candidate-authored test code 都會被拒絕。Audit 本身不執行 untrusted candidate code；repository `npm run check` 只執行 exact trusted harness。Test bytes、unit、routing、semantic 與 supplemental hashes全部進 audit identity。
 
-Audit 從 `SKILL.md` 建立 Markdown/resource 與 local `.js|.cjs|.mjs` import reachability graph，拒絕 missing/orphan/path/symlink escape、external package dependency、unsupported executable、dynamic/commented/computed/internal module或 code loading、frontmatter/Claude tool-event-runtime assumptions、malformed tables、未宣告 mutation與 V1 index mutation。Local imports 必須使用 exact audited extension，禁止 package metadata/directory/native resolution；每個 script 先按實際 CJS/ESM kind 做 non-executing syntax check，再對 comment-normalized source套用 Node 18/ES2022 baseline，因此新版 runtime 也不能認可 `using` 或 import attributes。Git/GH/subprocess、`node:fs`、`process/global` namespaces、network globals/built-ins 全採 closed classifier：child process 只准 direct named APIs與一整行 literal audited argv；filesystem namespace 與 closed allowlist 的 process members每次出現都必須是 direct classified member access，不能透過 optional/computed access、Reflect/property descriptor、argument、closure、container或 alias傳遞；code constructors、indirect eval、所有 network/native-loader use、未知 executable/subcommand一律 fail或要求 closed operation，shell candidate scripts不接受。Machine routing block會先從 Markdown operation scan移除；一般 prose只有正規化 blockquote/list/task/一至三層 emphasis 後仍符合 closed executable/path syntax才分類，無條件 pure prohibition不算 mutation，但含 `without|until|approval` 等條件者算 actionable。Shell redirect parser涵蓋 fd prefixes、no-space redirects、heredocs、shell test與 arithmetic/substitution boundaries；明確 command context 的未知 executable fail closed，普通 blockquotes、comparisons與 state arrows不算寫入。Sensitive operations 必須精確等於 machine authorization list；唯一 normative policy 是緊接 frontmatter 的 byte-exact sole-policy block，且 `SKILL.md` 與所有 reachable instructional references 的其他 permission/consent/sign-off/waiver prose一律拒絕。Preflight audit identity 綁 phase/path/target/unit/payload/all active disposition rows/test evidence；core-live與 pack-final 都由 move 後 bytes重算 exact expected preflight identity，random/cross-target/stale digest 都不接受。Pack-final transaction 在 disposition 尚為 `candidate` 的 move window，必須只接受 candidate 或 final pack 其中恰一個完整且另一個未 populated 的 physical payload；`pack-ready` 後只接受完整 pack 且 candidate 未 populated。`pack-ready|promoted` re-audit只把 delivery lifecycle 正規化回已審核的 candidate state，不忽略其他 row drift；final audit 開始與完成時 fingerprint 必須相同，且 review/verify gates 都仍為 current。R3 才把 accepted preflight/final identities寫進 durable evidence chain。
+Audit 從 `SKILL.md` 建立 Markdown/resource 與 local `.js|.cjs|.mjs` import reachability graph，拒絕 missing/orphan/path/symlink escape、external package dependency、unsupported executable、dynamic/commented/computed/internal module或 code loading、frontmatter/Claude tool-event-runtime assumptions、malformed tables、未宣告 mutation與 V1 index mutation。Local imports 必須使用 exact audited extension，禁止 package metadata/directory/native resolution；每個 script 先按實際 CJS/ESM kind 做 non-executing syntax check，再套用 repository-declared Node.js 24 LTS baseline；新增語法或 loader capability仍須進 closed classifier，不能只因 runtime 可解析就自動放行。Git/GH/subprocess、`node:fs`、`process/global` namespaces、network globals/built-ins 全採 closed classifier：child process 只准 direct named APIs與一整行 literal audited argv；filesystem namespace 與 closed allowlist 的 process members每次出現都必須是 direct classified member access，不能透過 optional/computed access、Reflect/property descriptor、argument、closure、container或 alias傳遞；code constructors、indirect eval、所有 network/native-loader use、未知 executable/subcommand一律 fail或要求 closed operation，shell candidate scripts不接受。Machine routing block會先從 Markdown operation scan移除；一般 prose只有正規化 blockquote/list/task/一至三層 emphasis 後仍符合 closed executable/path syntax才分類，無條件 pure prohibition不算 mutation，但含 `without|until|approval` 等條件者算 actionable。Shell redirect parser涵蓋 fd prefixes、no-space redirects、heredocs、shell test與 arithmetic/substitution boundaries；明確 command context 的未知 executable fail closed，普通 blockquotes、comparisons與 state arrows不算寫入。Sensitive operations 必須精確等於 machine authorization list；唯一 normative policy 是緊接 frontmatter 的 byte-exact sole-policy block，且 `SKILL.md` 與所有 reachable instructional references 的其他 permission/consent/sign-off/waiver prose一律拒絕。Preflight audit identity 綁 phase/path/target/unit/payload/all active disposition rows/test evidence；core-live與 pack-final 都由 move 後 bytes重算 exact expected preflight identity，random/cross-target/stale digest 都不接受。Pack-final transaction 在 disposition 尚為 `candidate` 的 move window，必須只接受 candidate 或 final pack 其中恰一個完整且另一個未 populated 的 physical payload；`pack-ready` 後只接受完整 pack 且 candidate 未 populated。`pack-ready|promoted` re-audit只把 delivery lifecycle 正規化回已審核的 candidate state，不忽略其他 row drift；final audit 開始與完成時 fingerprint 必須相同，且 review/verify gates 都仍為 current。R3 才把 accepted preflight/final identities寫進 durable evidence chain。
 
 Supplemental graph 的每個 reachable module path/raw SHA-256 都必須排序後同時進入 live 與 commit-based preflight/final identity；helper-only drift 因此必須改變 audit fingerprint。Capability classifier 對 template literal/interpolation、CommonJS wrapper/global access、escaped identifiers、comment-separated calls、computed/reflection/constructor chains、multiline ESM、transitive helper loads、非 closed-safe Node built-ins 與非 exact-trusted Git subprocess argv 一律 fail closed。每個 supplemental entrypoint 必須有 exact `const test = require('node:test')` 與 `const assert = require('node:assert/strict')` bindings，以及至少一個 unconditional top-level direct `test(<literal>, <callback>)` registration；closed callback 必須含 direct、reachable、callback-top-level strict assertion，prefix module probe會拒絕 nested control flow、shadowed assert 與先行 `return`。Marker-only、empty/no-import、empty/non-asserting callback、unreachable、skip/todo/options-only harness 都拒絕，helper module 不得自行載入 `node:test`。`process` 採 closed member classifier，只接受 trusted harness 使用的 `cwd()`、`platform` 與 `env.PATH` 形狀；alias、`exit`、`abort`、`kill` 或其他 termination API 一律拒絕。Static/dynamic module namespace、destructuring、alias、property access、whitespace-separated loader calls、`run`、`mock.module` 或其他 programmatic launch API 也拒絕，direct 與 transitive module 同樣適用。唯一 probe subprocess 必須位於 hash-pinned trusted helper，由 platform-aware fixed-location resolver 選出 absolute、protected native Git executable，不繼承 `PATH`，使用 closed environment 並以 inline config停用 hooks、fsmonitor、submodule recursion 與 pager；supplemental test fixture 以純檔案建立最小 repository，不執行 `git init`/`git add`，因此 repository filters 不存在 setup execution surface。Windows、macOS、Linux 的候選位置是 closed contract，forged resolver、wrapper/PATH/repository-configured execution不得成立。
 
@@ -308,7 +329,7 @@ Supplemental graph 的每個 reachable module path/raw SHA-256 都必須排序�
 
 Core promotion transaction 固定為：(1) candidate static/behavior preflight；(2) move 到 final core plugin path，但 overlay 維持 `candidate` move window；(3) 不 reload、不 package、不宣稱完成，對 payload、Completed request 與 candidate overlay 的 evidence fingerprint 重跑 global audit、behavior tests、configured primary review、verify；(4) clean 且 final request closure durable 後寫 `kind=promotion` evidence；(5) evidence append 成功後才把 overlay state 設為 `promoted`；(6) 對 post-overlay fingerprint 再跑 configured review 與 deterministic repository verify，`audit-source` 必須以剛寫入的 exact completion record 通過。任何一步 fail 都必須修復重跑或 rollback；preflight evidence、candidate gate 或 promotion record 皆不能取代 step 6 的 post-overlay gate。Authorization gate 以 closed `operations[]` 對照 §4.6。
 
-Pack transaction 使用相同順序：把 audited payload/spec 移到 `migration/packs/<target-package>/` 時 overlay 維持 `candidate`，先對 payload、Completed request 與 candidate overlay 的 evidence fingerprint 跑 final review/verify；final request closure durable 後在 transferable evidence ref append `kind=pack-ready`，成功後才把 overlay state 設為 `pack-ready`，並對 post-overlay fingerprint 重跑 review 與 deterministic repository verify。Record 綁 final request closure、target package、正規化為 candidate 的 disposition row、payload tree、pack spec/dependency tree、evidence fingerprint、review/verify blobs與 record hash；post-overlay `audit-source` 必須找到這筆 exact record。它不是 core promotion，也不產生 core routing entry。Later re-audit 重算 pack trees與 closure/disposition；unrelated wave 可保留，delete/modify/swap/supersede mismatch fail。真正 live pack 仍須在 separate plugin repository 重跑 manifest/dependency/release gates並取得發布授權。
+Legacy pack-ready transaction 保持可重播但不再是新的終點。升級器從最後 `kind=pack-ready` record 驗證 payload、closure、disposition 與 tree identity，建立指向最新 durable owner 的 replacement request，將 exact payload 移入 candidate 並把 current package 改為 `core`；任何內容適配都在 candidate 中完成。後續一律走 core promotion transaction並寫新的 `kind=promotion` completion。Historical pack-ready record、pack package與 request bytes不可變；delete/modify/swap/supersede mismatch fail。新的 source unit 不得再寫 `kind=pack-ready` 作完成證據。
 
 Current-fingerprint gates 不是歷史 ledger。Canonical historical store 是 transferable Git ref `refs/sd0x-dev-flow-codex/evidence/v1`，不是 clone 後會消失的 plain `.git/*.json`。Commit 型 closure 另以不可變 `refs/sd0x-dev-flow-codex/subjects/<head_sha>` anchor 保存 exact subject HEAD 與其 base→HEAD history；audit 要求 ref 名稱、resolved object 與 record 的 `head_sha` 完全一致，並在回傳前 uncached revalidate 本輪觀察到的全部 anchors。Promotion pass 後，`scripts/runtime/state.js` 在既有 state lock 下建立 append-only evidence commit，並以同一個 `update-ref --stdin` transaction 原子建立新 subject anchor或驗證既有 anchor，及 compare-and-swap 前進 evidence ref；hook handler 不承載 transition logic，custom refs 不改 worktree fingerprint。Promotion record 固定為：
 
@@ -367,7 +388,7 @@ R3 auditor 也以 commit-order `seen` map驗證 pending→closure→promotion與
 
 Foundation R4 必須以實際 local plugin registry 做 alias capability test。唯一 pass criterion 是 Codex registry 提供可檢查的 exclusion flag/API，且 normalized registry dump 能證明 alias 可 manual invoke、卻不在 automatic routing candidates；prompt sampling 只能作負面回歸測試，永遠不能單獨把 policy 升級為 `manual-only`。Normalized/redacted dump 存在 `migration/evidence/alias-registry-dump.json`，保留必要 candidate/exclusion fields 並移除 user/account data；另以 fixture plugin manifest 重現。Decision 寫入 `migration/alias-capability.json`，固定包含 `{codex_version, registry_mechanism, alias, manual_invocation, auto_route_excluded, registry_dump_path, registry_dump_hash, fixture_manifest_path, plugin_fingerprint, owner_request_path, owner_history[{path,sha256}], reproduce_argv[], tested_at}`；audit 要求 `owner_history` 精確等於由原始 R4 request 起算的 canonical、完整且不可截斷 path/hash 序列，重新 hash 每份 immutable historical owner bytes、逐票驗證 `Depends On` chain，且要求 `owner_request_path` 指向至少一項 AC 且全數完成的 acceptance-ready ticket並接續 history 最後一票。該 ticket 必須只有一筆 `sd0x-alias-capability-owner:v1` JSON evidence record，綁定完整 decision artifact hash及其 Codex version、tested-at、decision、registry mechanism；缺失、重複或矛盾都 fail closed。若無法證明，`codex-*` 只留 disposition mapping，不建立 live skill directory；後續 waves 不得自行改此決策。
 
-**R4 implementation record（2026-07-13；2026-07-14 以 Codex `0.144.4`、2026-07-23 先後以 `0.144.6` 與 `0.145.0` 重驗）**：Codex `0.145.0` 的官方 contract 明確區分 `$`/`/skills` explicit invocation 與 description-based implicit invocation；repository-only fixture 不只同時出現在 explicit 與 neutral prompt 的 model-visible catalog，isolated ephemeral read-only `codex exec` 也實際回傳 fixture 的 exact marker。實際 `skills/list` metadata 只有 `description`、`enabled`、interface/name/path/scope/dependency fields，`skills/config/write` 只有 whole-skill `enabled` selector，沒有 automatic-candidate exclusion flag/API。因此 R4 fail closed 為 `mapping-only`：22 個 compatibility rows 保持 mapping、core 不建立 alias directories，`manual-only` 不可由 prompt sampling 升級，且只有 neutral catalog實際排除 alias時才可通過；正向/逐欄負向 fixtures固定此 future contract。`migration/alias-capability.json` 綁 Codex version、probe 直接生成的 normalized/redacted dump hash、fixture manifest hash與 core plugin fingerprint；`audit-source`/`audit-candidate` 在本機 CLI 可用時會拒絕任一 policy 的 Codex version drift，且總是拒絕 missing/tampered fixture/dump、plugin drift或缺失/模糊的 `manual-only` proof。`CODEX_HOME="$PWD/.codex-dev-home" npm run migration:alias:probe` 以 ownership lock/no-follow real-directory checks 在 ignored repository home 暫載 fixture，將執行前後 bytes、directory manifest與 file/directory inode identity綁定，實際執行 marker、byte-compare committed dump後把整個 owned directory 原子搬入 exclusive nonce quarantine container再驗 identity，只刪本次 inode；任一 foreign/replacement/quarantine-collision path使 probe非零退出，能原位還原就還原，否則保留完整 quarantine，不改 user-level Codex home。
+**R4 implementation record（2026-07-13；2026-07-14 以 Codex `0.144.4`、2026-07-23 先後以 `0.144.6` 與 `0.145.0` 重驗）**：R4 已完成可重現的 version-bound `mapping-only` decision。Codex `0.145.0` 的官方 contract 明確區分 `$`/`/skills` explicit invocation 與 description-based implicit invocation；repository-only fixture 不只同時出現在 explicit 與 neutral prompt 的 model-visible catalog，isolated ephemeral read-only `codex exec` 也實際回傳 fixture 的 exact marker。實際 `skills/list` metadata 只有 `description`、`enabled`、interface/name/path/scope/dependency fields，`skills/config/write` 只有 whole-skill `enabled` selector，沒有 automatic-candidate exclusion flag/API。因此 R4 fail closed 為 `mapping-only`：22 個 compatibility rows 保持 mapping、core 不建立 alias directories，`manual-only` 不可由 prompt sampling 升級，且只有 neutral catalog實際排除 alias時才可通過；正向/逐欄負向 fixtures固定此 future contract。`migration/alias-capability.json` 綁 Codex version、probe 直接生成的 normalized/redacted dump hash、fixture manifest hash與 core plugin fingerprint；`audit-source`/`audit-candidate` 在本機 CLI 可用時會拒絕任一 policy 的 Codex version drift，且總是拒絕 missing/tampered fixture/dump、plugin drift或缺失/模糊的 `manual-only` proof。`CODEX_HOME="$PWD/.codex-dev-home" npm run migration:alias:probe` 以 ownership lock/no-follow real-directory checks 在 ignored repository home 暫載 fixture，將執行前後 bytes、directory manifest與 file/directory inode identity綁定，實際執行 marker、byte-compare committed dump後把整個 owned directory 原子搬入 exclusive nonce quarantine container再驗 identity，只刪本次 inode；任一 foreign/replacement/quarantine-collision path使 probe非零退出，能原位還原就還原，否則保留完整 quarantine，不改 user-level Codex home。
 
 Review mode boundaries：`full` 是 current dirty-worktree completion gate；`branch` 以 merge-base 到 HEAD 加 dirty worktree 為 scope；`deep` 在 full scope 之外強制追 architecture/dependency/security blast radius，但沿用同一 blocking gate；`fast` 只做 bounded triage、不能記錄 completion pass。其他 planned modes 的 owner 是：`doctor:claude` 診斷 Claude CLI/MCP、`setup:guidance/hooks/scripts` 限定 setup component、`tech-spec:deep` 提高研究深度、`verify:fast/precommit` 選擇 deterministic check profile。`audit-source` 依 `canonical_targets` 驗 seed；candidate promotion 才要求 owner skill 的 contract與 positive/negative routing fixtures 落實 mode。未宣告 mode 一律拒絕。
 
@@ -548,9 +569,9 @@ V1 `push-ci`/GitHub delivery 以 `gh` CLI 為 canonical implementation，先做 
 | 4 | Review、test、security、quality | Canonical modes replace duplicate Codex-centric wrappers；all remain fingerprint-bound |
 | 5 | Git、commit、push、PR、CI | Mutations require explicit authority；read-only monitoring and deterministic preflight tested |
 | 6 | Setup、docs、briefing、orchestration | Codex-native project lifecycle and documentation utilities complete |
-| 7 | Optional/domain and compatibility | Capability-gated integrations or explicit retirement rationale；100/100 closure audit |
+| 7 | Optional/domain and compatibility | Capability-gated live workflows；unsupported integrations fail closed；100/100 source and 95/95 canonical-unit closure audit |
 
-Waves execute in numeric order；priority denotes safety/business value, not permission to skip dependencies。Exact ownership lists source responsibility, **not core admission**。A wave exits only when its core units are promoted and its non-core units are pack-ready/retired under the derived package rule：
+Waves execute in numeric order；priority denotes safety/business value, not permission to skip dependencies。Exact ownership lists source responsibility；every canonical unit is a formal plugin admission candidate。A wave exits only when every owned unit is promoted with durable exact-fingerprint evidence。Existing Wave 1–4 pack-ready units therefore reopen through replacement owners and join the formal-plugin promotion queue before final release：
 
 | Wave | Source skills owned by the wave |
 |---:|---|
@@ -563,7 +584,7 @@ Waves execute in numeric order；priority denotes safety/business value, not per
 | 6 | `claude-health`, `codex-setup`, `de-ai-flavor`, `doc-refactor`, `generate-runner`, `install-hooks`, `install-rules`, `install-scripts`, `next-step`, `orchestrate`, `post-dev-recap`, `project-brief`, `project-setup`, `readme-i18n-sync`, `recap-ask`, `recap-doc`, `remind`, `repo-intake`, `runbook`, `safe-remove`, `sharingan`, `skill-health-check`, `tech-brief`, `update-docs`, `update-readme` |
 | 7 | `contract-decode`, `dev-security-audit`, `feature-verify`, `jira`, `obsidian-cli`, `op-session`, `portfolio`, `statusline-config`, `ui-first-principles`, `zh-tw` |
 
-Before a wave starts, `/create-request` generates single-task delivery tickets from this exact list。`create-request` 最初依 §3.5 的 user-authorized `live-bootstrap` 建立與維護 tickets，R3 closure API 上線前最高只能寫 `Candidate Complete`；其 Wave 1 formal promotion 已完成，後續 payload revision 仍必須走相同 re-promotion lifecycle。每票只擁有一個 `promotion_unit_id`（名稱沿用於 core/pack/retire），有 ≤ 8 AC、one concern layer、≤ 3-day estimate；overlay's `promotion_request` 指向唯一 gate owner。Core ticket closes promotion；pack ticket closes pack-ready handoff；retire ticket closes approved evidence。Supporting tickets 不直接改 delivery state；wave umbrella tickets prohibited。
+Before a wave starts, `/create-request` generates single-task delivery tickets from this exact list。`create-request` 最初依 §3.5 的 user-authorized `live-bootstrap` 建立與維護 tickets，R3 closure API 上線前最高只能寫 `Candidate Complete`；其 Wave 1 formal promotion 已完成，後續 payload revision 仍必須走相同 re-promotion lifecycle。每票只擁有一個 `promotion_unit_id`，有 ≤ 8 AC、one concern layer、≤ 3-day estimate；overlay's `promotion_request` 指向唯一 current gate owner。所有 tickets 都 close promotion；legacy pack-ready ticket 是 immutable predecessor，不是 current completion。Supporting tickets 不直接改 delivery state；wave umbrella tickets prohibited。
 
 Wave 1 closure bootstrap 使用 Foundation R3 的 deterministic `runtime/cli.js closure prepare|finalize`：ticket pin base SHA；prepare pending；寫 proposed Completed bytes；跑 docs review；finalize；core promotion 引用 closure hash。受限 live-bootstrap skill 不得另造 closure state machine。R3 只負責 fixture-level bootstrap simulation與自舉自己的 ticket；第一個 `create-request` formal promotion E2E 已由 Wave 1 gate-owner ticket完成，re-promotion 亦沿用同一 runtime transaction。
 
@@ -661,7 +682,7 @@ Human-readable table mirrors the manifest's closed `disposition` enum。`Target`
 | 86 | `skill-health-check` | `skill-health-check` | Adapt | 6 |
 | 87 | `smart-commit` | `smart-commit` | Adapt | 5 |
 | 88 | `smart-rebase` | `smart-rebase` | Adapt | 5 |
-| 89 | `statusline-config` | — | Retire | 7 |
+| 89 | `statusline-config` | `statusline-config` | Adapt | 7 |
 | 90 | `tech-brief` | `tech-brief` | Port | 6 |
 | 91 | `tech-spec` | `tech-spec` | Adapt | 1 |
 | 92 | `test-deep` | `test-deep` | Adapt | 3 |
@@ -678,14 +699,15 @@ Human-readable table mirrors the manifest's closed `disposition` enum。`Target`
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Registry explosion causes routing collisions | Wrong skill auto-selected | Canonical owner + negative boundaries + compatibility aliases manual-only when supported |
+| Larger live registry causes routing collisions | Wrong skill auto-selected | One canonical owner per unit + negative boundaries + mapping-only compatibility aliases + full-registry prompt sampling |
 | Blind copy preserves Claude payload assumptions | Runtime failure or unsafe writes | Tool/event adapter audit is a hard promotion gate |
 | Source drift during long migration | Rework and inconsistent semantics | Pin source SHA per wave；machine-readable drift report |
 | External model/research cost | Slow and expensive workflows | Budget tiers、conditional debate、bounded timeout、graceful fail-closed |
 | Git/PR mutation without fresh approval | External state damage | Plan-first、separate approval turn、exact command preview、no implicit retries |
 | Duplicate theory across 100 skills | Divergence | Canonical shared references；thin entrypoints only for routing |
-| Cross-platform scripts | Windows/macOS/Linux inconsistency | Node 18 built-ins、no shell for complex argv、platform tests |
-| Staging becomes accidental distribution | Unreviewed skills become live | Staging outside plugin payload + manifest validator |
+| Cross-platform scripts | Windows/macOS/Linux inconsistency | Node.js 24 LTS built-ins、no shell for complex argv、platform tests |
+| Staging or legacy packs become accidental distribution | Unreviewed skills become live | Both stay outside plugin payload；manifest validator requires promotion evidence for every discovered target |
+| Capability-gated integrations appear usable without auth/API support | Misleading or unsafe workflow | Explicit capability probes、read-only fallback、no silent login/write；unsupported statusline configuration fails closed |
 
 Dependencies:
 
@@ -696,7 +718,7 @@ Dependencies:
 
 ## 8. Work Breakdown
 
-目前建立四張符合 `/create-request` granularity contract、可直接依序執行的 foundation tickets。Foundation 是 migration infrastructure，不擁有 source skill promotion unit：
+Foundation tickets 已完成；formal-plugin expansion 先由一張 architecture/guidance ticket更新 validators、generator 與 delivery semantics，再建立每個 promotion unit 的 current gate-owner ticket。Infrastructure tickets 不擁有 source skill promotion unit：
 
 | Request | Scope | Depends on |
 |---|---|---|
@@ -707,6 +729,7 @@ Dependencies:
 | [R4 refresh — Codex 0.144.4 alias capability](./requests/2026-07-14-alias-capability-codex-0-144-4-refresh.md) | Re-run version-bound registry evidence without rewriting the completed R4 transaction | R4 |
 | [R4 refresh — Codex 0.144.6 alias capability](./requests/2026-07-23-alias-capability-codex-0-144-6-refresh.md) | Preserve the prior in-flight version-bound refresh evidence | R4 |
 | [R4 refresh — Codex 0.145.0 alias capability](./requests/2026-07-23-alias-capability-codex-0-145-0-refresh.md) | Re-run version-bound registry evidence for the current repository-only CLI | Codex 0.144.6 refresh |
+| [Formal plugin delivery model](./requests/2026-07-28-formal-plugin-delivery-model.md) | Promote every canonical unit into the single distributable plugin；upgrade legacy pack-ready evidence without rewriting history | R4 + Wave 4 completion |
 
 Wave 1 gate-owner tickets（每票恰好一個 promotion unit）：
 
@@ -742,7 +765,7 @@ Foundation R1–R4 完成後，最初由受限 live-bootstrap `/create-request` 
 2. 若一個 unit 超過單一 concern/3 days，拆 supporting tickets，並保留一張 ≤ 3-day 的 final gate-owner ticket只做整合、promotion 與 acceptance closure。
 3. 每票 ≤ 8 AC、≤ 3 days、明確 Related Files 與 `Depends On`。
 4. 回寫 disposition overlay 的 `promotion_request`；audit 確保每個 promotion unit 恰有一張 designated gate-owner ticket，無論狀態是 Pending、In Progress、Candidate Complete 或 Completed；supporting tickets 不得冒充 owner。
-5. Retire row 以 `retire/<source_name>` 建獨立 evidence ticket；Wave 所有 units 都完成或有 approved retirement evidence 後才進下一 wave。
+5. 每個 canonical unit 必須以 `kind=promotion` 完成；不存在以 retirement 或 pack-ready 取代 live delivery 的 wave exit。
 
 Gate-owner lifecycle：promotion completion 要求 pointed ticket 為 `Completed`，並由 promotion ledger 綁定 final fingerprint/payload/evidence；每個 Completed ticket 都是 immutable historical owner，後續不得改寫其 status、metadata 或 bytes。Re-promotion 的 candidate 階段可原子更新 overlay 到一張 `Candidate Complete` replacement，但 replacement 必須以 `Depends On` 指向該 unit 最新 durable completion record 的 request owner；新 closure 與 promotion records 分別透過 `supersedes_record_sha256` 接續同 kind/unit 的 ledger revision chain。Delivered transition 後 current owner 必須等於 latest durable completion owner；後續第二次 re-promotion 也必須指向這個最新 owner，而不是最初 Wave checkpoint。不存在 replacement、缺少 latest-owner lineage、同時兩個 owners，或 ledger revision 未接續都 fail closed。
 
@@ -782,22 +805,22 @@ Gate-owner lifecycle：promotion completion 要求 pointed ticket 為 `Completed
 
 ## 10. Rollout and Reload
 
-1. 每 wave 獨立 request/PR；core allowlist 可 promotion，其他 units 只到 pack-ready；不要一次建立 100 個 live entries。
+1. 每個 canonical unit 保有獨立 gate-owner request 與 promotion transaction；waves 可在同一 feature branch依依賴順序批次完成，但任何一個 unit 都不能以 bulk copy 或 pack-ready 代替正式 promotion。
 2. 新增 skill、改 `SKILL.md` 或 manifest 後，依 repository guidance 執行 `dev:local:unlink` → `dev:local:link` → `dev:local:status`。
 3. 關閉舊 Codex process，以 repository-only `CODEX_HOME` 啟動新 task。
 4. `hooks.json` 變更需新 task 並重新 trust `/hooks`。
-5. 每 wave 更新 `docs/PROJECT-MIGRATION-GUIDE.md` 的完成範圍、core/pack boundary 與 reload matrix；R2 audit 在 marker 缺失或 guidance 衝突時阻擋 Wave 1+ core promotion。
+5. 每 wave 更新 `docs/PROJECT-MIGRATION-GUIDE.md` 的完成範圍、formal-plugin boundary 與 reload matrix；R2 audit 在 marker 缺失、發現 undiscovered delivered payload或 guidance 衝突時阻擋 promotion。
 
 ## 11. Acceptance Criteria
 
-- [ ] Primary Git snapshot 98 skills + exact-hash local overlay 2 skills 可由 deterministic script 重建 composite 100 skills inventory。
-- [ ] 100/100 skills 都有 closed disposition、target/mode、wave、routing owner、promotion unit、license status；promotion/retirement 前每個 unit 有唯一 designated gate-owner request，不存在 unresolved alternative。
-- [ ] Wave 1 lifecycle skills 可產生互相正確連結的 requirements/spec/request artifacts。
-- [ ] Wave 2 research skills保留 independent research、claim registry、Nash/divergence 與 source-aware verdict semantics。
-- [ ] `smart-commit`、`push-ci`、PR writes 在沒有 fresh explicit approval 時不會執行。
-- [ ] Promoted payload 沒有 Claude hook payload 或 `mcp__codex__*` runtime assumptions。
-- [ ] Curated core live skills 與 non-core pack-ready payloads 各自通過 static + behavioral + routing/package-boundary tests。
-- [ ] 每 wave 都有 exact-fingerprint review pass 與 deterministic verification evidence。
+- [x] Primary Git snapshot 98 skills + exact-hash local overlay 2 skills 可由 deterministic script 重建 composite 100 skills inventory。
+- [x] 100/100 skills 都有 closed disposition、target/mode、wave、routing owner、promotion unit、license status；promotion 前每個 unit 有唯一 designated gate-owner request，不存在 unresolved alternative。
+- [x] Wave 1 lifecycle skills 可產生互相正確連結的 requirements/spec/request artifacts。
+- [x] Wave 2 research skills保留 independent research、claim registry、Nash/divergence 與 source-aware verdict semantics。
+- [x] `smart-commit`、`push-ci`、PR writes 在沒有 fresh explicit approval 時不會執行。
+- [x] Promoted payload 沒有 Claude hook payload 或 `mcp__codex__*` runtime assumptions。
+- [x] 95/95 canonical units 透過 85 個 discovered canonical targets/modes 全部可用，並各自通過 static、behavioral、routing、authorization與 package-boundary tests；legacy packs 只保留為 immutable evidence history。
+- [x] 每 wave 都有 exact-fingerprint review pass 與 deterministic verification evidence。
 
 ## 12. Decisions and Deferred Work
 
@@ -807,6 +830,6 @@ Gate-owner lifecycle：promotion completion 要求 pointed ticket 為 `Completed
 | Source copy | Tracked full `skills/` mirror under non-distributable `migration/staging/` | Refresh only through pinned drift request |
 | Smart commit scope | One existing index → one commit、≤15 files、never stage/unstage；`--all` plan-only | Separate touched-file/multi-commit/auto-stage state request |
 | GitHub delivery | `gh` CLI canonical with capability/auth check；no automatic login | Connector may provide read-only metadata fallback |
-| Core vs packs | Keep exactly 10 canonical core workflows；all non-core destinations remain repository-only pack-ready handoffs until moved to separate plugin repositories | Core allowlist change requires architecture/guidance request |
+| Formal plugin scope | All 95 canonical units ship from the single distributable plugin；mapping-only aliases do not add duplicate entrypoints；legacy packs are promotion inputs/history only | A future split into multiple published plugins requires a new architecture/guidance request and release-compatible migration |
 | Research default | Medium for explicit broad research；low auto-downgrade for narrow intent；brainstorm auto-trigger only from defined validation conditions | Project budget override after usage data |
-| `statusline-config` | Retire: Claude statusline schema has no proven Codex equivalent | New request only after official Codex statusline API exists |
+| `statusline-config` | Ship a read-only capability-aware skill；current unsupported versions explain alternatives and fail closed without touching Claude config | Add actual configuration mutation only after an official Codex API is locally or officially verified and separately authorized |

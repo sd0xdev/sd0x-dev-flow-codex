@@ -40,34 +40,16 @@ const ALIAS_CANDIDATES = Object.freeze([
   'project-setup'
 ].sort(BYTEWISE));
 
-const CORE_SOURCES = new Set([
-  'bug-fix',
-  'claude-health',
-  'codex-cli-review',
-  'codex-code-review',
-  'codex-implement',
-  'codex-review',
-  'codex-review-branch',
-  'codex-review-fast',
-  'codex-setup',
-  'codex-test-review',
-  'create-request',
-  'deep-analyze',
-  'feature-dev',
-  'install-hooks',
-  'install-rules',
-  'install-scripts',
-  'precommit',
-  'precommit-fast',
-  'project-setup',
-  'remind',
-  'req-analyze',
-  'tech-spec',
-  'test-review',
-  'verify'
+const FORMAL_PLUGIN_PACKAGE = 'core';
+const LEGACY_CORE_SOURCES = new Set([
+  'bug-fix', 'claude-health', 'codex-cli-review', 'codex-code-review',
+  'codex-implement', 'codex-review', 'codex-review-branch', 'codex-review-fast',
+  'codex-setup', 'codex-test-review', 'create-request', 'deep-analyze',
+  'feature-dev', 'install-hooks', 'install-rules', 'install-scripts',
+  'precommit', 'precommit-fast', 'project-setup', 'remind', 'req-analyze',
+  'tech-spec', 'test-review', 'verify'
 ]);
-
-const PACKAGES_BY_WAVE = Object.freeze({
+const LEGACY_PACKAGES_BY_WAVE = Object.freeze({
   1: 'planning-pack',
   2: 'research-pack',
   3: 'development-pack',
@@ -82,8 +64,8 @@ const RATIONALES = Object.freeze({
   port: 'Port the source workflow while preserving its bounded behavior.',
   adapt: 'Adapt source assumptions to Codex-native tools, authority, and evidence contracts.',
   merge: 'Merge the source behavior into the named canonical routing owner and mode.',
-  optional: 'Prepare an optional capability-gated pack handoff without core discovery.',
-  retire: 'Retire unsupported Claude statusline configuration instead of simulating Codex support.'
+  optional: 'Provide a capability-gated canonical workflow that fails closed when its integration is unavailable.',
+  retire: 'Historical disposition only; current formal-plugin sources require a live canonical target.'
 });
 
 function assert(condition, message) {
@@ -129,10 +111,16 @@ function parseDispositionTable(markdown) {
 }
 
 function targetPackage(row) {
+  assert(row && row.disposition !== 'retire',
+    'formal-plugin disposition cannot derive a retired package');
+  return FORMAL_PLUGIN_PACKAGE;
+}
+
+function legacyTargetPackage(row) {
   if (row.disposition === 'retire') return 'retired';
-  if (CORE_SOURCES.has(row.source_name)) return 'core';
-  const packageName = PACKAGES_BY_WAVE[row.wave];
-  assert(packageName, `no package derivation for wave ${row.wave}`);
+  if (LEGACY_CORE_SOURCES.has(row.source_name)) return 'core';
+  const packageName = LEGACY_PACKAGES_BY_WAVE[row.wave];
+  assert(packageName, `no legacy package derivation for wave ${row.wave}`);
   return packageName;
 }
 
@@ -162,7 +150,6 @@ function buildDisposition(markdown) {
     canonical_targets: canonicalTargets,
     skills: parsed
       .map(({ index, ...row }) => {
-        const retired = row.disposition === 'retire';
         const aliasCandidate = aliases.has(row.source_name);
         return {
           source_name: row.source_name,
@@ -176,10 +163,8 @@ function buildDisposition(markdown) {
           capabilities: [],
           operations: [],
           wave: row.wave,
-          routing_owner: retired ? null : row.target_skill,
-          promotion_unit_id: retired
-            ? `retire/${row.source_name}`
-            : `${row.target_skill}/${row.target_mode || 'default'}`,
+          routing_owner: row.target_skill,
+          promotion_unit_id: `${row.target_skill}/${row.target_mode || 'default'}`,
           promotion_request: null,
           license_status: 'approved',
           rationale: RATIONALES[row.disposition]
@@ -227,9 +212,11 @@ if (require.main === module) {
 
 module.exports = {
   ALIAS_CANDIDATES,
-  CORE_SOURCES,
+  FORMAL_PLUGIN_PACKAGE,
+  LEGACY_CORE_SOURCES,
   buildDisposition,
   initializeDisposition,
+  legacyTargetPackage,
   parseDispositionTable,
   targetPackage
 };

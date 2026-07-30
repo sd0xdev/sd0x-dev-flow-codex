@@ -209,7 +209,6 @@ function restageCoreCandidate(root, target, options = {}) {
     const tracked = git(root, [
       'ls-tree', '-r', '--name-only', 'HEAD', '--', liveRelative
     ]).trim().split('\n').filter(Boolean);
-    if (tracked.length === 0) fail(`${target}: HEAD core payload is missing`);
     if (typeof options.beforeAcceptedCapture === 'function') {
       options.beforeAcceptedCapture(live);
     }
@@ -218,7 +217,9 @@ function restageCoreCandidate(root, target, options = {}) {
       target,
       'accepted live tree'
     );
-    const headTree = restoredTree(root, tracked, liveRelative, acceptedTree.mode);
+    const headTree = tracked.length > 0
+      ? restoredTree(root, tracked, liveRelative, acceptedTree.mode)
+      : null;
 
     recovery = createRecoveryDirectory(root, 'restage-core-', {
       deviceOf: options.recoveryDeviceOf,
@@ -343,30 +344,38 @@ function restageCoreCandidate(root, target, options = {}) {
         if (typeof options.afterLiveRemoval === 'function') {
           options.afterLiveRemoval(live);
         }
-        restoredWrittenTree = writeBoundTree(
-          liveDirectory,
-          target,
-          headTree,
-          {
-            label: 'restored live tree',
-            afterRootCreate(details) {
-              restoredCreated = true;
-              if (typeof options.afterRestoredRootCreate === 'function') {
-                options.afterRestoredRootCreate(details);
+        if (headTree) {
+          restoredWrittenTree = writeBoundTree(
+            liveDirectory,
+            target,
+            headTree,
+            {
+              label: 'restored live tree',
+              afterRootCreate(details) {
+                restoredCreated = true;
+                if (typeof options.afterRestoredRootCreate === 'function') {
+                  options.afterRestoredRootCreate(details);
+                }
               }
             }
+          );
+          restoredInstalled = true;
+          if (typeof options.afterRestoredInstall === 'function') {
+            options.afterRestoredInstall(live);
           }
-        );
-        restoredInstalled = true;
-        if (typeof options.afterRestoredInstall === 'function') {
-          options.afterRestoredInstall(live);
+          assertBoundTree(
+            liveDirectory,
+            target,
+            restoredWrittenTree,
+            { label: 'restored live tree' }
+          );
+        } else {
+          liveDirectory.run((child) => {
+            if (fs.lstatSync(child(target), { throwIfNoEntry: false })) {
+              fail(`${target}: untracked HEAD payload was not removed`);
+            }
+          });
         }
-        assertBoundTree(
-          liveDirectory,
-          target,
-          restoredWrittenTree,
-          { label: 'restored live tree' }
-        );
         try {
           assertDirectoryIdentity(
             liveParent,
@@ -485,7 +494,8 @@ function restageCoreCandidate(root, target, options = {}) {
       ok: true,
       target,
       candidate: candidateRelative,
-      restored_live: liveRelative
+      restored_live: headTree ? liveRelative : null,
+      restored_live_absent: !headTree
     };
   } catch (error) {
     failure = retainRecovery && recovery &&

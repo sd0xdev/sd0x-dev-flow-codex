@@ -1,0 +1,40 @@
+{
+  "schema_version": 3,
+  "target_skill": "epic-merge",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": [
+      "history-rewrite",
+      "pr-write",
+      "push"
+    ]
+  },
+  "units": [
+    {
+      "promotion_unit_id": "epic-merge/default",
+      "target_mode": null,
+      "source_names": [
+        "epic-merge"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run epic-merge; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical epic-merge workflow and report its evidence.",
+          "Help me run the epic-merge workflow for this repository.",
+          "I need the canonical epic-merge procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/epic-merge-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/epic-merge-default-workflow.test.js"
+      ]
+    }
+  ]
+}

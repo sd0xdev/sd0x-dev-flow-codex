@@ -3,7 +3,7 @@
 const { defineSemanticContractTests } = require('../scripts/research-contract-test');
 defineSemanticContractTests({
   "target": "fp-brief",
-  "targetPackage": "research-pack",
+  "targetPackage": "core",
   "unit": "fp-brief/default",
   "required": [
     "Build an assumptions register",

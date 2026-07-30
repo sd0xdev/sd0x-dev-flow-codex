@@ -8,7 +8,7 @@
 > **Depends On**: [Codex 0.144.6 Refresh](./2026-07-23-alias-capability-codex-0-144-6-refresh.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
 
-<!-- sd0x-alias-capability-owner:v1 {"codex_version":"codex-cli 0.145.0","decision":"mapping-only","decision_sha256":"d3dcef2fb0ce5b4c74931e23a376106b5f3fc398c18c310b1e0d952efe3e5638","registry_mechanism":null,"tested_at":"2026-07-23T17:08:50+08:00"} -->
+<!-- sd0x-alias-capability-owner:v1 {"codex_version":"codex-cli 0.145.0","decision":"mapping-only","decision_sha256":"bdda40f8d93883437322ee39dba0f152f231e49f8c15f556a85cad6b6b1de33b","registry_mechanism":null,"tested_at":"2026-07-23T17:08:50+08:00"} -->
 
 ## Background
 

@@ -157,7 +157,7 @@ function validateRoutingContract(skillText, spec) {
     unmanaged = unmanaged.replace(routingContractBlock(entry.unit, entry.routing), '');
   }
   assert.doesNotMatch(unmanaged,
-    /\b(?:route|routing|trigger(?:s|ed)?|positive prompts?|negative prompts?)\b|\b(?:use|do not use|don't use)\s+(?:this|the)\s+skill\b/i,
+    /^(?:#{1,3}\s+)(?:trigger(?:s| keywords)?|when\s+(?:not\s+)?to\s+use|routing(?:\s+(?:policy|rules?|signature))?)\s*$|\b(?:positive|negative) prompts?\b|\b(?:use|do not use|don't use)\s+(?:this|the)\s+skill\b/im,
   `SKILL.md has routing policy outside the managed registry for ${spec.unit}`);
   return actual;
 }
@@ -207,23 +207,26 @@ function repositoryRoutingRegistry(root) {
   for (const file of files.sort()) {
     const contract = JSON.parse(fs.readFileSync(file, 'utf8'));
     const relative = path.relative(root, file).split(path.sep).join('/');
-    const precedence = relative.startsWith('migration/candidates/') ? 2 : 1;
+    const ownerClass = relative.startsWith('migration/candidates/')
+      ? 'candidate'
+      : relative.startsWith('plugin/sd0x-dev-flow-codex/skills/')
+        ? 'live'
+        : 'legacy';
     for (const unit of contract.units || []) {
       const entry = { unit: unit.promotion_unit_id, routing: unit.routing };
-      const owners = entries.get(entry.unit) || { candidate: null, final: null };
-      if (precedence === 2) {
-        assert.ok(!owners.candidate,
-          `global routing registry has duplicate candidate owners for ${entry.unit}`);
-        owners.candidate = entry;
-      } else {
-        assert.ok(!owners.final,
-          `global routing registry has duplicate final owners for ${entry.unit}`);
-        owners.final = entry;
-      }
+      const owners = entries.get(entry.unit) || {
+        candidate: null,
+        live: null,
+        legacy: null
+      };
+      assert.ok(!owners[ownerClass],
+        `global routing registry has duplicate ${ownerClass} owners for ${entry.unit}`);
+      owners[ownerClass] = entry;
       entries.set(entry.unit, owners);
     }
   }
-  return [...entries.values()].map((value) => value.candidate || value.final)
+  return [...entries.values()].map((value) =>
+    value.candidate || value.live || value.legacy)
     .sort((left, right) => left.unit.localeCompare(right.unit));
 }
 
@@ -259,6 +262,7 @@ module.exports = {
   routingDescription,
   routingTestSource,
   repositoryRoutingRegistry,
+  skillCandidate,
   validateRoutingRegistry,
   validateRoutingContract
 };

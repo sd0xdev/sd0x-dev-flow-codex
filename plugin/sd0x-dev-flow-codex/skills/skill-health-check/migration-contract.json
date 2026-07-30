@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "target_skill": "skill-health-check",
+  "target_package": "core",
+  "authorization": {
+    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "sensitive_operations": []
+  },
+  "units": [
+    {
+      "promotion_unit_id": "skill-health-check/default",
+      "target_mode": null,
+      "source_names": [
+        "skill-health-check"
+      ],
+      "routing": {
+        "negative_boundaries": [
+          "Do not run skill-health-check; only execute deterministic repository verification.",
+          "Only assess test coverage, acceptance criteria, flakiness, and verification gaps.",
+          "Only review the current code changes for correctness and defects."
+        ],
+        "positive_triggers": [
+          "Apply the canonical skill-health-check workflow and report its evidence.",
+          "Help me run the skill-health-check workflow for this repository.",
+          "I need the canonical skill-health-check procedure with its safety boundaries."
+        ]
+      },
+      "behavior_tests": [
+        "test/skill-health-check-default-routing.test.js"
+      ],
+      "supplemental_behavior_tests": [
+        "test/skill-health-check-default-workflow.test.js"
+      ]
+    }
+  ]
+}
