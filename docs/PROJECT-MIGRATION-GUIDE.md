@@ -4,7 +4,7 @@
 
 > 最後校準日期：2026-07-25
 > 來源版本：Claude plugin `sd0x-dev-flow` `3.0.12`  
-> Codex 版本：`sd0x-dev-flow-codex` `0.4.0`
+> Codex 版本：`sd0x-dev-flow-codex` `0.4.1`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -115,7 +115,7 @@ Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。Cu
 - Registry checkpoint：95/95 canonical units delivered；0 pending；Wave 1 10/10、Wave 2 12/12、Wave 3 8/8、Wave 4 15/15 delivered；`create-request/default` = `promoted`。
 <!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=95 pending=0 wave3=8/8 wave4=15/15 create-request=promoted -->
 - Wave 1 的 10 個 units 均已有 durable closure 與 delivery evidence；`create-request/default` 的 recovery re-promotion 綁定最新 replacement owner、payload 與 single-primary gate fingerprint，promotion revision 為 `e1dd44ef4bd1278022ce1f2746dec2e2399d9c158095820987e40f56adddf1ae`。
-- Wave 2 的 12 個 research units 已完成 12/12 preflights、125/125 focused tests、adversarial probes、final-fingerprint review/verification、R3 durable request closures 與 exact `pack-ready` evidence；accepted bytes 位於 `migration/packs/research-pack/`，owner tickets 為 `Completed`。
+- Wave 2 的 12 個 research units 全部完成 durable delivery；`deep-research/default` 的 origin-identity replacement owner 已完成 closure 與 re-promotion。歷史 accepted bytes 位於 `migration/packs/research-pack/`。
 - Wave 3 的 8 個 development units 已完成 8/8 durable closure 與 delivery；`feature-dev/default` 的 single-primary payload re-promotion 已綁定最新 evidence。
 - Wave 4 的 15 個 quality/review units 已完成 15/15 durable closure 與 delivery；5 個 `review` modes 與獨立 non-gating 的 `test-review/default` 已完成 core re-promotion，其餘 quality-pack delivery 保持不變。
 - `release:check` 會從 `migration/source-disposition.json` 重算上方可見 checkpoint 與 machine marker，防止只更新版本卻發布過期進度。

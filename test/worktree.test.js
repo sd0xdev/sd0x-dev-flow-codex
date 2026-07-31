@@ -55,6 +55,20 @@ test('snapshot hashes tracked code changes', (t) => {
   assert.equal(snapshot(root).fingerprint, current.fingerprint);
 });
 
+test('snapshot fingerprint is independent of Git object abbreviation config', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'README.md'), '# Changed\n');
+
+  git(root, ['config', 'core.abbrev', '7']);
+  const short = snapshot(root);
+  git(root, ['config', 'core.abbrev', '20']);
+  const long = snapshot(root);
+
+  assert.notEqual(short.fingerprint, 'clean');
+  assert.equal(long.fingerprint, short.fingerprint);
+});
+
 test('snapshot content hashing survives alternate root separators', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

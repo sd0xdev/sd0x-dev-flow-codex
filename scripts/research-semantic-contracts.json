@@ -58,7 +58,7 @@
     "forbidden": []
   },
   "deep-research/default": {
-    "skill_sha256": "873c47e80ff65f815d6b1440477c6bd218e0dd2e1d1e2b2389aff93e02010e20",
+    "skill_sha256": "e17271e93943880c1f213738fb2f93c956df18aec3668b4240ac44da3905fe83",
     "required": [
       "Evidence is `{source_id, publisher_id, author_id, identity_binding_hash, independence_key, source_type, agent_role, locator, content_hash, relation, weight}`",
       "Low is one inline shard, at most three fetched sources",

@@ -3154,7 +3154,10 @@ function main(argv = process.argv.slice(2)) {
     const plan = {
       date: '2026-07-28',
       implementation_base_sha: '6bbdfbcf1294fb8cacd4efaa712ed3c51dfabc20',
-      dependency: './2026-07-28-formal-plugin-delivery-model.md'
+      dependency: {
+        title: 'Formal Plugin Delivery Model',
+        path: './2026-07-28-formal-plugin-delivery-model.md'
+      }
     };
     const registry = units.map((unit) => ({
       unit: unit.promotion_unit_id,

@@ -12,7 +12,7 @@ const {
   linkBoundTree,
   removeBoundTree,
 } = require('./bound-tree');
-const { atomicWriteContainedFile } = require('./contained-file');
+const { atomicWriteContainedFile, readContainedFile } = require('./contained-file');
 const { captureRegularTree } = require('./promote-skill-wave');
 const { createRecoveryDirectory } = require('./recovery-directory');
 const {
@@ -93,10 +93,39 @@ function requestTitle(wave, unit, targetPackage) {
   return `Wave ${wave} ${label} Core Promotion`;
 }
 
+function dependencyLink(dependency, request, root = ROOT) {
+  if (!dependency || typeof dependency !== 'object' || Array.isArray(dependency) ||
+      JSON.stringify(Object.keys(dependency).sort()) !== JSON.stringify(['path', 'title']) ||
+      typeof dependency.title !== 'string' || dependency.title.trim() !== dependency.title ||
+      dependency.title.length === 0 || /[\]\r\n]/.test(dependency.title) ||
+      typeof dependency.path !== 'string' ||
+      !/^\.\/[a-z0-9][a-z0-9._-]*\.md$/.test(dependency.path)) {
+    fail('plan dependency must be an exact {title, path} request link');
+  }
+  if (typeof request !== 'string' || request.startsWith('/') ||
+      request.split('/').includes('..')) {
+    fail('generated request path is invalid for dependency resolution');
+  }
+  const resolved = path.posix.normalize(path.posix.join(
+    path.posix.dirname(request), dependency.path
+  ));
+  if (resolved === '..' || resolved.startsWith('../') || path.posix.isAbsolute(resolved)) {
+    fail('plan dependency resolves outside the repository');
+  }
+  const dependencyBytes = readContainedFile(
+    root, path.join(root, ...resolved.split('/')), 'utf8'
+  ).bytes;
+  const actualTitle = dependencyBytes.toString('utf8').split(/\r?\n/, 1)[0];
+  if (actualTitle !== `# ${dependency.title}`) {
+    fail('plan dependency title does not match the referenced request H1');
+  }
+  return `[${dependency.title}](${dependency.path})`;
+}
+
 function renderRequest(wave, plan, target, unit, request) {
   const aliases = unit.source_names.filter((source) => source !== target.target);
   const dependencies = [
-    `[R4 — Alias Registry Capability](${plan.dependency})`
+    dependencyLink(plan.dependency, request)
   ];
   if (unit.target_mode !== null) {
     const defaultUnit = target.units.find((entry) => entry.target_mode === null);
@@ -718,6 +747,7 @@ if (require.main === module) {
 module.exports = {
   capturePreservedLive,
   copyPreservedLiveFiles,
+  dependencyLink,
   main,
   renderContract,
   renderRequest,

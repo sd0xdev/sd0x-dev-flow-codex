@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-07-28
 > **Implementation Base SHA**: `6bbdfbcf1294fb8cacd4efaa712ed3c51dfabc20`
-> **Status**: In Progress
+> **Status**: Completed
 > **Priority**: P0
 > **Depends On**: [Feature-Dev Single-Primary Re-promotion](./2026-07-26-feature-dev-single-primary-repromotion.md), [Codex 0.145.0 Alias Capability Refresh](./2026-07-23-alias-capability-codex-0-145-0-refresh.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -44,23 +44,23 @@ routing, immutable historical evidence, and per-unit promotion gates.
 
 ## Acceptance Criteria
 
-- [ ] Source audit derives `target_package=core` for every current canonical unit and rejects new pack-ready or retired final states.
-- [ ] Historical pack-ready evidence remains replayable and immutable while a replacement owner can advance the same unit to promotion.
-- [ ] Candidate and promotion tools resolve all final payloads under `plugin/sd0x-dev-flow-codex/skills/` and never discover staging or legacy packs.
-- [ ] `statusline-config/default` is a canonical read-only capability unit that cannot write Claude configuration or claim unsupported Codex mutation.
-- [ ] Wave planning deterministically covers every not-yet-promoted canonical unit exactly once with valid dependency lineage.
-- [ ] Global audit rejects missing, duplicate, alias-owned, undiscovered, or non-evidenced plugin targets.
-- [ ] Focused migration tests cover pack upgrade, direct planned promotion, statusline fallback, routing ownership, and historical evidence tamper cases.
-- [ ] Node.js 24 LTS focused checks and repository guidance agree on the formal-plugin and reload model.
+- [x] Source audit derives `target_package=core` for every current canonical unit and rejects new pack-ready or retired final states.
+- [x] Historical pack-ready evidence remains replayable and immutable while a replacement owner can advance the same unit to promotion.
+- [x] Candidate and promotion tools resolve all final payloads under `plugin/sd0x-dev-flow-codex/skills/` and never discover staging or legacy packs.
+- [x] `statusline-config/default` is a canonical read-only capability unit that cannot write Claude configuration or claim unsupported Codex mutation.
+- [x] Wave planning deterministically covers every not-yet-promoted canonical unit exactly once with valid dependency lineage.
+- [x] Global audit rejects missing, duplicate, alias-owned, undiscovered, or non-evidenced plugin targets.
+- [x] Focused migration tests cover pack upgrade, direct planned promotion, statusline fallback, routing ownership, and historical evidence tamper cases.
+- [x] Node.js 24 LTS focused checks and repository guidance agree on the formal-plugin and reload model.
 
 ## Progress
 
 | Phase | Status | Note |
 |---|---|---|
 | Analysis | Complete | The prior core/pack/retirement rules and the 33 historical pack-ready units were mapped against the new delivery goal. |
-| Development | In Progress | Updating the schema, validators, planning tools and migration contract before individual payload promotions. |
-| Testing | Pending | |
-| Acceptance | Pending | |
+| Development | Complete | All 95 canonical units ship from the single distributable plugin with durable promotion evidence. |
+| Testing | Complete | Node.js 24 focused checks, full repository verification, release contract, payload manifest, and 95/95 source audit pass. |
+| Acceptance | Complete | Independent AC verification is 8/8 Complete with High confidence; runtime closure evidence binds this Completed request. |
 
 ## References
 

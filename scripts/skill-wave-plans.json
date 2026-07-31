@@ -4,7 +4,10 @@
     "4": {
       "date": "2026-07-25",
       "implementation_base_sha": "2631aaff15b4a829f54ac34c2365887b0cb3e0e1",
-      "dependency": "./2026-07-10-skill-alias-capability-r4.md",
+      "dependency": {
+        "title": "Alias Registry Capability",
+        "path": "./2026-07-10-skill-alias-capability-r4.md"
+      },
       "targets": [
         {
           "target": "review",

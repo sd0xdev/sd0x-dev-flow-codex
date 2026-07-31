@@ -3,7 +3,7 @@
   "files": [
     {
       "path": ".codex-plugin/plugin.json",
-      "sha256": "582dc99ff2bf62efcc14a3dc103e0caebe74a6ac37fd5b78571dc10d3d160ed8"
+      "sha256": "3227af04df418c140e8b2b762253c7858792602df6d05b94935de1ecc707be1e"
     },
     {
       "path": ".mcp.json",
@@ -51,7 +51,7 @@
     },
     {
       "path": "scripts/runtime/worktree.js",
-      "sha256": "f425dfaa333691e0cd7d0f110a4848ca61c1c9e562cda0604b65f30896e3e7c9"
+      "sha256": "07af2b8cd8633df76587b5961cbdfd7f676c9b32f3d85fd13575c14c6e9d1091"
     },
     {
       "path": "skills/architecture-advice/SKILL.md",
@@ -231,7 +231,7 @@
     },
     {
       "path": "skills/deep-research/SKILL.md",
-      "sha256": "873c47e80ff65f815d6b1440477c6bd218e0dd2e1d1e2b2389aff93e02010e20"
+      "sha256": "e17271e93943880c1f213738fb2f93c956df18aec3668b4240ac44da3905fe83"
     },
     {
       "path": "skills/deep-research/migration-contract.json",
@@ -239,7 +239,7 @@
     },
     {
       "path": "skills/deep-research/scripts/research-score.js",
-      "sha256": "617c6130a4728b456fc7e3fa63a7a8f28156c775a54d63357b0112354b4db1c4"
+      "sha256": "434d0af86ccdd17492cc7547a1cbbd451ed8ebf370b0e3c68339080415dca1aa"
     },
     {
       "path": "skills/dep-audit/SKILL.md",

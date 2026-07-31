@@ -154,7 +154,9 @@ test('formal proposals require production final-audit identity and pass candidat
 
 test('formal request fixtures cover candidate and finalized or overlaid registry phases', () => {
   const formal = formalRecords();
-  assert.equal(formal.length, 83);
+  assert.equal(formal.length, 82);
+  assert.equal(formalRecord('deep-research/default'), undefined,
+    'the replacement owner is closed by its own request lifecycle');
   for (const record of formal) {
     const current = fs.readFileSync(path.join(ROOT, record.request_path), 'utf8');
     const candidate = candidateMarkdown(current);

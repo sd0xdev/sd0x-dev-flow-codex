@@ -345,6 +345,75 @@ function defineSemanticContractTests(spec) {
         independence_key: 'publisher:forged-publisher'
       }, identities), false);
       assert.equal(research.validateEvidence(secondary), false);
+      const officialIdentity = research.createResolvedWebIdentity(
+        'https://NODEJS.org/api/url.html?utm_source=fixture#url'
+      );
+      assert.deepEqual(officialIdentity, {
+        source_id: 'https://nodejs.org/api/url.html',
+        publisher_id: 'https://nodejs.org',
+        author_id: null,
+        identity_binding_hash: officialIdentity.identity_binding_hash,
+        independence_key: 'publisher:https://nodejs.org'
+      });
+      const official = {
+        ...secondary,
+        source_id: officialIdentity.source_id,
+        publisher_id: officialIdentity.publisher_id,
+        author_id: officialIdentity.author_id,
+        identity_binding_hash: officialIdentity.identity_binding_hash,
+        independence_key: officialIdentity.independence_key,
+        source_type: 'official',
+        weight: 3
+      };
+      assert.equal(research.validateEvidence(official), true);
+      const secondaryOrigin = research.createResolvedWebIdentity(
+        'https://developer.mozilla.org/en-US/docs/Web/API/URL?b=2&gclid=fixture&a=1'
+      );
+      assert.equal(secondaryOrigin.source_id,
+        'https://developer.mozilla.org/en-US/docs/Web/API/URL?b=2&a=1');
+      const originSecondary = {
+        ...secondary,
+        source_id: secondaryOrigin.source_id,
+        publisher_id: secondaryOrigin.publisher_id,
+        author_id: null,
+        identity_binding_hash: secondaryOrigin.identity_binding_hash,
+        independence_key: secondaryOrigin.independence_key
+      };
+      assert.equal(research.validateEvidence(originSecondary), true);
+      const communityOrigin = research.createResolvedWebIdentity(
+        'https://stackoverflow.com/questions/1/example'
+      );
+      const originCommunity = {
+        ...secondary,
+        source_id: communityOrigin.source_id,
+        publisher_id: communityOrigin.publisher_id,
+        author_id: null,
+        identity_binding_hash: communityOrigin.identity_binding_hash,
+        independence_key: communityOrigin.independence_key,
+        source_type: 'community',
+        weight: 1
+      };
+      assert.equal(research.validateEvidence(originCommunity), true);
+      const publisherOnlySignedCommunity = {
+        ...originCommunity,
+        source_id: secondary.source_id
+      };
+      const publisherOnlyOrigin = research.createResolvedWebIdentity(
+        publisherOnlySignedCommunity.source_id
+      );
+      Object.assign(publisherOnlySignedCommunity, {
+        publisher_id: publisherOnlyOrigin.publisher_id,
+        identity_binding_hash: publisherOnlyOrigin.identity_binding_hash,
+        independence_key: publisherOnlyOrigin.independence_key
+      });
+      assert.equal(research.validateEvidence(
+        publisherOnlySignedCommunity,
+        new Map([[secondary.source_id, secondaryIdentity]])
+      ), true);
+      assert.equal(research.validateEvidence({
+        ...originCommunity,
+        author_id: 'path-guessed-author'
+      }), false);
       const rogue = crypto.generateKeyPairSync('ed25519');
       const forgedSource = 'https://news.example.co.uk/forged-report';
       const forgedStatement = JSON.stringify({

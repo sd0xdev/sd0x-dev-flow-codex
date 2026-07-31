@@ -196,11 +196,11 @@ function snapshot(cwd = process.cwd(), options = {}) {
     tracked = [...new Set([...staged, ...unstaged])];
     indexDiff = runGit(root, [
       'diff', '--cached', '--ignore-submodules=none', '--raw', '-z',
-      '--no-ext-diff', '--no-renames', ...pathspec
+      '--abbrev=40', '--no-ext-diff', '--no-renames', ...pathspec
     ], { encoding: null });
     worktreeDiff = runGit(root, [
       'diff', '--ignore-submodules=none', '--raw', '-z', '--no-ext-diff',
-      '--no-renames', ...pathspec
+      '--abbrev=40', '--no-renames', ...pathspec
     ], { encoding: null });
   } catch {
     untracked = walkFiles(root);

@@ -20,6 +20,7 @@ const DIMENSION_KEYS = Object.freeze(['cross_verification', 'diversity', 'gap_co
 const HASH = new RegExp('^[0-9a-f]{64}$');
 const DECLARED_IDENTITY = new RegExp('^[a-z0-9][a-z0-9._:@/-]{1,254}$');
 const SIGNATURE = new RegExp('^[A-Za-z0-9+/]+={0,2}$');
+const ORIGIN_AUTHORITY_ID = 'sd0x-resolved-https-origin-v1';
 const TRUSTED_AUTHORITY_KEYS = new Map([[
   'sd0x-host-identity-v1',
   crypto.createPublicKey([
@@ -65,6 +66,42 @@ function identityStatement(sourceId, publisherId, authorId, authorityId) {
   });
 }
 
+function canonicalWebSourceId(value) {
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return null;
+  }
+  if (parsed.protocol !== 'https:' || parsed.username !== '' || parsed.password !== '') {
+    return null;
+  }
+  parsed.hash = '';
+  for (const key of [...parsed.searchParams.keys()]) {
+    const normalized = key.toLowerCase();
+    if (normalized.startsWith('utm_') || ['fbclid', 'gclid'].includes(normalized)) {
+      parsed.searchParams.delete(key);
+    }
+  }
+  return parsed.toString();
+}
+
+function createResolvedWebIdentity(resolvedUrl) {
+  const sourceId = canonicalWebSourceId(resolvedUrl);
+  if (sourceId === null) return null;
+  const publisherId = new URL(sourceId).origin;
+  const statement = identityStatement(
+    sourceId, publisherId, null, ORIGIN_AUTHORITY_ID
+  );
+  return Object.freeze({
+    source_id: sourceId,
+    publisher_id: publisherId,
+    author_id: null,
+    identity_binding_hash: crypto.createHash('sha256').update(statement).digest('hex'),
+    independence_key: 'publisher:' + publisherId
+  });
+}
+
 function validIdentityRegistry(registry) {
   if (!(registry instanceof Map) || registry.size === 0) return false;
   return [...registry.entries()].every(([sourceId, binding]) => {
@@ -96,24 +133,34 @@ function deriveIndependenceKey(item, identityRegistry = new Map()) {
     );
     return match ? match[1] : null;
   }
-  let parsed;
-  try {
-    parsed = new URL(item.source_id);
-  } catch {
-    return null;
+  if (!(identityRegistry instanceof Map)) return null;
+  if (identityRegistry.size > 0) {
+    if (!validIdentityRegistry(identityRegistry)) return null;
+    const binding = identityRegistry.get(item.source_id);
+    if (binding) {
+      if (['community', 'case'].includes(item.source_type)) {
+        if (declaredIdentity(binding.author_id)) {
+          return binding.publisher_id === item.publisher_id &&
+            binding.author_id === item.author_id &&
+            binding.identity_binding_hash === item.identity_binding_hash &&
+            declaredIdentity(item.publisher_id)
+            ? 'publisher:' + item.publisher_id + ':author:' + item.author_id
+            : null;
+        }
+      } else {
+        if (binding.publisher_id !== item.publisher_id ||
+            binding.author_id !== item.author_id ||
+            binding.identity_binding_hash !== item.identity_binding_hash ||
+            !declaredIdentity(item.publisher_id)) return null;
+        return item.author_id === null ? 'publisher:' + item.publisher_id : null;
+      }
+    }
   }
-  if (!validIdentityRegistry(identityRegistry)) return null;
-  const binding = identityRegistry.get(item.source_id);
-  if (!binding || binding.publisher_id !== item.publisher_id ||
-      binding.author_id !== item.author_id ||
-      binding.identity_binding_hash !== item.identity_binding_hash) return null;
-  if (!declaredIdentity(item.publisher_id)) return null;
-  if (['community', 'case'].includes(item.source_type)) {
-    return declaredIdentity(item.author_id)
-      ? 'publisher:' + item.publisher_id + ':author:' + item.author_id
-      : null;
-  }
-  return item.author_id === null ? 'publisher:' + item.publisher_id : null;
+  const origin = createResolvedWebIdentity(item.source_id);
+  return origin && item.publisher_id === origin.publisher_id && item.author_id === null &&
+    item.identity_binding_hash === origin.identity_binding_hash
+    ? origin.independence_key
+    : null;
 }
 
 function canonicalIdentityKnown(item, identityRegistry = new Map()) {
@@ -130,17 +177,7 @@ function canonicalIdentityKnown(item, identityRegistry = new Map()) {
       repositoryIndependence.test(item.independence_key) &&
       deriveIndependenceKey(item, identityRegistry) === item.independence_key;
   }
-  let parsed;
-  try {
-    parsed = new URL(item.source_id);
-  } catch {
-    return false;
-  }
-  const tracking = [...parsed.searchParams.keys()].some((key) =>
-    key.toLowerCase().startsWith('utm_') || ['fbclid', 'gclid'].includes(key.toLowerCase())
-  );
-  return parsed.protocol === 'https:' && parsed.hash === '' && !tracking &&
-    item.source_id === parsed.toString() &&
+  return canonicalWebSourceId(item.source_id) === item.source_id &&
     deriveIndependenceKey(item, identityRegistry) === item.independence_key;
 }
 
@@ -298,9 +335,11 @@ module.exports = {
   BUDGETS,
   THRESHOLDS,
   WEIGHTS,
+  canonicalWebSourceId,
   canonicalIdentityKnown,
   claimScore,
   completeness,
+  createResolvedWebIdentity,
   deduplicate,
   deriveIndependenceKey,
   independentSupportCount,
