@@ -19,8 +19,7 @@ function formalPlan(disposition) {
   const targets = new Map();
   for (const row of disposition.skills) {
     if (row.delivery_state !== 'candidate' ||
-        !/\/2026-07-28-wave[5-7]-.*-promotion\.md$/.test(
-          row.promotion_request || '')) continue;
+        row.target_package !== 'core') continue;
     if (!targets.has(row.target_skill)) {
       targets.set(row.target_skill, {
         target: row.target_skill,

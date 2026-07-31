@@ -108,6 +108,23 @@ function fixtureRoot(options = {}) {
     cwd: root,
     env: process.env
   });
+  const historicalResearchValidators = new Map();
+  const historicalResearchPack = path.join(
+    root, 'migration', 'packs', 'research-pack'
+  );
+  if (fs.existsSync(historicalResearchPack)) {
+    for (const entry of fs.readdirSync(historicalResearchPack, {
+      withFileTypes: true
+    })) {
+      if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+      const validator = path.join(
+        root, 'scripts', 'research-validators', `${entry.name}.js`
+      );
+      if (fs.existsSync(validator)) {
+        historicalResearchValidators.set(entry.name, fs.readFileSync(validator));
+      }
+    }
+  }
   const historicalDisposition = readJson(root, 'migration/source-disposition.json');
   if (options.copyEvidenceRef) {
     const evidenceRef = 'refs/sd0x-dev-flow-codex/evidence/v1';
@@ -130,6 +147,13 @@ function fixtureRoot(options = {}) {
     rewindEvidenceFixtureToStableClosureBoundary(root);
   }
   copy(path.join(ROOT, 'migration'), path.join(root, 'migration'));
+  // The fixture replays a pinned historical disposition below. Active candidates
+  // from the caller's current worktree belong to a different lifecycle and must
+  // not leak into that historical registry snapshot.
+  fs.rmSync(path.join(root, 'migration', 'candidates'), {
+    recursive: true,
+    force: true
+  });
   const currentAliasCapability = readJson(ROOT, 'migration/alias-capability.json');
   const currentAliasOwner = currentAliasCapability.owner_request_path;
   fs.mkdirSync(path.dirname(path.join(root, currentAliasOwner)), { recursive: true });
@@ -193,6 +217,16 @@ function fixtureRoot(options = {}) {
     path.join(root, 'test', 'fixtures', 'alias-capability'));
   copy(path.join(ROOT, 'scripts', 'research-validators'),
     path.join(root, 'scripts', 'research-validators'));
+  // These fixtures replay the immutable historical research pack, so its
+  // validators must come from the same pinned checkout. A newer live
+  // replacement can legitimately update the repository validator after its
+  // candidate directory has moved away; copying that validator into this
+  // historical pack would create a cross-lifecycle byte mismatch.
+  for (const [target, bytes] of historicalResearchValidators) {
+    fs.writeFileSync(path.join(
+      root, 'scripts', 'research-validators', `${target}.js`
+    ), bytes);
+  }
   copy(path.join(ROOT, 'scripts', 'debug-probe'),
     path.join(root, 'scripts', 'debug-probe'));
   for (const relative of [

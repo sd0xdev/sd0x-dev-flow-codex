@@ -51,6 +51,7 @@ const {
 const {
   capturePreservedLive,
   copyPreservedLiveFiles,
+  dependencyLink,
   renderContract,
   withPreparedCandidateDirectory,
   writeText: writePreparedText
@@ -63,6 +64,9 @@ const {
   recoverPromotion,
   treeDigest: promotionTreeDigest
 } = require('../scripts/promote-skill-wave');
+const {
+  formalPlan
+} = require('../scripts/promote-formal-plugin-candidates');
 const { openBoundDirectory } = require('../scripts/bound-directory');
 const {
   assertTreeContent,
@@ -100,6 +104,67 @@ test('prepared contracts declare their observed sensitive operations', () => {
   assert.deepEqual(contract.authorization.sensitive_operations,
     ['pr-write', 'push']);
 });
+
+test('formal plugin promotion plan follows active core replacement owners', () => {
+  const disposition = {
+    skills: [
+      {
+        delivery_state: 'candidate',
+        target_package: 'core',
+        target_skill: 'deep-research',
+        promotion_unit_id: 'deep-research/default'
+      },
+      {
+        delivery_state: 'candidate',
+        target_package: 'research-pack',
+        target_skill: 'ask',
+        promotion_unit_id: 'ask/default'
+      },
+      {
+        delivery_state: 'promoted',
+        target_package: 'core',
+        target_skill: 'review',
+        promotion_unit_id: 'review/default'
+      }
+    ]
+  };
+  assert.deepEqual(formalPlan(disposition), {
+    targets: [{
+      target: 'deep-research',
+      target_package: 'core',
+      units: [{ promotion_unit_id: 'deep-research/default' }]
+    }]
+  });
+});
+
+test('wave request dependencies bind their rendered title and path together', () => {
+  const request =
+    'docs/features/skill-toolkit-migration/requests/generated-request.md';
+  assert.equal(dependencyLink({
+    title: 'Formal Plugin Delivery Model',
+    path: './2026-07-28-formal-plugin-delivery-model.md'
+  }, request), '[Formal Plugin Delivery Model](./2026-07-28-formal-plugin-delivery-model.md)');
+  assert.throws(() => dependencyLink(
+    './2026-07-28-formal-plugin-delivery-model.md', request
+  ), /exact \{title, path\}/);
+  assert.throws(() => dependencyLink({
+    title: 'R4 — Alias Registry Capability',
+    path: './2026-07-28-formal-plugin-delivery-model.md'
+  }, request), /title does not match the referenced request H1/);
+});
+
+test('every configured wave dependency resolves its exact request H1', () => {
+  const plans = readJson(ROOT, 'scripts/skill-wave-plans.json');
+  for (const [wave, plan] of Object.entries(plans.waves)) {
+    const request =
+      `docs/features/skill-toolkit-migration/requests/generated-wave-${wave}.md`;
+    assert.equal(
+      dependencyLink(plan.dependency, request),
+      `[${plan.dependency.title}](${plan.dependency.path})`
+    );
+  }
+});
+
 const {
   acquireProbeLease,
   buildDump,
@@ -1510,7 +1575,7 @@ test('Candidate Complete validation rejects transient behavior-test ABA swaps', 
   }
 });
 
-test('all formally promoted research SKILL bytes are trusted semantic authority', () => {
+test('all formally delivered research SKILL bytes use the active semantic authority', () => {
   for (const target of [
     'architecture-advice', 'ask', 'brainstorm', 'code-explore',
     'code-investigate', 'deep-explore', 'deep-research', 'explain',
@@ -1518,9 +1583,13 @@ test('all formally promoted research SKILL bytes are trusted semantic authority'
   ]) {
     const unit = `${target}/default`;
     const requirements = trustedSemanticContract(unit);
-    const skill = fs.readFileSync(path.join(
+    const candidate = path.join(
+      ROOT, 'migration/candidates', target, 'SKILL.md'
+    );
+    const live = path.join(
       ROOT, 'plugin/sd0x-dev-flow-codex/skills', target, 'SKILL.md'
-    ), 'utf8');
+    );
+    const skill = fs.readFileSync(fs.existsSync(candidate) ? candidate : live, 'utf8');
     assert.equal(validateSemanticContract(skill, { unit, ...requirements }), true);
     const active = semanticActiveContractBlock(unit, requirements);
     assert.throws(() => validateSemanticContract(skill.replace(
@@ -1533,6 +1602,38 @@ test('all formally promoted research SKILL bytes are trusted semantic authority'
       { unit, ...requirements }
     ), /SKILL\.md differs from the trusted SKILL bytes/);
   }
+});
+
+test('deep-research live payload revision follows replacement-owner lifecycle', () => {
+  const disposition = readJson(ROOT, 'migration/source-disposition.json');
+  const row = disposition.skills.find((entry) =>
+    entry.promotion_unit_id === 'deep-research/default'
+  );
+  const current = completionEvidenceSnapshot(ROOT).find((record) =>
+    record.promotion_unit_id === row.promotion_unit_id
+  );
+  const live = 'plugin/sd0x-dev-flow-codex/skills/deep-research';
+  const candidate = 'migration/candidates/deep-research';
+
+  assert.ok(current);
+  if (row.delivery_state === 'candidate') {
+    assert.notEqual(current.request_path, row.promotion_request);
+    if (fs.existsSync(candidate)) {
+      assert.equal(current.payload_tree_sha256, hashPayloadTree(ROOT, live));
+      assert.notEqual(hashPayloadTree(ROOT, candidate), current.payload_tree_sha256);
+    } else {
+      assert.notEqual(current.payload_tree_sha256, hashPayloadTree(ROOT, live));
+    }
+    assert.match(fs.readFileSync(path.join(ROOT, row.promotion_request), 'utf8'),
+      new RegExp(path.basename(current.request_path)
+        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    return;
+  }
+
+  assert.equal(row.delivery_state, 'promoted');
+  assert.equal(current.request_path, row.promotion_request);
+  assert.equal(current.payload_tree_sha256, hashPayloadTree(ROOT, live));
+  assert.match(current.supersedes_record_sha256, /^[0-9a-f]{64}$/);
 });
 
 test('Wave 1 readiness is an immutable subject checkpoint, not current delivery evidence', (t) => {
