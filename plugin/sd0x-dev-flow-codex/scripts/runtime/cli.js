@@ -7,6 +7,10 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { readProjectConfig } = require('./config');
 const {
+  CONTRACT_SCHEMA_VERSION,
+  inspectManagedGuidance
+} = require('./workflow-contract');
+const {
   applyRequestClosure,
   attestCommitClosureReview,
   beginCommitClosureReview,
@@ -21,7 +25,7 @@ const {
   resolveStatePath,
   summarize
 } = require('./state');
-const { snapshot } = require('./worktree');
+const { findRepoRoot, snapshot } = require('./worktree');
 const { runPrecommitMode, runVerification } = require('./verify');
 const {
   claudeRequiredFlags,
@@ -306,6 +310,13 @@ function doctor(cwd, options = {}) {
   const nodeMajor = options.nodeMajor ?? Number(process.versions.node.split('.')[0]);
   checks.push({ check: 'node>=24', ok: nodeMajor >= 24 });
   checks.push({ check: 'state-path', ok: Boolean(resolveStatePath(cwd)) });
+  const guidancePath = path.join(findRepoRoot(cwd), 'AGENTS.md');
+  const guidance = inspectManagedGuidance(
+    fs.existsSync(guidancePath) ? fs.readFileSync(guidancePath, 'utf8') : null
+  );
+  if (projectConfig.enabled) {
+    checks.push({ check: 'managed-guidance-current', ok: guidance.status === 'current' });
+  }
   const claudeRequired = projectConfig.review.provider === 'claude';
   const claude = claudeRequired
     ? (options.claudeStatus || claudeCliStatus)()
@@ -336,6 +347,8 @@ function doctor(cwd, options = {}) {
     project_config: projectConfig.path,
     review_provider: projectConfig.review.provider,
     state_path: resolveStatePath(cwd),
+    workflow_contract_version: CONTRACT_SCHEMA_VERSION,
+    managed_guidance: guidance,
     claude,
     mcp,
     checks,

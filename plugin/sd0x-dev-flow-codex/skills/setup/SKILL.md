@@ -10,11 +10,13 @@ Select the mode that matches the requested project-local surface. One allowliste
 ## Modes
 
 - Default uses the empty args list and refreshes managed guidance, opt-in config, and configured primary reviewer files.
-- Guidance uses the closed args value --guidance and updates only the managed AGENTS.md block.
+- Guidance uses the closed args value --guidance and updates only the managed AGENTS.md block. The block installs the versioned Anchor/Default/Guidance contract: hooks provide facts, the model owns reversible in-scope execution choices, and user-authored guidance outside the block remains intact.
 - Hooks uses the closed args value --hooks and updates only .codex/sd0x-dev-flow.json; plugin hooks remain bundled and require a new task plus /hooks trust when their hash changes.
-- Scripts uses the closed args value --scripts and verifies bundled runtime entrypoints without copying them into the project.
+- Scripts uses the closed args value --scripts and verifies bundled runtime entrypoints, including the canonical workflow contract, without copying them into the project.
 
 ## Bounded runtime
+
+The bundled [setup entrypoint](scripts/setup.js) is the only project-writing implementation for all four modes.
 
 `mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"setup/setup.js","cwd":"<repository-root>","args":[]}'`
 

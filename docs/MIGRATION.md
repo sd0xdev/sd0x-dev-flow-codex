@@ -13,6 +13,7 @@ Preserve the original engineering invariants, not the original command inventory
 3. Fixes invalidate prior evidence and re-enter the loop.
 4. Automation must preserve fingerprint-bound gate state and surface a non-blocking Stop advisory; the model decides whether to continue, and an explicit user-operated reset clears stale runtime evidence.
 5. Safety checks should fail closed only where Codex can reliably intercept the action.
+6. Hooks should report versioned facts while the model chooses reversible choreography inside a closed set of non-negotiable Anchors.
 
 ## Capability Map
 
@@ -25,6 +26,7 @@ Preserve the original engineering invariants, not the original command inventory
 | `Task` secondary reviewer | Optional `test-review` skill | Preserves focused test/AC analysis as a read-only, non-gating workflow rather than a required project agent. |
 | Claude Edit/Write payload fields | Canonical Codex `apply_patch` adapter | Parses `tool_input.command` patch headers. |
 | Claude Stop loop | Codex Stop non-blocking completion advisory | The model decides whether more review/verification is warranted; exact-fingerprint gate state remains visible and cannot be claimed as passed without runtime evidence. |
+| Imperative hook choreography | `[SD0X_STATE]` factual envelope plus managed workflow contract | Runtime owns evidence and safety facts; the model owns path, batching, timing, and depth inside closed Anchors. |
 | Session state in project files | Git metadata runtime state | Keeps loop state out of the worktree. |
 | Review flags | SHA-256 worktree fingerprint gates | Review and verify evidence expires after any edit. |
 | Broad global activation | Project opt-in config | Hooks stay inert until setup creates `.codex/sd0x-dev-flow.json`. |
@@ -37,6 +39,7 @@ Preserve the original engineering invariants, not the original command inventory
 - Deterministic verification with project-aware commands and recorded exit-code evidence.
 - Protected-path checks for Codex `apply_patch` operations.
 - Idempotent repository setup that preserves user-authored `AGENTS.md` content.
+- Versioned Anchor/Default/Guidance installation that preserves project guidance, trusts model judgment for reversible work, and lets doctor detect drift.
 - Model-directed continuation guidance plus an explicit user-operated runtime reset.
 - Codex-native request-ticket create/update/batch/status orchestration with a deterministic, query-only feature resolver and conservative completion boundary.
 - A pinned 100-skill shadow inventory plus repository-only source/candidate/distribution audit; staging and pack candidates never enter core discovery.

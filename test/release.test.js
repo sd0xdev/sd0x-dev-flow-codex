@@ -220,6 +220,10 @@ test('current repository satisfies the public release contract', () => {
   assert.equal(result.selector, `${PLUGIN_NAME}@${MARKETPLACE_NAME}`);
   assert.match(result.version, /^\d+\.\d+\.\d+/);
   assert.equal(documentedVersion, result.version);
+  assert.doesNotMatch(
+    migrationGuide,
+    /setup contract units 已進入 live move window.*待.*formal closure/
+  );
 });
 
 test('migration guide delivery checkpoint matches the current registry', () => {

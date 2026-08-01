@@ -3,7 +3,7 @@
   "files": [
     {
       "path": ".codex-plugin/plugin.json",
-      "sha256": "3227af04df418c140e8b2b762253c7858792602df6d05b94935de1ecc707be1e"
+      "sha256": "7666019b5924e96e21d08b17e03c02612d470e9e155cb9d76e8569a74259e649"
     },
     {
       "path": ".mcp.json",
@@ -23,7 +23,7 @@
     },
     {
       "path": "scripts/runtime/cli.js",
-      "sha256": "0f09df0a28e2780e6b5bbbe41e156c7dea5cd5ae3757fc670e5b61fb8a27cfba"
+      "sha256": "39f00bf1ab68ecad82b8ff6e8c7835c65f39b208d3e0c9ceaf0355c683d63f21"
     },
     {
       "path": "scripts/runtime/collaboration.js",
@@ -35,19 +35,27 @@
     },
     {
       "path": "scripts/runtime/hook.js",
-      "sha256": "94a20c31cd91558f781dad6ede2778b93cae823076e955df56846a3bcdaa9251"
+      "sha256": "b46d39ad7496853d30ea2e74061b5c65733b39803ef6d7a69071d7ba9fdfb993"
     },
     {
       "path": "scripts/runtime/request-metadata.js",
       "sha256": "8c75a3a2e3d753abbcbbb96f2f1c5336639376e825c1639c73927fe1354e5e2f"
     },
     {
+      "path": "scripts/runtime/setup.js",
+      "sha256": "f1f02f447effe98bdcfe670b3cbc28286b00bf5acd872b8673b474e1ffddcfa7"
+    },
+    {
       "path": "scripts/runtime/state.js",
-      "sha256": "4d60838a227724012eea311a21fa2efaa269da6ee0b66db35846eca0d3fde9df"
+      "sha256": "8d01064f571669fe0cb3c717ec8723efddb7324064da8187501fbe2d7fe9a1e6"
     },
     {
       "path": "scripts/runtime/verify.js",
       "sha256": "1268218aa25751ae4bc6b844e95946618922232a3f8c4a65f7acc54344cef4d8"
+    },
+    {
+      "path": "scripts/runtime/workflow-contract.js",
+      "sha256": "363a3a4af9fefc23b985a422be4835985fa58c162fd14861de27366b75164e40"
     },
     {
       "path": "scripts/runtime/worktree.js",
@@ -867,7 +875,7 @@
     },
     {
       "path": "skills/setup/SKILL.md",
-      "sha256": "480fac6b30bab306e8af37ad65dd5e317f287c46036b624b859caed195721330"
+      "sha256": "28255575279c2e1d284994350dc9df34d61c5dc55b1be52f2eeeea1b5551b95e"
     },
     {
       "path": "skills/setup/migration-contract.json",
@@ -875,7 +883,7 @@
     },
     {
       "path": "skills/setup/scripts/setup.js",
-      "sha256": "9747938bfdc08fb84c1aa69becbf8ee94bfc45db8dcd2926b2f0576cafec3c90"
+      "sha256": "4d7df80704dcae12e9270b68148eb7bac0cd5f830a12ae5f3f6ff33e0522328b"
     },
     {
       "path": "skills/sharingan/SKILL.md",

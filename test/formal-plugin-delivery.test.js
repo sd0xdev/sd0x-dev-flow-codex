@@ -14,6 +14,8 @@ const {
   recordPendingPromotions,
   records,
   requestCriteria,
+  pendingDispositionRecords,
+  retireCompletedManifest,
   writeDeliveryManifest
 } = require('../scripts/complete-formal-plugin-delivery');
 const {
@@ -24,7 +26,8 @@ const {
   readContainedFile
 } = require('../scripts/contained-file');
 const {
-  canonicalEvidenceBlob
+  canonicalEvidenceBlob,
+  canonicalJson
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -36,6 +39,182 @@ function formalRecords() {
   ));
   return records(disposition, FORMAL_DELIVERY_STATES);
 }
+
+test('formal delivery records accept the setup contract successor promotion', () => {
+  const row = {
+    source_name: 'fixture',
+    target_skill: 'setup',
+    promotion_unit_id: 'setup/default',
+    promotion_request: 'docs/features/skill-toolkit-migration/requests/' +
+      '2026-08-01-wave6-setup-default-contract-promotion.md',
+    delivery_state: 'candidate'
+  };
+  assert.deepEqual(records({ skills: [row] }), [{
+    promotion_unit_id: 'setup/default',
+    request_path: row.promotion_request,
+    target: 'setup',
+    rows: [row]
+  }]);
+});
+
+test('formal manifest binds a dynamic successor batch across overlay rollover', () => {
+  const units = ['default', 'guidance', 'hooks', 'scripts'];
+  const rows = units.map((mode) => ({
+    source_name: `setup-${mode}`,
+    target_skill: 'setup',
+    target_package: 'core',
+    promotion_unit_id: `setup/${mode}`,
+    promotion_request: 'docs/features/skill-toolkit-migration/requests/' +
+      `2026-08-01-wave6-setup-${mode}-contract-promotion.md`,
+    delivery_state: 'candidate'
+  }));
+  rows.push({
+    source_name: 'historical',
+    target_skill: 'ask',
+    target_package: 'core',
+    promotion_unit_id: 'ask/default',
+    promotion_request: 'docs/features/skill-toolkit-migration/requests/' +
+      '2026-07-28-wave1-ask-formal-promotion.md',
+    delivery_state: 'promoted'
+  });
+  const pending = records({ skills: rows }).map((record) => ({ ...record }));
+  const manifest = { phase: 'preparing', pending };
+  for (const phase of [
+    'preparing', 'prepared', 'applying', 'applied', 'finalizing',
+    'finalized', 'recording', 'recorded'
+  ]) {
+    manifest.phase = phase;
+    assert.equal(pendingDispositionRecords(manifest, { skills: rows }).size, 4);
+  }
+
+  const promoted = rows.map((row) => row.target_skill === 'setup'
+    ? { ...row, delivery_state: 'promoted' }
+    : row);
+  for (const phase of ['overlaying', 'overlaid']) {
+    manifest.phase = phase;
+    assert.equal(pendingDispositionRecords(manifest, { skills: promoted }).size, 4);
+  }
+
+  const added = rows.map((row) => row.target_skill === 'ask'
+    ? { ...row, delivery_state: 'candidate' }
+    : row);
+  manifest.phase = 'preparing';
+  assert.throws(() => pendingDispositionRecords(manifest, { skills: added }),
+    /exact active candidate set/);
+});
+
+test('completed old-HEAD manifest retires by durable evidence before successor validation', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-retired-manifest-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const hashes = {
+    pending: 'a'.repeat(64),
+    closure: 'b'.repeat(64),
+    promotion: 'c'.repeat(64),
+    payload: 'd'.repeat(64),
+    preflight: 'e'.repeat(64),
+    audit: 'f'.repeat(64)
+  };
+  const unit = 'setup/default';
+  const requestPath = 'docs/features/skill-toolkit-migration/requests/' +
+    '2026-07-28-wave6-setup-default-formal-promotion.md';
+  const row = { promotion_unit_id: unit, target_skill: 'setup' };
+  const overlayTargets = [
+    'migration/source-disposition.json',
+    'docs/PROJECT-MIGRATION-GUIDE.md',
+    'docs/features/skill-toolkit-migration/2-tech-spec.md'
+  ].map((target, index) => {
+    const bytes = Buffer.from(`completed-${index}\n`);
+    return {
+      path: target,
+      prior_sha256: digest(`prior-${index}\n`),
+      next_sha256: digest(bytes),
+      next_bytes_base64: bytes.toString('base64'),
+      applied: true
+    };
+  });
+  const manifest = {
+    schema_version: 2,
+    repository_root: fs.realpathSync(root),
+    head_sha: '0'.repeat(40),
+    prepared_fingerprint: '1'.repeat(64),
+    record_fingerprint: '2'.repeat(64),
+    phase: 'overlaid',
+    pending: [{
+      promotion_unit_id: unit,
+      request_path: requestPath,
+      rows: [row],
+      applied: true,
+      audit: {
+        promotion_unit_id: unit,
+        lifecycle: 'move-window',
+        payload_tree_sha256: hashes.payload,
+        preflight_audit_fingerprint: hashes.preflight,
+        audit_fingerprint: hashes.audit
+      },
+      pending_record_sha256: hashes.pending,
+      request_closure_record_sha256: hashes.closure,
+      promotion_record_sha256: hashes.promotion
+    }],
+    overlay_targets: overlayTargets
+  };
+  const bytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
+  const generation = {
+    oid: 'captured-evidence-oid',
+    head_sha: manifest.head_sha,
+    final_fingerprint: manifest.record_fingerprint,
+    members: [{
+      promotion_unit_id: unit,
+      promotion_record_sha256: hashes.promotion,
+      request_closure_record_sha256: hashes.closure,
+      pending_record_sha256: hashes.pending,
+      request_path: requestPath,
+      payload_tree_sha256: hashes.payload,
+      disposition_row_sha256: digest(canonicalJson(row)),
+      head_sha: manifest.head_sha,
+      final_fingerprint: manifest.record_fingerprint,
+      prepared_fingerprint: manifest.prepared_fingerprint,
+      prepared_head_sha: manifest.head_sha
+    }, {
+      promotion_unit_id: 'setup/hooks'
+    }]
+  };
+  const auditGeneration = () => structuredClone(generation);
+  const complete = structuredClone(manifest);
+  complete.pending.push({
+    ...structuredClone(manifest.pending[0]),
+    promotion_unit_id: 'setup/hooks',
+    request_path: requestPath.replace('default', 'hooks'),
+    rows: [{ promotion_unit_id: 'setup/hooks', target_skill: 'setup' }],
+    audit: {
+      ...structuredClone(manifest.pending[0].audit),
+      promotion_unit_id: 'setup/hooks'
+    }
+  });
+  Object.assign(generation.members[1], {
+    promotion_record_sha256: hashes.promotion,
+    request_closure_record_sha256: hashes.closure,
+    pending_record_sha256: hashes.pending,
+    request_path: complete.pending[1].request_path,
+    payload_tree_sha256: hashes.payload,
+    disposition_row_sha256: digest(canonicalJson(complete.pending[1].rows[0])),
+    head_sha: manifest.head_sha,
+    final_fingerprint: manifest.record_fingerprint,
+    prepared_fingerprint: manifest.prepared_fingerprint,
+    prepared_head_sha: manifest.head_sha
+  });
+  const completeBytes = Buffer.from(`${JSON.stringify(complete, null, 2)}\n`);
+  assert.equal(retireCompletedManifest(completeBytes, {
+    root, auditGeneration
+  }), digest(completeBytes));
+  assert.throws(() => retireCompletedManifest(bytes, { root, auditGeneration }),
+    /generation membership changed/);
+  const crossGeneration = structuredClone(complete);
+  crossGeneration.head_sha = '9'.repeat(40);
+  assert.throws(() => retireCompletedManifest(
+    Buffer.from(`${JSON.stringify(crossGeneration, null, 2)}\n`),
+    { root, auditGeneration }
+  ), /generation membership changed/);
+});
 
 function candidateMarkdown(markdown) {
   if (/^> \*\*Status\*\*: Candidate Complete$/m.test(markdown)) return markdown;
@@ -379,6 +558,22 @@ test('formal delivery rejects manifest and overlay symlink escapes', (t) => {
     fixture.expected
   ), /regular file/);
   assert.equal(fs.readFileSync(externalTarget, 'utf8'), 'outside\n');
+});
+
+test('successor manifest first write preserves the retirement CAS identity', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-manifest-cas-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const manifestPath = path.join(root, '.sd0x', 'formal-plugin-delivery.json');
+  fs.mkdirSync(path.dirname(manifestPath));
+  fs.writeFileSync(manifestPath, '{"phase":"overlaid"}\n');
+  const captured = readContainedFile(root, manifestPath).captured;
+  const replacement = path.join(root, '.sd0x', 'replacement.json');
+  fs.writeFileSync(replacement, '{"phase":"foreign"}\n');
+  fs.renameSync(replacement, manifestPath);
+  assert.throws(() => writeDeliveryManifest(
+    root, manifestPath, { schema_version: 2, phase: 'preparing' }, { captured }
+  ), /identity changed|content changed/);
+  assert.equal(fs.readFileSync(manifestPath, 'utf8'), '{"phase":"foreign"}\n');
 });
 
 test('formal overlay rejects a redirected fixed target before mutation', (t) => {

@@ -41,6 +41,12 @@ const HOOK = path.resolve(
   'hook.js'
 );
 
+function stateSignal(message) {
+  const match = /\[SD0X_STATE\] (\{[^\n]+?\})(?: |$)/.exec(message || '');
+  assert.ok(match, 'expected one [SD0X_STATE] factual envelope');
+  return JSON.parse(match[1]);
+}
+
 test('hook definition observes the exec command that completes setup', () => {
   const hooks = JSON.parse(fs.readFileSync(path.resolve(
     __dirname,
@@ -402,8 +408,12 @@ test('Stop advises review without forcing continuation for a dirty worktree', (t
   const output = JSON.parse(result.stdout);
   assert.equal(output.continue, true);
   assert.match(output.systemMessage, /advisory \(non-blocking\)/i);
-  assert.match(output.systemMessage, /no independent review pass/i);
-  assert.match(output.systemMessage, /decide whether to continue/i);
+  assert.deepEqual(
+    [stateSignal(output.systemMessage).next_action,
+      stateSignal(output.systemMessage).reason],
+    ['review', 'review-required']
+  );
+  assert.match(output.systemMessage, /model owns whether and how to continue/i);
 });
 
 test('repeated Stop events remain advisory without a continuation ceiling', (t) => {
@@ -432,8 +442,8 @@ test('Stop advises while review is in progress without forcing continuation', (t
 
   const output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
   assert.equal(output.continue, true);
-  assert.match(output.systemMessage, /reviewers are still running/i);
-  assert.match(output.systemMessage, /decide whether to continue/i);
+  assert.equal(stateSignal(output.systemMessage).reason, 'review-in-progress');
+  assert.match(output.systemMessage, /model owns whether and how to continue/i);
 });
 
 test('Stop advises verification-required and verification-failed states', (t) => {
@@ -591,7 +601,8 @@ test('multiple activated sessions retain hook enforcement', (t) => {
     });
     const output = JSON.parse(result.stdout);
     assert.equal(output.continue, true);
-    assert.match(output.systemMessage, /decide whether to continue/i);
+    assert.equal(stateSignal(output.systemMessage).reason, 'review-required');
+    assert.match(output.systemMessage, /model owns whether and how to continue/i);
   }
 });
 
@@ -673,9 +684,12 @@ test('reviewer failures provide finding-or-reset remediation', (t) => {
   });
   const output = JSON.parse(stop.stdout);
   assert.equal(output.continue, true);
-  assert.match(output.systemMessage, /fix actionable findings/i);
-  assert.match(output.systemMessage, /reviewer failed or its ledger is stale/i);
-  assert.match(output.systemMessage, /ask the user[^\n]+reset/i);
+  assert.deepEqual(
+    [stateSignal(output.systemMessage).review,
+      stateSignal(output.systemMessage).reason],
+    ['fail', 'review-findings-remain']
+  );
+  assert.match(output.systemMessage, /actionable primary-review findings remain/i);
 });
 
 test('Stop yields to the user when reviewer infrastructure is unavailable', (t) => {
@@ -703,10 +717,14 @@ test('Stop yields to the user when reviewer infrastructure is unavailable', (t) 
   });
   const output = JSON.parse(stop.stdout);
   assert.equal(output.continue, true);
-  assert.match(output.systemMessage, /reviewer infrastructure is unavailable/i);
-  assert.match(output.systemMessage, /user-authorized[^\n]+reset/i);
+  assert.deepEqual(
+    [stateSignal(output.systemMessage).review,
+      stateSignal(output.systemMessage).reason],
+    ['fail', 'reviewer-unavailable']
+  );
+  assert.match(output.systemMessage, /user authorizes runtime reset/i);
   assert.doesNotMatch(output.systemMessage, /or start a new Codex task/i);
-  assert.match(output.systemMessage, /same fingerprint/i);
+  assert.match(output.systemMessage, /fingerprint changes/i);
   const state = readState(root);
   assert.equal(state.gates.review.status, 'fail');
   assert.equal(state.review_agents.started.length, 1);

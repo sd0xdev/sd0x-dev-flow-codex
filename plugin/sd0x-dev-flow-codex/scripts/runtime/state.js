@@ -3476,13 +3476,56 @@ function auditEvidenceLedgerTransaction(cwd, expected = {}, hooks = {}) {
   if (evidenceRefOid(root) !== oid) {
     throw new Error('Evidence ref changed while it was audited');
   }
+  let promotionGeneration = null;
+  if (expected.promotion_generation !== undefined) {
+    const generation = expected.promotion_generation;
+    if (!generation || !/^[a-f0-9]{40}$/.test(generation.head_sha || '') ||
+        !/^[a-f0-9]{64}$/.test(generation.final_fingerprint || '')) {
+      throw new Error('Promotion generation identity is invalid');
+    }
+    const members = [...records.values()]
+      .filter((record) => record.kind === 'promotion' &&
+        record.head_sha === generation.head_sha &&
+        record.final_fingerprint === generation.final_fingerprint)
+      .map((promotion) => {
+        const closure = records.get(promotion.request_closure_record_sha256);
+        const pending = records.get(closure.pending_record_sha256);
+        return {
+          promotion_unit_id: promotion.promotion_unit_id,
+          promotion_record_sha256: promotion.record_sha256,
+          request_closure_record_sha256: closure.record_sha256,
+          pending_record_sha256: pending.record_sha256,
+          request_path: promotion.request_path,
+          payload_tree_sha256: promotion.payload_tree_sha256,
+          disposition_row_sha256: promotion.disposition_row_sha256,
+          head_sha: promotion.head_sha,
+          final_fingerprint: promotion.final_fingerprint,
+          prepared_fingerprint: pending.subject.fingerprint,
+          prepared_head_sha: pending.subject.head_sha
+        };
+      })
+      .sort((left, right) => Buffer.from(left.promotion_unit_id)
+        .compare(Buffer.from(right.promotion_unit_id)));
+    if (members.length === 0 ||
+        new Set(members.map((member) => member.promotion_unit_id)).size !==
+          members.length) {
+      throw new Error('Promotion generation membership is empty or ambiguous');
+    }
+    promotionGeneration = {
+      oid,
+      head_sha: generation.head_sha,
+      final_fingerprint: generation.final_fingerprint,
+      members
+    };
+  }
   return {
     ok: true,
     ref: EVIDENCE_REF,
     oid,
     commits: history.length,
     records: records.size,
-    selected: selected || null
+    selected: selected || null,
+    promotion_generation: promotionGeneration
   };
 }
 
@@ -3499,6 +3542,12 @@ function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
   } finally {
     activeEvidenceAuditContext = prior;
   }
+}
+
+function auditPromotionGeneration(cwd, generation, hooks = {}) {
+  return auditEvidenceLedger(cwd, {
+    promotion_generation: generation
+  }, hooks).promotion_generation;
 }
 
 function auditRequestClosures(cwd, expectations, hooks = {}) {
@@ -5302,6 +5351,9 @@ function summarize(state, options = {}) {
   return {
     fingerprint: state.worktree.fingerprint,
     files: state.worktree.files,
+    change_class: !state.worktree.requires_review
+      ? 'clean'
+      : state.worktree.requires_verify ? 'code-or-config' : 'documentation',
     requires_review: state.worktree.requires_review,
     requires_verify: state.worktree.requires_verify,
     review_provider: state.review_provider,
@@ -5322,6 +5374,7 @@ module.exports = {
   activationFailurePath,
   attestCommitClosureReview,
   auditEvidenceLedger,
+  auditPromotionGeneration,
   auditRequestClosures,
   appendEvidenceRevision,
   applyRequestClosure,
