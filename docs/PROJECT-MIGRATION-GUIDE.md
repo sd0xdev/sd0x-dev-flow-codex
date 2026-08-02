@@ -2,9 +2,9 @@
 
 <!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->
 
-> 最後校準日期：2026-07-25
-> 來源版本：Claude plugin `sd0x-dev-flow` `3.0.12`  
-> Codex 版本：`sd0x-dev-flow-codex` `0.4.1`
+> 最後校準日期：2026-08-01
+> 來源版本：Claude plugin `sd0x-dev-flow` `4.1.0`
+> Codex 版本：`sd0x-dev-flow-codex` `0.5.0`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -81,6 +81,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 4. Fingerprint-bound gates 必須持續保存真實狀態；Stop 只提供 non-blocking advisory，由模型依任務完整度與風險判斷是否繼續，並提供使用者明確操作的 reset 以處理 stale runtime evidence。
 5. deterministic checks 的結果優先於模型口頭宣稱。
 6. Plugin 安裝後不能自動干預所有 repository，必須由專案 opt in。
+7. Hook 應提供可驗證的 runtime facts；模型在不可降級的 Anchors 內自行選擇路徑、批次、時機與深度。
 
 ### 非目標
 
@@ -167,6 +168,10 @@ sd0x-dev-flow-codex/
 - 回傳 Codex 支援的 hook JSON shape。
 
 不要把 gate business logic 複製進 hook handler。State transition 應留在 `state.js`，worktree 計算應留在 `worktree.js`。
+
+`scripts/runtime/workflow-contract.js` 是 instruction contract 的單一 owner。它定義 versioned closed Anchor register、Defaults、Guidance、managed `AGENTS.md` renderer、drift inspection，以及 `[SD0X_STATE]` factual envelope。Setup、doctor 與 hooks 都消費這份 contract，不各自維護規則副本。
+
+Anchors 鎖定 exact fingerprint、修改後 freshness、Declaring/Summary/Fixing 與 evidence 的差異、configured-primary-only authority、deterministic verification、runtime integrity 與 gate supremacy。Defaults 把 reversible path、batching、timing、investigation depth 與 focused checks 交由模型依 repository facts 判斷；一般不確定性不要求停下來問人。偏離 Default 時可輸出 `[SD0X_DEVIATION]` 說明 signal 並繼續，但該行永遠不是 evidence，也不能降低 Anchor。使用者自訂的 `AGENTS.md` 內容保留在 managed markers 外，只能 refine Defaults/Guidance。
 
 ### 5.2 Worktree fingerprint
 
@@ -285,13 +290,13 @@ Setup 預設寫入 Codex-first provider：
 
 | Event | 目前行為 |
 | --- | --- |
-| `SessionStart` | 消耗 setup-deferral marker、記錄 session、refresh snapshot、注入目前 gate 狀態；失敗時留下 activation marker，且 inactive default 維持 fail closed。 |
-| `UserPromptSubmit` | 若 gate 未完成，提醒下一個 action。 |
+| `SessionStart` | 消耗 setup-deferral marker、記錄 session、refresh snapshot，並以 authority facts 與 `[SD0X_STATE]` 注入目前 gate 狀態；失敗時留下 activation marker，且 inactive default 維持 fail closed。 |
+| `UserPromptSubmit` | gate 未完成時輸出 versioned factual state；由模型決定 reversible choreography。 |
 | `PreToolUse` | 在 session activation 判斷前解析 Codex `apply_patch` command，讓 inactive/setup-deferred session 也一律阻擋 protected paths；Codex provider 直接拒絕 Claude tool，Claude provider 才登記 reset-sensitive invocation identity。 |
-| `PostToolUse` | Edit tool 會 refresh fingerprint；Claude MCP tool 只在成功 structured result、目前 fingerprint 與同 runtime epoch 的 matching PreToolUse start 全部相符時記 external review evidence。 |
+| `PostToolUse` | Edit tool 會 refresh fingerprint 並輸出不含路徑的 factual envelope；Claude MCP tool 只在成功 structured result、目前 fingerprint 與同 runtime epoch 的 matching PreToolUse start 全部相符時記 external review evidence。 |
 | `SubagentStart` | 記錄 reviewer id/type/fingerprint，注入 reviewer focus。 |
 | `SubagentStop` | 同 fingerprint、有 matching start 且有非空 terminal assistant message 才記錄 outcome；第一次無輸出會要求 continuation，續跑後的 terminal result 仍可記錄。 |
-| `Stop` | 缺 review/verify 時回傳 `continue: true` 的 non-blocking advisory，由模型依使用者意圖、任務完整度、風險與 evidence reliability 判斷是否繼續；runtime 仍保留 exact-fingerprint gate 狀態，未記錄的 gate 不得宣稱通過。Session activation/runtime-state failure仍 hard-block。 |
+| `Stop` | 缺 review/verify 時回傳 `continue: true`、`[SD0X_STATE]` 與 non-blocking advisory；模型擁有是否及如何繼續的選擇，runtime facts 與 exact-fingerprint gate authority 不變。Session activation/runtime-state failure仍 hard-block。 |
 
 Persistent collaboration agent 不會重新觸發 per-run `SubagentStart`/`SubagentStop`。Review skill 因此在每輪 dispatch 前執行 `round.js begin`，gate pass 前執行 `round.js import`；begin 會在 native started ledger 登記一個 primary round owner，使 existing review/verify pass 暫時失效並回到 `review-in-progress`，且同 fingerprint/epoch 的 active marker 不能被第二次 begin 覆蓋。clean commit closure 另由 `commit-review-begin` 建立 `fingerprint=clean` 的 subject-bound round；marker 保存 canonical commit subject hash，dispatch prompt 與 terminal result 都必須帶相同 `Commit-Subject-SHA256`，attestation 再把 primary start binding 持久化到 ledger review blob。此路徑目前只接受 Codex provider；Claude provider 在具備等價 range adapter 前 fail closed。即使 transcript adapter unavailable，round owner 也會保留，之後只能由相符 native `SubagentStop` 終結。Marker schema v4 與 runtime state schema v9 明確退休 v8 的雙 reviewer gate evidence。Marker lock 記錄 process owner，只回收 dead owner 或超過 grace period仍沒有有效 owner的殘留 lock，絕不因 age 回收確認存活的 owner。Reset 以 runtime epoch 讓未完成 marker 失效；下一個 begin 會在 marker lock 內退休 stale marker，沒有 active round owner 時也會 quarantine malformed marker，再建立新的 adapter 或 native-fallback round，舊 result 不能重放。Adapter 只補足這個 Codex event transport 差異；原生 hooks 仍是首選，transcript 未提供或格式不符時不會降級成 parent prose evidence。Codex 官方將 transcript JSONL 視為非穩定介面，因此任何格式更新都必須新增明確 adapter version 與 wire-format fixtures，不能寬鬆猜測欄位。
 
@@ -446,7 +451,7 @@ Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向�
 先決定它是一般 specialist，還是 review gate 的必要 reviewer；兩者不可混為一談。
 
 1. 在 `plugin/sd0x-dev-flow-codex/templates/agents/` 新增 TOML，保留 `# Managed by sd0x-dev-flow-codex.` ownership marker。
-2. 將檔名加入 `skills/setup/scripts/setup.js` 的 `agentPlans`，並新增 setup ownership/idempotency test。
+2. 將檔名加入 `scripts/runtime/setup.js` 的 `agentPlans`，並新增 setup ownership/idempotency test；`skills/setup/scripts/setup.js` 只是 delegating entrypoint。
 3. 一般 specialist 到此即可；不要把它加入 review gate matcher 或 required types。
 4. 若它是必要 reviewer，同步更新 `hooks/hooks.json` 的 `SubagentStart`/`SubagentStop` matcher、`scripts/runtime/state.js` 的 required types、`skills/review/SKILL.md`、setup 產生的 `AGENTS.md` managed block，以及 hook/state/review tests。
 5. 重建 overlay，對目標 repository rerun `$sd0x-dev-flow-codex:setup`，檢查 `.codex/agents/` 產物，再開新 task。

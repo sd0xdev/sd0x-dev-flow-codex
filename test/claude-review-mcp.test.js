@@ -37,6 +37,9 @@ const {
   resolveStatePath
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
+  MANAGED_BLOCK
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/workflow-contract');
+const {
   commit,
   git,
   initRepository,
@@ -723,12 +726,17 @@ test('MCP readiness separates provider-independent runtime and Claude review too
     enabled: true,
     review: { provider: 'claude' }
   }));
-  assert.equal(doctor(codexRoot, {
+  fs.writeFileSync(path.join(claudeRoot, 'AGENTS.md'), `${MANAGED_BLOCK}\n`);
+  const check = (status, name) =>
+    status.checks.find((candidate) => candidate.check === name)?.ok;
+  const codexRuntimeOnly = doctor(codexRoot, {
     mcpStatus: () => runtimeOnly
-  }).checks.find((check) => check.check === 'skill-runtime-mcp-handshake').ok, true);
-  assert.equal(doctor(codexRoot, {
+  });
+  const codexReviewOnly = doctor(codexRoot, {
     mcpStatus: () => reviewOnly
-  }).ok, false);
+  });
+  assert.equal(check(codexRuntimeOnly, 'skill-runtime-mcp-handshake'), true);
+  assert.equal(check(codexReviewOnly, 'skill-runtime-mcp-handshake'), false);
   const claudeOptions = {
     claudeStatus: () => ({
       installed: true,
@@ -736,14 +744,18 @@ test('MCP readiness separates provider-independent runtime and Claude review too
       authenticated: true
     })
   };
-  assert.equal(doctor(claudeRoot, {
+  const claudeRuntimeOnly = doctor(claudeRoot, {
     ...claudeOptions,
     mcpStatus: () => runtimeOnly
-  }).ok, false);
-  assert.equal(doctor(claudeRoot, {
+  });
+  const claudeBoth = doctor(claudeRoot, {
     ...claudeOptions,
     mcpStatus: () => both
-  }).ok, true);
+  });
+  assert.equal(check(claudeRuntimeOnly, 'skill-runtime-mcp-handshake'), true);
+  assert.equal(check(claudeRuntimeOnly, 'claude-review-mcp-handshake'), false);
+  assert.equal(check(claudeBoth, 'skill-runtime-mcp-handshake'), true);
+  assert.equal(check(claudeBoth, 'claude-review-mcp-handshake'), true);
 });
 
 test('doctor always checks the skill runtime but skips Claude checks for Codex', (t) => {
@@ -772,6 +784,43 @@ test('doctor always checks the skill runtime but skips Claude checks for Codex',
     status.checks.some((check) => check.check === 'claude-review-mcp-handshake'),
     false
   );
+});
+
+test('doctor reports managed guidance contract drift for enabled projects', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
+  fs.writeFileSync(path.join(root, '.codex', 'sd0x-dev-flow.json'), JSON.stringify({
+    schema_version: 1,
+    enabled: true,
+    review: { provider: 'codex' }
+  }));
+  const options = {
+    mcpStatus: () => ({ runtime_ready: true, review_ready: false })
+  };
+
+  let status = doctor(root, options);
+  assert.equal(status.managed_guidance.status, 'missing');
+  assert.deepEqual(
+    status.checks.find((check) => check.check === 'managed-guidance-current'),
+    { check: 'managed-guidance-current', ok: false }
+  );
+
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), `${MANAGED_BLOCK}\n`);
+  status = doctor(root, options);
+  assert.equal(status.managed_guidance.status, 'current');
+  assert.equal(status.workflow_contract_version, 1);
+  assert.deepEqual(
+    status.checks.find((check) => check.check === 'managed-guidance-current'),
+    { check: 'managed-guidance-current', ok: true }
+  );
+
+  fs.writeFileSync(path.join(root, 'AGENTS.md'), MANAGED_BLOCK.replace(
+    'the model owns', 'the hook owns'
+  ));
+  status = doctor(root, options);
+  assert.equal(status.managed_guidance.status, 'stale');
+  assert.equal(status.ok, false);
 });
 
 test('doctor requires Node.js 24 or newer', (t) => {

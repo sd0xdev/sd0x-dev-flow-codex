@@ -14,6 +14,7 @@ const {
   appendEvidenceRevision,
   applyRequestClosure,
   auditEvidenceLedger,
+  auditPromotionGeneration,
   beginCommitClosureReview,
   canonicalEvidenceBlob,
   canonicalJson,
@@ -30,6 +31,9 @@ const {
   resolveRuntimeMetadataPath,
   resetState
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
+const {
+  retireCompletedManifest
+} = require('../scripts/complete-formal-plugin-delivery');
 const { snapshot } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/worktree');
 const { commit, git, initRepository, isolateGitEnvironment } = require('./helpers/git');
 
@@ -1259,7 +1263,7 @@ test('closure recovery rejects finalized and promoted pending records', (t) => {
     runner: 'sd0x-deterministic-v1',
     commands: [{ command: 'node --test', exit_code: 0 }]
   }, state.worktree.fingerprint, 'codex');
-  recordPromotionEvidence(root, {
+  const promotion = recordPromotionEvidence(root, {
     kind: 'promotion',
     promotion_unit_id: 'fixture/default',
     request_closure_record_sha256: closure.record_sha256,
@@ -1269,6 +1273,88 @@ test('closure recovery rejects finalized and promoted pending records', (t) => {
     recorded_at: '2026-07-12T01:04:01.000Z',
     supersedes_record_sha256: null
   });
+  const generationIdentity = {
+    head_sha: promotion.record.head_sha,
+    final_fingerprint: promotion.record.final_fingerprint
+  };
+  const generation = auditPromotionGeneration(root, generationIdentity);
+  assert.equal(generation.members.length, 1);
+  assert.equal(generation.members[0].promotion_unit_id, 'fixture/default');
+  assert.equal(generation.members[0].pending_record_sha256, pending.record_sha256);
+  assert.throws(() => auditPromotionGeneration(root, {
+    ...generationIdentity,
+    head_sha: '0'.repeat(40)
+  }), /empty or ambiguous/);
+
+  const overlayTargets = [
+    'migration/source-disposition.json',
+    'docs/PROJECT-MIGRATION-GUIDE.md',
+    'docs/features/skill-toolkit-migration/2-tech-spec.md'
+  ].map((target, index) => {
+    const bytes = Buffer.from(`generation-${index}\n`);
+    return {
+      path: target,
+      prior_sha256: sha256(`prior-${index}\n`),
+      next_sha256: sha256(bytes),
+      next_bytes_base64: bytes.toString('base64'),
+      applied: true
+    };
+  });
+  const manifest = {
+    schema_version: 2,
+    repository_root: fs.realpathSync(root),
+    head_sha: promotion.record.head_sha,
+    prepared_fingerprint: pending.record.subject.fingerprint,
+    record_fingerprint: promotion.record.final_fingerprint,
+    phase: 'overlaid',
+    pending: [{
+      promotion_unit_id: 'fixture/default',
+      request_path: requestPath,
+      rows: [fixtureDisposition()],
+      applied: true,
+      audit: {
+        promotion_unit_id: 'fixture/default',
+        lifecycle: 'move-window',
+        payload_tree_sha256: promotion.record.payload_tree_sha256,
+        preflight_audit_fingerprint: '1'.repeat(64),
+        audit_fingerprint: '2'.repeat(64)
+      },
+      pending_record_sha256: pending.record_sha256,
+      request_closure_record_sha256: closure.record_sha256,
+      promotion_record_sha256: promotion.record_sha256
+    }],
+    overlay_targets: overlayTargets
+  };
+  const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`);
+  assert.equal(retireCompletedManifest(manifestBytes, { root }), sha256(manifestBytes));
+  const duplicate = structuredClone(manifest);
+  duplicate.pending.push(structuredClone(duplicate.pending[0]));
+  assert.throws(() => retireCompletedManifest(
+    Buffer.from(`${JSON.stringify(duplicate, null, 2)}\n`), { root }
+  ), /generation membership changed|malformed unit evidence/);
+  const truncated = structuredClone(manifest);
+  truncated.pending = [];
+  assert.throws(() => retireCompletedManifest(
+    Buffer.from(`${JSON.stringify(truncated, null, 2)}\n`), { root }
+  ), /not a retirable generation/);
+  const crossGeneration = structuredClone(manifest);
+  crossGeneration.record_fingerprint = '3'.repeat(64);
+  assert.throws(() => retireCompletedManifest(
+    Buffer.from(`${JSON.stringify(crossGeneration, null, 2)}\n`), { root }
+  ), /empty or ambiguous/);
+
+  recordPromotionEvidence(root, {
+    kind: 'promotion',
+    promotion_unit_id: 'fixture/default',
+    request_closure_record_sha256: closure.record_sha256,
+    disposition_row: fixtureDisposition(),
+    payload_tree_sha256: payloadTreeSha(root),
+    reason: null,
+    recorded_at: '2026-07-12T01:04:02.000Z',
+    supersedes_record_sha256: promotion.record_sha256
+  });
+  assert.throws(() => auditPromotionGeneration(root, generationIdentity),
+    /empty or ambiguous/);
   assertRejectedWithoutMutation();
 });
 

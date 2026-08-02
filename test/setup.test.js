@@ -42,6 +42,12 @@ test('setup preserves user guidance and is idempotent', (t) => {
 
   assert.equal(firstContent, secondContent);
   assert.match(firstContent, /Keep this\./);
+  assert.match(firstContent, /sd0x-workflow-contract:v1/);
+  assert.match(firstContent, /closed non-negotiable register/i);
+  assert.match(firstContent, /model owns the path, batching, timing, and depth/i);
+  assert.match(firstContent, /ordinary uncertainty alone is not a reason/i);
+  assert.match(firstContent, /\[SD0X_DEVIATION\]/);
+  assert.match(firstContent, /cannot downgrade an Anchor/i);
   assert.equal(firstContent.split(START).length - 1, 1);
   assert.equal(firstContent.split(END).length - 1, 1);
   assert.ok(first.results.some((item) => item.status === 'created'));
@@ -94,6 +100,41 @@ test('setup preserves user guidance and is idempotent', (t) => {
     ),
     false
   );
+});
+
+test('setup rejects duplicate and nested managed markers without modifying guidance', (t) => {
+  const cases = [
+    `${START}\none\n${END}\n${START}\ntwo\n${END}\n`,
+    `${START}\n${START}\nnested\n${END}\n`,
+    `${START}\nextra end\n${END}\n${END}\n`
+  ];
+  for (const content of cases) {
+    const root = createRepo();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agentsPath = path.join(root, 'AGENTS.md');
+    fs.writeFileSync(agentsPath, content);
+    assert.throws(() => setup(root, { mode: 'guidance' }), /malformed|incomplete/);
+    assert.equal(fs.readFileSync(agentsPath, 'utf8'), content);
+  }
+});
+
+test('first guidance installation preserves every user-authored prefix byte', (t) => {
+  for (const content of [
+    'Rule with spaces  ',
+    'Rule with spaces  \n',
+    'Windows rule\r\n\r\n',
+    'Unix rule\n\n',
+    'No final newline'
+  ]) {
+    const root = createRepo();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const agentsPath = path.join(root, 'AGENTS.md');
+    fs.writeFileSync(agentsPath, content);
+    setup(root, { mode: 'guidance' });
+    const installed = fs.readFileSync(agentsPath, 'utf8');
+    assert.equal(installed.slice(0, Buffer.byteLength(content)), content);
+    assert.match(installed.slice(content.length), new RegExp(START));
+  }
 });
 
 test('setup removes obsolete loop limits while preserving custom config', (t) => {
@@ -216,8 +257,11 @@ test('setup submodes ignore damaged unrelated managed surfaces', (t) => {
   fs.mkdirSync(path.dirname(scriptsConfig), { recursive: true });
   fs.writeFileSync(scriptsConfig, '{broken config');
   const scripts = setup(scriptsRoot, { mode: 'scripts' });
-  assert.equal(scripts.results.length, 4);
+  assert.equal(scripts.results.length, 6);
   assert.equal(scripts.results.every((item) => item.status === 'unchanged'), true);
+  assert.equal(scripts.results.some((item) =>
+    item.file.endsWith('scripts/runtime/workflow-contract.js')
+  ), true);
   assert.equal(fs.readFileSync(scriptsConfig, 'utf8'), '{broken config');
 });
 
@@ -363,6 +407,17 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
   assert.match(readme, /移除舊的 setup-managed `sd0x-reviewer\.toml`/);
   assert.match(readme, /移除舊的 setup-managed[^\n]+`sd0x-test-reviewer\.toml`/);
   assert.doesNotMatch(readme, /\.codex\/agents\/sd0x_reviewer\.toml|sd0x_test_reviewer\.toml/);
+});
+
+test('custom-agent documentation points to the runtime setup owner', () => {
+  const guide = fs.readFileSync(path.join(
+    __dirname, '..', 'docs', 'PROJECT-MIGRATION-GUIDE.md'
+  ), 'utf8');
+  const runtimeSetup = fs.readFileSync(path.join(
+    __dirname, '..', 'plugin', 'sd0x-dev-flow-codex', 'scripts', 'runtime', 'setup.js'
+  ), 'utf8');
+  assert.match(guide, /`scripts\/runtime\/setup\.js` 的 `agentPlans`/);
+  assert.match(runtimeSetup, /const agentPlans = \[/);
 });
 
 test('review theory preserves the sd0x independent review and convergence contract', () => {

@@ -16,6 +16,8 @@ const {
 } = require('./release');
 const {
   applyRequestClosure,
+  auditPromotionGeneration,
+  canonicalJson,
   finalizeRequestClosure,
   isCurrentPass,
   latestEvidenceRecord,
@@ -91,7 +93,7 @@ function records(disposition, deliveryStates = new Set(['candidate'])) {
   const units = new Map();
   for (const row of disposition.skills) {
     if (!deliveryStates.has(row.delivery_state) ||
-        !/\/2026-07-28-wave[1-7]-.*-(?:formal-)?promotion\.md$/.test(
+        !/\/(?:2026-07-28-wave[1-7]-.*-(?:formal-)?promotion|2026-08-01-wave6-setup-(?:default|guidance|hooks|scripts)-contract-promotion)\.md$/.test(
           row.promotion_request || '')) continue;
     const current = units.get(row.promotion_unit_id) || {
       promotion_unit_id: row.promotion_unit_id,
@@ -348,7 +350,9 @@ function validateManifest(value) {
       value.head_sha !== headSha() ||
       !/^[a-f0-9]{64}$/.test(value.prepared_fingerprint || '') ||
       !MANIFEST_PHASES.has(value.phase) || !Array.isArray(value.pending) ||
-      value.pending.length !== 83) {
+      value.pending.length === 0 ||
+      value.retired_manifest_sha256 !== undefined &&
+        !/^[a-f0-9]{64}$/.test(value.retired_manifest_sha256)) {
     fail('formal delivery manifest is malformed or belongs to another subject');
   }
   validatePendingIdentities(value);
@@ -373,14 +377,38 @@ function progressIdentity(requestPath, label) {
   return matches[0][1];
 }
 
-function validatePendingIdentities(manifest) {
-  const disposition = JSON.parse(readContainedFile(ROOT, DISPOSITION, 'utf8').bytes);
-  const expected = records(disposition, new Set(['candidate', 'promoted']));
-  if (expected.length !== 83) fail('formal delivery disposition identities changed');
-  const expectedByUnit = new Map(expected.map((record) => [
+function pendingDispositionRecords(manifest, disposition) {
+  const pendingIds = manifest.pending.map((record) => record?.promotion_unit_id);
+  const pendingSet = new Set(pendingIds);
+  if (pendingIds.some((unit) => typeof unit !== 'string' || unit.length === 0) ||
+      pendingSet.size !== pendingIds.length) {
+    fail('formal delivery manifest contains duplicate or invalid pending units');
+  }
+  const available = records(disposition, new Set(['candidate', 'promoted']));
+  const availableByUnit = new Map(available.map((record) => [
     record.promotion_unit_id,
     { ...record, rows: normalizedCandidateRows(record.rows) }
   ]));
+  const expectedByUnit = new Map([...pendingSet].map((unit) => [
+    unit, availableByUnit.get(unit)
+  ]));
+  if ([...expectedByUnit.values()].some((record) => !record)) {
+    fail('formal delivery pending units are absent from the disposition');
+  }
+  if (!['overlaying', 'overlaid'].includes(manifest.phase)) {
+    const active = records(disposition);
+    const activeSet = new Set(active.map((record) => record.promotion_unit_id));
+    if (activeSet.size !== pendingSet.size ||
+        [...activeSet].some((unit) => !pendingSet.has(unit))) {
+      fail('formal delivery manifest does not contain the exact active candidate set');
+    }
+  }
+  return expectedByUnit;
+}
+
+function validatePendingIdentities(manifest) {
+  const disposition = JSON.parse(readContainedFile(ROOT, DISPOSITION, 'utf8').bytes);
+  const expectedByUnit = pendingDispositionRecords(manifest, disposition);
   const seen = new Set();
   const phaseAtLeast = (phase) => [...MANIFEST_PHASES].indexOf(manifest.phase) >=
     [...MANIFEST_PHASES].indexOf(phase);
@@ -452,6 +480,84 @@ function validatePendingIdentities(manifest) {
   }
 }
 
+function retireCompletedManifest(bytes, options = {}) {
+  const root = options.root || ROOT;
+  let manifest;
+  try {
+    manifest = JSON.parse(bytes);
+  } catch (error) {
+    fail(`completed formal delivery manifest is invalid: ${error.message}`);
+  }
+  if (!manifest || manifest.schema_version !== 2 ||
+      manifest.repository_root !== fs.realpathSync(root) ||
+      !/^[a-f0-9]{40}$/.test(manifest.head_sha || '') ||
+      !/^[a-f0-9]{64}$/.test(manifest.prepared_fingerprint || '') ||
+      !/^[a-f0-9]{64}$/.test(manifest.record_fingerprint || '') ||
+      manifest.phase !== 'overlaid' || !Array.isArray(manifest.pending) ||
+      manifest.pending.length === 0 ||
+      !Array.isArray(manifest.overlay_targets) ||
+      manifest.overlay_targets.length !== OVERLAY_PATHS.length) {
+    fail('completed formal delivery manifest is not a retirable generation');
+  }
+  const auditGeneration = options.auditGeneration || ((generation) =>
+    auditPromotionGeneration(root, generation));
+  const generation = auditGeneration({
+    head_sha: manifest.head_sha,
+    final_fingerprint: manifest.record_fingerprint
+  });
+  if (!generation || generation.head_sha !== manifest.head_sha ||
+      generation.final_fingerprint !== manifest.record_fingerprint ||
+      !Array.isArray(generation.members) ||
+      generation.members.length !== manifest.pending.length) {
+    fail('completed formal delivery generation membership changed');
+  }
+  const members = new Map(generation.members.map((member) => [
+    member.promotion_unit_id, member
+  ]));
+  if (members.size !== generation.members.length) {
+    fail('completed formal delivery generation membership is ambiguous');
+  }
+  const units = new Set();
+  for (const record of manifest.pending) {
+    if (!record || typeof record.promotion_unit_id !== 'string' ||
+        units.has(record.promotion_unit_id) || typeof record.request_path !== 'string' ||
+        record.applied !== true || !record.audit ||
+        record.audit.promotion_unit_id !== record.promotion_unit_id ||
+        record.audit.lifecycle !== 'move-window' ||
+        !/^[a-f0-9]{64}$/.test(record.audit.payload_tree_sha256 || '') ||
+        !/^[a-f0-9]{64}$/.test(record.audit.preflight_audit_fingerprint || '') ||
+        !/^[a-f0-9]{64}$/.test(record.audit.audit_fingerprint || '') ||
+        !/^[a-f0-9]{64}$/.test(record.pending_record_sha256 || '') ||
+        !/^[a-f0-9]{64}$/.test(record.request_closure_record_sha256 || '') ||
+        !/^[a-f0-9]{64}$/.test(record.promotion_record_sha256 || '')) {
+      fail('completed formal delivery manifest has malformed unit evidence');
+    }
+    units.add(record.promotion_unit_id);
+    const member = members.get(record.promotion_unit_id);
+    const disposition = record.rows.length === 1 ? record.rows[0] : record.rows;
+    if (!member || member.promotion_record_sha256 !== record.promotion_record_sha256 ||
+        member.request_closure_record_sha256 !==
+          record.request_closure_record_sha256 ||
+        member.pending_record_sha256 !== record.pending_record_sha256 ||
+        member.request_path !== record.request_path ||
+        member.payload_tree_sha256 !== record.audit.payload_tree_sha256 ||
+        member.disposition_row_sha256 !== sha256(canonicalJson(disposition)) ||
+        member.head_sha !== manifest.head_sha ||
+        member.final_fingerprint !== manifest.record_fingerprint ||
+        member.prepared_fingerprint !== manifest.prepared_fingerprint ||
+        member.prepared_head_sha !== manifest.head_sha) {
+      fail(`${record.promotion_unit_id}: completed formal delivery evidence changed`);
+    }
+  }
+  for (const [index, target] of manifest.overlay_targets.entries()) {
+    validateOverlayTarget(target);
+    if (target.path !== OVERLAY_PATHS[index] || target.applied !== true) {
+      fail('completed formal delivery overlay evidence is incomplete');
+    }
+  }
+  return sha256(bytes);
+}
+
 function readManifest() {
   let value;
   try {
@@ -462,11 +568,11 @@ function readManifest() {
   return validateManifest(value);
 }
 
-function writeDeliveryManifest(root, manifestPath, value) {
+function writeDeliveryManifest(root, manifestPath, value, options = {}) {
   const current = fs.lstatSync(manifestPath, { throwIfNoEntry: false });
-  const captured = current
-    ? readContainedFile(root, manifestPath).captured
-    : undefined;
+  const captured = Object.hasOwn(options, 'captured')
+    ? options.captured
+    : current ? readContainedFile(root, manifestPath).captured : undefined;
   atomicWriteContainedFile(
     root,
     manifestPath,
@@ -475,8 +581,8 @@ function writeDeliveryManifest(root, manifestPath, value) {
   );
 }
 
-function writeManifest(value) {
-  writeDeliveryManifest(ROOT, MANIFEST, value);
+function writeManifest(value, options = {}) {
+  writeDeliveryManifest(ROOT, MANIFEST, value, options);
 }
 
 function headSha() {
@@ -490,15 +596,26 @@ function headSha() {
 
 function prepare() {
   let manifest;
+  let retiredManifestSha256;
+  let retiredManifestCapture;
   if (fs.lstatSync(MANIFEST, { throwIfNoEntry: false })) {
-    manifest = readManifest();
-    if (!['preparing', 'prepared'].includes(manifest.phase)) {
+    const prior = readContainedFile(ROOT, MANIFEST, 'utf8');
+    const parsed = JSON.parse(prior.bytes);
+    if (parsed?.phase === 'overlaid') {
+      retiredManifestSha256 = retireCompletedManifest(prior.bytes);
+      retiredManifestCapture = prior.captured;
+      manifest = null;
+    } else {
+      manifest = validateManifest(parsed);
+    }
+    if (manifest && !['preparing', 'prepared'].includes(manifest.phase)) {
       fail('formal delivery manifest is not preparing');
     }
-  } else {
+  }
+  if (!manifest) {
     const disposition = JSON.parse(fs.readFileSync(DISPOSITION, 'utf8'));
     const selected = records(disposition);
-    if (selected.length !== 83) fail(`expected 83 formal candidates, found ${selected.length}`);
+    if (selected.length === 0) fail('formal delivery has no active candidates');
     const audit = auditActiveCandidates({ root: ROOT });
     const audited = new Map(audit.units.map((unit) => [unit.promotion_unit_id, unit]));
     const state = refreshState(ROOT);
@@ -513,6 +630,9 @@ function prepare() {
       head_sha: subject.head_sha,
       prepared_fingerprint: subject.fingerprint,
       phase: 'preparing',
+      ...(retiredManifestSha256
+        ? { retired_manifest_sha256: retiredManifestSha256 }
+        : {}),
       pending: selected.map((record, index) => {
         const unitAudit = audited.get(record.promotion_unit_id);
         if (!unitAudit) fail(`${record.promotion_unit_id}: active audit result is missing`);
@@ -527,7 +647,9 @@ function prepare() {
         };
       })
     };
-    writeManifest(manifest);
+    writeManifest(manifest, retiredManifestCapture
+      ? { captured: retiredManifestCapture }
+      : {});
   }
   if (manifest.phase === 'prepared') return;
   const subject = {
@@ -630,6 +752,8 @@ function finalize() {
 
 function updatedGuide(disposition, current) {
   const checkpoint = migrationDeliveryCheckpoint(disposition);
+  const setupMoveWindowNotice =
+    '- 四個 setup contract units 已進入 live move window，待 fingerprint-bound formal closure 完成後才計入 delivered。';
   let guide = current;
   guide = guide.replace(/^- Registry checkpoint：[^\r\n]+$/m,
     migrationDeliverySummary(checkpoint));
@@ -639,6 +763,11 @@ function updatedGuide(disposition, current) {
     '- Plugin core 尚未覆蓋 Claude 版大多數 domain-specific skills，這是刻意範圍控制。',
     '- 正式 plugin 已提供 86 個 discovered canonical skills（85 個遷移 targets 加上 `reset`）；legacy packs 只保留 immutable migration evidence，不再是 runtime routing surface。'
   );
+  if (checkpoint.pending === 0) {
+    guide = guide.replace(`${setupMoveWindowNotice}\r\n`, '')
+      .replace(`${setupMoveWindowNotice}\n`, '')
+      .replace(setupMoveWindowNotice, '');
+  }
   return guide;
 }
 
@@ -904,5 +1033,7 @@ module.exports = {
   recordPendingPromotions,
   records,
   requestCriteria,
+  pendingDispositionRecords,
+  retireCompletedManifest,
   writeDeliveryManifest
 };

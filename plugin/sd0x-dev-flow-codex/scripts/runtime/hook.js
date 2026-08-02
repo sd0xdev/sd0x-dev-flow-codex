@@ -24,6 +24,7 @@ const {
   summarize
 } = require('./state');
 const { extractToolPaths, findRepoRoot, isProtectedPath } = require('./worktree');
+const { formatStateSignal } = require('./workflow-contract');
 
 const CLAUDE_REVIEW_TOOL = 'mcp__sd0x_claude_review__review_worktree';
 
@@ -48,27 +49,28 @@ function contextOutput(eventName, context) {
   };
 }
 
-function pendingMessage(state, sessionId) {
+function pendingMessage(state, sessionId, eventName = 'Runtime') {
   const action = nextAction(state, { sessionId });
+  const signal = formatStateSignal(eventName, summarize(state, { sessionId }));
   if (action.action === 'review') {
     if (action.reason === 'review-in-progress') {
-      return 'Independent reviewers are still running for the current worktree. Wait for their terminal results; if the reviewer ledger is stale, ask the user before running `$sd0x-dev-flow-codex:reset`.';
+      return `${signal} The configured primary review is still running for this fingerprint.`;
     }
     if (action.reason === 'reviewer-unavailable') {
-      return 'Review remains failed because reviewer infrastructure is unavailable. The model should account for this incomplete evidence when deciding whether more review is useful. For the same fingerprint, only a user-authorized `$sd0x-dev-flow-codex:reset` clears the failed gate and stale ledger.';
+      return `${signal} Reviewer infrastructure did not produce valid terminal evidence. The failed gate and ledger remain authoritative until the fingerprint changes or the user authorizes runtime reset.`;
     }
     if (action.reason === 'review-findings-remain') {
-      return 'Review is blocked for the current worktree. Inspect the recorded reviewer results: fix actionable findings and rerun `$sd0x-dev-flow-codex:review`; if a reviewer failed or its ledger is stale, ask the user before running `$sd0x-dev-flow-codex:reset`.';
+      return `${signal} Actionable primary-review findings remain recorded for this fingerprint.`;
     }
-    return 'No independent review pass is recorded for the current worktree fingerprint.';
+    return `${signal} No configured-primary review pass is recorded for this fingerprint.`;
   }
   if (action.action === 'verify') {
     if (action.reason === 'verification-failed') {
-      return 'Deterministic verification is recorded as failed for the current worktree.';
+      return `${signal} Deterministic verification is recorded as failed for this fingerprint.`;
     }
-    return 'Review passed for this fingerprint, but deterministic verification is not recorded.';
+    return `${signal} Review passed, but deterministic verification is not recorded for this fingerprint.`;
   }
-  return 'All required sd0x gates pass for the current worktree fingerprint.';
+  return `${signal} All required sd0x gates pass for this fingerprint.`;
 }
 
 function handlePreToolUse(input, cwd) {
@@ -222,10 +224,10 @@ function handle(eventName, input) {
       'sd0x Dev Flow is active.',
       'Completion gates are tied to the exact worktree fingerprint.',
       projectConfig.review.provider === 'claude'
-        ? 'Use only the Claude-wrapper primary subagent for the review gate; the Claude MCP call must happen inside its wrapper.'
-        : 'Use only the gpt-5.6-sol xhigh Codex primary subagent for the review gate; do not call Claude.',
-      'Use the deterministic verify runner for tests.',
-      pendingMessage(state, sessionId)
+        ? 'Review authority is the configured Claude-wrapper primary; its nested structured MCP evidence is required.'
+        : 'Review authority is the configured gpt-5.6-sol xhigh Codex primary; Claude has no authority in this mode.',
+      'Verification authority is the deterministic verify runner.',
+      pendingMessage(state, sessionId, eventName)
     ].join(' ')));
     return;
   }
@@ -316,7 +318,7 @@ function handle(eventName, input) {
     }
     const state = refreshState(cwd, { sessionId });
     emit(contextOutput(eventName,
-      `Worktree state refreshed. ${pendingMessage(state, sessionId)}`));
+      pendingMessage(state, sessionId, eventName)));
     return;
   }
 
@@ -324,7 +326,7 @@ function handle(eventName, input) {
     const state = refreshState(cwd, { sessionId });
     const action = nextAction(state, { sessionId });
     if (action.action !== 'complete') {
-      emit(contextOutput(eventName, pendingMessage(state, sessionId)));
+      emit(contextOutput(eventName, pendingMessage(state, sessionId, eventName)));
     }
     return;
   }
@@ -337,8 +339,8 @@ function handle(eventName, input) {
         continue: true,
         systemMessage: [
           'sd0x completion advisory (non-blocking).',
-          pendingMessage(state, sessionId),
-          'Use the user request, actual task completeness, change risk, and evidence reliability to decide whether to continue reviewing or verifying.',
+          pendingMessage(state, sessionId, eventName),
+          'The model owns whether and how to continue; the runtime facts above remain authoritative.',
           'Do not claim an sd0x gate passed unless the runtime recorded it for this exact fingerprint.'
         ].join(' ')
       });

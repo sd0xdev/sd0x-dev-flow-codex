@@ -569,7 +569,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-28-wave6-setup-default-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-08-01-wave6-setup-default-contract-promotion.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1130,7 +1130,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/hooks",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-28-wave6-setup-hooks-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-08-01-wave6-setup-hooks-contract-promotion.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1155,7 +1155,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/guidance",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-28-wave6-setup-guidance-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-08-01-wave6-setup-guidance-contract-promotion.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1180,7 +1180,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/scripts",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-28-wave6-setup-scripts-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-08-01-wave6-setup-scripts-contract-promotion.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1718,7 +1718,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-07-28-wave6-setup-default-promotion.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-08-01-wave6-setup-default-contract-promotion.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
