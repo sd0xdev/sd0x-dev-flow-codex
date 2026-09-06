@@ -1,0 +1,521 @@
+{
+  "previous_observation": "78443ce44ac88d34e2cda63e33f2ade0e19c85af",
+  "source_head": "04e8a5e3f5d9c482937c2ad2170fab5fbd02b630",
+  "source_version": "4.6.2",
+  "comparison": "reachable from new HEAD but not prior pinned observation; commit identity may differ across rewritten history; functional reconciliation required",
+  "commits": [
+    {
+      "commit": "39b8ff89db219384728a33f7650cf11c728ce83b",
+      "subject": "fix(runner): Make lint-argument injection opt-in per script role",
+      "paths": [
+        "scripts/lib/utils.js",
+        "scripts/precommit-runner.js",
+        "scripts/verify-runner.js",
+        "skills/generate-runner/SKILL.md",
+        "skills/generate-runner/references/templates.md",
+        "test/scripts/precommit-runner.test.js",
+        "test/scripts/verify-runner.test.js"
+      ]
+    },
+    {
+      "commit": "76bb7d80c0f140cd9bb90153c152d89462d249a3",
+      "subject": "docs(requests): Record verify-ac outcomes for three re-verified tickets",
+      "paths": [
+        "docs/features/auto-loop-autonomy/requests/2026-07-26-dual-mode-signal-repair-r1.md",
+        "docs/features/auto-loop-evolution/requests/2026-03-31-stop-hook-recursion-guard-r11.md",
+        "docs/features/claude-code-v21-catchup/requests/2026-05-13-v3-0-12-correctness-patch.md"
+      ]
+    },
+    {
+      "commit": "e6f0adfb6e64ed1245de69fd84b409522195646b",
+      "subject": "fix(create-request): Align scan and update contracts with the parser",
+      "paths": [
+        "skills/create-request/SKILL.md",
+        "skills/create-request/references/template.md",
+        "skills/update-docs/SKILL.md",
+        "test/helpers/markdown-structure.js",
+        "test/scripts/generate-readme-catalog.test.js",
+        "test/skills/create-request-scan.test.js"
+      ]
+    },
+    {
+      "commit": "add1f9c5a1e4c75f928fa33ef872443d2dc7973c",
+      "subject": "refactor(rules): Extract review-plane procedure into on-demand contracts",
+      "paths": [
+        "docs/features/auto-loop-autonomy/4-implementation.md",
+        "docs/features/doc-review-phasing/4-implementation.md",
+        "docs/features/ref-name-hardening/4-implementation.md",
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md",
+        "rules/scope-discipline.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/loop-diagnostics.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/codex-code-review/references/scope-contract.md",
+        "skills/update-docs/SKILL.md",
+        "test/rules/auto-loop-behaviour.test.js",
+        "test/rules/contract-routing.test.js",
+        "test/rules/discretion-tiers.test.js",
+        "test/rules/override-contract.test.js",
+        "test/rules/scope-discipline.test.js",
+        "test/skills/claude-md-coverage.test.js"
+      ]
+    },
+    {
+      "commit": "ec329965526150f15314c66d5877339ebbb44ab0",
+      "subject": "docs: Repoint the stall-diagnosis citations after the contract extraction",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md"
+      ]
+    },
+    {
+      "commit": "2231537e90a3006ea02fba7d2f7b5821b36cdb50",
+      "subject": "docs(rules-residency): Add the tech spec, the r1 record and two review lessons",
+      "paths": [
+        ".claude/sd0x-dev-flow-lessons.md",
+        "docs/features/rules-residency/2-tech-spec.md",
+        "docs/features/rules-residency/requests/2026-08-29-extract-on-demand-contracts-r1.md"
+      ]
+    },
+    {
+      "commit": "c087245e27c44d8c49e5907c81607ab82f2cafd3",
+      "subject": "refactor(review): Bound assurance depth and fix the dispatch contract",
+      "paths": [
+        "rules/codex-invocation.md",
+        "rules/fix-all-issues.md",
+        "rules/testing.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/review-common.md",
+        "test/skills/scope-review-contract.test.js"
+      ]
+    },
+    {
+      "commit": "613187161756ad28ecbea697f33213e417d40203",
+      "subject": "docs(craft): Nudge design thinking at the moment code is written",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "skills/bug-fix/SKILL.md",
+        "skills/codex-implement/references/codex-prompts.md",
+        "skills/feature-dev/SKILL.md"
+      ]
+    },
+    {
+      "commit": "30553f727115b6b14fa768639b3e64b2ace056bf",
+      "subject": "chore(release): Bump to 4.4.0 and announce the review-gate changes",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "0c6bd073241dc720e205fe276872a38a038c9754",
+      "subject": "feat(intent): Add the per-feature intent artifact mechanism",
+      "paths": [
+        "docs/features/intent-artifact/2-tech-spec.md",
+        "rules/docs-numbering.md",
+        "scripts/config/doc-taxonomy.json",
+        "scripts/lib/doc-metadata.js",
+        "scripts/review-state.js",
+        "skills/next-step/scripts/analyze.js",
+        "skills/req-analyze/references/intent-template.md",
+        "test/scripts/doc-classifier.test.js",
+        "test/scripts/doc-metadata.test.js",
+        "test/scripts/next-step-analyze.test.js",
+        "test/scripts/review-state.test.js"
+      ]
+    },
+    {
+      "commit": "1599675d2f44072e9d1e8f0620b754466f0e8adf",
+      "subject": "docs(intent): Wire the producers, consumers and reminders into the skills",
+      "paths": [
+        "skills/bug-fix/SKILL.md",
+        "skills/codex-implement/SKILL.md",
+        "skills/create-request/SKILL.md",
+        "skills/feature-dev/SKILL.md",
+        "skills/next-step/SKILL.md",
+        "skills/req-analyze/SKILL.md",
+        "skills/tech-spec/SKILL.md",
+        "skills/update-docs/SKILL.md"
+      ]
+    },
+    {
+      "commit": "d329747158693bd1d5460d2cebb7eb4f0dafb14d",
+      "subject": "chore(release): Bump to 4.4.1",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "5566ee5e9d6391a68b152e26b13e3a672773db81",
+      "subject": "feat(review-loop-recovery): Add attention-diffusion subtypes, banking sequence, and a reference-stability refactor mode",
+      "paths": [
+        "docs/features/review-loop-recovery/2-tech-spec.md",
+        "docs/features/review-loop-recovery/intent-review-loop-recovery.md",
+        "rules/auto-loop.md",
+        "rules/docs-writing.md",
+        "skills/codex-code-review/references/loop-diagnostics.md",
+        "skills/refactor/SKILL.md",
+        "test/rules/auto-loop-behaviour.test.js",
+        "test/rules/contract-routing.test.js",
+        "test/rules/durable-references.test.js",
+        "test/skills/refactor.test.js"
+      ]
+    },
+    {
+      "commit": "454726aecc6063d648bfdf1360f0be07ade0a4ff",
+      "subject": "docs(request-ordering): Design lane-based ticket ordering with an immutable Due field",
+      "paths": [
+        "docs/features/request-ordering/2-tech-spec.md",
+        "docs/features/request-ordering/intent-request-ordering.md"
+      ]
+    },
+    {
+      "commit": "3f762737a4b86e857154f8afc73112407c5de64d",
+      "subject": "chore(release): Bump to 4.4.2",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "03033fecc89acd9bb9ac1ea2fad785572bc9e85a",
+      "subject": "docs(opportunistic-fix-envelope): Add the intent and tech spec for a risk-calibrated fix budget",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/2-tech-spec.md",
+        "docs/features/opportunistic-fix-envelope/intent-opportunistic-fix-envelope.md"
+      ]
+    },
+    {
+      "commit": "807e766ac874f6d9bbe15bf81992087d9a916816",
+      "subject": "docs(opportunistic-fix-envelope): Drop the collector scripts and let the model resolve the envelope",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/2-tech-spec.md",
+        "docs/features/opportunistic-fix-envelope/intent-opportunistic-fix-envelope.md"
+      ]
+    },
+    {
+      "commit": "15105e86067444cd4e75881c5b8ab7a6a4b245ae",
+      "subject": "docs(opportunistic-fix-envelope): Open the change_relation and owed-now gate ticket",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/requests/2026-09-02-change-relation-field-and-obligation-gate.md"
+      ]
+    },
+    {
+      "commit": "ffbbffe566a97d29de27a4474fbffc597923c66d",
+      "subject": "feat(scope): Add the change_relation field, fix obligation and the owed-now gate",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/2-tech-spec.md",
+        "docs/features/opportunistic-fix-envelope/intent-opportunistic-fix-envelope.md",
+        "docs/features/opportunistic-fix-envelope/requests/2026-09-02-change-relation-field-and-obligation-gate.md",
+        "rules/fix-all-issues.md",
+        "rules/scope-discipline.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/codex-code-review/references/scope-contract.md",
+        "test/rules/contract-routing.test.js",
+        "test/rules/scope-discipline.test.js",
+        "test/skills/scope-review-contract.test.js",
+        "test/skills/seek-verdict.test.js"
+      ]
+    },
+    {
+      "commit": "eaa11e70d1d1efc49c1d4f0a560587a506da8158",
+      "subject": "chore(release): Bump to 4.5.0",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "b494c4264dbb729d735dd0131b60e31688541af5",
+      "subject": "feat(codex-exec-transport): Add the codex exec transport adapter and fake-CLI test harness",
+      "paths": [
+        "scripts/codex-exec.js",
+        "test/fixtures/codex-exec/fake-codex.js",
+        "test/fixtures/codex-exec/fs-fault.js",
+        "test/scripts/codex-exec.test.js"
+      ]
+    },
+    {
+      "commit": "2affcf52de17cba4e1636b386749032f7fb2cbee",
+      "subject": "docs(codex-exec-transport): Add the transport locator reference and guard tests",
+      "paths": [
+        "skills/codex-code-review/references/codex-transport.md",
+        "test/rules/codex-transport-guards.test.js",
+        "test/skills/codex-transport.test.js"
+      ]
+    },
+    {
+      "commit": "a2f4303fdb9ca4d9e7d96f02fc1609de9c343cac",
+      "subject": "fix(security-redact): Fix secret truncation, ReDoS, and a redaction design conflict",
+      "paths": [
+        "scripts/security-redact.js",
+        "scripts/skills/ui-first-principles/redact.js",
+        "skills/ui-first-principles/SKILL.md",
+        "test/scripts/security-redact.test.js",
+        "test/skills/ui-first-principles/redact.test.js"
+      ]
+    },
+    {
+      "commit": "84e8c2ba3b4dc140ca51ce22305a1065853b8982",
+      "subject": "docs(auto-loop): Switch the review dispatch rules to the codex exec transport",
+      "paths": [
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md",
+        "rules/codex-invocation.md",
+        "test/rules/override-contract.test.js",
+        "test/rules/review-loop-resilience.test.js"
+      ]
+    },
+    {
+      "commit": "3012b9fdfa50001cd495d282d71667dbf56d56a5",
+      "subject": "feat(codex-code-review): Switch review, doc-review and plan-review to codex exec (1/2)",
+      "paths": [
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/codex-research-instructions.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/doc-review/SKILL.md",
+        "skills/doc-review/references/codex-prompt-doc.md",
+        "skills/doc-review/references/review-loop-doc.md",
+        "skills/plan-review/SKILL.md",
+        "skills/plan-review/references/codex-prompt-plan.md",
+        "skills/plan-review/references/review-loop-plan.md",
+        "test/skills/codex-code-review-ac.test.js",
+        "test/skills/plan-review.test.js"
+      ]
+    },
+    {
+      "commit": "560703110d39076d311b6982394e5acb1aa28d72",
+      "subject": "feat(codex-code-review): Switch test-review, seek-verdict and review shells to codex exec (2/2)",
+      "paths": [
+        "skills/codex-review-branch/SKILL.md",
+        "skills/codex-review-doc/SKILL.md",
+        "skills/codex-review-fast/SKILL.md",
+        "skills/codex-review/SKILL.md",
+        "skills/codex-test-review/SKILL.md",
+        "skills/feature-verify/references/blackbox-testing.md",
+        "skills/seek-verdict/SKILL.md",
+        "skills/seek-verdict/references/policy-mapping.md",
+        "skills/seek-verdict/references/verdict-prompt.md",
+        "skills/test-review/SKILL.md",
+        "skills/test-review/references/codex-prompt-ac-trace.md",
+        "skills/test-review/references/codex-prompt-test-gen.md",
+        "skills/test-review/references/codex-prompt-test-review.md",
+        "test/skills/scope-review-contract.test.js",
+        "test/skills/testing-rules.test.js"
+      ]
+    },
+    {
+      "commit": "3d84d94e8e70a77d6f75c5ea91dc675bf2b28186",
+      "subject": "feat(skills): Switch architecture, debate and implement skills to codex exec (1/3)",
+      "paths": [
+        "skills/architecture/SKILL.md",
+        "skills/architecture/references/codex-prompt.md",
+        "skills/best-practices/SKILL.md",
+        "skills/best-practices/references/debate-guide.md",
+        "skills/code-investigate/SKILL.md",
+        "skills/code-investigate/references/prompts.md",
+        "skills/codex-architect/SKILL.md",
+        "skills/codex-brainstorm/SKILL.md",
+        "skills/codex-brainstorm/references/techniques.md",
+        "skills/codex-explain/SKILL.md",
+        "skills/codex-explain/references/codex-prompt-explain.md",
+        "skills/codex-implement/SKILL.md",
+        "skills/codex-implement/references/codex-prompts.md",
+        "test/skills/architecture.test.js",
+        "test/skills/best-practices/skill-contract.test.js"
+      ]
+    },
+    {
+      "commit": "7f651683b7095f8f8e1e2de6ad526d7535993573",
+      "subject": "feat(skills): Switch security, feasibility and audit skills to codex exec (2/3)",
+      "paths": [
+        "skills/codex-security/SKILL.md",
+        "skills/debug/SKILL.md",
+        "skills/feasibility-study/SKILL.md",
+        "skills/feasibility-study/references/analysis-phases.md",
+        "skills/feasibility-study/references/codex-discussion-guide.md",
+        "skills/feature-verify/SKILL.md",
+        "skills/feature-verify/references/environments.md",
+        "skills/fp-brief/SKILL.md",
+        "skills/fp-brief/references/codex-verify-prompt.md",
+        "skills/issue-analyze/SKILL.md",
+        "skills/issue-analyze/references/report-template.md",
+        "skills/load-pr-review/SKILL.md",
+        "skills/necessity-audit/SKILL.md",
+        "skills/necessity-audit/references/phase-b-debate-topic.md",
+        "skills/necessity-audit/references/review-loop.md"
+      ]
+    },
+    {
+      "commit": "d98c0250e64bcf103ffa407c9708e73cf5a0fe47",
+      "subject": "feat(skills): Switch recap, review-spec and agent frontmatters to codex exec (3/3)",
+      "paths": [
+        "agents/codex-architect.md",
+        "agents/codex-implementer.md",
+        "agents/feasibility-analyst.md",
+        "skills/post-dev-recap/SKILL.md",
+        "skills/recap-ask/SKILL.md",
+        "skills/recap-ask/references/qa-prompt.md",
+        "skills/recap-doc/SKILL.md",
+        "skills/recap-doc/references/prompt-template.md",
+        "skills/req-analyze/SKILL.md",
+        "skills/review-spec/SKILL.md",
+        "skills/security-review/SKILL.md",
+        "skills/security-review/references/codex-prompt-security.md",
+        "test/skills/debug.test.js",
+        "test/skills/fp-brief.test.js",
+        "test/skills/recap-ask.test.js"
+      ]
+    },
+    {
+      "commit": "412e312bd82b8c1c24c9f4205294ee01d3504ad7",
+      "subject": "test(skills): Re-pin recap-doc/review-spec and add codex-implement safety tests",
+      "paths": [
+        "test/skills/codex-implement-safety.test.js",
+        "test/skills/recap-doc.test.js",
+        "test/skills/review-spec.test.js"
+      ]
+    },
+    {
+      "commit": "1699bc3c550385698b5f001044acfc7b464bbcbb",
+      "subject": "docs(readme): Sweep READMEs and the skill catalog for the codex exec setup",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "docs/skill-catalog.yml",
+        "scripts/generate-readme-catalog.js",
+        "test/scripts/generate-readme-catalog.test.js",
+        "test/scripts/readme-codex-exec-setup.test.js",
+        "test/scripts/readme-codex-mcp.test.js"
+      ]
+    },
+    {
+      "commit": "e7ebc99768cb6c99de2e04053f27c799ef908bfd",
+      "subject": "feat(skills): Drop unjustified codex grants and pin the frontmatter grant-surface invariant",
+      "paths": [
+        "skills/codex-test-gen/SKILL.md",
+        "skills/feature-dev/SKILL.md",
+        "skills/sharingan/references/dependency-graph-algorithm.md",
+        "skills/sharingan/references/format-mapping.md",
+        "skills/sharingan/scripts/scan-repo.js",
+        "test/skills/frontmatter-grants.test.js"
+      ]
+    },
+    {
+      "commit": "872808cfa7822bf7a2990698d6b38d6e2780086f",
+      "subject": "docs(codex-exec-transport): Add the tech spec, intent, and request tickets",
+      "paths": [
+        "docs/features/codex-exec-transport/2-tech-spec.md",
+        "docs/features/codex-exec-transport/intent-codex-exec-transport.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-codex-exec-adapter-and-fake-cli-tests.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-codex-transport-reference-and-guards.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-core-review-family-transport-switch.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-live-acceptance-and-release.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-non-gate-skills-transport-switch.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-permission-readme-and-catalog-sweep.md",
+        "docs/features/codex-exec-transport/requests/2026-09-04-codex-implement-review-contract.md",
+        "docs/features/codex-exec-transport/requests/2026-09-04-frontmatter-grant-surface-burndown.md"
+      ]
+    },
+    {
+      "commit": "7f5ca7a9223eaf06ef25c968b984cd86642907cc",
+      "subject": "chore(release): Bump to 4.6.0",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "e93588f6adc14d67c1b1276de1c341fa4e39d5aa",
+      "subject": "feat(codex-exec): Add a progress channel and a liveness-checked stale sweep to the adapter",
+      "paths": [
+        "docs/features/codex-exec-transport/2-tech-spec.md",
+        "docs/features/codex-exec-transport/intent-codex-exec-transport.md",
+        "docs/features/codex-exec-transport/requests/2026-09-05-observer-lifecycle-and-stale-alloc.md",
+        "scripts/codex-exec.js",
+        "test/fixtures/codex-exec/fake-codex.js",
+        "test/fixtures/codex-exec/fs-fault.js",
+        "test/scripts/codex-exec.test.js"
+      ]
+    },
+    {
+      "commit": "84288dab3e30083b161f2236a147a310536529d4",
+      "subject": "feat(codex-code-review): Observe background dispatches by push and let the watcher end itself",
+      "paths": [
+        "docs/features/codex-exec-transport/requests/2026-09-03-live-acceptance-and-release.md",
+        "docs/features/codex-exec-transport/requests/2026-09-05-progress-channel.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-transport.md",
+        "skills/codex-review-branch/SKILL.md",
+        "skills/codex-review-fast/SKILL.md",
+        "skills/codex-review/SKILL.md",
+        "test/rules/codex-transport-guards.test.js",
+        "test/skills/codex-transport.test.js"
+      ]
+    },
+    {
+      "commit": "3c0a3f98c4863e44c3e52ee60652dfc06add1f72",
+      "subject": "chore(release): Bump to 4.6.1",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "f5d8e430c3b9193ef74961be6bd9cb91ae6cb4e1",
+      "subject": "docs(rules): Add the user-authorized execution exception to Anchor Register #4",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "rules/discretion.md",
+        "rules/git-workflow.md",
+        "test/rules/discretion-tiers.test.js",
+        "test/rules/override-contract.test.js"
+      ]
+    },
+    {
+      "commit": "04e8a5e3f5d9c482937c2ad2170fab5fbd02b630",
+      "subject": "chore(release): Bump to 4.6.2",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    }
+  ]
+}

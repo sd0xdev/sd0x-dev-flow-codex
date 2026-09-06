@@ -1,0 +1,3450 @@
+[
+  {
+    "path": "migration/packs/development-pack/debug/SKILL.md",
+    "lines": 51,
+    "bytes": 3982,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/development-pack/refactor/SKILL.md",
+    "lines": 42,
+    "bytes": 2471,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/development-pack/simplify/SKILL.md",
+    "lines": 42,
+    "bytes": 2507,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/development-pack/test-deep/SKILL.md",
+    "lines": 42,
+    "bytes": 2747,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/development-pack/test-gen/SKILL.md",
+    "lines": 44,
+    "bytes": 2706,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/development-pack/post-dev-test/SKILL.md",
+    "lines": 37,
+    "bytes": 2577,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/security-review/SKILL.md",
+    "lines": 37,
+    "bytes": 2245,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/best-practices/SKILL.md",
+    "lines": 41,
+    "bytes": 2718,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/risk-assess/SKILL.md",
+    "lines": 37,
+    "bytes": 2133,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/pre-pr-audit/SKILL.md",
+    "lines": 41,
+    "bytes": 2216,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/test-health/SKILL.md",
+    "lines": 37,
+    "bytes": 2305,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/dep-audit/SKILL.md",
+    "lines": 41,
+    "bytes": 2367,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/project-audit/SKILL.md",
+    "lines": 37,
+    "bytes": 2206,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/check-coverage/SKILL.md",
+    "lines": 37,
+    "bytes": 2185,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/quality-pack/doc-review/SKILL.md",
+    "lines": 37,
+    "bytes": 2167,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/fp-brief/SKILL.md",
+    "lines": 63,
+    "bytes": 3522,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/seek-verdict/SKILL.md",
+    "lines": 79,
+    "bytes": 6496,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/code-explore/SKILL.md",
+    "lines": 62,
+    "bytes": 3602,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/deep-explore/SKILL.md",
+    "lines": 66,
+    "bytes": 4727,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/git-investigate/SKILL.md",
+    "lines": 62,
+    "bytes": 3516,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/deep-research/SKILL.md",
+    "lines": 86,
+    "bytes": 8028,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/code-investigate/SKILL.md",
+    "lines": 62,
+    "bytes": 3857,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/ask/SKILL.md",
+    "lines": 63,
+    "bytes": 4231,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/brainstorm/SKILL.md",
+    "lines": 72,
+    "bytes": 4680,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/architecture-advice/SKILL.md",
+    "lines": 62,
+    "bytes": 3582,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/explain/SKILL.md",
+    "lines": 62,
+    "bytes": 3367,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/research-pack/issue-analyze/SKILL.md",
+    "lines": 62,
+    "bytes": 4010,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "AGENTS.md",
+    "lines": 63,
+    "bytes": 4904,
+    "scope": "project",
+    "purpose": "project guidance or installation registration",
+    "overlap": "managed section generated by workflow-contract.js"
+  },
+  {
+    "path": "migration/packs/planning-pack/plan-review/SKILL.md",
+    "lines": 78,
+    "bytes": 5827,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-explain/SKILL.md",
+    "lines": 74,
+    "bytes": 2277,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": ".agents/plugins/marketplace.json",
+    "lines": 20,
+    "bytes": 402,
+    "scope": "project",
+    "purpose": "local plugin discovery registration",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/packs/planning-pack/plan-review/references/pack-handoff.md",
+    "lines": 14,
+    "bytes": 644,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/plan-review/references/output-template.md",
+    "lines": 41,
+    "bytes": 795,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/review-spec/SKILL.md",
+    "lines": 80,
+    "bytes": 6381,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-explain/references/codex-prompt-explain.md",
+    "lines": 72,
+    "bytes": 1768,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/review-spec/references/pack-handoff.md",
+    "lines": 16,
+    "bytes": 824,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/review-spec/references/output-template.md",
+    "lines": 47,
+    "bytes": 1009,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/architecture/SKILL.md",
+    "lines": 66,
+    "bytes": 6417,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/bump-version/SKILL.md",
+    "lines": 68,
+    "bytes": 1990,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/planning-pack/necessity-audit/SKILL.md",
+    "lines": 80,
+    "bytes": 6069,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": ".codex/agents/sd0x-codex-primary-reviewer.toml",
+    "lines": 15,
+    "bytes": 1211,
+    "scope": "installed-project",
+    "purpose": "reviewer profile",
+    "overlap": "installed copy of payload reviewer template"
+  },
+  {
+    "path": ".codex/sd0x-dev-flow.json",
+    "lines": 7,
+    "bytes": 88,
+    "scope": "installed-project",
+    "purpose": "project guidance or installation registration",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/packs/planning-pack/feasibility-study/SKILL.md",
+    "lines": 74,
+    "bytes": 5646,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/planning-pack/necessity-audit/references/pack-handoff.md",
+    "lines": 15,
+    "bytes": 723,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/necessity-audit/references/output-template.md",
+    "lines": 33,
+    "bytes": 838,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/architecture/references/pack-handoff.md",
+    "lines": 14,
+    "bytes": 874,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/architecture/references/template.md",
+    "lines": 68,
+    "bytes": 1575,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/pr-comment/SKILL.md",
+    "lines": 178,
+    "bytes": 5841,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/planning-pack/request-tracking/SKILL.md",
+    "lines": 68,
+    "bytes": 5354,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/packs/planning-pack/request-tracking/references/pack-handoff.md",
+    "lines": 14,
+    "bytes": 713,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/request-tracking/references/output-template.md",
+    "lines": 29,
+    "bytes": 622,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/request-tracking/references/report-contract.md",
+    "lines": 17,
+    "bytes": 1151,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/recap-doc/SKILL.md",
+    "lines": 196,
+    "bytes": 10562,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/issue-analyze/SKILL.md",
+    "lines": 251,
+    "bytes": 13553,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/doc-review/SKILL.md",
+    "lines": 114,
+    "bytes": 3963,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/pr-comment/references/api-and-guardrails.md",
+    "lines": 82,
+    "bytes": 2858,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/bug-fix/SKILL.md",
+    "lines": 153,
+    "bytes": 4479,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/verify/SKILL.md",
+    "lines": 113,
+    "bytes": 3780,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/necessity-audit/SKILL.md",
+    "lines": 177,
+    "bytes": 7662,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/issue-analyze/references/classification.md",
+    "lines": 100,
+    "bytes": 4164,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/issue-analyze/references/report-template.md",
+    "lines": 142,
+    "bytes": 3078,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/doc-review/references/review-loop-doc.md",
+    "lines": 35,
+    "bytes": 861,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/doc-review/references/codex-prompt-doc.md",
+    "lines": 96,
+    "bytes": 3115,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/feasibility-study/references/pack-handoff.md",
+    "lines": 15,
+    "bytes": 808,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/packs/planning-pack/feasibility-study/references/output-template.md",
+    "lines": 49,
+    "bytes": 1042,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/debug/SKILL.md",
+    "lines": 242,
+    "bytes": 8733,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/feature-dev/SKILL.md",
+    "lines": 172,
+    "bytes": 6079,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/git-profile/SKILL.md",
+    "lines": 190,
+    "bytes": 5948,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/op-session/SKILL.md",
+    "lines": 134,
+    "bytes": 5104,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/recap-doc/references/prompt-template.md",
+    "lines": 155,
+    "bytes": 7843,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/recap-doc/references/source-guide.md",
+    "lines": 104,
+    "bytes": 6151,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/recap-doc/references/output-template.md",
+    "lines": 140,
+    "bytes": 7085,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/ask/SKILL.md",
+    "lines": 194,
+    "bytes": 7360,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/debug/references/probe-protocol.md",
+    "lines": 71,
+    "bytes": 2244,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/debug/references/report-template.md",
+    "lines": 62,
+    "bytes": 1472,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/debug/references/failure-taxonomy.md",
+    "lines": 130,
+    "bytes": 3739,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-review/SKILL.md",
+    "lines": 33,
+    "bytes": 1025,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/ask/references/intent-patterns.md",
+    "lines": 46,
+    "bytes": 2691,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/ask/references/routing-table.md",
+    "lines": 31,
+    "bytes": 1543,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/claude-health/SKILL.md",
+    "lines": 333,
+    "bytes": 13736,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/review-spec/SKILL.md",
+    "lines": 76,
+    "bytes": 1610,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/post-dev-test/SKILL.md",
+    "lines": 177,
+    "bytes": 9550,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/contract-decode/SKILL.md",
+    "lines": 187,
+    "bytes": 5310,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/feasibility-study/SKILL.md",
+    "lines": 133,
+    "bytes": 4393,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/skill-health-check/SKILL.md",
+    "lines": 141,
+    "bytes": 5211,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/necessity-audit/references/review-loop.md",
+    "lines": 40,
+    "bytes": 2693,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/necessity-audit/references/phase-b-debate-topic.md",
+    "lines": 46,
+    "bytes": 1977,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/necessity-audit/references/phase-c-consolidate.md",
+    "lines": 59,
+    "bytes": 2857,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/necessity-audit/references/phase-a-classify.md",
+    "lines": 37,
+    "bytes": 1175,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/necessity-audit/references/redaction-rules.md",
+    "lines": 37,
+    "bytes": 1693,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/necessity-audit/references/dimensions.md",
+    "lines": 117,
+    "bytes": 4849,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/necessity-audit/references/output-template.md",
+    "lines": 38,
+    "bytes": 2411,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-setup/SKILL.md",
+    "lines": 129,
+    "bytes": 4332,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/check-coverage/SKILL.md",
+    "lines": 97,
+    "bytes": 2577,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-setup/references/agents-kernel.md",
+    "lines": 55,
+    "bytes": 2106,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/refactor/SKILL.md",
+    "lines": 199,
+    "bytes": 6008,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/deep-research/SKILL.md",
+    "lines": 332,
+    "bytes": 14240,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/readme-i18n-sync/SKILL.md",
+    "lines": 185,
+    "bytes": 5890,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/readme-i18n-sync/references/glossary.md",
+    "lines": 61,
+    "bytes": 2781,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/post-dev-test/references/test-patterns.md",
+    "lines": 224,
+    "bytes": 5574,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/ui-first-principles/SKILL.md",
+    "lines": 324,
+    "bytes": 21858,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/doc-refactor/SKILL.md",
+    "lines": 68,
+    "bytes": 1421,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/refactor/references/refactor-catalog.md",
+    "lines": 36,
+    "bytes": 1846,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/refactor/references/target-detection.md",
+    "lines": 72,
+    "bytes": 3051,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/refactor/references/behavioral-gate.md",
+    "lines": 64,
+    "bytes": 2561,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/refactor/references/output-template.md",
+    "lines": 54,
+    "bytes": 1714,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/ui-first-principles/references/principle-anchors.md",
+    "lines": 165,
+    "bytes": 7477,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/ui-first-principles/references/anti-patterns.md",
+    "lines": 160,
+    "bytes": 8570,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/ui-first-principles/references/jtbd-framework.md",
+    "lines": 121,
+    "bytes": 7847,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/ui-first-principles/references/output-template.md",
+    "lines": 232,
+    "bytes": 9342,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/generate-runner/SKILL.md",
+    "lines": 126,
+    "bytes": 3590,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/skill-health-check/references/routing-signature-guide.md",
+    "lines": 46,
+    "bytes": 2247,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/bump-version/SKILL.md",
+    "lines": 108,
+    "bytes": 4305,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/claude-health/references/best-practices.md",
+    "lines": 63,
+    "bytes": 2226,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/generate-runner/references/templates.md",
+    "lines": 140,
+    "bytes": 3008,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/code-investigate/SKILL.md",
+    "lines": 158,
+    "bytes": 6049,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/plan-review/SKILL.md",
+    "lines": 218,
+    "bytes": 11665,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/project-audit/SKILL.md",
+    "lines": 91,
+    "bytes": 2972,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/contract-decode/references/apis.md",
+    "lines": 240,
+    "bytes": 6505,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/feasibility-study/references/analysis-phases.md",
+    "lines": 68,
+    "bytes": 2541,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/feasibility-study/references/codex-discussion-guide.md",
+    "lines": 85,
+    "bytes": 3315,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/feasibility-study/references/output-template.md",
+    "lines": 138,
+    "bytes": 3030,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/pr-summary/SKILL.md",
+    "lines": 105,
+    "bytes": 2552,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/deep-research/references/claim-registry.md",
+    "lines": 68,
+    "bytes": 2186,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/deep-research/references/scoring-model.md",
+    "lines": 48,
+    "bytes": 2516,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/deep-research/references/research-roles.md",
+    "lines": 117,
+    "bytes": 3988,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/merge-prep/SKILL.md",
+    "lines": 199,
+    "bytes": 5488,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/project-audit/references/check-catalog.md",
+    "lines": 50,
+    "bytes": 2517,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/project-audit/references/output-template.md",
+    "lines": 68,
+    "bytes": 1612,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-cli-review/SKILL.md",
+    "lines": 133,
+    "bytes": 6018,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/code-investigate/references/prompts.md",
+    "lines": 107,
+    "bytes": 3584,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/code-investigate/references/output-template.md",
+    "lines": 118,
+    "bytes": 4123,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/plan-review/references/review-loop-plan.md",
+    "lines": 48,
+    "bytes": 2656,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/plan-review/references/codex-prompt-plan.md",
+    "lines": 81,
+    "bytes": 3261,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/precommit/SKILL.md",
+    "lines": 92,
+    "bytes": 3707,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/safe-remove/SKILL.md",
+    "lines": 170,
+    "bytes": 6025,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/de-ai-flavor/SKILL.md",
+    "lines": 76,
+    "bytes": 2571,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/safe-remove/references/removal-policy.md",
+    "lines": 93,
+    "bytes": 4540,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/pr-comment/SKILL.md",
+    "lines": 78,
+    "bytes": 5293,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/pr-review/SKILL.md",
+    "lines": 43,
+    "bytes": 918,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-implement/SKILL.md",
+    "lines": 155,
+    "bytes": 4807,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/watch-ci/SKILL.md",
+    "lines": 202,
+    "bytes": 10149,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/remind/SKILL.md",
+    "lines": 195,
+    "bytes": 9157,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/statusline-config/SKILL.md",
+    "lines": 182,
+    "bytes": 11855,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/test-review/SKILL.md",
+    "lines": 215,
+    "bytes": 7820,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/deep-analyze/SKILL.md",
+    "lines": 93,
+    "bytes": 2111,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/remind/references/detection-rules.md",
+    "lines": 48,
+    "bytes": 2504,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/sharingan/SKILL.md",
+    "lines": 206,
+    "bytes": 9096,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-security/SKILL.md",
+    "lines": 25,
+    "bytes": 720,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/repo-intake/SKILL.md",
+    "lines": 99,
+    "bytes": 2345,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-implement/references/codex-prompts.md",
+    "lines": 146,
+    "bytes": 3913,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/security-review/SKILL.md",
+    "lines": 104,
+    "bytes": 3678,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/dev-security-audit/SKILL.md",
+    "lines": 345,
+    "bytes": 14262,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/next-step/SKILL.md",
+    "lines": 155,
+    "bytes": 6242,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/update-docs/SKILL.md",
+    "lines": 84,
+    "bytes": 2346,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/next-step/references/progression-tables.md",
+    "lines": 65,
+    "bytes": 2278,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/tech-spec/SKILL.md",
+    "lines": 100,
+    "bytes": 3252,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/pr-comment/references/api-and-guardrails.md",
+    "lines": 23,
+    "bytes": 1549,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/security-review/references/codex-prompt-security.md",
+    "lines": 115,
+    "bytes": 2805,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/security-review/references/examples.md",
+    "lines": 106,
+    "bytes": 2261,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/create-pr/SKILL.md",
+    "lines": 294,
+    "bytes": 10934,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/tech-spec/references/feature-context-resolution.md",
+    "lines": 118,
+    "bytes": 5607,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/tech-spec/references/template.md",
+    "lines": 85,
+    "bytes": 1987,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/statusline-config/references/themes.md",
+    "lines": 94,
+    "bytes": 5726,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/statusline-config/references/json-schema.md",
+    "lines": 96,
+    "bytes": 4935,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/dev-security-audit/references/scan-targets.md",
+    "lines": 154,
+    "bytes": 6242,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/dev-security-audit/references/remediation.md",
+    "lines": 196,
+    "bytes": 6272,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/fp-brief/SKILL.md",
+    "lines": 174,
+    "bytes": 7003,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/test-review/references/codex-prompt-ac-trace.md",
+    "lines": 110,
+    "bytes": 3860,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/test-review/references/codex-prompt-test-review.md",
+    "lines": 117,
+    "bytes": 2985,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/test-review/references/codex-prompt-test-gen.md",
+    "lines": 66,
+    "bytes": 1879,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-test-gen/SKILL.md",
+    "lines": 29,
+    "bytes": 883,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-test-review/SKILL.md",
+    "lines": 29,
+    "bytes": 891,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/best-practices/SKILL.md",
+    "lines": 195,
+    "bytes": 9690,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/portfolio/SKILL.md",
+    "lines": 96,
+    "bytes": 3036,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/seek-verdict/SKILL.md",
+    "lines": 142,
+    "bytes": 5780,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/bug-fix/SKILL.md",
+    "lines": 37,
+    "bytes": 2540,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/best-practices/references/output-templates.md",
+    "lines": 104,
+    "bytes": 3519,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/best-practices/references/debate-guide.md",
+    "lines": 42,
+    "bytes": 1539,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/portfolio/references/api.md",
+    "lines": 101,
+    "bytes": 2844,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/portfolio/references/architecture.md",
+    "lines": 106,
+    "bytes": 4795,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/sharingan/references/format-mapping.md",
+    "lines": 61,
+    "bytes": 2927,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/sharingan/references/source-bundle.md",
+    "lines": 230,
+    "bytes": 8926,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/sharingan/references/dependency-graph-algorithm.md",
+    "lines": 121,
+    "bytes": 3203,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/sharingan/references/input-classification.md",
+    "lines": 101,
+    "bytes": 4691,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/sharingan/references/quality-checklist.md",
+    "lines": 42,
+    "bytes": 1707,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/sharingan/references/output-template.md",
+    "lines": 70,
+    "bytes": 1564,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/pr-summary/SKILL.md",
+    "lines": 66,
+    "bytes": 4136,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/repo-intake/references/archived/MIDWAY_HEURISTICS.md",
+    "lines": 34,
+    "bytes": 1025,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-review-doc/SKILL.md",
+    "lines": 25,
+    "bytes": 717,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/dev-security-audit/references/cases/axios-2026-03.md",
+    "lines": 309,
+    "bytes": 14478,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/dev-security-audit/references/cases/README.md",
+    "lines": 55,
+    "bytes": 2457,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/dev-security-audit/references/cases/apifox-2026-03.md",
+    "lines": 261,
+    "bytes": 10654,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/fp-brief/references/codex-verify-prompt.md",
+    "lines": 82,
+    "bytes": 3002,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/fp-brief/references/detection-rules.md",
+    "lines": 36,
+    "bytes": 2047,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/fp-brief/references/extraction-guide.md",
+    "lines": 135,
+    "bytes": 5382,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/fp-brief/references/output-template.md",
+    "lines": 137,
+    "bytes": 4504,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/risk-assess/SKILL.md",
+    "lines": 96,
+    "bytes": 3352,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/orchestrate/SKILL.md",
+    "lines": 112,
+    "bytes": 7012,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/merge-prep/SKILL.md",
+    "lines": 90,
+    "bytes": 6012,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/seek-verdict/references/policy-mapping.md",
+    "lines": 125,
+    "bytes": 5560,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/seek-verdict/references/verdict-prompt.md",
+    "lines": 106,
+    "bytes": 3427,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-code-review/review_rubric.md",
+    "lines": 17,
+    "bytes": 831,
+    "scope": "archived-not-loaded",
+    "purpose": "project guidance or installation registration",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/push-ci/SKILL.md",
+    "lines": 227,
+    "bytes": 8881,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "test/fixtures/alias-capability/plugin/skills/r4-alias-probe/SKILL.md",
+    "lines": 9,
+    "bytes": 355,
+    "scope": "test-fixture",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/debug/SKILL.md",
+    "lines": 51,
+    "bytes": 4022,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/project-audit/SKILL.md",
+    "lines": 37,
+    "bytes": 2206,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-code-review/templates/review_output.md",
+    "lines": 40,
+    "bytes": 361,
+    "scope": "archived-not-loaded",
+    "purpose": "project guidance or installation registration",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-code-review/SKILL.md",
+    "lines": 290,
+    "bytes": 11952,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/update-docs/SKILL.md",
+    "lines": 125,
+    "bytes": 4635,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/check-coverage/SKILL.md",
+    "lines": 37,
+    "bytes": 2185,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-code-review/references/codex-prompt-full.md",
+    "lines": 140,
+    "bytes": 4166,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-code-review/references/codex-prompt-branch.md",
+    "lines": 151,
+    "bytes": 4548,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-code-review/references/codex-research-instructions.md",
+    "lines": 85,
+    "bytes": 3544,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-code-review/references/review-common.md",
+    "lines": 199,
+    "bytes": 7601,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-code-review/references/codex-prompt-fast.md",
+    "lines": 104,
+    "bytes": 3727,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/post-dev-recap/SKILL.md",
+    "lines": 224,
+    "bytes": 14250,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/zh-tw/SKILL.md",
+    "lines": 51,
+    "bytes": 1279,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feature-verify/SKILL.md",
+    "lines": 98,
+    "bytes": 7228,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/pre-pr-audit/SKILL.md",
+    "lines": 190,
+    "bytes": 7800,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/recap-ask/SKILL.md",
+    "lines": 181,
+    "bytes": 10211,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/test-deep/SKILL.md",
+    "lines": 245,
+    "bytes": 8966,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feature-dev/SKILL.md",
+    "lines": 37,
+    "bytes": 2509,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feature-verify/references/safety-rules.md",
+    "lines": 23,
+    "bytes": 1502,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feature-verify/references/blackbox-testing.md",
+    "lines": 24,
+    "bytes": 1639,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feature-verify/references/output-template.md",
+    "lines": 28,
+    "bytes": 1028,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feature-verify/references/environments.md",
+    "lines": 28,
+    "bytes": 1906,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/architecture-advice/SKILL.md",
+    "lines": 62,
+    "bytes": 3420,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/create-request/SKILL.md",
+    "lines": 463,
+    "bytes": 19923,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/doc-refactor/SKILL.md",
+    "lines": 109,
+    "bytes": 3872,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/install-rules/SKILL.md",
+    "lines": 80,
+    "bytes": 2171,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/pre-pr-audit/references/scoring-model.md",
+    "lines": 87,
+    "bytes": 2176,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/pre-pr-audit/references/output-template.md",
+    "lines": 92,
+    "bytes": 2330,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/test-deep/references/fixer-catalog.md",
+    "lines": 74,
+    "bytes": 2719,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/test-deep/references/triage-pipeline.md",
+    "lines": 110,
+    "bytes": 3725,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/test-deep/references/test-selection.md",
+    "lines": 60,
+    "bytes": 2434,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/recap-ask/references/qa-prompt.md",
+    "lines": 155,
+    "bytes": 7305,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/refactor/SKILL.md",
+    "lines": 42,
+    "bytes": 2511,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/necessity-audit/SKILL.md",
+    "lines": 80,
+    "bytes": 6090,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/review/SKILL.md",
+    "lines": 199,
+    "bytes": 15292,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/issue-analyze/SKILL.md",
+    "lines": 62,
+    "bytes": 3848,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/risk-assess/references/output-template.md",
+    "lines": 73,
+    "bytes": 1839,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/risk-assess/references/risk-dimensions.md",
+    "lines": 92,
+    "bytes": 2932,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/orchestrate/references/execution-policy.md",
+    "lines": 37,
+    "bytes": 2209,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/orchestrate/references/planner-prompt.md",
+    "lines": 53,
+    "bytes": 2468,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/orchestrate/references/plan-schema.md",
+    "lines": 45,
+    "bytes": 3190,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/code-investigate/SKILL.md",
+    "lines": 62,
+    "bytes": 3695,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/create-request/references/feature-context-resolution.md",
+    "lines": 113,
+    "bytes": 5121,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/create-request/references/template.md",
+    "lines": 125,
+    "bytes": 4866,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/install-scripts/SKILL.md",
+    "lines": 75,
+    "bytes": 2101,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/smart-rebase/SKILL.md",
+    "lines": 190,
+    "bytes": 6352,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/precommit-fast/SKILL.md",
+    "lines": 87,
+    "bytes": 3400,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/plan-review/SKILL.md",
+    "lines": 78,
+    "bytes": 5848,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-brainstorm/SKILL.md",
+    "lines": 110,
+    "bytes": 4302,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/necessity-audit/references/pack-handoff.md",
+    "lines": 15,
+    "bytes": 685,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/necessity-audit/references/output-template.md",
+    "lines": 33,
+    "bytes": 838,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/install-hooks/SKILL.md",
+    "lines": 74,
+    "bytes": 2087,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-review-fast/SKILL.md",
+    "lines": 34,
+    "bytes": 1046,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/git-profile/SKILL.md",
+    "lines": 101,
+    "bytes": 6624,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/generate-runner/SKILL.md",
+    "lines": 93,
+    "bytes": 6339,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/obsidian-cli/SKILL.md",
+    "lines": 134,
+    "bytes": 4499,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/tech-brief/SKILL.md",
+    "lines": 182,
+    "bytes": 7375,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/simplify/SKILL.md",
+    "lines": 75,
+    "bytes": 1562,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/plan-review/references/pack-handoff.md",
+    "lines": 14,
+    "bytes": 589,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/plan-review/references/output-template.md",
+    "lines": 41,
+    "bytes": 795,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/tech-brief/references/source-guide.md",
+    "lines": 109,
+    "bytes": 4841,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/tech-brief/references/output-template.md",
+    "lines": 175,
+    "bytes": 5343,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/templates/agents/sd0x-codex-primary-reviewer.toml",
+    "lines": 15,
+    "bytes": 1211,
+    "scope": "active-payload",
+    "purpose": "reviewer profile",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/explain/SKILL.md",
+    "lines": 62,
+    "bytes": 3205,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-architect/SKILL.md",
+    "lines": 111,
+    "bytes": 3420,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/op-session/SKILL.md",
+    "lines": 69,
+    "bytes": 4693,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-brainstorm/references/techniques.md",
+    "lines": 156,
+    "bytes": 4430,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/skill-health-check/SKILL.md",
+    "lines": 70,
+    "bytes": 4685,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-brainstorm/references/equilibrium.md",
+    "lines": 92,
+    "bytes": 3493,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/codex-brainstorm/references/templates.md",
+    "lines": 156,
+    "bytes": 3533,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/review/references/review-theory.md",
+    "lines": 180,
+    "bytes": 10383,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "review role, skill, hook prompts repeat parts of rubric"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/doc-review/SKILL.md",
+    "lines": 37,
+    "bytes": 2167,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/dep-audit/SKILL.md",
+    "lines": 99,
+    "bytes": 2758,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/ui-first-principles/SKILL.md",
+    "lines": 72,
+    "bytes": 4630,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/review-spec/SKILL.md",
+    "lines": 80,
+    "bytes": 6402,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/verify/SKILL.md",
+    "lines": 83,
+    "bytes": 5342,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/generate-runner/references/templates.md",
+    "lines": 39,
+    "bytes": 1747,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/pr-review/SKILL.md",
+    "lines": 68,
+    "bytes": 4338,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feasibility-study/SKILL.md",
+    "lines": 74,
+    "bytes": 5667,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/hooks/hooks.json",
+    "lines": 106,
+    "bytes": 2437,
+    "scope": "active-payload",
+    "purpose": "generated instructions and hook configuration",
+    "overlap": "event registration; runtime/hook.js owns prompt text"
+  },
+  {
+    "path": "migration/staging/codex-architect/references/project-knowledge.md",
+    "lines": 80,
+    "bytes": 2257,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/load-pr-review/SKILL.md",
+    "lines": 437,
+    "bytes": 17433,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feasibility-study/references/pack-handoff.md",
+    "lines": 15,
+    "bytes": 775,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/feasibility-study/references/output-template.md",
+    "lines": 49,
+    "bytes": 1042,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/review-spec/references/pack-handoff.md",
+    "lines": 16,
+    "bytes": 767,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/review-spec/references/output-template.md",
+    "lines": 47,
+    "bytes": 1009,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/post-dev-test/SKILL.md",
+    "lines": 37,
+    "bytes": 2617,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/test-health/SKILL.md",
+    "lines": 37,
+    "bytes": 2305,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/deep-explore/SKILL.md",
+    "lines": 66,
+    "bytes": 4565,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/security-review/SKILL.md",
+    "lines": 37,
+    "bytes": 2245,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/load-pr-review/references/token-budget.md",
+    "lines": 67,
+    "bytes": 1936,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/load-pr-review/references/api-contract.md",
+    "lines": 86,
+    "bytes": 1977,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/load-pr-review/references/writeback-guardrails.md",
+    "lines": 73,
+    "bytes": 2281,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/load-pr-review/references/verdict-triage-prompt.md",
+    "lines": 104,
+    "bytes": 4297,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/code-explore/SKILL.md",
+    "lines": 163,
+    "bytes": 7333,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/readme-i18n-sync/SKILL.md",
+    "lines": 74,
+    "bytes": 5018,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/de-ai-flavor/SKILL.md",
+    "lines": 117,
+    "bytes": 4825,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/runbook/SKILL.md",
+    "lines": 70,
+    "bytes": 4538,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/code-explore/references/search-patterns.md",
+    "lines": 121,
+    "bytes": 2373,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/req-analyze/SKILL.md",
+    "lines": 347,
+    "bytes": 14157,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/brainstorm/SKILL.md",
+    "lines": 72,
+    "bytes": 4518,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/contract-decode/SKILL.md",
+    "lines": 226,
+    "bytes": 7628,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/ask/SKILL.md",
+    "lines": 63,
+    "bytes": 4069,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/obsidian-cli/references/integration-patterns.md",
+    "lines": 71,
+    "bytes": 1771,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/obsidian-cli/references/troubleshooting.md",
+    "lines": 55,
+    "bytes": 2498,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/project-brief/SKILL.md",
+    "lines": 72,
+    "bytes": 4564,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/update-readme/SKILL.md",
+    "lines": 103,
+    "bytes": 3413,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/best-practices/SKILL.md",
+    "lines": 41,
+    "bytes": 2718,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/smart-commit/SKILL.md",
+    "lines": 77,
+    "bytes": 4867,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/deep-research/SKILL.md",
+    "lines": 86,
+    "bytes": 8026,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/contract-decode/references/apis.md",
+    "lines": 84,
+    "bytes": 5589,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/git-investigate/SKILL.md",
+    "lines": 62,
+    "bytes": 3354,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/test-gen/SKILL.md",
+    "lines": 44,
+    "bytes": 2746,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/readme-i18n-sync/references/glossary.md",
+    "lines": 61,
+    "bytes": 2775,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/req-analyze/references/research-cascade.md",
+    "lines": 38,
+    "bytes": 1879,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/req-analyze/references/output-template.md",
+    "lines": 113,
+    "bytes": 3939,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/epic-merge/SKILL.md",
+    "lines": 363,
+    "bytes": 15270,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/sharingan/SKILL.md",
+    "lines": 72,
+    "bytes": 4893,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/setup/SKILL.md",
+    "lines": 91,
+    "bytes": 6342,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/scripts/runtime/workflow-contract.js",
+    "lines": 164,
+    "bytes": 6108,
+    "scope": "active-payload",
+    "purpose": "generated instructions and hook configuration",
+    "overlap": "canonical generator for AGENTS managed section"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/push-ci/SKILL.md",
+    "lines": 81,
+    "bytes": 5599,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/jira/SKILL.md",
+    "lines": 92,
+    "bytes": 6352,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/doctor/SKILL.md",
+    "lines": 32,
+    "bytes": 2052,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/statusline-config/SKILL.md",
+    "lines": 69,
+    "bytes": 4458,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/recap-doc/SKILL.md",
+    "lines": 76,
+    "bytes": 5269,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/code-explore/SKILL.md",
+    "lines": 62,
+    "bytes": 3440,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/load-pr-review/SKILL.md",
+    "lines": 82,
+    "bytes": 5588,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/feature-verify/SKILL.md",
+    "lines": 288,
+    "bytes": 12154,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/deep-explore/SKILL.md",
+    "lines": 268,
+    "bytes": 8946,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/load-pr-review/references/token-budget.md",
+    "lines": 12,
+    "bytes": 777,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/load-pr-review/references/api-contract.md",
+    "lines": 15,
+    "bytes": 1161,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/load-pr-review/references/writeback-guardrails.md",
+    "lines": 5,
+    "bytes": 702,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/load-pr-review/references/verdict-triage-prompt.md",
+    "lines": 12,
+    "bytes": 762,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/dep-audit/SKILL.md",
+    "lines": 41,
+    "bytes": 2367,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/update-readme/SKILL.md",
+    "lines": 70,
+    "bytes": 4373,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/fp-brief/SKILL.md",
+    "lines": 63,
+    "bytes": 3360,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/seek-verdict/SKILL.md",
+    "lines": 79,
+    "bytes": 6334,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/jira/references/transition-mapping.md",
+    "lines": 19,
+    "bytes": 1324,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/jira/references/create-policy.md",
+    "lines": 54,
+    "bytes": 2048,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/jira/references/branch-policy.md",
+    "lines": 26,
+    "bytes": 1384,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/recap-doc/references/prompt-template.md",
+    "lines": 7,
+    "bytes": 805,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/recap-doc/references/source-guide.md",
+    "lines": 19,
+    "bytes": 1484,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/recap-doc/references/output-template.md",
+    "lines": 21,
+    "bytes": 1668,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/epic-merge/SKILL.md",
+    "lines": 106,
+    "bytes": 7439,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/test-review/SKILL.md",
+    "lines": 50,
+    "bytes": 2675,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/test-deep/SKILL.md",
+    "lines": 42,
+    "bytes": 2787,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/feature-verify/references/safety-rules.md",
+    "lines": 67,
+    "bytes": 2825,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/feature-verify/references/blackbox-testing.md",
+    "lines": 235,
+    "bytes": 8910,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/feature-verify/references/output-template.md",
+    "lines": 150,
+    "bytes": 4973,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/feature-verify/references/environments.md",
+    "lines": 150,
+    "bytes": 5285,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/smart-rebase/SKILL.md",
+    "lines": 74,
+    "bytes": 4814,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/deep-explore/references/synthesis.md",
+    "lines": 109,
+    "bytes": 3060,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/deep-explore/references/agent-prompt.md",
+    "lines": 88,
+    "bytes": 2471,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/request-tracking/SKILL.md",
+    "lines": 68,
+    "bytes": 5375,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/zh-tw/SKILL.md",
+    "lines": 66,
+    "bytes": 3973,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/recap-ask/SKILL.md",
+    "lines": 70,
+    "bytes": 4602,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/obsidian-cli/SKILL.md",
+    "lines": 93,
+    "bytes": 6797,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/repo-intake/SKILL.md",
+    "lines": 74,
+    "bytes": 4894,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/remind/SKILL.md",
+    "lines": 37,
+    "bytes": 2026,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/tech-spec/SKILL.md",
+    "lines": 108,
+    "bytes": 10550,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/architecture/SKILL.md",
+    "lines": 66,
+    "bytes": 6438,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/test-health/SKILL.md",
+    "lines": 228,
+    "bytes": 9024,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/tech-spec/references/research-policy.md",
+    "lines": 9,
+    "bytes": 809,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/tech-spec/references/template.md",
+    "lines": 80,
+    "bytes": 1981,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/pre-pr-audit/SKILL.md",
+    "lines": 41,
+    "bytes": 2216,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/portfolio/SKILL.md",
+    "lines": 68,
+    "bytes": 4506,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/recap-ask/references/qa-prompt.md",
+    "lines": 15,
+    "bytes": 1249,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/runbook/SKILL.md",
+    "lines": 200,
+    "bytes": 7593,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/portfolio/references/api.md",
+    "lines": 13,
+    "bytes": 938,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/portfolio/references/architecture.md",
+    "lines": 17,
+    "bytes": 1162,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/req-analyze/SKILL.md",
+    "lines": 111,
+    "bytes": 8322,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/reset/SKILL.md",
+    "lines": 24,
+    "bytes": 1223,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/obsidian-cli/references/integration-patterns.md",
+    "lines": 21,
+    "bytes": 1333,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/obsidian-cli/references/troubleshooting.md",
+    "lines": 17,
+    "bytes": 1299,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/safe-remove/SKILL.md",
+    "lines": 72,
+    "bytes": 4770,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/watch-ci/SKILL.md",
+    "lines": 70,
+    "bytes": 4510,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/create-request/SKILL.md",
+    "lines": 118,
+    "bytes": 6857,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/test-health/references/trend-schema.md",
+    "lines": 122,
+    "bytes": 3695,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/test-health/references/test-count-parsers.md",
+    "lines": 62,
+    "bytes": 3033,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/test-health/references/artifact-formats.md",
+    "lines": 57,
+    "bytes": 3157,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/runbook/references/check-output.md",
+    "lines": 69,
+    "bytes": 2690,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/runbook/references/template.md",
+    "lines": 159,
+    "bytes": 5317,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/runbook/references/discovery-heuristics.md",
+    "lines": 55,
+    "bytes": 3186,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/create-pr/SKILL.md",
+    "lines": 234,
+    "bytes": 11528,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/dev-security-audit/SKILL.md",
+    "lines": 333,
+    "bytes": 16033,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/architecture/references/pack-handoff.md",
+    "lines": 14,
+    "bytes": 759,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/architecture/references/template.md",
+    "lines": 68,
+    "bytes": 1575,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/next-step/SKILL.md",
+    "lines": 87,
+    "bytes": 6094,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/create-request/references/request-format.md",
+    "lines": 178,
+    "bytes": 9372,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/req-analyze/references/research-policy.md",
+    "lines": 15,
+    "bytes": 951,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/req-analyze/references/output-template.md",
+    "lines": 73,
+    "bytes": 1993,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/smart-commit/SKILL.md",
+    "lines": 471,
+    "bytes": 20953,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/dev-security-audit/references/scan-targets.md",
+    "lines": 152,
+    "bytes": 6203,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/dev-security-audit/references/remediation.md",
+    "lines": 15,
+    "bytes": 1339,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/tech-brief/SKILL.md",
+    "lines": 70,
+    "bytes": 4410,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/codex-review-branch/SKILL.md",
+    "lines": 33,
+    "bytes": 989,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/risk-assess/SKILL.md",
+    "lines": 37,
+    "bytes": 2133,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/project-brief/SKILL.md",
+    "lines": 119,
+    "bytes": 2884,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/smart-commit/references/execute-mode.md",
+    "lines": 75,
+    "bytes": 2852,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/orchestrate/SKILL.md",
+    "lines": 74,
+    "bytes": 6118,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/dev-security-audit/references/cases/axios-2026-03.md",
+    "lines": 140,
+    "bytes": 8764,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/dev-security-audit/references/cases/README.md",
+    "lines": 55,
+    "bytes": 2496,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/dev-security-audit/references/cases/apifox-2026-03.md",
+    "lines": 138,
+    "bytes": 6926,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/architecture/SKILL.md",
+    "lines": 235,
+    "bytes": 7839,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/next-step/references/progression-tables.md",
+    "lines": 43,
+    "bytes": 1960,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/simplify/SKILL.md",
+    "lines": 42,
+    "bytes": 2547,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/architecture/references/codex-prompt.md",
+    "lines": 59,
+    "bytes": 2182,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/architecture/references/template.md",
+    "lines": 110,
+    "bytes": 2998,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/request-tracking/SKILL.md",
+    "lines": 92,
+    "bytes": 2322,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/project-setup/SKILL.md",
+    "lines": 553,
+    "bytes": 26134,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/jira/SKILL.md",
+    "lines": 213,
+    "bytes": 7475,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/git-investigate/SKILL.md",
+    "lines": 81,
+    "bytes": 2533,
+    "scope": "archived-not-loaded",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/orchestrate/references/execution-policy.md",
+    "lines": 17,
+    "bytes": 1422,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/orchestrate/references/planner-prompt.md",
+    "lines": 5,
+    "bytes": 1099,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/orchestrate/references/plan-schema.md",
+    "lines": 64,
+    "bytes": 4107,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/post-dev-recap/SKILL.md",
+    "lines": 74,
+    "bytes": 5003,
+    "scope": "active-payload",
+    "purpose": "discovery and task instructions",
+    "overlap": "frontmatter/routing contract overlap; generic protocol on 41 live skills"
+  },
+  {
+    "path": "migration/staging/project-setup/references/detection-rules.md",
+    "lines": 260,
+    "bytes": 7892,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/request-tracking/references/operations.md",
+    "lines": 92,
+    "bytes": 1810,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/request-tracking/references/template.md",
+    "lines": 94,
+    "bytes": 1768,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/request-tracking/references/pack-handoff.md",
+    "lines": 14,
+    "bytes": 650,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/jira/references/transition-mapping.md",
+    "lines": 41,
+    "bytes": 1266,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/jira/references/create-policy.md",
+    "lines": 54,
+    "bytes": 2021,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "migration/staging/jira/references/branch-policy.md",
+    "lines": 73,
+    "bytes": 2065,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/request-tracking/references/output-template.md",
+    "lines": 29,
+    "bytes": 622,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "plugin/sd0x-dev-flow-codex/skills/request-tracking/references/report-contract.md",
+    "lines": 17,
+    "bytes": 1151,
+    "scope": "active-payload",
+    "purpose": "on-demand task context",
+    "overlap": "task-specific references; no global inheritance"
+  },
+  {
+    "path": "migration/staging/git-investigate/references/commands.md",
+    "lines": 113,
+    "bytes": 2230,
+    "scope": "archived-not-loaded",
+    "purpose": "on-demand task context",
+    "overlap": "historical source/pack copies, not current authority"
+  }
+]

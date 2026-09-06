@@ -1,0 +1,4317 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-09-05",
+  "source_repository": "https://github.com/sd0xdev/sd0x-harness.git",
+  "source_head": "78443ce44ac88d34e2cda63e33f2ade0e19c85af",
+  "source_version": "4.6.1",
+  "source_worktree_clean": true,
+  "target_base": "d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0",
+  "historical_inventory_commit": "f4187c53eb746b6f84eb1f413e7210bd506e6db9",
+  "historical_commit_available": false,
+  "history_comparison_base": "77d0e7b9181a8dd697ea80073061e64e602cc47b",
+  "history_comparison_tag": "v4.1.0",
+  "method": "Historical source file SHA-256 versus git show at pinned HEAD; commit enumeration uses v4.1.0, not the unavailable historical commit. Content changes alone do not establish missing target functionality. See upstream-evolution-2026-09-05.md for semantic disposition.",
+  "historical_inventory_sha256": "bd9d3f3aead8a0c421d0b9ceb0ab6270864c7d949b5fae2f201874c98c1ad775",
+  "skills": [
+    {
+      "source_name": "architecture",
+      "target_skill": "architecture",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/architecture/SKILL.md",
+          "baseline_sha256": "f75583e2c136ec98170cae038c1b8efb8040ff7344ef57c966fac746224d01ad",
+          "head_sha256": "034426405cb58a62e4e30eb7b1d0a03da13229aaa4470b30928132c41876a604",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/architecture/references/codex-prompt.md",
+          "baseline_sha256": "7d467f2cf0ba2ba06cd561d35a7e69db6587be8fc67fc7185e3488c1cf22e638",
+          "head_sha256": "0ab2833474a71c157875317e12f6580b9d8a6668e48f9eecab2fb99dc0e43372",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/architecture/references/template.md",
+          "baseline_sha256": "2f143adf48a76ba59e12634e34b304e9b80f858e58dc95db26fb17904ab6d445",
+          "head_sha256": "90bf2466204a7dc3f17453e42dfb690c97ded54855f2a8b2c6bf2a85e1adaadc",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "ask",
+      "target_skill": "ask",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/ask/SKILL.md",
+          "baseline_sha256": "9dee567898a8f262c71063658258937754f55ed68e179a7f63718913e87074d8",
+          "head_sha256": "b57c6c8c381989c7478e32972bd4087777ef5b36eec0a14e1447bd1f1a6bf63e",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/ask/references/intent-patterns.md",
+          "baseline_sha256": "fb0a42a01f6ed8ea3b056d265a633d581a8ee95ff27187876018b33c7f1d44d7",
+          "head_sha256": "fb0a42a01f6ed8ea3b056d265a633d581a8ee95ff27187876018b33c7f1d44d7",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/ask/references/routing-table.md",
+          "baseline_sha256": "d381174d5c4e535d64f20bce7bb7e41920d8befb1ddb1a2c987deb4ced072e89",
+          "head_sha256": "d381174d5c4e535d64f20bce7bb7e41920d8befb1ddb1a2c987deb4ced072e89",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "best-practices",
+      "target_skill": "best-practices",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/best-practices/SKILL.md",
+          "baseline_sha256": "3d10ad321962b8f2415f0ea4917d0ad24a32dea4d61ad3045ff28aa02ff28309",
+          "head_sha256": "08cb8f5ced33a1e539205137e070f939b8bc52baf6a7dd95ebba9d92e0b90495",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/best-practices/references/debate-guide.md",
+          "baseline_sha256": "4fcc327780f850578ef0b5af7b406528fbea52ad116caff522ad9bc39fe1fea6",
+          "head_sha256": "96c045cca49d103eff11f25d42192414113f7033cd2f229a15262b12384fa5a4",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/best-practices/references/output-templates.md",
+          "baseline_sha256": "e6d6a20304c412ebf9dc933b00864c01967249ea0d66406221b9ad42914fa9fb",
+          "head_sha256": "e6d6a20304c412ebf9dc933b00864c01967249ea0d66406221b9ad42914fa9fb",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "bug-fix",
+      "target_skill": "bug-fix",
+      "disposition": "keep",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/bug-fix/SKILL.md",
+          "baseline_sha256": "cce31f2c12bf62f1b0cff63a57fd14aa86a7e478f6cb51c2e0005668eeed7189",
+          "head_sha256": "42f3dc4e5861e02b1a242c95ae806662f8d23356cdb90c4709841e51275e7fae",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "bump-version",
+      "target_skill": "bump-version",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/bump-version/SKILL.md",
+          "baseline_sha256": "4619af4ef0ca87c4f9502b2deffcfa2b3aa8301db63cc57c7a5b67d4fd3bd009",
+          "head_sha256": "4619af4ef0ca87c4f9502b2deffcfa2b3aa8301db63cc57c7a5b67d4fd3bd009",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "check-coverage",
+      "target_skill": "check-coverage",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/check-coverage/SKILL.md",
+          "baseline_sha256": "697803fa61969ee7ec4184f68bbba3bdc76d43fc9e73b6096fe196eac9883af4",
+          "head_sha256": "697803fa61969ee7ec4184f68bbba3bdc76d43fc9e73b6096fe196eac9883af4",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "claude-health",
+      "target_skill": "doctor",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/claude-health/SKILL.md",
+          "baseline_sha256": "6909428aa3015aa2791dcbbdc68bd5ded6d22935ce52fc0adce0f32fd13780a8",
+          "head_sha256": "fcf03f65c365b0c8a69b4b9008aaaccc9540d0d28d914e5bcd88a50b79424bab",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/claude-health/references/best-practices.md",
+          "baseline_sha256": "a7349d5c4cb0be987cda3341f445946ffd9168d531f5418b72512a211f7039ba",
+          "head_sha256": "3af6691bc1a0e717f58ed9043320eedad21c204c00f488ca99449159a46a181f",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "code-explore",
+      "target_skill": "code-explore",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/code-explore/SKILL.md",
+          "baseline_sha256": "609ec947ef29c9ec3b0a176a90d554d191d9d7784488c8a99fcc40a4b97ee1c1",
+          "head_sha256": "609ec947ef29c9ec3b0a176a90d554d191d9d7784488c8a99fcc40a4b97ee1c1",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/code-explore/references/search-patterns.md",
+          "baseline_sha256": "b6e8e375d2f019a2e3f06e7e58e87578dde5c3a604f252bf0ced8c73f0086293",
+          "head_sha256": "b6e8e375d2f019a2e3f06e7e58e87578dde5c3a604f252bf0ced8c73f0086293",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "code-investigate",
+      "target_skill": "code-investigate",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/code-investigate/SKILL.md",
+          "baseline_sha256": "355cd1cb17d0f92aad73f4d855f3ef24defa0780596c6a064914137ba4529434",
+          "head_sha256": "8acc18832ca9af8651c59569f9230ee28615ee65260b3409de2f3c3ab623634e",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/code-investigate/references/output-template.md",
+          "baseline_sha256": "aab27078ff401ce07c0d8b74035f84d5b5a6077998c2eda4f1719884d6265cd3",
+          "head_sha256": "aab27078ff401ce07c0d8b74035f84d5b5a6077998c2eda4f1719884d6265cd3",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/code-investigate/references/prompts.md",
+          "baseline_sha256": "6b0189baf1809081ee67e619a13239e68d35584b8b3e00fd0799de02ec9d3740",
+          "head_sha256": "46994b3f3bf4c477b7dca87883554eee8a5d2edcf4d05d2add2361528c43f596",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-architect",
+      "target_skill": "architecture-advice",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-architect/SKILL.md",
+          "baseline_sha256": "8bb6b81b9949b596c73d6418b1090485b17465dd162e36bc8af6a3bad329a4f5",
+          "head_sha256": "306e5817316c6ad8398f1efbeb623313a88fca88d15e3b1c7e3da3b5b3ac0479",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-architect/references/project-knowledge.md",
+          "baseline_sha256": "8b6b0c49726089fcaf62a476e89e469005eb186ba83f226c3e129f3aca05c214",
+          "head_sha256": "8b6b0c49726089fcaf62a476e89e469005eb186ba83f226c3e129f3aca05c214",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-brainstorm",
+      "target_skill": "brainstorm",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-brainstorm/SKILL.md",
+          "baseline_sha256": "04fdf651f943968be93a1b6b3a246e1d3dcfcd8fac945fc205df08f2ff4a2e75",
+          "head_sha256": "c2a0d22910faf0bd67a50c1e40073d3510ac0c6b1d64a3b44ab1ff37ee3aa208",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-brainstorm/references/equilibrium.md",
+          "baseline_sha256": "4190b18e2056a5c7f3606d56c04e887b41b0594fe5e6b1c313f6a88472d36ea9",
+          "head_sha256": "4190b18e2056a5c7f3606d56c04e887b41b0594fe5e6b1c313f6a88472d36ea9",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/codex-brainstorm/references/techniques.md",
+          "baseline_sha256": "346332c9a75bc54bd49d55cde6d8c6f6d69bd114a87ecbbb286a244267fe072f",
+          "head_sha256": "2c0e8b1d7a527c6548ac9c48cc32a44216ddfd98fcc444201f7b54d60bba8968",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-brainstorm/references/templates.md",
+          "baseline_sha256": "24b49ec96164288d4a81842b02648cd40878c1018bcea32796592fd40dba822f",
+          "head_sha256": "24b49ec96164288d4a81842b02648cd40878c1018bcea32796592fd40dba822f",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-cli-review",
+      "target_skill": "review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/codex-cli-review/SKILL.md",
+          "baseline_sha256": "082bf981976239f9d9567e6915e07779b4ffda5e53f586ca4376667193f76350",
+          "head_sha256": "082bf981976239f9d9567e6915e07779b4ffda5e53f586ca4376667193f76350",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/codex-cli-review/scripts/review.sh",
+          "baseline_sha256": "7dee7f56e5b00dc8aedf9b92c10ae24567125160f8bbfe44de19735af10667a5",
+          "head_sha256": "7dee7f56e5b00dc8aedf9b92c10ae24567125160f8bbfe44de19735af10667a5",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-code-review",
+      "target_skill": "review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-code-review/SKILL.md",
+          "baseline_sha256": "ddd2c60bcf70c7d8afb03160a778f91d9879fbfbac8fba69c0a0070a95920bb3",
+          "head_sha256": "f9748dfcc63aa507a900268ca887805d2be5746e42ecdabca4b2835d04a5cb44",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-prompt-branch.md",
+          "baseline_sha256": "a694940c466d5b9afd0421d1975a02300d773d8bad1be115060fe2b3832b8de2",
+          "head_sha256": "82ca947f7c82c0a95e183be25efc33fd5f3d21802f2fa5cbc06f650e3c9c39f5",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-prompt-fast.md",
+          "baseline_sha256": "da698afbc8a11969dd48cb57e7f4a5fe33e9076ac574b95bdc3a38e0f5353a97",
+          "head_sha256": "9de1758a444b98e8b2cc38b21ac342b90d65d861930a057eadd9b774dc8eaff9",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-prompt-full.md",
+          "baseline_sha256": "fdc479649d292b21335461d54dae561a9e41aa4df0b65354bf8b2257fdbbb73a",
+          "head_sha256": "9fbf4e84165edaef48bbf9e21aebf7ea3862d3417ebeca8c9d8d33c5f6a6ca0b",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-research-instructions.md",
+          "baseline_sha256": "7c7f1c67de5e5f25844568b94456338aad2bb52c97a9f86dd61b04eaf7fa46a5",
+          "head_sha256": "f9cecb31b47b7b2e2c8b8d34e66942b8b3ecee08ba3770fbf1cc3be591ea8be0",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-code-review/references/codex-transport.md",
+          "baseline_sha256": null,
+          "head_sha256": "f91c3272b9ced2aceeb6f1a27ff951199dfa29c14f7e1db553593be1b0c68a50",
+          "delta": "added"
+        },
+        {
+          "path": "skills/codex-code-review/references/loop-diagnostics.md",
+          "baseline_sha256": null,
+          "head_sha256": "7f02be83aa3081191305afa17b2296ce0f1bba80f13717676e00aacc5e6e64d8",
+          "delta": "added"
+        },
+        {
+          "path": "skills/codex-code-review/references/review-common.md",
+          "baseline_sha256": "fdc1bf2e8a1213dfdf7eacf1eeeb3c67980df0cfcc3e77654b4d82e258764bc4",
+          "head_sha256": "1b2dcd68a7d11aa5660e9b2a06c086cdf316513b996e796605f12803a43cc3de",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-code-review/references/scope-contract.md",
+          "baseline_sha256": null,
+          "head_sha256": "9b539361ff2b018e81dc461dfa97bccfa1d4cdd9b9a27741b95d7aa7a4f019ab",
+          "delta": "added"
+        },
+        {
+          "path": "skills/codex-code-review/review_rubric.md",
+          "baseline_sha256": "dcf735743a438d327c5606354bf3f947d4cbdbd54078c337ab13b7b5146c4628",
+          "head_sha256": "fa8ec3c7f093b2da9bb1f7a08069c2b493511de292620d4ef957c6c6592b54c9",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-code-review/templates/review_output.md",
+          "baseline_sha256": "ebb2cd1fef7710b0a60977608cae45fd8a7752aebfba598a7051f400a351c9ac",
+          "head_sha256": "ebb2cd1fef7710b0a60977608cae45fd8a7752aebfba598a7051f400a351c9ac",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-explain",
+      "target_skill": "explain",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-explain/SKILL.md",
+          "baseline_sha256": "e3a7099f3193edbb8aafb116fd60753810c7092f5ee090f6581f0c1e9eeb1d9f",
+          "head_sha256": "029ccb6482429018c131191ecc28f00ad385d22521ef7421d2cc90852c22c844",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-explain/references/codex-prompt-explain.md",
+          "baseline_sha256": "141469183846c830b1803bd884bde86350752250a0fc4f59a550b589b840f3a8",
+          "head_sha256": "1c6751dfb7689322be3b1b2b43c31e7c333370b98e68ecd66a4e729f3bb0145f",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-implement",
+      "target_skill": "feature-dev",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-implement/SKILL.md",
+          "baseline_sha256": "ed4e32d6dd735e66b58b991d7e95389a9b009d1c868d8b2446e406f484db3cdb",
+          "head_sha256": "7d3a2e7b74d0dd80ca5d31d153332347993b835ad6808e25e5053ba627288d6f",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-implement/references/codex-prompts.md",
+          "baseline_sha256": "288d78d979b25ff0a3bdd0f705e6c831bfc1d4f7408639155810440789086f27",
+          "head_sha256": "0b4374bf8302b9a2b6260999beff6e4246b5058dfec3b360aeb04a4e33a87f3d",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-review",
+      "target_skill": "review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-review/SKILL.md",
+          "baseline_sha256": "07e150bf2eb502341aca152e1e5a9104cec591abd086d2cb9e4d3afe02ffdaca",
+          "head_sha256": "d0a3fcf4c526ca6c9bd271378e7926b1ad24b1019c338d2325d40c79444094ab",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-review-branch",
+      "target_skill": "review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-review-branch/SKILL.md",
+          "baseline_sha256": "85fbb2fe4753b01f2f623c2682c4fd18b957b3320d973cd89c68e9b8df786e20",
+          "head_sha256": "17959facd22fe953b944953cf700a6642e791ad54c6ecf2b3c5dad2a83d90aa6",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-review-doc",
+      "target_skill": "doc-review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-review-doc/SKILL.md",
+          "baseline_sha256": "50cc6d4e330ee7ebe912b4f47db2038cc933944581b6803276064ffcab26fe16",
+          "head_sha256": "db1a5c09c4bb03d65a7fee7eadcec999e85ac878458c5a32e66534bffab7dd93",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-review-fast",
+      "target_skill": "review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-review-fast/SKILL.md",
+          "baseline_sha256": "6efdd81ed7b535436fb1ff32e4dbaa3ab7cefffac57e4524e4855c5762f34a7d",
+          "head_sha256": "3ef4e783771063e393d30b88840b5427573461d33f93b8d24b8cbaaa18f8a275",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-security",
+      "target_skill": "security-review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-security/SKILL.md",
+          "baseline_sha256": "938abebdab3d8cc1dc0602eb651d046fd69cbd0285aa23fac3371ebbb75ae76e",
+          "head_sha256": "1c179c463b22d3cacd8b041cacf28ea5a6ed275e56727b4e1b336c03990a5e69",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-setup",
+      "target_skill": "setup",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-setup/SKILL.md",
+          "baseline_sha256": "fff8c859cbb392dc88069c96d57bf2d9fd6012cf9ba02a5c976d345875747411",
+          "head_sha256": "933b76964a465f44ba088fd092315e7c3591f2570bf8bed06090569e9bfe7868",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/codex-setup/references/agents-kernel.md",
+          "baseline_sha256": "1ebbd31aebe29c9e119e008e763a50242d1e2b60790283a28c0a9ca1240defcd",
+          "head_sha256": "1ebbd31aebe29c9e119e008e763a50242d1e2b60790283a28c0a9ca1240defcd",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-test-gen",
+      "target_skill": "test-gen",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-test-gen/SKILL.md",
+          "baseline_sha256": "ce5d0b1a53094afdf01bb9b814c05f5501693323d690652d0c69a23a838ac8e6",
+          "head_sha256": "18f0b2974a98f4980876793b4f7f28e97bc45c24c0bfddf2a5b073616cf3e7c9",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "codex-test-review",
+      "target_skill": "test-review",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/codex-test-review/SKILL.md",
+          "baseline_sha256": "359417909b2c9b4ce0aa21b8e3149a695b5cef549708cbbd968b24b34cfbff5c",
+          "head_sha256": "97d4b4cd7c38baf28139e1b252c190b110157c46c742e3a2618b0e7c307618ef",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "contract-decode",
+      "target_skill": "contract-decode",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/contract-decode/SKILL.md",
+          "baseline_sha256": "0515628660da0095c4dd53891e3ce2059f9831b2a1f415dcf32611cf219e768b",
+          "head_sha256": "0515628660da0095c4dd53891e3ce2059f9831b2a1f415dcf32611cf219e768b",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/contract-decode/references/apis.md",
+          "baseline_sha256": "f6a4e3a8805fdb32aa4716d379a0de257c395064520d0bf0a197cd939a9378a8",
+          "head_sha256": "f6a4e3a8805fdb32aa4716d379a0de257c395064520d0bf0a197cd939a9378a8",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "create-pr",
+      "target_skill": "create-pr",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/create-pr/SKILL.md",
+          "baseline_sha256": "5ea1ff9c2a3dcf80929aa672d727924f97e94e146d1b95b6168a3750119dcb18",
+          "head_sha256": "57c5c2187428662a4b03aae11ab36945a4648efc69ff9e383d3a1040bdf20cd2",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/create-pr/references/stack-mode.md",
+          "baseline_sha256": null,
+          "head_sha256": "1d22019cf16652995fcafabacf66fc51163b7b0284b85cb4f0ed14485e3bc9f9",
+          "delta": "added"
+        },
+        {
+          "path": "skills/create-pr/scripts/sanitize-pr-content.sh",
+          "baseline_sha256": null,
+          "head_sha256": "51ddc83377a212edee97aa4d43d218c6c0d38e035e0eabbc4b08a0a6b043c9a3",
+          "delta": "added"
+        }
+      ]
+    },
+    {
+      "source_name": "create-request",
+      "target_skill": "create-request",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/create-request/SKILL.md",
+          "baseline_sha256": "dad02eeb6ae790643ff7f7548c1f5879e53c97a561f8cfbc070189aa85ed9011",
+          "head_sha256": "7ead02420a346dc74e8d341f37ddc5a34602c2ac6e5f16ca6b3274c7ab918f5c",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/create-request/references/feature-context-resolution.md",
+          "baseline_sha256": "3e083b6ddd79ceaeca0c1b9593d1121f731d098d25a1652e9a9efa49e8f27bb1",
+          "head_sha256": "d065c60f216f54e8e81feb4b3fc173887a51a62b39d0bc4061cfcf4c02149413",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/create-request/references/template.md",
+          "baseline_sha256": "bb027f6aacad6d1440547fe6f229e7b9382c44238e1d82a176cf62dd5333adab",
+          "head_sha256": "a75ee3bbf9f3347ef78e3cfea5ec4616d1b88e5979ab7f1cfd7d8943433d777e",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "de-ai-flavor",
+      "target_skill": "de-ai-flavor",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/de-ai-flavor/SKILL.md",
+          "baseline_sha256": "ec6f1d44a1192fa2c2d319029670ae516b392838a102873b17f67f3131e1897a",
+          "head_sha256": "ec6f1d44a1192fa2c2d319029670ae516b392838a102873b17f67f3131e1897a",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "debug",
+      "target_skill": "debug",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/debug/SKILL.md",
+          "baseline_sha256": "ebb2bb12a3a14638a3944468df8ca48ebeef0b61e8ba57a280e42183dee85199",
+          "head_sha256": "2509bd60da7bebefdede69874bc839980e1c2f9c2db844e4138f2b437a91fd95",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/debug/references/failure-taxonomy.md",
+          "baseline_sha256": "99142741196309b80cb845db72b1f5e2e4354d3e0fca85336609c11c3533b6b6",
+          "head_sha256": "99142741196309b80cb845db72b1f5e2e4354d3e0fca85336609c11c3533b6b6",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/debug/references/probe-protocol.md",
+          "baseline_sha256": "8e942f8924f4ff779121e27275511d9d81a760bea0cd07a38997a175fd3a7ea2",
+          "head_sha256": "8e942f8924f4ff779121e27275511d9d81a760bea0cd07a38997a175fd3a7ea2",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/debug/references/report-template.md",
+          "baseline_sha256": "658a4fb1e5bd1a1eefef8e0d8770f95d32a3e0a5ff31403f32dd5be4a1b6915f",
+          "head_sha256": "658a4fb1e5bd1a1eefef8e0d8770f95d32a3e0a5ff31403f32dd5be4a1b6915f",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "deep-analyze",
+      "target_skill": "tech-spec",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/deep-analyze/SKILL.md",
+          "baseline_sha256": "e4a9b10d5817ac2f2ac9b54957ae7a26356aef5350ad0a70a5320d113fdcfd04",
+          "head_sha256": "e4a9b10d5817ac2f2ac9b54957ae7a26356aef5350ad0a70a5320d113fdcfd04",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "deep-explore",
+      "target_skill": "deep-explore",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/deep-explore/SKILL.md",
+          "baseline_sha256": "d58ea8d552e5e5c253d8243aa071bbd2846c233967633af34c2091403c284076",
+          "head_sha256": "5e179211a22e319b4383c18137fb6f0c02f33926f7fc450abbc3bbbd66bc932d",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/deep-explore/references/agent-prompt.md",
+          "baseline_sha256": "73670c723c1b3d8e20be4dc7c80417225a6b47db866d25175cfba980cb75012e",
+          "head_sha256": "73670c723c1b3d8e20be4dc7c80417225a6b47db866d25175cfba980cb75012e",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/deep-explore/references/synthesis.md",
+          "baseline_sha256": "7266a28fdfc6ad8f5dc6f72212c895335308a8d46e8b7190875b0426b9fea55a",
+          "head_sha256": "32d2c436205fdafc76e1a5daa9853fc35850be5b568d222bf769f288be39f831",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "deep-research",
+      "target_skill": "deep-research",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/deep-research/SKILL.md",
+          "baseline_sha256": "b4544b24697c8d344d7c33a06fe4564ddd80671fd192b889d4d7538b5dd964e1",
+          "head_sha256": "48584f7ba12267d52a734f74bdeb9705b07fe93108522f63e6dd1b23a7376899",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/deep-research/references/claim-registry.md",
+          "baseline_sha256": "7842b34a6f1827cdaaf5cee6ce0c74addb2972fa1e37cd9ab45047a93adb315b",
+          "head_sha256": "7842b34a6f1827cdaaf5cee6ce0c74addb2972fa1e37cd9ab45047a93adb315b",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/deep-research/references/research-roles.md",
+          "baseline_sha256": "8f683511c384f7f066b87705c022c059e8d7821fb18fa04993e7f13822e58057",
+          "head_sha256": "8f683511c384f7f066b87705c022c059e8d7821fb18fa04993e7f13822e58057",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/deep-research/references/scoring-model.md",
+          "baseline_sha256": "c86324407d9cd7bbc734fb7f4620c8aa84bed98ce3899e33dac3d5b7563fab75",
+          "head_sha256": "c86324407d9cd7bbc734fb7f4620c8aa84bed98ce3899e33dac3d5b7563fab75",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "dep-audit",
+      "target_skill": "dep-audit",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/dep-audit/SKILL.md",
+          "baseline_sha256": "ca15cd00b1be0afa6e239ee12c7f92da9932f6f287e01dbee2f5c8bd83078526",
+          "head_sha256": "ca15cd00b1be0afa6e239ee12c7f92da9932f6f287e01dbee2f5c8bd83078526",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "dev-security-audit",
+      "target_skill": "dev-security-audit",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/dev-security-audit/SKILL.md",
+          "baseline_sha256": "e56e28eb6ebceb98999abea65ceb4a2ac31a30e13b3fd3ce103477cc05a9c271",
+          "head_sha256": "e56e28eb6ebceb98999abea65ceb4a2ac31a30e13b3fd3ce103477cc05a9c271",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/dev-security-audit/references/cases/README.md",
+          "baseline_sha256": "5118240b5f4e83cf5b300d2040f4e953acf1a1a59fccb6e719b04aacfd0cb5b1",
+          "head_sha256": "5118240b5f4e83cf5b300d2040f4e953acf1a1a59fccb6e719b04aacfd0cb5b1",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/dev-security-audit/references/cases/apifox-2026-03.md",
+          "baseline_sha256": "7d2dc1b65e07f5090653b75e941b1496d161dedbf40a7746d0a7c636ce3c8c74",
+          "head_sha256": "7d2dc1b65e07f5090653b75e941b1496d161dedbf40a7746d0a7c636ce3c8c74",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/dev-security-audit/references/cases/axios-2026-03.md",
+          "baseline_sha256": "aacdaf82aca6fc28771c6b6b89a04e1ce9d6e23eae09370204c16a010856c1b2",
+          "head_sha256": "aacdaf82aca6fc28771c6b6b89a04e1ce9d6e23eae09370204c16a010856c1b2",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/dev-security-audit/references/remediation.md",
+          "baseline_sha256": "0f853776eb0331d55fe04cd79cea8f4f65d5323894a8065fc56b6840fa9f6349",
+          "head_sha256": "0f853776eb0331d55fe04cd79cea8f4f65d5323894a8065fc56b6840fa9f6349",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/dev-security-audit/references/scan-targets.md",
+          "baseline_sha256": "429e52372dd819251ea0d51011ed1f8be3f2e1475bf08b1db45f59205f790112",
+          "head_sha256": "429e52372dd819251ea0d51011ed1f8be3f2e1475bf08b1db45f59205f790112",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "doc-refactor",
+      "target_skill": "doc-refactor",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/doc-refactor/SKILL.md",
+          "baseline_sha256": "b42bc1f0c0ee6586f535aa6fe957e2ab1a7df307973dcbe3b5c5eb8bdf002ee5",
+          "head_sha256": "b42bc1f0c0ee6586f535aa6fe957e2ab1a7df307973dcbe3b5c5eb8bdf002ee5",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "doc-review",
+      "target_skill": "doc-review",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/doc-review/SKILL.md",
+          "baseline_sha256": "e0b92f772873debd0e858c0d5107b271947b72dd16e65953950234138ef77a66",
+          "head_sha256": "dce8805f38f575a2348c3a279243c2903a713c07e99315fcd16044669fd01427",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/doc-review/references/codex-prompt-doc.md",
+          "baseline_sha256": "836bff7f4edd8ebe029cbb3883637f7d75e5f0ab5e34109f52f89fea7eedcb4c",
+          "head_sha256": "c86ce37f82719a9c5140620b109c75ac845daefcb058719a86f0a5e6907c58f9",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/doc-review/references/review-loop-doc.md",
+          "baseline_sha256": "e37e435161e7d8deba19f1188873b4d0435b88df65f7e0d58905bbd5bbb625b1",
+          "head_sha256": "8e0f3a9899bc0cf1ccb002097b37f91a42444a1cd28d47f74882ac60b340bb55",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "epic-merge",
+      "target_skill": "epic-merge",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/epic-merge/SKILL.md",
+          "baseline_sha256": "7ec3b7a98d02faeb51b46993df0034c164063c3c8eb9894b24a02d6a735c0a9e",
+          "head_sha256": "7e4e18262ee626c933159afd51ad11e38f2f0cec3f09118b2e04e55f838ed2aa",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "feasibility-study",
+      "target_skill": "feasibility-study",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/feasibility-study/SKILL.md",
+          "baseline_sha256": "83f41d52b599dc4ef1d599e1ae1530dab74fe7b447f17cd46c544693b0058814",
+          "head_sha256": "5b58267bae6bf45401d0bc03859f94b049044fff1e36c64b0e7ce4e976fbbf29",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/feasibility-study/references/analysis-phases.md",
+          "baseline_sha256": "0176d424ac5dbe94385f27f05a59f422fcf8fae278c3a04e4c3849587dc11518",
+          "head_sha256": "926864fc29111fdb164ba48745c0fbf0d231cd77e18ce06ca998618e8041d896",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/feasibility-study/references/codex-discussion-guide.md",
+          "baseline_sha256": "14bb3c846fe67c6cc7dcb180ac93052317280fb02f59ea0b09de55c7bc177e50",
+          "head_sha256": "3fa98d9b46b9be54f3df7635a6ea02a4363e59199233f7b2432f6461366e47f4",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/feasibility-study/references/output-template.md",
+          "baseline_sha256": "cb89dc84b25de11b98229cf55e9d2a95a45c9092a970cd77ac98b8a0e30402e0",
+          "head_sha256": "cb89dc84b25de11b98229cf55e9d2a95a45c9092a970cd77ac98b8a0e30402e0",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "feature-dev",
+      "target_skill": "feature-dev",
+      "disposition": "keep",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/feature-dev/SKILL.md",
+          "baseline_sha256": "8b0faa1c3d2513ba66b8b65947c7662b06511554d2d8e83538edf34e4230eeda",
+          "head_sha256": "422d9dc502cd0dd6ffebc67d96e22ac79e50bd6066fc462f0f1c205ced1fb900",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "feature-verify",
+      "target_skill": "feature-verify",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/feature-verify/SKILL.md",
+          "baseline_sha256": "21d6be8696f7c64b553b973540221e808a236cfdcd9d21aebb57676c461e8aec",
+          "head_sha256": "4395fa06ac70b052221eae1f3d21329bedef24c93e81001a692fcba403aee9b7",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/feature-verify/references/blackbox-testing.md",
+          "baseline_sha256": "2706535e5ffb152d9595bd417936a10d58f2ac25840cb930ff17f3885dd1065a",
+          "head_sha256": "26392087cf7ff41197c906203f5655b9fce96ca06a1e0f3133af4b221ac7c216",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/feature-verify/references/environments.md",
+          "baseline_sha256": "b257d98e60e44a1200b425a9ee39e6e9d8ab7785924cc1e2e75a54e90d54741e",
+          "head_sha256": "f58d4469d008b1f64d27d50bd265ee45a3dc5b84b778a78d648081afc953a18f",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/feature-verify/references/output-template.md",
+          "baseline_sha256": "e7310b2cbf6b171d520b0cfbf6d65e005ed9e2f100a7834989c5a9687a3bd9f8",
+          "head_sha256": "e7310b2cbf6b171d520b0cfbf6d65e005ed9e2f100a7834989c5a9687a3bd9f8",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/feature-verify/references/safety-rules.md",
+          "baseline_sha256": "f2b9f533fb4d8ce013cea4c2f146baad73afd151521ff8df1357759f6c61f22c",
+          "head_sha256": "f2b9f533fb4d8ce013cea4c2f146baad73afd151521ff8df1357759f6c61f22c",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "fp-brief",
+      "target_skill": "fp-brief",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/fp-brief/SKILL.md",
+          "baseline_sha256": "e6934faa55c257a001f0e3f9d1923f0339d69868ffeb2991eeea2c2eccf7c420",
+          "head_sha256": "c94ccc580fb93b6d636dace24578359dd6bb28cef71c5063d28ba1fcf126aae0",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/fp-brief/references/codex-verify-prompt.md",
+          "baseline_sha256": "9c6ebcbe62c43cf752a8dde59d28a35b038ec4a674bbc01b505bb2780930365a",
+          "head_sha256": "29cdb4e10db1f4596f8e1ec19a5a6a0c214da0d8c852f3ed3df56bdff4df9c19",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/fp-brief/references/detection-rules.md",
+          "baseline_sha256": "c20484b9b87538cadc9647bca489902fcedd3f507283786dc7d7fb5968b49d37",
+          "head_sha256": "c20484b9b87538cadc9647bca489902fcedd3f507283786dc7d7fb5968b49d37",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/fp-brief/references/extraction-guide.md",
+          "baseline_sha256": "8eb716ebf888900187fb7f225403de45b38f6992f4455ac30bda551fcd8bacf6",
+          "head_sha256": "8eb716ebf888900187fb7f225403de45b38f6992f4455ac30bda551fcd8bacf6",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/fp-brief/references/output-template.md",
+          "baseline_sha256": "85de0caa478840d23ffe7123e6af7bb1d1c238099c1b7a07ac4a7a55e9b4bb91",
+          "head_sha256": "85de0caa478840d23ffe7123e6af7bb1d1c238099c1b7a07ac4a7a55e9b4bb91",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "generate-runner",
+      "target_skill": "generate-runner",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/generate-runner/SKILL.md",
+          "baseline_sha256": "af947dbc38f86234dd80da00548d038238580106333d503d1a0b0d83eb64bf3c",
+          "head_sha256": "e44b19b0c2fc3b8b605db6162d702d8c5cd611807d402152349821437c568c26",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/generate-runner/references/templates.md",
+          "baseline_sha256": "50e2f5ed91006951976f18ad9164698a50408deb6f64716c61d619f9292a1b0e",
+          "head_sha256": "b69886fa2f7b598ee0f9ca02decfef20b85bb819966f1171d2c420592491ad38",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "git-investigate",
+      "target_skill": "git-investigate",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/git-investigate/SKILL.md",
+          "baseline_sha256": "c6c7bea9d22e80ccded2de0937d13c989e80c0bb78f2c7f069b62cbe8a88047e",
+          "head_sha256": "c6c7bea9d22e80ccded2de0937d13c989e80c0bb78f2c7f069b62cbe8a88047e",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/git-investigate/references/commands.md",
+          "baseline_sha256": "f6da8e9a560f879037ff39416efa5c5519dc522f685e10f609ea2b441ed7dd17",
+          "head_sha256": "f6da8e9a560f879037ff39416efa5c5519dc522f685e10f609ea2b441ed7dd17",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "git-profile",
+      "target_skill": "git-profile",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/git-profile/SKILL.md",
+          "baseline_sha256": "d719a48f0a7574378897bda95751c347a832ca55e4b9ce482797bb80de23f760",
+          "head_sha256": "d719a48f0a7574378897bda95751c347a832ca55e4b9ce482797bb80de23f760",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/git-profile/scripts/git-profile.sh",
+          "baseline_sha256": "82b891d14bc543be2d93abfb6b03cfa460220ffb2d319a7bf664594a69594d90",
+          "head_sha256": "82b891d14bc543be2d93abfb6b03cfa460220ffb2d319a7bf664594a69594d90",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "install-hooks",
+      "target_skill": "setup",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/install-hooks/SKILL.md",
+          "baseline_sha256": "041ac6adca4379dcc8755f2b70a4cf486bc828d063f22e785603312a4693761e",
+          "head_sha256": "379d02aa80446f8a4d91a08055d87889677a17c624c14f411fa671c7cea8034f",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "install-rules",
+      "target_skill": "setup",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/install-rules/SKILL.md",
+          "baseline_sha256": "88227289e1aed18532bb13a2d174dd1d0586b354ba07d71fd823f79616dda239",
+          "head_sha256": "65255b2c0a5403abb7799e44ea35371bc92314b10e4be7173bb5b227d32d9b54",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "install-scripts",
+      "target_skill": "setup",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/install-scripts/SKILL.md",
+          "baseline_sha256": "f9130aa6d5dd915883f72653cf4a30db449c5d01b348120e1f071c39036ca583",
+          "head_sha256": "53018af4d83c6cabd8c7674810b885fab119401073914d932fee343164e21533",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "issue-analyze",
+      "target_skill": "issue-analyze",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/issue-analyze/SKILL.md",
+          "baseline_sha256": "d5b3d44170fc6456dd76fd70e38d2368783acc30aebfe305908d69c5427429c6",
+          "head_sha256": "7151c18e98aa159cf256676c82e0b679057adb7bf35d48ca6f69ee9d0156524b",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/issue-analyze/references/classification.md",
+          "baseline_sha256": "5771ee2838ff6c35a0b9798ebb275e00cffee598d52430782ccc2438de7a18f3",
+          "head_sha256": "5771ee2838ff6c35a0b9798ebb275e00cffee598d52430782ccc2438de7a18f3",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/issue-analyze/references/report-template.md",
+          "baseline_sha256": "dad6434c715d6419038166f1833cf1e2f9a5e66134d2cd7cb2aed8510f4e4015",
+          "head_sha256": "3604cd288d4e89e6b5221b7a3aa10d7ee51868d3ab33714bf5309161ad62d220",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "jira",
+      "target_skill": "jira",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/jira/SKILL.md",
+          "baseline_sha256": "a861028df73f8eebe45937e204c01fb2f2138b711ab252de8f00c566ecc434f5",
+          "head_sha256": "a861028df73f8eebe45937e204c01fb2f2138b711ab252de8f00c566ecc434f5",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/jira/references/branch-policy.md",
+          "baseline_sha256": "749d9a4ffba52d361e74d6fdf6cf2d2c435f399204f54100399f0a40fe108e70",
+          "head_sha256": "749d9a4ffba52d361e74d6fdf6cf2d2c435f399204f54100399f0a40fe108e70",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/jira/references/create-policy.md",
+          "baseline_sha256": "f091fa7a22cde0270e6ae462daaeddb1e98e2141548acf0513848f66fe05c6bd",
+          "head_sha256": "f091fa7a22cde0270e6ae462daaeddb1e98e2141548acf0513848f66fe05c6bd",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/jira/references/transition-mapping.md",
+          "baseline_sha256": "1cf3640d3e9f490d31f4ce2e3e6052da82180854368eae7a77ad9287bc6c83db",
+          "head_sha256": "1cf3640d3e9f490d31f4ce2e3e6052da82180854368eae7a77ad9287bc6c83db",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "load-pr-review",
+      "target_skill": "load-pr-review",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/load-pr-review/SKILL.md",
+          "baseline_sha256": "ac240f976fb4e19810d5f8b08dac37276801564a8ee548888b8ea58492bd9011",
+          "head_sha256": "1ceeccd5dfb69979e99671e808dc50c0e21e9e36cc6672107eec4dbbfb2f8085",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/load-pr-review/references/api-contract.md",
+          "baseline_sha256": "23e458ba0c6f6d8b710bfbe5747fe0252d4861dd3b88501db74e0bf08c69f305",
+          "head_sha256": "23e458ba0c6f6d8b710bfbe5747fe0252d4861dd3b88501db74e0bf08c69f305",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/load-pr-review/references/token-budget.md",
+          "baseline_sha256": "02b948f3438def28773bb866a068b0fecb23c013c7cb8ef65539bf3b1d04929f",
+          "head_sha256": "02b948f3438def28773bb866a068b0fecb23c013c7cb8ef65539bf3b1d04929f",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/load-pr-review/references/verdict-triage-prompt.md",
+          "baseline_sha256": "8a22d428a952c93d4f95faf695fb6c17056d7d13d5b4f4f3e8b8dbc48b6fee85",
+          "head_sha256": "8a22d428a952c93d4f95faf695fb6c17056d7d13d5b4f4f3e8b8dbc48b6fee85",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/load-pr-review/references/writeback-guardrails.md",
+          "baseline_sha256": "a68b684af937dd59feee5df20c9aec24f723ff8b4f83294bbd2dfa561426a38c",
+          "head_sha256": "a68b684af937dd59feee5df20c9aec24f723ff8b4f83294bbd2dfa561426a38c",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/load-pr-review/scripts/load-pr-review.js",
+          "baseline_sha256": "3b8de6a7e26a99ea58ca42a983df3571316ab0c65d5d1743d1640c1691f176b9",
+          "head_sha256": "3b8de6a7e26a99ea58ca42a983df3571316ab0c65d5d1743d1640c1691f176b9",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "merge-prep",
+      "target_skill": "merge-prep",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/merge-prep/SKILL.md",
+          "baseline_sha256": "d8825cf56487f3c045fd2cc1b1803ed7989c3de1f25e14c194c16568d87460d3",
+          "head_sha256": "d8825cf56487f3c045fd2cc1b1803ed7989c3de1f25e14c194c16568d87460d3",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/merge-prep/scripts/pre-merge-check.sh",
+          "baseline_sha256": "f7960e66e5b078865689e79b90525d00385a4da26dea2ce077aa81c41a0982f8",
+          "head_sha256": "f7960e66e5b078865689e79b90525d00385a4da26dea2ce077aa81c41a0982f8",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "necessity-audit",
+      "target_skill": "necessity-audit",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/necessity-audit/SKILL.md",
+          "baseline_sha256": "65c33e142555b545ed3b7a2a4d993028392f93922567fcb026a7100b1ef36d8f",
+          "head_sha256": "57ad45a82f36fe340a7abf04b59d9516b8d86e882f695b2a079c870fc07560e8",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/necessity-audit/references/dimensions.md",
+          "baseline_sha256": "160747e0b6ccd9f80d3894893f877c0d1f8a7a5a2c02f6762d6702cb89c52c3c",
+          "head_sha256": "160747e0b6ccd9f80d3894893f877c0d1f8a7a5a2c02f6762d6702cb89c52c3c",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/necessity-audit/references/output-template.md",
+          "baseline_sha256": "bd8d20e6436af9a9b7bedb27b02602de3abb423968ef7cb9659519c724e34293",
+          "head_sha256": "74729ca5bae32b052caa61999ab3a7906fa8fc525448bad7a61cc946b947e5ae",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/necessity-audit/references/phase-a-classify.md",
+          "baseline_sha256": "22888cc8b6b1bf5f28acc73238641f587d93a83e0e640176cdd3d477cbc2e340",
+          "head_sha256": "22888cc8b6b1bf5f28acc73238641f587d93a83e0e640176cdd3d477cbc2e340",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/necessity-audit/references/phase-b-debate-topic.md",
+          "baseline_sha256": "15233f21c309ae88e83cad172f84ab3732682a3a6efee4366476b229b6ca94d5",
+          "head_sha256": "b77f4a08dade12ba210647e16d4d7ab75bbdd9402760fd000cc1e5ca5a744df0",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/necessity-audit/references/phase-c-consolidate.md",
+          "baseline_sha256": "9c690a423fd778d5d4d6d94c08202dd5d7765d3896cec440bd55c252cab6d305",
+          "head_sha256": "2ac0346ff7174171fcac5c0c9c20864448c9173547a12d7fcd30d488f54a133b",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/necessity-audit/references/redaction-rules.md",
+          "baseline_sha256": "a38145dfb80e67625026624d453d2b4a28758e4f5ee1d8128ef135dcdd8d12b5",
+          "head_sha256": "a38145dfb80e67625026624d453d2b4a28758e4f5ee1d8128ef135dcdd8d12b5",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/necessity-audit/references/review-loop.md",
+          "baseline_sha256": "107d37d9516b9cbc233e3065d90b80da9e81bbcff292b71e8dce091402b9c8f7",
+          "head_sha256": "49abf39960bc797799e10fc95cb1cca2c6b6a10d4d7da833b2f60589acb64d66",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "next-step",
+      "target_skill": "next-step",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/next-step/SKILL.md",
+          "baseline_sha256": "acdcf22450ed21db10f88a6657a3b660f6871a4c5b25e18f808ed386cc0270cb",
+          "head_sha256": "b8fc41d2b49c86a5151830ec3fe7fc6d7ab232aca0d9a3dfee777d8f5d482c79",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/next-step/references/progression-tables.md",
+          "baseline_sha256": "650b105bb3b7e0a9f4fd6506ef8ed966652db26aebe96aae2cd33b7b3389b7b9",
+          "head_sha256": "650b105bb3b7e0a9f4fd6506ef8ed966652db26aebe96aae2cd33b7b3389b7b9",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/next-step/scripts/analyze.js",
+          "baseline_sha256": "53e07da1a1cba2dab86b7c04238ba343e2e608adc4ebb0b70fad3a8ca66c7c5d",
+          "head_sha256": "b85257175dbb048d076432055d8edc6e29695073ad6d5bc8e81c0a29641af9d1",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "obsidian-cli",
+      "target_skill": "obsidian-cli",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/obsidian-cli/SKILL.md",
+          "baseline_sha256": "a92cf29a46ffc145f89659b2b6698472e769d2491ffc96d612455eceba0c68db",
+          "head_sha256": "a92cf29a46ffc145f89659b2b6698472e769d2491ffc96d612455eceba0c68db",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/obsidian-cli/references/integration-patterns.md",
+          "baseline_sha256": "0b683477425e649577a0f6f9d906eaa98db98790fb6192a2f1977cb4d6fea08f",
+          "head_sha256": "0b683477425e649577a0f6f9d906eaa98db98790fb6192a2f1977cb4d6fea08f",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/obsidian-cli/references/troubleshooting.md",
+          "baseline_sha256": "e7791270e6e3ac63f25b7c7527bbeca28be427f7146c5833065c8e308cb6b723",
+          "head_sha256": "e7791270e6e3ac63f25b7c7527bbeca28be427f7146c5833065c8e308cb6b723",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/obsidian-cli/scripts/obsidian-exec.sh",
+          "baseline_sha256": "a61b642042da1e811abe0b532b2ce90642bd2fd729c621c12359b39718b352fa",
+          "head_sha256": "a61b642042da1e811abe0b532b2ce90642bd2fd729c621c12359b39718b352fa",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/obsidian-cli/scripts/obsidian-preflight.sh",
+          "baseline_sha256": "03c95216a8de63653c09d9cc07980fadecf9a4fe9b4f26d7a0bf34498d7dd2a5",
+          "head_sha256": "03c95216a8de63653c09d9cc07980fadecf9a4fe9b4f26d7a0bf34498d7dd2a5",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "op-session",
+      "target_skill": "op-session",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/op-session/SKILL.md",
+          "baseline_sha256": "772fb5d5ad77d7ad902a84188bb77ab5ebd384453ff3395715d9c85bb928e153",
+          "head_sha256": "772fb5d5ad77d7ad902a84188bb77ab5ebd384453ff3395715d9c85bb928e153",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/op-session/scripts/op-session-init.sh",
+          "baseline_sha256": "b512758dd2ed500dc41fd3b4bcec55ed4f6cadec1b2aa1b981e286ad48404278",
+          "head_sha256": "b512758dd2ed500dc41fd3b4bcec55ed4f6cadec1b2aa1b981e286ad48404278",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/op-session/scripts/op-with-session.sh",
+          "baseline_sha256": "db3c375614ad71986c05e2a078e0ca78043de106cdbc5b7bc8c146ec3e4fbbdc",
+          "head_sha256": "db3c375614ad71986c05e2a078e0ca78043de106cdbc5b7bc8c146ec3e4fbbdc",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "orchestrate",
+      "target_skill": "orchestrate",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/orchestrate/SKILL.md",
+          "baseline_sha256": "8b93f9551bfcb19ad1776165acf7640c2bb6b336ca294b4983e2eaab7f19cceb",
+          "head_sha256": "ed7cc5e990300fe804169f71bc8056257e83290c3060d00cbb84342151ca58cb",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/orchestrate/references/admission-allowlist.json",
+          "baseline_sha256": "90983782fa1bcf4e97d76fad3431e97b3c1924c0e90268a4ad927211165e2eac",
+          "head_sha256": "b42168836e40db2a8bd826cfbee7df63aa6df2ba05c1053b2427131770112412",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/orchestrate/references/execution-policy.md",
+          "baseline_sha256": "bf57b08a14e061e669b726797eb298f710771875016a504c41f7040858c6de76",
+          "head_sha256": "a5ae026751190410319bc6f66513d9540fcc7ac48509d868a54ef44e44c05765",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/orchestrate/references/plan-schema.md",
+          "baseline_sha256": "4fc826b9208b36a3f9d616d2e987b168576bb35508ff1a149390966201fa618a",
+          "head_sha256": "511c9fc72d504e6a4504b092b99f31e148fb57ee39f12211fa1f1a665e79aafa",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/orchestrate/references/planner-prompt.md",
+          "baseline_sha256": "51e737eb03b2f06eb26947f6f684d3d6d91bfa4e422dab96d9059a1858d758f7",
+          "head_sha256": "8dbc5da74864ca56ea050c23e979ce74d0348143ecb11cf5b68804c82da2aada",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/orchestrate/scripts/plan-context.js",
+          "baseline_sha256": "5cbdd85b29bd46343a94f24b44c410826acf078730a5a64e36d7295746a46677",
+          "head_sha256": "e97037e00d45fcc1c3be344625c18b4af2f25a546af94cb7e7063f475ac1055b",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/orchestrate/scripts/prune-runs.js",
+          "baseline_sha256": null,
+          "head_sha256": "11da38233c67769a49e757980a14f75a3420984f21660c23240de3d166f0fc8c",
+          "delta": "added"
+        },
+        {
+          "path": "skills/orchestrate/scripts/run-verify.js",
+          "baseline_sha256": "0d5f0f992c31839a99c32457532ce4b78057f1fac5517f34b22bf0847f774cef",
+          "head_sha256": "3e0817e1b62083eeca6cc5501edd7f57e1bfa618aeb4ce6f86e76c2ba9608d62",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/orchestrate/scripts/validate-plan.js",
+          "baseline_sha256": "365a2ea15aec7e737637c4b75bd43aa0840091ebca38ca775a989daecf88a422",
+          "head_sha256": "667bb9666e62ee34a1df69cc8f60e8098913deadf0de9a549a93c61d51bc11f4",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "plan-review",
+      "target_skill": "plan-review",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/plan-review/SKILL.md",
+          "baseline_sha256": "9eadad7c718e83e916df887ad1cb40de7a6b43f9ad4c43f22d25175fd2882749",
+          "head_sha256": "6798d257c65c452d4371da38a1249abaa0487dcaa88bfcb444f6aef420d21c90",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/plan-review/references/codex-prompt-plan.md",
+          "baseline_sha256": "9d7daf5b5ce2cabdec066cd13467f771639664bab027c510dd55382ea3a53912",
+          "head_sha256": "358d04359f60cff8f45c3f1553776fc42066c8af568bdf4a0b136b62ad837d52",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/plan-review/references/review-loop-plan.md",
+          "baseline_sha256": "5b4f3a95b0914d5545ba4542d0b421142691f5403068ac9ea492edf6b251ca00",
+          "head_sha256": "4f4e070349d5544971f06eb06e63d37f883049ae1043754dfd0496bf0204eb53",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "portfolio",
+      "target_skill": "portfolio",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/portfolio/SKILL.md",
+          "baseline_sha256": "6dd47434e7942a8b4a3a0c901f949621b19e2beec9e7f3d9b6467b8bba35baf2",
+          "head_sha256": "6dd47434e7942a8b4a3a0c901f949621b19e2beec9e7f3d9b6467b8bba35baf2",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/portfolio/references/api.md",
+          "baseline_sha256": "b88d7bc4d8558b99280a3a7a11a213335ad4f0385ef5f18162a6742f05461031",
+          "head_sha256": "b88d7bc4d8558b99280a3a7a11a213335ad4f0385ef5f18162a6742f05461031",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/portfolio/references/architecture.md",
+          "baseline_sha256": "9f5c9596df60c28a9d9595489a68963f3e5433f01f4019e63b0ffadafc0b21ba",
+          "head_sha256": "9f5c9596df60c28a9d9595489a68963f3e5433f01f4019e63b0ffadafc0b21ba",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "post-dev-recap",
+      "target_skill": "post-dev-recap",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/post-dev-recap/SKILL.md",
+          "baseline_sha256": "454fdf7b71a1172362161e95b9378164f6fc5285db8589a92f87786967dcf8cb",
+          "head_sha256": "68674e1485b6bdb39af3b6f12334825f7e6db3b1a7168ef15498e090610d4dd0",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "post-dev-test",
+      "target_skill": "post-dev-test",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/post-dev-test/SKILL.md",
+          "baseline_sha256": "28d3c635d9769e4f7af068090a482635d65d751ee3a94e89b95d8af38a27a2bf",
+          "head_sha256": "28d3c635d9769e4f7af068090a482635d65d751ee3a94e89b95d8af38a27a2bf",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/post-dev-test/references/test-patterns.md",
+          "baseline_sha256": "5a695dd905078a41dc243d22bb187aff0434c84fc1f0d347e384a327c4c4bad9",
+          "head_sha256": "5a695dd905078a41dc243d22bb187aff0434c84fc1f0d347e384a327c4c4bad9",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "pr-comment",
+      "target_skill": "pr-comment",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/pr-comment/SKILL.md",
+          "baseline_sha256": "f06dac0f62591ddc9524735e0022bf166393b3e82295ee89d444f3377afb3b33",
+          "head_sha256": "f06dac0f62591ddc9524735e0022bf166393b3e82295ee89d444f3377afb3b33",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/pr-comment/references/api-and-guardrails.md",
+          "baseline_sha256": "aea35371354187070d238a2f74cdb2922f3e88fbc5fac7bcc9b7a8d8a3a9ec8c",
+          "head_sha256": "aea35371354187070d238a2f74cdb2922f3e88fbc5fac7bcc9b7a8d8a3a9ec8c",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/pr-comment/scripts/pr-comment.js",
+          "baseline_sha256": "b1404f716de72252c50628afacdf83590e5bc9bdff620975e42866e002a24272",
+          "head_sha256": "b1404f716de72252c50628afacdf83590e5bc9bdff620975e42866e002a24272",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "pr-review",
+      "target_skill": "pr-review",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/pr-review/SKILL.md",
+          "baseline_sha256": "2f9046d2531638ffc0717628ebcfef7424b2a93cd2d70dc23f922cd2fe88b33d",
+          "head_sha256": "2f9046d2531638ffc0717628ebcfef7424b2a93cd2d70dc23f922cd2fe88b33d",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "pr-summary",
+      "target_skill": "pr-summary",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/pr-summary/SKILL.md",
+          "baseline_sha256": "e1849692ed959ca8bc6bb3b5afc5bb11d17c955bdb88fe8bb7abe32b0a69ad94",
+          "head_sha256": "e1849692ed959ca8bc6bb3b5afc5bb11d17c955bdb88fe8bb7abe32b0a69ad94",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/pr-summary/scripts/pr-summary.sh",
+          "baseline_sha256": "0e9e04314d322d462f76fee6ac3c7e4350f9f747d77d33a1f853a7cefd300c27",
+          "head_sha256": "0e9e04314d322d462f76fee6ac3c7e4350f9f747d77d33a1f853a7cefd300c27",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "pre-pr-audit",
+      "target_skill": "pre-pr-audit",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/pre-pr-audit/SKILL.md",
+          "baseline_sha256": "606c2ba9f87529def030d432aa5bb0f2a4c9e6a4bb4531264e75bfc9b2355e58",
+          "head_sha256": "2ec56527c7f083a22701c0b421850b30395117f1022adc73d55aa07121c9560f",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/pre-pr-audit/references/output-template.md",
+          "baseline_sha256": "dc434cd99c3a499e190a17dbb18e5c42ce6c70f9699e9eb77f87b9e87caf2685",
+          "head_sha256": "dc434cd99c3a499e190a17dbb18e5c42ce6c70f9699e9eb77f87b9e87caf2685",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/pre-pr-audit/references/scoring-model.md",
+          "baseline_sha256": "c96483907428553da6fd262b01ad5beef8d893b1b4c216dc8ba6e7f02c58c5d0",
+          "head_sha256": "c96483907428553da6fd262b01ad5beef8d893b1b4c216dc8ba6e7f02c58c5d0",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "precommit",
+      "target_skill": "verify",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/precommit/SKILL.md",
+          "baseline_sha256": "1cbf72d408d54ec5fedcb1005bdd3000b531584e6cab7edd70bab16ada7fb7b4",
+          "head_sha256": "9d94450c502b63852b5b956982214fd2aace30fe0ed1b61142feb5238239f2a7",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "precommit-fast",
+      "target_skill": "verify",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/precommit-fast/SKILL.md",
+          "baseline_sha256": "1fc8f11a26076c4e56b8d57a753f5af8416606327e5725557c3c54b3f876e84b",
+          "head_sha256": "40be38f88631ef3d8c80f3be1d8e70867cf1d022a986d28c63e3ce49d02c4483",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "project-audit",
+      "target_skill": "project-audit",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/project-audit/SKILL.md",
+          "baseline_sha256": "466ba5ceb26347cd866d7104b168c52b757a7af5aaa2f6b67a96e4d92d63940e",
+          "head_sha256": "466ba5ceb26347cd866d7104b168c52b757a7af5aaa2f6b67a96e4d92d63940e",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/project-audit/references/check-catalog.md",
+          "baseline_sha256": "ce7ddfe11227aa3a7b4f53c7a88987cbfb2806d8e451af592e39c11d356855f5",
+          "head_sha256": "ce7ddfe11227aa3a7b4f53c7a88987cbfb2806d8e451af592e39c11d356855f5",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/project-audit/references/output-template.md",
+          "baseline_sha256": "bf3b9daa9a32ddea9310eac0b656f59a8b044338cfd7b003dc5af95ec920ecfb",
+          "head_sha256": "bf3b9daa9a32ddea9310eac0b656f59a8b044338cfd7b003dc5af95ec920ecfb",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/project-audit/scripts/audit.js",
+          "baseline_sha256": "5af1ae42feb58120002bf67dd571fc20139c6c6af320166f108c75a6d41873b4",
+          "head_sha256": "5af1ae42feb58120002bf67dd571fc20139c6c6af320166f108c75a6d41873b4",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "project-brief",
+      "target_skill": "project-brief",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/project-brief/SKILL.md",
+          "baseline_sha256": "2ccb7c5104e898c68fa55902abad7ec3c7857de355973e8bf26f11a0b689692c",
+          "head_sha256": "2ccb7c5104e898c68fa55902abad7ec3c7857de355973e8bf26f11a0b689692c",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "project-setup",
+      "target_skill": "setup",
+      "disposition": "merge",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/project-setup/SKILL.md",
+          "baseline_sha256": "a7e909f71aa03d8a364b24304ba8d39ee1fb7574378fc5fd72d2bbdb9f1bb764",
+          "head_sha256": "e6fae275a022ae396e22018d0d925e0510f3d3acea0cf8ca0f82f11823bcb79b",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/project-setup/references/detection-rules.md",
+          "baseline_sha256": "79eeafd55ee676031c361e098b6e7bef9af34517a0fb05066d01d7699ee26527",
+          "head_sha256": "79eeafd55ee676031c361e098b6e7bef9af34517a0fb05066d01d7699ee26527",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "push-ci",
+      "target_skill": "push-ci",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/push-ci/SKILL.md",
+          "baseline_sha256": "538558b3df7a077d0604c47b367115ffa6fa3cb52369b5050f92f7c930782535",
+          "head_sha256": "b94ee09d4b944a780b2fe6860a9cfb1cb75b1bc43873681f70857693d7bac810",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "readme-i18n-sync",
+      "target_skill": "readme-i18n-sync",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "deleted",
+      "files": [
+        {
+          "path": "skills/readme-i18n-sync/SKILL.md",
+          "baseline_sha256": "6de25877ad11f4da564261485849394018dda7637875e03b2911ec7eb28a5f0a",
+          "head_sha256": null,
+          "delta": "deleted"
+        },
+        {
+          "path": "skills/readme-i18n-sync/references/glossary.md",
+          "baseline_sha256": "a7151b3130ee0ddaf7382b05e5809f07469879db8401545b5b181d664946130c",
+          "head_sha256": null,
+          "delta": "deleted"
+        }
+      ]
+    },
+    {
+      "source_name": "recap-ask",
+      "target_skill": "recap-ask",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/recap-ask/SKILL.md",
+          "baseline_sha256": "69d674df73c8dc55fc971a76bcea1840cabe5a24ddb5b71d279bfca90ed7e0c8",
+          "head_sha256": "889adc2a85d14b91661aae10b68d3073f4b8250a82632603103c33272c900a96",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/recap-ask/references/qa-prompt.md",
+          "baseline_sha256": "725be5f0f7afc70f8973c46604d3308e6544eea745de25d07b1aed32220fd6f9",
+          "head_sha256": "895897964bf83fa87290a4e26d290dc6a63fb57704126f45abe77e08bbb55df9",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "recap-doc",
+      "target_skill": "recap-doc",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/recap-doc/SKILL.md",
+          "baseline_sha256": "807f089620b5357e0de1f0ee473de5ca0410534e7754310183e26ec7505e0926",
+          "head_sha256": "084b708fa4bbb66d4edf3b750f1f60286fc4f9a6c5026b576ed93f0bbd3f716e",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/recap-doc/references/output-template.md",
+          "baseline_sha256": "5096627abee65f66e842e217a2be04b5120210383aa00b3c0edb88daab8c4754",
+          "head_sha256": "909c7fb6860185f71c5d60576cdf377842c8aaa9bbeba2bc767a4890d619d32c",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/recap-doc/references/prompt-template.md",
+          "baseline_sha256": "2602fae6f82ea8f48dae37524708b1fada621be482e81a4726eeff4f7fcffb8c",
+          "head_sha256": "a14966b11753c51f9d630bd153ba643451f45a9dd59851a6922041fb3c154a72",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/recap-doc/references/source-guide.md",
+          "baseline_sha256": "05d0eb00838ca5c85e2b9e7b997bb84670381261658854bd5b8634a4b30117a9",
+          "head_sha256": "05d0eb00838ca5c85e2b9e7b997bb84670381261658854bd5b8634a4b30117a9",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "refactor",
+      "target_skill": "refactor",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/refactor/SKILL.md",
+          "baseline_sha256": "0216c4a949c7b65dfe4fc433c6c8892c6cfae9151ed9e84c21abae8c8a156f98",
+          "head_sha256": "4458b29ae759fbb34ee8872db2057ca9bec805a4805639a1c9a88c122dfbbc45",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/refactor/references/behavioral-gate.md",
+          "baseline_sha256": "e70116d835960a18a5d111e433b4827950f16f0094298892984fc16cc10115a2",
+          "head_sha256": "e70116d835960a18a5d111e433b4827950f16f0094298892984fc16cc10115a2",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/refactor/references/output-template.md",
+          "baseline_sha256": "19ba034119f1a876ebbb218430da27dab86509876e638c6c22aec96dc7e6e2c5",
+          "head_sha256": "19ba034119f1a876ebbb218430da27dab86509876e638c6c22aec96dc7e6e2c5",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/refactor/references/refactor-catalog.md",
+          "baseline_sha256": "fae94df06c299bfd467404c102b9e80b8819b710850405df72c61900653f63ab",
+          "head_sha256": "fae94df06c299bfd467404c102b9e80b8819b710850405df72c61900653f63ab",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/refactor/references/target-detection.md",
+          "baseline_sha256": "a442428dd816be569605bc38883c10a5bb922034d207319199095b477d1ac0ea",
+          "head_sha256": "a442428dd816be569605bc38883c10a5bb922034d207319199095b477d1ac0ea",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "remind",
+      "target_skill": "remind",
+      "disposition": "keep",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/remind/SKILL.md",
+          "baseline_sha256": "141abf27c577fb8c091040584ae6a765b181bfeb0b00004cb65aa489fa120b5c",
+          "head_sha256": "80f8866d35d57e05482fa6c72214c47919e0f8a6403558472ac2a77c6bbdae7d",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/remind/references/detection-rules.md",
+          "baseline_sha256": "7298b223294d9aa3d48ac271d3d06fa4b9cda960c1e3231f02f9ef3c64d0c746",
+          "head_sha256": "c4b6ac2e972c6fbc4564715a8c52324e34eb3c501fd725ebea43273722428e7d",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "repo-intake",
+      "target_skill": "repo-intake",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/repo-intake/SKILL.md",
+          "baseline_sha256": "ac885ef7ef0f4c03a0a5d64832a17256488d962105d61e7ed5b2bb3cb5ce7206",
+          "head_sha256": "d8467dd277d54320ccd4f4f2f8f837797c4cd8fdca06fd87fc5d151ccd210c82",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/repo-intake/references/archived/MIDWAY_HEURISTICS.md",
+          "baseline_sha256": "08b1b8ff5a36917d554280fe5f5d49512ca00f44fb6f6d38e78ac72ca516ba57",
+          "head_sha256": "08b1b8ff5a36917d554280fe5f5d49512ca00f44fb6f6d38e78ac72ca516ba57",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/repo-intake/references/manifest-map.md",
+          "baseline_sha256": null,
+          "head_sha256": "d188b2b85f71305e15a591c634dd26e5f0aec0d4dd280acd1852d9aea277e09b",
+          "delta": "added"
+        },
+        {
+          "path": "skills/repo-intake/scripts/intake_cached.js",
+          "baseline_sha256": "22756262a400c62d959dcf00e29c95fce2053b5ebdd9440e6c2a536af29e9a9f",
+          "head_sha256": "22756262a400c62d959dcf00e29c95fce2053b5ebdd9440e6c2a536af29e9a9f",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/repo-intake/scripts/manifest_map.js",
+          "baseline_sha256": null,
+          "head_sha256": "23d0ab8d69af7dfb5d7b840680bb265a9f1df50672daa0aae413c6d0d1e5cde2",
+          "delta": "added"
+        },
+        {
+          "path": "skills/repo-intake/scripts/scan_delta.js",
+          "baseline_sha256": "c9de437ae587f84b238934b1cb0a2d6b5de778be6e66a64be279d2121687d011",
+          "head_sha256": "c9de437ae587f84b238934b1cb0a2d6b5de778be6e66a64be279d2121687d011",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/repo-intake/scripts/scan_repo.js",
+          "baseline_sha256": "8f2cd2073ff3ecd987dbcd90566d087d8e8e18429284eaa61a779e0aa17ee14d",
+          "head_sha256": "8f2cd2073ff3ecd987dbcd90566d087d8e8e18429284eaa61a779e0aa17ee14d",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "req-analyze",
+      "target_skill": "req-analyze",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/req-analyze/SKILL.md",
+          "baseline_sha256": "65f6eb06d332895eccebd6ca7396a220bf8c3bf37c5072ba207c7cf7c4011e67",
+          "head_sha256": "38891738d6a195e06b08a4856afc02b74565c628ba1e540521afe796d4ae99cf",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/req-analyze/references/intent-template.md",
+          "baseline_sha256": null,
+          "head_sha256": "8f5be4fb13375b4c26659cf70d66ac65227bdea8869aec26bafb2907d0f68e5f",
+          "delta": "added"
+        },
+        {
+          "path": "skills/req-analyze/references/output-template.md",
+          "baseline_sha256": "79f440e3c52472d9f8d450b48c25c3d49b3c0d9ffd1a1c3e7f19954aca0aba58",
+          "head_sha256": "79f440e3c52472d9f8d450b48c25c3d49b3c0d9ffd1a1c3e7f19954aca0aba58",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/req-analyze/references/research-cascade.md",
+          "baseline_sha256": "99c2a3146fc2149fac1df7fa00a1a0096b102e79f1e01aac56d3b78987b282b0",
+          "head_sha256": "99c2a3146fc2149fac1df7fa00a1a0096b102e79f1e01aac56d3b78987b282b0",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "request-tracking",
+      "target_skill": "request-tracking",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/request-tracking/SKILL.md",
+          "baseline_sha256": "d162e291ec96fe3b68a19ed09b83dfb54da4a615523ed530b42d70fb0e30f344",
+          "head_sha256": "d162e291ec96fe3b68a19ed09b83dfb54da4a615523ed530b42d70fb0e30f344",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/request-tracking/references/operations.md",
+          "baseline_sha256": "0e9a51e685784abe1370ae15590fbaa43c747af8c2cc0499b9a1a3e71e5cf57e",
+          "head_sha256": "0e9a51e685784abe1370ae15590fbaa43c747af8c2cc0499b9a1a3e71e5cf57e",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/request-tracking/references/template.md",
+          "baseline_sha256": "8502d6eaba394525828924536bc29145fc68eef53409e6a79d590322eaf8f090",
+          "head_sha256": "8502d6eaba394525828924536bc29145fc68eef53409e6a79d590322eaf8f090",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "review-spec",
+      "target_skill": "review-spec",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/review-spec/SKILL.md",
+          "baseline_sha256": "5d2e3057db9e236041068096fbc80f08795726c986fb09102294fb706df0dc47",
+          "head_sha256": "bfc1ec0647b948324b1c2fc0ff80d58b437c8590cb6464450cc5c1f9b18c6b3d",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "risk-assess",
+      "target_skill": "risk-assess",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/risk-assess/SKILL.md",
+          "baseline_sha256": "341157fd9a330e0d881181b7118225d59eb6c4cccdc0ce0054ae4a2a9611e56f",
+          "head_sha256": "341157fd9a330e0d881181b7118225d59eb6c4cccdc0ce0054ae4a2a9611e56f",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/risk-assess/references/output-template.md",
+          "baseline_sha256": "e250ed257d6b38f3098ea1ad18bdd9c08fc8779f671144bde02e47f4a3c4582e",
+          "head_sha256": "e250ed257d6b38f3098ea1ad18bdd9c08fc8779f671144bde02e47f4a3c4582e",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/risk-assess/references/risk-dimensions.md",
+          "baseline_sha256": "37796cba1db4be5073cb6b799454c672c63cf42e5c050aaebde2ac886b898629",
+          "head_sha256": "37796cba1db4be5073cb6b799454c672c63cf42e5c050aaebde2ac886b898629",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/risk-assess/scripts/risk-analyze.js",
+          "baseline_sha256": "92274ad8311b8324ec5f5e45644ad5dd1e1e7f56767dc1a96cdee0ae619d7c4f",
+          "head_sha256": "92274ad8311b8324ec5f5e45644ad5dd1e1e7f56767dc1a96cdee0ae619d7c4f",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "runbook",
+      "target_skill": "runbook",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/runbook/SKILL.md",
+          "baseline_sha256": "d2a0a322eb2eaae15119df91ccbfe05227c65dd70ef32fbc046b16b805dafc96",
+          "head_sha256": "462c0cc9f1871eeb4ecf5fd5115337fcc65a2d7cc1ab712e84433d3f29d864b0",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/runbook/references/check-output.md",
+          "baseline_sha256": "f0b2008a33576c3c56b8fe02a6e85d64fb6fdcca19073c7525ce362c91c88d88",
+          "head_sha256": "f0b2008a33576c3c56b8fe02a6e85d64fb6fdcca19073c7525ce362c91c88d88",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/runbook/references/discovery-heuristics.md",
+          "baseline_sha256": "122a3b377b742ed131a35fc4409473436a6e4591537764b19c71ccbacbac25c1",
+          "head_sha256": "7868568a5cd2ca7fc6baafcf87fce9c40e57b73973b2396122e4629718f45377",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/runbook/references/template.md",
+          "baseline_sha256": "3effc7307df22e4c93230a8f363fe7fd8dfd2e936b1f4e97a40634fcc752c5bf",
+          "head_sha256": "3effc7307df22e4c93230a8f363fe7fd8dfd2e936b1f4e97a40634fcc752c5bf",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "safe-remove",
+      "target_skill": "safe-remove",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/safe-remove/SKILL.md",
+          "baseline_sha256": "8b60762c0cfbd70e585c968a05db48b15bd3fa576e9f078996db10ea27978e7d",
+          "head_sha256": "06cda25404cd77d8acf18fbffc427742c0afe42cfaa65ca9306c4e4a91c25a0f",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/safe-remove/references/removal-policy.md",
+          "baseline_sha256": "be654f75e9e61e7a34b9b022066883bee2adfb396188da9297428fbb68d47498",
+          "head_sha256": "e9e31af23925357515e5210cce922e8c348ee1c474430e86a65f3d20f6507782",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "security-review",
+      "target_skill": "security-review",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/security-review/SKILL.md",
+          "baseline_sha256": "b49222c97d5553bb3d651a3d84bfb6a70fe776ac3efb52b1fb1ffd269d1cc98a",
+          "head_sha256": "4f29a65b63281911622f75f4ad261b11a386eac1bc2373202bcf98c1c442fa58",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/security-review/references/codex-prompt-security.md",
+          "baseline_sha256": "84e434296ac39f0cc097bf0aaec130419def0b4f0d545a4265807d0a36bbea26",
+          "head_sha256": "a696a15bcbf6e770a667202f9923f33a5a16395ecd3f15831a9da5a1804f4409",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/security-review/references/examples.md",
+          "baseline_sha256": "a8468c3eb55ef6821ab34621b089c3befa390ac43d02e365b670643f25762dcd",
+          "head_sha256": "a8468c3eb55ef6821ab34621b089c3befa390ac43d02e365b670643f25762dcd",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "seek-verdict",
+      "target_skill": "seek-verdict",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/seek-verdict/SKILL.md",
+          "baseline_sha256": "c07ee6c3e33f76631d4dceb5e6cc031fc003378e11191ddcc1bd82702a6fc050",
+          "head_sha256": "42415c6604d976fa97c2e3978a8648ec4427460030953d1599e6505ceeb7a38b",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/seek-verdict/references/policy-mapping.md",
+          "baseline_sha256": "ac4bd049a9fcce4783e2e96e48bfad086e8896042cc8347948be10770d7b5de1",
+          "head_sha256": "fd895046cdae640402676d0bf5db133bfc9a0afad71f992b59a3b05bf39e30ab",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/seek-verdict/references/verdict-prompt.md",
+          "baseline_sha256": "ada178980d1100891e7df233f9758d5e40d9c7c37b108bebba16b97fd2605dcc",
+          "head_sha256": "2a18dd8f79276d84507fe07e4346d64a1c442b1d6faeed82eef80f35735729ac",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "sharingan",
+      "target_skill": "sharingan",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/sharingan/SKILL.md",
+          "baseline_sha256": "35657c516237e07a013cf9c7575bc532e577b1e43f6b89048bb8c426fd3e9a02",
+          "head_sha256": "35657c516237e07a013cf9c7575bc532e577b1e43f6b89048bb8c426fd3e9a02",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/sharingan/references/dependency-graph-algorithm.md",
+          "baseline_sha256": "e02136487757912e71c13ace386a81596ff803f3a89e9e19b51d9860896eab9c",
+          "head_sha256": "ce792876d2577fac20e07db2c95b0a8c7ec431dd30e4290ad6a2e305531c1a45",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/sharingan/references/format-mapping.md",
+          "baseline_sha256": "e7c9973bfed628ce662e59e3060b8fe1f4fe78fa0e2fb1e9837c672f4c5b7a8a",
+          "head_sha256": "dfc44dfe10d9f20062a0aa4a5d89179c0b3a3b8373fbae5017cf5bdb399441fe",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/sharingan/references/input-classification.md",
+          "baseline_sha256": "6f15f4cc4054d405d263b19a71ec2683ca8712a8325f69a6b288a08138c1661e",
+          "head_sha256": "6f15f4cc4054d405d263b19a71ec2683ca8712a8325f69a6b288a08138c1661e",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/sharingan/references/output-template.md",
+          "baseline_sha256": "949edc72991d61a05398a4200c9b1a738f4dca444fb140c1a3bcf1996380329f",
+          "head_sha256": "09fb53efd1452c489f6d7a383341122b120ec2a05c87b720f304a35c6d6f9981",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/sharingan/references/quality-checklist.md",
+          "baseline_sha256": "ad7921c1202f7dcda002e8124c104b032a33a46b27020edc4c98cc7d5feb6835",
+          "head_sha256": "ad7921c1202f7dcda002e8124c104b032a33a46b27020edc4c98cc7d5feb6835",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/sharingan/references/source-bundle.md",
+          "baseline_sha256": "ef5f261eec1bfad24ba3b69e4012b46af44c17ea1f26173c32d099a023e71251",
+          "head_sha256": "ef5f261eec1bfad24ba3b69e4012b46af44c17ea1f26173c32d099a023e71251",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/sharingan/scripts/scan-repo.js",
+          "baseline_sha256": "392643d77a17978c5ed7744f862d1e1a86b1e53133f21b4fe9004c6d116b1448",
+          "head_sha256": "3efc678904a834ce7c0232d29b1d9f17838a1dcee2a0c19c27abc98fc8630d69",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "simplify",
+      "target_skill": "simplify",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/simplify/SKILL.md",
+          "baseline_sha256": "9562bed1330ad38367d4f8f67c8a366a01e9a26bed5bedf76fda8434bcab7eae",
+          "head_sha256": "9562bed1330ad38367d4f8f67c8a366a01e9a26bed5bedf76fda8434bcab7eae",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "skill-health-check",
+      "target_skill": "skill-health-check",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/skill-health-check/SKILL.md",
+          "baseline_sha256": "9d247204f629ae31d856e524cc52a294415ffe3fd917d1455af51f7828697713",
+          "head_sha256": "9d247204f629ae31d856e524cc52a294415ffe3fd917d1455af51f7828697713",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/skill-health-check/references/routing-signature-guide.md",
+          "baseline_sha256": "c2588c95ba5ed5c0a0a06e49a34db24960dedb0fbc7405adbd1f20574d14536b",
+          "head_sha256": "c2588c95ba5ed5c0a0a06e49a34db24960dedb0fbc7405adbd1f20574d14536b",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/skill-health-check/scripts/skill-lint.js",
+          "baseline_sha256": "2bb618a57991d40fddb27d859a798e75273128109f664985f6d0d16eff0409d9",
+          "head_sha256": "12a1c0ce4232bac27164964bd707f6605a88feea667ccaa3fc4dc39d9e1873c6",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "smart-commit",
+      "target_skill": "smart-commit",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/smart-commit/SKILL.md",
+          "baseline_sha256": "039dc7d4f050b61de9fcd4b742cc6d591d41f0f4e8d1bfb5b6da605ce9b3e17d",
+          "head_sha256": "30923a0b73718b9302e5e77db153d9dbdf59b50c318a6fb3d5e1e06c1d1966bb",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/smart-commit/references/execute-mode.md",
+          "baseline_sha256": "90f38ac168a6f053ecc9e9b85074a5a0733e6eaf30e6cc1d538c2354e63d3614",
+          "head_sha256": "ba5cc564bafadb756f73c4e4dd5b94169f697df89c10059d83146b24215bc6c9",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/smart-commit/references/git-environment.md",
+          "baseline_sha256": null,
+          "head_sha256": "7dfb868ef3e8182727592c8080c1c3673d4540fd1e23cff4455d719f76d65a48",
+          "delta": "added"
+        },
+        {
+          "path": "skills/smart-commit/scripts/smart-commit-dispatch.sh",
+          "baseline_sha256": null,
+          "head_sha256": "f9d39783a0151a74a56db99bbfb515b34d0a11ffbb249c29144fe7064cd340bc",
+          "delta": "added"
+        },
+        {
+          "path": "skills/smart-commit/scripts/smart-commit-execute.sh",
+          "baseline_sha256": null,
+          "head_sha256": "246c1fb5ab23646f4023243d5c12f3d345a9204550f99a643582d4afcc3ed205",
+          "delta": "added"
+        },
+        {
+          "path": "skills/smart-commit/scripts/smart-commit-inspect.sh",
+          "baseline_sha256": null,
+          "head_sha256": "3a66a00284cb16681ce3ea9221b69fab83b67e9540b899b2dcab635c85b209b5",
+          "delta": "added"
+        }
+      ]
+    },
+    {
+      "source_name": "smart-rebase",
+      "target_skill": "smart-rebase",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/smart-rebase/SKILL.md",
+          "baseline_sha256": "3a4962ee254732929cc5f0aa74a377ac8f91d972b2e6adfef4d5df9899c72811",
+          "head_sha256": "d2c6b96e86d171e2cef41200cb8f2cd93268d5d796e7ef80a9819ea8129f9b77",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/smart-rebase/scripts/smart-rebase-analyze.sh",
+          "baseline_sha256": "2cfe64e6551207b8c49f65faf2140c2ef3bc82bce9c5e0e1b42d3e9e49b61385",
+          "head_sha256": "1c44bdb7fb71cec98a86b72004e0079ec11b681900fbc0dd1b59ded1c7613626",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "statusline-config",
+      "target_skill": "statusline-config",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/statusline-config/SKILL.md",
+          "baseline_sha256": "302ea14f5a2410c6aa66637a013ccd7784281f4697bb93aaf434be94062bb5d7",
+          "head_sha256": "302ea14f5a2410c6aa66637a013ccd7784281f4697bb93aaf434be94062bb5d7",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/statusline-config/references/json-schema.md",
+          "baseline_sha256": "120d8c151504c21cabc4be0c56d4d87489b44b690a5d8400795e6d4ec96b18f2",
+          "head_sha256": "120d8c151504c21cabc4be0c56d4d87489b44b690a5d8400795e6d4ec96b18f2",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/statusline-config/references/themes.md",
+          "baseline_sha256": "978fdb5d8c49342291c95d649347b291bb1d91b6058e43af8e34a483c90c80e3",
+          "head_sha256": "978fdb5d8c49342291c95d649347b291bb1d91b6058e43af8e34a483c90c80e3",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "tech-brief",
+      "target_skill": "tech-brief",
+      "disposition": "port",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/tech-brief/SKILL.md",
+          "baseline_sha256": "cdfed82d6b051287c574dce724ffacdda319442d652ec81c318ca36370d5e925",
+          "head_sha256": "2635a3091ea9b46422cc1981f2ab7f7b2dff2a6598bd198e67a6430492ac2bba",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/tech-brief/references/output-template.md",
+          "baseline_sha256": "147b34d83081f2d55547f9737e18192c9ca193e082e06f0137436cdc0c165978",
+          "head_sha256": "147b34d83081f2d55547f9737e18192c9ca193e082e06f0137436cdc0c165978",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/tech-brief/references/source-guide.md",
+          "baseline_sha256": "e62e871921b03a34e7bbb0ed64143fde5eb9885946c5fa0859f1dccff05ccd54",
+          "head_sha256": "8ecb392435a6d2ec408a926575e48bc129803057ed79718ef9ebe04a8561ebf4",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "tech-spec",
+      "target_skill": "tech-spec",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/tech-spec/SKILL.md",
+          "baseline_sha256": "b2797cff0e751a7cceb9262eda19a57489c814e0633c7c8cecb8d80c2293d220",
+          "head_sha256": "0f70763b33826acd4b8015f1b91b0d6d50965014561d20e749e262470cace8b8",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/tech-spec/references/feature-context-resolution.md",
+          "baseline_sha256": "c9ab43266c2830df80932fae658e5eee8b67ae54db3b7db2e2fca990cb6d7c6a",
+          "head_sha256": null,
+          "delta": "deleted"
+        },
+        {
+          "path": "skills/tech-spec/references/native-feature-resolution.md",
+          "baseline_sha256": null,
+          "head_sha256": "960b5dba4ca0d20cc161e8d03eef85713c7bf573bc1a6058dda1e17d5f3d04ec",
+          "delta": "added"
+        },
+        {
+          "path": "skills/tech-spec/references/template.md",
+          "baseline_sha256": "4dc3bc4774eb6b5f372567290925ee8a07a84785869243d3e410acb3d885c466",
+          "head_sha256": "494d56a35879d436b11d3f3e7661ca8230e862f4320611bfa6db069fa044cd70",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "test-deep",
+      "target_skill": "test-deep",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/test-deep/SKILL.md",
+          "baseline_sha256": "e17a79ace9328007bad01e7705e9a840af03e4766ad1369e2fcb9238648c097a",
+          "head_sha256": "e17a79ace9328007bad01e7705e9a840af03e4766ad1369e2fcb9238648c097a",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/test-deep/references/fixer-catalog.md",
+          "baseline_sha256": "57d1907ce2798cdd23a9a9b35809c178a30c2397790339257b1ea3825365fc97",
+          "head_sha256": "57d1907ce2798cdd23a9a9b35809c178a30c2397790339257b1ea3825365fc97",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/test-deep/references/test-selection.md",
+          "baseline_sha256": "6c34abaeced62cdf212189cb1a5421fa266358722c862e6918d4065abd83dbac",
+          "head_sha256": "6c34abaeced62cdf212189cb1a5421fa266358722c862e6918d4065abd83dbac",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/test-deep/references/triage-pipeline.md",
+          "baseline_sha256": "aad983e0117dac351a28ae6f2b37a4f9e71d03bd61264f83edd1bca973f83986",
+          "head_sha256": "aad983e0117dac351a28ae6f2b37a4f9e71d03bd61264f83edd1bca973f83986",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "test-health",
+      "target_skill": "test-health",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/test-health/SKILL.md",
+          "baseline_sha256": "d54574d797e3bbc44f8bf65d034122f863449a045a5cd6405c8fb35c2c4d58b3",
+          "head_sha256": "b76de35a3afa5613e0bba3bf9ccc90b65580c659f16d352dda82ebe440428f05",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/test-health/references/artifact-formats.md",
+          "baseline_sha256": "8ecb063c2db8e90f6c84948a4e791c7afd49714d4d6e41ee49318050f79e2774",
+          "head_sha256": "8ecb063c2db8e90f6c84948a4e791c7afd49714d4d6e41ee49318050f79e2774",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/test-health/references/test-count-parsers.md",
+          "baseline_sha256": "a1ec3f67bca1adcace1f142bbe46df7a3e206dc18842cbe14dc707eaa6e8c580",
+          "head_sha256": "a1ec3f67bca1adcace1f142bbe46df7a3e206dc18842cbe14dc707eaa6e8c580",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/test-health/references/trend-schema.md",
+          "baseline_sha256": "91cef9fa7421865359d79e983bb62826bfeef258ec1b717716081241aef84bdf",
+          "head_sha256": "db53e9266d5f7c09922a189c162b506b9d9affcfbd7f3ad7157a4adfd84e64c4",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/test-health/scripts/artifact-parser.js",
+          "baseline_sha256": "d6872f207af8ad4f073486dc4c38a6863d08d37e1c676fa12c0f6352a297e08c",
+          "head_sha256": "d6872f207af8ad4f073486dc4c38a6863d08d37e1c676fa12c0f6352a297e08c",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/test-health/scripts/count-parser.js",
+          "baseline_sha256": "13f906161fb0722b2e4c8626cb8b962cb68e25df6d2e4774f1dcf89c729d7ad2",
+          "head_sha256": "13f906161fb0722b2e4c8626cb8b962cb68e25df6d2e4774f1dcf89c729d7ad2",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/test-health/scripts/trend.js",
+          "baseline_sha256": "e50025dad0265a7aefb06b730f547bf6151401c54781fd42113ffae5af9111ea",
+          "head_sha256": "e50025dad0265a7aefb06b730f547bf6151401c54781fd42113ffae5af9111ea",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "test-review",
+      "target_skill": "test-review",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/test-review/SKILL.md",
+          "baseline_sha256": "036b05c593c1a99dd9666ddb2add80ae235ad511518d80805061edcd895568d4",
+          "head_sha256": "c1aab1e3919d895abc1d742edc811eb147a2ca76f37862183547e4c5564667ac",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/test-review/references/codex-prompt-ac-trace.md",
+          "baseline_sha256": "e5d56dc47c0471e9a93256f0dca75e98b8a45f1a789d5312b35b1f1e82649638",
+          "head_sha256": "4976b68b76bd100223385ff55321f11f98515322189d5dc4750523134432b20a",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/test-review/references/codex-prompt-test-gen.md",
+          "baseline_sha256": "affdab1258a1ca9b708df4d58072982883ca3cf9470b3bf8868546533e55ac2f",
+          "head_sha256": "1f74eea348d823e806c044e6b18045702c8ebada2773ef733b0ba59ca8cc928d",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/test-review/references/codex-prompt-test-review.md",
+          "baseline_sha256": "995b8679157024bdfce2471f9d3ef503e389197f8c3a5291bec05e4f77d136f0",
+          "head_sha256": "42bde2796dcc01ee7ae453018b8a3fe7206b1af79e76c6c597d6170558a87d50",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "ui-first-principles",
+      "target_skill": "ui-first-principles",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/ui-first-principles/SKILL.md",
+          "baseline_sha256": "a2444ab36361e265d58456c9c07b1c05f0b351df54be4c11eb92f9417a414489",
+          "head_sha256": "b118323818e5c77b683bebdd09c8a51b52634da0c83065b918fb548b2518134a",
+          "delta": "modified"
+        },
+        {
+          "path": "skills/ui-first-principles/references/anti-patterns.md",
+          "baseline_sha256": "f30bf0160392d8d2a98ebb09041eedc516f977d61d761570fff6195789e90c15",
+          "head_sha256": "f30bf0160392d8d2a98ebb09041eedc516f977d61d761570fff6195789e90c15",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/ui-first-principles/references/jtbd-framework.md",
+          "baseline_sha256": "04e6a9388b49edc0ce288a322ad6e3d328b28bb95282f78552291a3684184ea5",
+          "head_sha256": "04e6a9388b49edc0ce288a322ad6e3d328b28bb95282f78552291a3684184ea5",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/ui-first-principles/references/output-template.md",
+          "baseline_sha256": "6d36686267295b0da30baf8f2328a806edb579c80ab06e1a4d846101db1c8d04",
+          "head_sha256": "6d36686267295b0da30baf8f2328a806edb579c80ab06e1a4d846101db1c8d04",
+          "delta": "unchanged"
+        },
+        {
+          "path": "skills/ui-first-principles/references/principle-anchors.md",
+          "baseline_sha256": "12cdf340a6646baee2b48e0c2d15a69f5057d115fa81430c5169f9c6143f8805",
+          "head_sha256": "12cdf340a6646baee2b48e0c2d15a69f5057d115fa81430c5169f9c6143f8805",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "update-docs",
+      "target_skill": "update-docs",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "changed",
+      "files": [
+        {
+          "path": "skills/update-docs/SKILL.md",
+          "baseline_sha256": "6d25d5f4f3decfd5ff0bbd90c3e1dbc9ae2203ed45293f54f3871e0daecc5ade",
+          "head_sha256": "d289f58262a037902132656fa785c3be701ef031251d0a8d5c7951ee3bbc4bdf",
+          "delta": "modified"
+        }
+      ]
+    },
+    {
+      "source_name": "update-readme",
+      "target_skill": "update-readme",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "deleted",
+      "files": [
+        {
+          "path": "skills/update-readme/SKILL.md",
+          "baseline_sha256": "c2cea3d903e872ffb535c396764a47690cb8b112ce67fdcfe26fce4fac7fff95",
+          "head_sha256": null,
+          "delta": "deleted"
+        }
+      ]
+    },
+    {
+      "source_name": "verify",
+      "target_skill": "verify",
+      "disposition": "keep",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/verify/SKILL.md",
+          "baseline_sha256": "ee4a9acf7a66c4ab32213e893e582629a7ec228b032936e48f18af4ad990df0c",
+          "head_sha256": "ee4a9acf7a66c4ab32213e893e582629a7ec228b032936e48f18af4ad990df0c",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "watch-ci",
+      "target_skill": "watch-ci",
+      "disposition": "adapt",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/watch-ci/SKILL.md",
+          "baseline_sha256": "1b4abd4a7a68e3c51114473b61eb0262c35eeb7e3d6da170e5248e0082f98021",
+          "head_sha256": "1b4abd4a7a68e3c51114473b61eb0262c35eeb7e3d6da170e5248e0082f98021",
+          "delta": "unchanged"
+        }
+      ]
+    },
+    {
+      "source_name": "zh-tw",
+      "target_skill": "zh-tw",
+      "disposition": "optional",
+      "delivery_state": "promoted",
+      "content_delta": "unchanged",
+      "files": [
+        {
+          "path": "skills/zh-tw/SKILL.md",
+          "baseline_sha256": "453e42b87d166aa8aeb659f9e36350c7dfeb0655d5ea951ad52ff8b67d725046",
+          "head_sha256": "453e42b87d166aa8aeb659f9e36350c7dfeb0655d5ea951ad52ff8b67d725046",
+          "delta": "unchanged"
+        }
+      ]
+    }
+  ],
+  "new_source_skills": [
+    "adr"
+  ],
+  "commits": [
+    {
+      "commit": "da4053280b63f867ee0620c012675692e4f2c998",
+      "subject": "fix(test): Raise the extreme-config scaling ceiling to 8×",
+      "paths": [
+        "docs/features/auto-loop-autonomy/requests/2026-07-26-sensitive-path-advisory-hints-r4.md",
+        "test/hooks/sensitive-paths.test.js"
+      ]
+    },
+    {
+      "commit": "170ad278a5418950e8a2da5f4a7c06e03d1fe630",
+      "subject": "docs(readme): Rewrite README around v4 contract-driven core",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md"
+      ]
+    },
+    {
+      "commit": "f4671ece0a87d33c4314e90d541030d1b14384e1",
+      "subject": "docs(requests): File locale count generation ticket",
+      "paths": [
+        "docs/features/readme-catalog-sync/requests/2026-07-30-locale-count-generation.md"
+      ]
+    },
+    {
+      "commit": "187b0aa0c3d2df654ae8aa8f10c1b12d0c7182dd",
+      "subject": "feat: Add stacked PR mode, PR sanitization, and commit hardening (#8)",
+      "paths": [
+        ".claude/sd0x-dev-flow-lessons.md",
+        "README.md",
+        "agents/architecture-designer.md",
+        "agents/brief-writer.md",
+        "agents/code-simplifier.md",
+        "agents/codex-architect.md",
+        "agents/codex-implementer.md",
+        "agents/coverage-analyst.md",
+        "agents/doc-refactor.md",
+        "agents/feasibility-analyst.md",
+        "agents/git-investigator.md",
+        "agents/performance-optimizer.md",
+        "agents/refactor-reviewer.md",
+        "agents/solution-architect.md",
+        "agents/strict-reviewer.md",
+        "agents/tech-spec-reviewer.md",
+        "agents/verify-app.md",
+        "docs/features/adr-skill/requests/2026-08-07-adr-writing-skill.md",
+        "docs/features/auto-loop-autonomy/2-tech-spec.md",
+        "docs/features/auto-loop-autonomy/4-implementation.md",
+        "docs/features/auto-loop-autonomy/requests/2026-07-26-code-comment-doc-pointer-r5.md",
+        "docs/features/auto-loop-autonomy/requests/2026-08-04-progress-ledger-r9.md",
+        "docs/features/auto-loop-evolution/2-tech-spec/2-tech-spec.md",
+        "docs/features/auto-loop-evolution/requests/2026-03-25-think-harder-near-cap-r10.md",
+        "docs/features/auto-loop-evolution/requests/2026-03-31-session-lifecycle-reset-r12.md",
+        "docs/features/auto-loop-evolution/requests/2026-08-04-degraded-writer-lost-update.md",
+        "docs/features/codex-mcp-config/requests/2026-08-07-mcp-server-reasoning-effort-default.md",
+        "docs/features/create-pr-ai-sanitization/2-tech-spec.md",
+        "docs/features/create-pr-stacked/1-requirements.md",
+        "docs/features/create-pr-stacked/2-tech-spec.md",
+        "docs/features/create-pr-stacked/requests/2026-07-31-stacked-pr-mode-r1.md",
+        "docs/features/create-pr-stacked/requests/2026-07-31-stacked-pr-mode-r2.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2/review-log-rounds-38-61.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2/review-log-rounds-62-76.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2/review-log-rounds-77-83.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2/review-log-rounds-84-89.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2/review-log-rounds-90-93.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2/review-log-rounds-94-97.md",
+        "docs/features/feature-completeness/2-tech-spec.md",
+        "docs/features/necessity-audit/4-implementation.md",
+        "docs/features/post-dev-recap/2-tech-spec.md",
+        "docs/features/smart-commit-hardening/2-tech-spec.md",
+        "docs/features/smart-commit-hardening/4-implementation.md",
+        "docs/features/smart-commit-hardening/requests/2026-08-07-optional-preflight-review.md",
+        "docs/features/workflow-orchestration/4-implementation.md",
+        "docs/skill-catalog.yml",
+        "hooks/post-compact-auto-loop.sh",
+        "hooks/post-edit-format.sh",
+        "hooks/post-tool-review-state.sh",
+        "hooks/session-init.sh",
+        "package.json",
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md",
+        "rules/docs-numbering.md",
+        "rules/docs-writing.md",
+        "rules/testing.md",
+        "scripts/check-comment-blocks.js",
+        "scripts/commit-msg-guard.sh",
+        "scripts/config/doc-taxonomy.json",
+        "scripts/detect-scope.js",
+        "scripts/lib/request-status.js",
+        "scripts/precommit-runner.js",
+        "scripts/run-skill.sh",
+        "scripts/skills/necessity-audit/report.js",
+        "skills/adr/SKILL.md",
+        "skills/adr/references/template.md",
+        "skills/adr/scripts/next-adr-number.js",
+        "skills/create-pr/SKILL.md",
+        "skills/create-pr/references/stack-mode.md",
+        "skills/create-pr/scripts/sanitize-pr-content.sh",
+        "skills/orchestrate/scripts/run-verify.js",
+        "skills/precommit/SKILL.md",
+        "skills/smart-commit/SKILL.md",
+        "skills/smart-commit/references/execute-mode.md",
+        "skills/smart-commit/references/git-environment.md",
+        "skills/smart-commit/scripts/smart-commit-dispatch.sh",
+        "skills/smart-commit/scripts/smart-commit-execute.sh",
+        "skills/smart-commit/scripts/smart-commit-inspect.sh",
+        "test/agents/frontmatter.test.js",
+        "test/helpers/shell-structure.js",
+        "test/helpers/shell-structure.test.js",
+        "test/hooks/identity-normalization.test.js",
+        "test/hooks/jq-filter-fidelity.test.js",
+        "test/hooks/max-rounds-default-consistency.test.js",
+        "test/hooks/post-compact-auto-loop.test.js",
+        "test/hooks/post-tool-review-state.test.js",
+        "test/hooks/session-init.test.js",
+        "test/hooks/state-commit-ownership.test.js",
+        "test/scripts/check-comment-blocks.test.js",
+        "test/scripts/commit-msg-guard.test.js",
+        "test/scripts/detect-scope.test.js",
+        "test/scripts/doc-classifier.test.js",
+        "test/scripts/precommit-runner.test.js",
+        "test/scripts/readme-codex-mcp.test.js",
+        "test/scripts/run-skill.test.js",
+        "test/scripts/sanitize-pr-content.test.js",
+        "test/scripts/smart-commit-execute.test.js",
+        "test/scripts/smart-commit-inspect.test.js",
+        "test/scripts/smart-commit.test.js",
+        "test/skills/adr.test.js",
+        "test/skills/ask.test.js",
+        "test/skills/create-pr-sanitization.test.js",
+        "test/skills/create-pr.test.js",
+        "test/skills/create-request-scan.test.js",
+        "test/skills/deep-explore.test.js",
+        "test/skills/deep-research.test.js",
+        "test/skills/fp-brief.test.js",
+        "test/skills/plan-review.test.js",
+        "test/skills/refactor.test.js",
+        "test/skills/remind.test.js",
+        "test/skills/tech-brief.test.js",
+        "test/skills/test-deep.test.js"
+      ]
+    },
+    {
+      "commit": "702935383b9cc34c610e566aa8c2c1ee8d3129a8",
+      "subject": "test(scripts): Harden risk-assess tests by isolating git identity and batching commits",
+      "paths": [
+        "test/scripts/risk-assess.test.js"
+      ]
+    },
+    {
+      "commit": "c45beb177c4b2cd90e5cbfe964bef94c7031a95d",
+      "subject": "chore(release): bump version to 4.1.1 across plugin and package metadata",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "79f3c473725af78fe111e18c7a9148981d5287cd",
+      "subject": "test(scripts): Isolate risk-assess fixtures from ambient git state",
+      "paths": [
+        "test/scripts/risk-assess.test.js"
+      ]
+    },
+    {
+      "commit": "5c6df9d4e1e775aeba26f3576d028a51387b2d73",
+      "subject": "test(scripts): Force the clean-filter control to re-read staged content",
+      "paths": [
+        "test/scripts/smart-commit-execute.test.js"
+      ]
+    },
+    {
+      "commit": "f2f7cf4bbdb407c4aa6878dbd4207b3d85ec1d3d",
+      "subject": "feat(auto-loop): Detect review stalls and persist bounded adjustments",
+      "paths": [
+        "hooks/post-tool-review-state.sh",
+        "hooks/session-init.sh"
+      ]
+    },
+    {
+      "commit": "13bbcb21603ce2382520da65331bb3d891ca6c82",
+      "subject": "feat(rules): Raise tier caps and demote the cap to a backstop",
+      "paths": [
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md",
+        "skills/codex-code-review/SKILL.md"
+      ]
+    },
+    {
+      "commit": "350cdb603bc3cec01c35633492cd060f0a45a5c7",
+      "subject": "test: Cover stall detection, stall memory and the raised caps",
+      "paths": [
+        "test/hooks/jq-filter-fidelity.test.js",
+        "test/hooks/post-tool-review-state.test.js",
+        "test/hooks/session-init.test.js",
+        "test/rules/override-contract.test.js",
+        "test/rules/stall-detection.test.js",
+        "test/skills/review-dispatch.test.js"
+      ]
+    },
+    {
+      "commit": "fdbddd28b9d9d15430002ce4ae4b042a63d09b28",
+      "subject": "docs(readme): Describe stall detection across six locales",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md"
+      ]
+    },
+    {
+      "commit": "8cfbe5e11e4831450e124d5c8afc4ccd057c8c9c",
+      "subject": "docs(features): Record R10 stall detection design and review history",
+      "paths": [
+        "docs/features/auto-loop-autonomy/2-tech-spec.md",
+        "docs/features/auto-loop-autonomy/4-implementation.md",
+        "docs/features/auto-loop-autonomy/requests/2026-08-07-stall-detection-r10.md",
+        "docs/features/auto-loop-evolution/2-tech-spec/2-tech-spec.md"
+      ]
+    },
+    {
+      "commit": "c1883e958278e5fd1897b0a81c9931fff7811877",
+      "subject": "fix(hooks): Close three receipt-integrity gaps in the review state machine",
+      "paths": [
+        "hooks/post-compact-auto-loop.sh",
+        "hooks/post-edit-format.sh",
+        "hooks/post-skill-auto-loop.sh",
+        "hooks/post-tool-review-state.sh",
+        "hooks/pre-edit-guard.sh",
+        "hooks/session-init.sh",
+        "hooks/stop-guard.sh",
+        "hooks/user-prompt-review-guard.sh",
+        "test/hooks/jq-filter-fidelity.test.js",
+        "test/hooks/plugin-local-arbitration.test.js",
+        "test/hooks/post-edit-format.test.js",
+        "test/hooks/post-tool-review-state.test.js",
+        "test/hooks/session-init.test.js",
+        "test/hooks/stop-guard.test.js"
+      ]
+    },
+    {
+      "commit": "dbf9a0ce68142802a07a3aa6e78708bfdbde944b",
+      "subject": "docs(features): Record the receipt-integrity request for issues #9-#11",
+      "paths": [
+        "docs/features/auto-loop-evolution/requests/2026-08-08-receipt-integrity-issues-9-10-11.md"
+      ]
+    },
+    {
+      "commit": "3744d58c01b67d921e675abb030b38d6368811ab",
+      "subject": "chore: bump to 4.2.0 across plugin.json, install-state.json, and package.json",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "4c01dc44bf9eaadae46ae994a24849c3ba02382e",
+      "subject": "Refactor receipt-integrity and background verdict recovery to use per-plane epochs, non-destructive marker handling, and unified retirement logic",
+      "paths": [
+        "docs/features/auto-loop-evolution/requests/2026-08-08-receipt-integrity-issues-9-10-11.md",
+        "docs/features/doc-review-phasing/2-tech-spec.md",
+        "hooks/hooks.json",
+        "hooks/post-edit-format.sh",
+        "hooks/post-tool-review-state.sh",
+        "hooks/session-init.sh",
+        "test/hooks/background-verdict-recovery.test.js",
+        "test/hooks/jq-filter-fidelity.test.js",
+        "test/hooks/post-edit-format.test.js",
+        "test/hooks/post-tool-review-state.test.js",
+        "test/hooks/session-init.test.js",
+        "test/hooks/state-commit-ownership.test.js"
+      ]
+    },
+    {
+      "commit": "a57d96d955c985eca9eb11485876053263d9d663",
+      "subject": "Refactor receipt-integrity and doc-review phasing to per-plane epochs and MCP path",
+      "paths": [
+        "docs/features/auto-loop-evolution/requests/2026-08-08-receipt-integrity-issues-9-10-11.md",
+        "docs/features/doc-review-phasing/2-tech-spec.md",
+        "docs/features/doc-review-phasing/requests/2026-08-09-doc-review-cost-r1.md",
+        "docs/features/doc-review-phasing/requests/2026-08-09-doc-review-cost-r2.md",
+        "docs/features/doc-review-phasing/requests/2026-08-09-doc-review-cost-r3.md",
+        "hooks/post-tool-review-state.sh",
+        "rules/auto-loop.md",
+        "skills/create-request/references/feature-context-resolution.md",
+        "skills/create-request/references/template.md",
+        "skills/review-spec/SKILL.md",
+        "skills/tech-spec/references/feature-context-resolution.md",
+        "test/hooks/background-verdict-recovery.test.js",
+        "test/hooks/jq-filter-fidelity.test.js",
+        "test/hooks/post-tool-review-state.test.js",
+        "test/rules/stall-detection.test.js",
+        "test/skills/review-spec.test.js"
+      ]
+    },
+    {
+      "commit": "6cc8e0c5b82c5618e96052a8d49373426c105af0",
+      "subject": "feat(doc-classification): Add authority-aware doc metadata and classifier precedence",
+      "paths": [
+        "scripts/classify-docs-cli.js",
+        "scripts/config/doc-taxonomy.json",
+        "scripts/lib/doc-classifier.js",
+        "scripts/lib/doc-metadata.js",
+        "test/scripts/classify-docs-cli.test.js",
+        "test/scripts/doc-classifier.test.js",
+        "test/scripts/doc-metadata.test.js",
+        "test/scripts/helpers/readdir-eacces.js"
+      ]
+    },
+    {
+      "commit": "0de5751c5cea5035c75359e0fa64e72646a2bb9c",
+      "subject": "feat(feature-resolution): Resolve feature context natively with a shared context shape",
+      "paths": [
+        "scripts/detect-scope.js",
+        "scripts/lib/context-shape.js",
+        "scripts/lib/feature-resolver.js",
+        "scripts/resolve-feature-cli.js",
+        "scripts/resolve-feature.js",
+        "scripts/resolve-feature.sh",
+        "skills/next-step/scripts/analyze.js",
+        "test/scripts/detect-scope.test.js",
+        "test/scripts/feature-resolver.test.js",
+        "test/scripts/next-step-analyze.test.js"
+      ]
+    },
+    {
+      "commit": "d2af0a86ced8385df7c0efcadc0472970466cb32",
+      "subject": "feat(doc-review): Add review profiles, a doc link checker and phased doc review",
+      "paths": [
+        "rules/auto-loop.md",
+        "rules/docs-numbering.md",
+        "rules/docs-writing.md",
+        "scripts/check-doc-links.js",
+        "scripts/resolve-review-profile.js",
+        "skills/doc-review/SKILL.md",
+        "skills/doc-review/references/codex-prompt-doc.md",
+        "skills/doc-review/references/review-loop-doc.md",
+        "test/scripts/check-doc-links.test.js",
+        "test/scripts/resolve-review-profile.test.js",
+        "test/skills/doc-review.test.js",
+        "test/skills/scan-error-gate.test.js"
+      ]
+    },
+    {
+      "commit": "d9a8bca2a1fb150a78671cc0d08814b103c2fcdf",
+      "subject": "refactor(skills): Migrate fifteen skills to native feature resolution",
+      "paths": [
+        "skills/adr/SKILL.md",
+        "skills/architecture/SKILL.md",
+        "skills/architecture/references/codex-prompt.md",
+        "skills/architecture/references/template.md",
+        "skills/ask/SKILL.md",
+        "skills/claude-health/references/best-practices.md",
+        "skills/create-request/SKILL.md",
+        "skills/create-request/references/feature-context-resolution.md",
+        "skills/create-request/references/template.md",
+        "skills/feasibility-study/SKILL.md",
+        "skills/feature-dev/SKILL.md",
+        "skills/post-dev-recap/SKILL.md",
+        "skills/recap-ask/SKILL.md",
+        "skills/recap-doc/SKILL.md",
+        "skills/recap-doc/references/output-template.md",
+        "skills/req-analyze/SKILL.md",
+        "skills/runbook/SKILL.md",
+        "skills/runbook/references/discovery-heuristics.md",
+        "skills/tech-brief/SKILL.md",
+        "skills/tech-brief/references/source-guide.md",
+        "skills/tech-spec/SKILL.md",
+        "skills/tech-spec/references/feature-context-resolution.md",
+        "skills/tech-spec/references/native-feature-resolution.md",
+        "skills/tech-spec/references/template.md",
+        "skills/test-health/SKILL.md",
+        "skills/update-docs/SKILL.md",
+        "test/skills/adr.test.js",
+        "test/skills/architecture.test.js",
+        "test/skills/ask.test.js",
+        "test/skills/create-request-scan.test.js",
+        "test/skills/recap-ask.test.js",
+        "test/skills/runbook.test.js"
+      ]
+    },
+    {
+      "commit": "39b3f91579a388e70478511d0766faccef42c8df",
+      "subject": "test(scripts): Stabilize the P8z4 clean-filter control with an equal-size write",
+      "paths": [
+        "test/scripts/smart-commit-inspect.test.js"
+      ]
+    },
+    {
+      "commit": "4cfa81d1731b2807cfa2a4b40c2f101d0292df22",
+      "subject": "chore(readme): Regenerate the skill catalog across six locales",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "scripts/generate-readme-catalog.js",
+        "test/scripts/generate-readme-catalog.test.js"
+      ]
+    },
+    {
+      "commit": "f3d10a975a06cd61ed7a2b326283329fd90018c7",
+      "subject": "docs(features): Record doc-review-phasing r2/r3 outcomes and sync affected docs",
+      "paths": [
+        ".claude/sd0x-dev-flow-lessons.md",
+        "docs/features/architecture-skill/2-tech-spec.md",
+        "docs/features/ask/requests/2026-04-08-context-aware-qa-skill.md",
+        "docs/features/doc-classification/2-tech-spec.md",
+        "docs/features/doc-review-phasing/2-tech-spec.md",
+        "docs/features/doc-review-phasing/4-implementation.md",
+        "docs/features/doc-review-phasing/requests/2026-08-09-doc-review-cost-r2.md",
+        "docs/features/doc-review-phasing/requests/2026-08-09-doc-review-cost-r3.md",
+        "docs/features/fp-brief/2-tech-spec.md",
+        "docs/features/handoff-doc/1-requirements.md",
+        "docs/features/necessity-audit/1-requirements.md",
+        "docs/features/req-analyze/2-tech-spec.md",
+        "docs/features/tech-brief/2-tech-spec.md"
+      ]
+    },
+    {
+      "commit": "c28348c7b3bc11d32782f51ce2d513dc3d2c342e",
+      "subject": "docs(auto-loop-evolution): Add the content-addressed receipts tech spec and request",
+      "paths": [
+        "docs/features/auto-loop-evolution/2-tech-spec/2-content-addressed-receipts.md",
+        "docs/features/auto-loop-evolution/requests/2026-08-11-content-addressed-receipts.md"
+      ]
+    },
+    {
+      "commit": "1d773e9c405dac95d928437638a47f051aa816ce",
+      "subject": "feat(receipts): Add content-addressed tree digest and verdict log with runner producer",
+      "paths": [
+        "scripts/lib/receipt-log.js",
+        "scripts/lib/tree-digest.js",
+        "scripts/precommit-runner.js",
+        "test/scripts/receipt-log.test.js",
+        "test/scripts/tree-digest.test.js"
+      ]
+    },
+    {
+      "commit": "a6bbb1f614bad4c7b7806ebce902f9bfcdcd2a80",
+      "subject": "chore(skills): Sync installer manifests with the receipt producer libraries",
+      "paths": [
+        "skills/claude-health/SKILL.md",
+        "skills/codex-setup/SKILL.md",
+        "skills/precommit-fast/SKILL.md",
+        "skills/project-setup/SKILL.md",
+        "test/skills/claude-health.test.js",
+        "test/skills/runner-auto-install.test.js"
+      ]
+    },
+    {
+      "commit": "d1b14f79e4899e717b196c5d1d65cd872fec90ce",
+      "subject": "docs(auto-loop-evolution): Record the WB1-WB2 increment and the unhashable-path residual",
+      "paths": [
+        "docs/features/auto-loop-evolution/2-tech-spec/2-content-addressed-receipts.md",
+        "docs/features/auto-loop-evolution/requests/2026-08-11-content-addressed-receipts.md"
+      ]
+    },
+    {
+      "commit": "d1cb0e9366aa8c74eb45d97ce3867b413d9c07ce",
+      "subject": "feat(receipts): Add dispatch log, gate derivation, and the dispatch CLI",
+      "paths": [
+        "scripts/dispatch-cli.js",
+        "scripts/lib/dispatch-log.js",
+        "scripts/lib/gate-derive.js",
+        "scripts/lib/receipt-log.js",
+        "scripts/lib/tree-digest.js",
+        "scripts/precommit-runner.js",
+        "test/scripts/dispatch-log.test.js",
+        "test/scripts/gate-derive.test.js",
+        "test/scripts/precommit-runner.test.js",
+        "test/scripts/receipt-log.test.js",
+        "test/scripts/tree-digest.test.js"
+      ]
+    },
+    {
+      "commit": "5a7ad6f0ac8d62181f7796a5ae4a8d75bfb88459",
+      "subject": "refactor(hooks): Derive auto-loop gates from content-addressed receipts",
+      "paths": [
+        "hooks/hooks.json",
+        "hooks/post-compact-auto-loop.sh",
+        "hooks/post-edit-format.sh",
+        "hooks/post-skill-auto-loop.sh",
+        "hooks/post-tool-review-state.sh",
+        "hooks/session-init.sh",
+        "hooks/stop-guard.sh",
+        "hooks/user-prompt-review-guard.sh",
+        "test/hooks/auto-loop-state.test.js",
+        "test/hooks/background-verdict-recovery.test.js",
+        "test/hooks/changed-files.test.js",
+        "test/hooks/doc-plane-counters.test.js",
+        "test/hooks/git-omission-detector-consistency.test.js",
+        "test/hooks/hooks-json-registry.test.js",
+        "test/hooks/jq-filter-fidelity.test.js",
+        "test/hooks/max-rounds-default-consistency.test.js",
+        "test/hooks/post-compact-auto-loop.test.js",
+        "test/hooks/post-edit-format.test.js",
+        "test/hooks/post-skill-auto-loop.test.js",
+        "test/hooks/post-tool-review-state.test.js",
+        "test/hooks/review-phase.test.js",
+        "test/hooks/session-init.test.js",
+        "test/hooks/sidecar-symlink-traversal.test.js",
+        "test/hooks/stop-guard-derive.test.js",
+        "test/hooks/stop-guard.test.js",
+        "test/hooks/user-prompt-review-guard.test.js",
+        "test/skills/review-dispatch.test.js"
+      ]
+    },
+    {
+      "commit": "e70b8eac8a5f0bb9d20fca749b820fed7387010e",
+      "subject": "refactor(remind): Read gate state from the resolver, not the state file",
+      "paths": [
+        "docs/features/remind/2-tech-spec.md",
+        "skills/remind/SKILL.md",
+        "skills/remind/references/detection-rules.md",
+        "test/skills/remind.test.js"
+      ]
+    },
+    {
+      "commit": "7c84bf73237302de90c6a9c5fa8c69c07e1f72d2",
+      "subject": "docs(skills): Ship the derivation and dispatch scripts through the installers",
+      "paths": [
+        "skills/claude-health/SKILL.md",
+        "skills/install-hooks/SKILL.md",
+        "skills/precommit-fast/SKILL.md",
+        "skills/precommit/SKILL.md",
+        "skills/project-setup/SKILL.md",
+        "test/skills/claude-health.test.js",
+        "test/skills/runner-auto-install.test.js"
+      ]
+    },
+    {
+      "commit": "86864e818aa8d05b5364395af3d906dbb14e26ba",
+      "subject": "chore(readme): Raise the script inventory count to 22",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "scripts/generate-readme-catalog.js",
+        "test/scripts/generate-readme-catalog.test.js"
+      ]
+    },
+    {
+      "commit": "b32da59a551c6fe1078fc9c91c63087d2b58e851",
+      "subject": "docs(auto-loop-evolution): Record the content-addressed receipts increment",
+      "paths": [
+        "docs/features/auto-loop-evolution/2-tech-spec/2-content-addressed-receipts.md",
+        "docs/features/auto-loop-evolution/4-implementation.md",
+        "docs/features/auto-loop-evolution/requests/2026-08-11-content-addressed-receipts.md",
+        "docs/features/auto-loop-evolution/review-log-content-addressed-receipts.md",
+        "rules/auto-loop.md"
+      ]
+    },
+    {
+      "commit": "3c063eda1b7b1a1235391d658bb240638211dc6b",
+      "subject": "feat(hooks): Rewrite the hook layer as digest-bound reminders",
+      "paths": [
+        "hooks/hooks.json",
+        "hooks/post-compact-auto-loop.sh",
+        "hooks/post-edit-format.sh",
+        "hooks/post-skill-auto-loop.sh",
+        "hooks/stop-check.md",
+        "hooks/stop-guard.sh",
+        "hooks/user-prompt-review-guard.sh",
+        "scripts/lib/tree-digest.js",
+        "scripts/review-state.js",
+        "test/hooks/hooks-json-registry.test.js",
+        "test/hooks/plugin-local-arbitration.test.js",
+        "test/hooks/reminder-hooks.test.js",
+        "test/scripts/review-state.test.js"
+      ]
+    },
+    {
+      "commit": "0b3b8f5978b397930d82c0d7b55b007e643d94a4",
+      "subject": "refactor(hooks): Delete the enforcement-layer machine",
+      "paths": [
+        "hooks/post-tool-review-state.sh",
+        "hooks/session-init.sh",
+        "scripts/dispatch-cli.js",
+        "scripts/emit-plan-gate.sh",
+        "scripts/emit-review-gate.sh",
+        "scripts/lib/dispatch-log.js",
+        "scripts/lib/gate-derive.js",
+        "scripts/lib/receipt-log.js",
+        "scripts/lib/session-scope-resolver.js"
+      ]
+    },
+    {
+      "commit": "91b5fc980113b3225f472b069d9521dc23984732",
+      "subject": "test(hooks): Delete the enforcement-layer test suites",
+      "paths": [
+        "test/helpers/shell-structure.js",
+        "test/helpers/shell-structure.test.js",
+        "test/hooks/auto-loop-state.test.js",
+        "test/hooks/changed-files.test.js",
+        "test/hooks/code-extension-consistency.test.js",
+        "test/hooks/doc-plane-counters.test.js",
+        "test/hooks/git-omission-detector-consistency.test.js",
+        "test/hooks/helpers/reconciliation-locale.js",
+        "test/hooks/identity-normalization.test.js",
+        "test/hooks/jq-filter-fidelity.test.js",
+        "test/hooks/max-rounds-default-consistency.test.js",
+        "test/hooks/nit-history.test.js",
+        "test/hooks/post-compact-auto-loop.test.js",
+        "test/hooks/post-edit-format.test.js",
+        "test/hooks/post-skill-auto-loop.test.js",
+        "test/hooks/post-tool-review-state.test.js",
+        "test/hooks/review-phase.test.js",
+        "test/hooks/sensitive-paths.test.js",
+        "test/hooks/session-init.test.js",
+        "test/hooks/sidecar-symlink-traversal.test.js",
+        "test/hooks/state-commit-ownership.test.js",
+        "test/hooks/stop-guard-derive.test.js",
+        "test/hooks/stop-guard.test.js",
+        "test/hooks/user-prompt-review-guard.test.js",
+        "test/rules/stall-detection.test.js",
+        "test/scripts/dispatch-log.test.js",
+        "test/scripts/emit-plan-gate.test.js",
+        "test/scripts/emit-review-gate.test.js",
+        "test/scripts/gate-derive.test.js",
+        "test/scripts/gitignore-state-file.test.js",
+        "test/scripts/receipt-log.test.js",
+        "test/scripts/smart-commit-scope.test.js",
+        "test/skills/necessity-audit/stop-guard-isolation.test.js"
+      ]
+    },
+    {
+      "commit": "cd4eb8f82ed5e3b2a22c188e59471cdc8211dd33",
+      "subject": "refactor(scripts): Sync consumers to the reminder-layer state",
+      "paths": [
+        "scripts/config/sensitive-paths.json",
+        "scripts/detect-scope.js",
+        "scripts/precommit-runner.js",
+        "scripts/skills/necessity-audit/consolidate.js",
+        "scripts/skills/necessity-audit/preflight.js",
+        "scripts/skills/necessity-audit/report.js",
+        "skills/next-step/scripts/analyze.js",
+        "skills/orchestrate/scripts/run-verify.js",
+        "skills/orchestrate/scripts/validate-plan.js",
+        "test/scripts/detect-scope.test.js",
+        "test/scripts/next-step-analyze.test.js",
+        "test/scripts/orchestrate-run-verify.test.js",
+        "test/scripts/precommit-runner.test.js",
+        "test/scripts/smart-commit.test.js"
+      ]
+    },
+    {
+      "commit": "fead97d6dd09b7055d1152a7fc7be00a9264e90b",
+      "subject": "docs(skills): Rewrite skill surfaces to reminder semantics",
+      "paths": [
+        "skills/claude-health/SKILL.md",
+        "skills/claude-health/references/best-practices.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/codex-review-branch/SKILL.md",
+        "skills/codex-setup/SKILL.md",
+        "skills/deep-explore/SKILL.md",
+        "skills/deep-explore/references/synthesis.md",
+        "skills/doc-review/SKILL.md",
+        "skills/doc-review/references/review-loop-doc.md",
+        "skills/install-hooks/SKILL.md",
+        "skills/install-scripts/SKILL.md",
+        "skills/necessity-audit/references/review-loop.md",
+        "skills/next-step/SKILL.md",
+        "skills/orchestrate/SKILL.md",
+        "skills/orchestrate/references/admission-allowlist.json",
+        "skills/orchestrate/references/plan-schema.md",
+        "skills/plan-review/SKILL.md",
+        "skills/plan-review/references/review-loop-plan.md",
+        "skills/pre-pr-audit/SKILL.md",
+        "skills/precommit-fast/SKILL.md",
+        "skills/precommit/SKILL.md",
+        "skills/project-setup/SKILL.md",
+        "skills/remind/SKILL.md",
+        "skills/remind/references/detection-rules.md",
+        "skills/smart-commit/SKILL.md",
+        "skills/test-health/references/trend-schema.md"
+      ]
+    },
+    {
+      "commit": "ebd8ade9759b707993b433f01e6e63aaa4c70e22",
+      "subject": "test(skills): Sync skill suites and pin the auto-loop behaviour contract",
+      "paths": [
+        "test/rules/auto-loop-behaviour.test.js",
+        "test/rules/override-contract.test.js",
+        "test/skills/claude-health.test.js",
+        "test/skills/claude-md-coverage.test.js",
+        "test/skills/codex-code-review-ac.test.js",
+        "test/skills/doc-review.test.js",
+        "test/skills/orchestrate.test.js",
+        "test/skills/plan-review.test.js",
+        "test/skills/remind.test.js",
+        "test/skills/review-dispatch.test.js",
+        "test/skills/review-spec.test.js",
+        "test/skills/runner-auto-install.test.js"
+      ]
+    },
+    {
+      "commit": "9242a02552247481ddcce09378e9506114ef68ac",
+      "subject": "feat(install): Ship the hook-lightweighting migration",
+      "paths": [
+        ".sd0x/install-state.json",
+        "package.json",
+        "scripts/migrate-hook-lightweighting.js",
+        "test/scripts/migrate-hook-lightweighting.test.js",
+        "test/skills/install-migration.test.js"
+      ]
+    },
+    {
+      "commit": "ce59ec551a9a5a49f77408f0fc9f0a9060e0eb71",
+      "subject": "docs(rules): Rewrite the behaviour layer for reminder hooks",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "docs/hooks.md",
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md"
+      ]
+    },
+    {
+      "commit": "769b3809a6f40159789f48f8c6c0795e270235ac",
+      "subject": "docs(readme): Sync six locales to reminder semantics",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "scripts/generate-readme-catalog.js",
+        "test/scripts/generate-readme-catalog.test.js"
+      ]
+    },
+    {
+      "commit": "3224ba276ca38948aea8093c349c09accbac1fad",
+      "subject": "docs(features): Record hook-lightweighting and retire the old specs",
+      "paths": [
+        "docs/features/auto-loop-autonomy/4-implementation.md",
+        "docs/features/auto-loop-autonomy/requests/2026-08-07-stall-detection-r10.md",
+        "docs/features/auto-loop-enforcement/2-tech-spec.md",
+        "docs/features/auto-loop-evolution/2-tech-spec/2-content-addressed-receipts.md",
+        "docs/features/auto-loop-evolution/4-implementation.md",
+        "docs/features/auto-loop-evolution/requests/2026-08-08-receipt-integrity-issues-9-10-11.md",
+        "docs/features/auto-loop-evolution/requests/2026-08-11-content-addressed-receipts.md",
+        "docs/features/cross-tool-portability/2-tech-spec.md",
+        "docs/features/hook-lightweighting/2-tech-spec.md",
+        "docs/features/remind/2-tech-spec.md",
+        "docs/features/smart-commit-session-scope/2-tech-spec.md",
+        "docs/features/upgrade-doctor/2-tech-spec.md",
+        "docs/features/workflow-orchestration/1-requirements.md"
+      ]
+    },
+    {
+      "commit": "a431f4f64100fed958339bced47eeb32a166ae6d",
+      "subject": "fix(test): Guard zsh-parity hook test behind availability and install zsh in CI",
+      "paths": [
+        ".github/workflows/ci.yml",
+        "test/hooks/reminder-hooks.test.js"
+      ]
+    },
+    {
+      "commit": "b6e47597a7ecd13ffd9da68c39b8922ff472fe0c",
+      "subject": "fix(test): Configure git identity in the submodule checkout fixture",
+      "paths": [
+        "test/scripts/tree-digest.test.js"
+      ]
+    },
+    {
+      "commit": "7a923a9e604e6249badcf6f07ead37ba6f462c0b",
+      "subject": "chore: bump to 4.2.1 across plugin.json, install-state.json, and package.json",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "4e1183fb203303347094fc015f13907cd8ddde93",
+      "subject": "fix(scripts): Derive the shipping skill set from git, not the filesystem",
+      "paths": [
+        "scripts/generate-readme-catalog.js",
+        "test/scripts/generate-readme-catalog.test.js"
+      ]
+    },
+    {
+      "commit": "f34f806f8961f8e28b22501e37d10c88a3c503e6",
+      "subject": "docs(readme): Sync the six locales to 99 skills and add Codex MCP setup",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md"
+      ]
+    },
+    {
+      "commit": "8ec2bf0b8dea3d27036730d57a0250adaaa487a9",
+      "subject": "chore(manifest): Describe the hooks as reminders, and pin the wording",
+      "paths": [
+        ".claude-plugin/marketplace.json",
+        ".claude-plugin/plugin.json",
+        "test/skills/plugin-manifest.test.js"
+      ]
+    },
+    {
+      "commit": "c90df4b482721c3f259a78ac14a6c55692754dd6",
+      "subject": "docs(changelog): Point release notes at GitHub Releases",
+      "paths": [
+        "CHANGELOG.md"
+      ]
+    },
+    {
+      "commit": "7dbf4fa8d2725d0ddaa0092dfce3d8d2192dadaf",
+      "subject": "docs(features): Record the locale-count request and its review history",
+      "paths": [
+        "docs/features/readme-catalog-sync/requests/2026-07-30-locale-count-generation.md"
+      ]
+    },
+    {
+      "commit": "171b5ee3384857042cf1e03c95aac399c3c0e4d1",
+      "subject": "feat(repo-intake): Add the manifest map declared-dependency graph",
+      "paths": [
+        "scripts/config/repo-intake.json",
+        "skills/repo-intake/SKILL.md",
+        "skills/repo-intake/references/manifest-map.md",
+        "skills/repo-intake/scripts/manifest_map.js"
+      ]
+    },
+    {
+      "commit": "b72ff941a47557268903f9540e359ed89c676c8b",
+      "subject": "test(skills): Cover the manifest map parsers and graph assembly",
+      "paths": [
+        "test/skills/repo-intake.test.js",
+        "test/skills/repo-intake/manifest-map.test.js"
+      ]
+    },
+    {
+      "commit": "a44080d198d00408750bb03597d92aa6f0621d7d",
+      "subject": "docs(features): Record the repo-intake manifest map tech spec",
+      "paths": [
+        "docs/features/repo-intake-manifest-map/2-tech-spec.md"
+      ]
+    },
+    {
+      "commit": "eaed253393cd604f14bf11ed34947a6a44008b3f",
+      "subject": "docs(features): Record the scope-discipline tech spec",
+      "paths": [
+        "docs/features/scope-discipline/2-tech-spec.md"
+      ]
+    },
+    {
+      "commit": "bb4f0205f6757802c5510024a6da4083edd4acf3",
+      "subject": "feat(rules): Add the scope-discipline rule and wire its governance tiers",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "docs/rules.md",
+        "rules/discretion.md",
+        "rules/fix-all-issues.md",
+        "rules/scope-discipline.md",
+        "test/rules/discretion-tiers.test.js",
+        "test/rules/scope-discipline.test.js"
+      ]
+    },
+    {
+      "commit": "20212e7500168af8eaa89c50936d815070d3e24b",
+      "subject": "feat(review): Route the gate by derived scope fields across the reviewer contract",
+      "paths": [
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/review-common.md",
+        "test/skills/claude-md-coverage.test.js",
+        "test/skills/scope-review-contract.test.js"
+      ]
+    },
+    {
+      "commit": "aacead5f5767330e547acd4c018a5850b453b5f7",
+      "subject": "docs(readme): Sync six locales and the catalog generator to 16 rules",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "scripts/generate-readme-catalog.js",
+        "skills/project-setup/SKILL.md",
+        "test/skills/project-setup-counts.test.js"
+      ]
+    },
+    {
+      "commit": "df7c7eff35df4814ffe134225fdc782225b73bd8",
+      "subject": "docs(features): Record the scope-discipline implementation request",
+      "paths": [
+        "docs/features/scope-discipline/requests/2026-08-15-scope-discipline-implementation.md"
+      ]
+    },
+    {
+      "commit": "6f3212023a74a11bce822fd245577bd88ad0fd77",
+      "subject": "chore: bump to 4.3.0 across package.json, plugin.json, and install-state.json",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "8ddf10335f396952dd6f85120970e1f0d72ae45b",
+      "subject": "docs(features): Sync batch status across eleven request tickets",
+      "paths": [
+        "docs/features/agent-prompt-optimization/requests/2026-03-15-strict-reviewer-optimization.md",
+        "docs/features/ask/requests/2026-04-08-context-aware-qa-skill.md",
+        "docs/features/create-request-ac-verify/requests/2026-03-27-ac-verification-enhancement.md",
+        "docs/features/cross-tool-portability/requests/2026-03-21-phase2-distribution-stabilization.md",
+        "docs/features/debug/requests/2026-04-01-debug-skill.md",
+        "docs/features/deep-research/requests/2026-03-25-universal-research-entry.md",
+        "docs/features/dev-security-audit/requests/2026-03-25-modular-case-architecture-r1.md",
+        "docs/features/doc-classification/requests/2026-04-03-doc-classification-foundation-r1.md",
+        "docs/features/doc-classification/requests/2026-04-03-doc-classification-integration-r2.md",
+        "docs/features/doc-review-phasing/requests/2026-08-09-doc-review-cost-r2.md",
+        "docs/features/feature-verify-v2/requests/2026-03-08-observation-only-mode.md"
+      ]
+    },
+    {
+      "commit": "d068bca6ef63e401c9f293bf7b47bfdb0acaa2ba",
+      "subject": "docs(features): Sync batch status across thirteen request tickets",
+      "paths": [
+        "docs/features/readme-catalog-sync/requests/2026-04-07-readme-catalog-auto-sync.md",
+        "docs/features/readme-catalog-sync/requests/2026-07-30-locale-count-generation.md",
+        "docs/features/req-analyze/requests/2026-04-03-requirements-analysis-skill.md",
+        "docs/features/runbook-generation/requests/2026-04-07-runbook-skill.md",
+        "docs/features/sharingan/requests/2026-04-01-sharingan-skill.md",
+        "docs/features/sharingan/requests/2026-04-01-sharingan-v2-multi-source-r1.md",
+        "docs/features/sharingan/requests/2026-04-01-sharingan-v2-multi-source-r2.md",
+        "docs/features/statusline-config/requests/2026-03-20-v2-json-schema-new-segments.md",
+        "docs/features/tech-brief/requests/2026-04-07-tech-brief-skill.md",
+        "docs/features/test-health/requests/2026-04-01-test-health-implementation-scripts-r2.md",
+        "docs/features/test-health/requests/2026-04-01-test-health-skill-definition-r1.md",
+        "docs/features/universal-refactor/requests/2026-04-03-universal-refactor-v1.md",
+        "docs/features/watch-ci-monitor-migration/requests/2026-04-10-watch-ci-monitor-tool-migration.md"
+      ]
+    },
+    {
+      "commit": "fca4b369e3f4b278a4aa63ac8b5db2943a6b640d",
+      "subject": "docs(features): Add Pre-Push Gate opt-in request docs (r1–r4)",
+      "paths": [
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r1.md",
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r2.md",
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r3.md",
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r4.md"
+      ]
+    },
+    {
+      "commit": "2692ede5270384d8fe34b4961ac775ffb22188df",
+      "subject": "docs(features): Rename GitHub repo locator to sd0xdev/sd0x-harness",
+      "paths": [
+        ".claude-plugin/marketplace.json",
+        "CHANGELOG.md",
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "docs/features/cross-tool-portability/2-tech-spec.md",
+        "docs/features/harness-engineering-rebrand/requests/2026-08-16-repo-rename-sd0x-harness-sync.md",
+        "docs/features/statusline-config/2-tech-spec.md",
+        "skills/project-setup/SKILL.md"
+      ]
+    },
+    {
+      "commit": "4995d339a08e2dacbdaca66e3047e2245a0efb97",
+      "subject": "fix(smart-commit): Pin the canonical env prefix to /usr/bin/env",
+      "paths": [
+        "skills/smart-commit/SKILL.md",
+        "skills/smart-commit/references/execute-mode.md",
+        "skills/smart-commit/references/git-environment.md",
+        "test/scripts/smart-commit-inspect.test.js",
+        "test/scripts/smart-commit.test.js"
+      ]
+    },
+    {
+      "commit": "3519803d7789bebfb5a9596bded163819acdc97b",
+      "subject": "test(commit-msg-guard): Settle the temp-dir scan against sibling processes",
+      "paths": [
+        "test/scripts/commit-msg-guard.test.js"
+      ]
+    },
+    {
+      "commit": "f2182a59efc6e82da65a4d619d2eb4574e6466e3",
+      "subject": "docs(create-pr-stacked): Split the tech spec and repoint every inbound link",
+      "paths": [
+        "docs/features/create-pr-stacked/1-requirements.md",
+        "docs/features/create-pr-stacked/2-tech-spec.md",
+        "docs/features/create-pr-stacked/2-tech-spec/1-core-logic.md",
+        "docs/features/create-pr-stacked/2-tech-spec/2-tech-spec.md",
+        "docs/features/create-pr-stacked/requests/2026-07-31-stacked-pr-mode-r1.md",
+        "docs/features/create-pr-stacked/requests/2026-07-31-stacked-pr-mode-r2.md",
+        "docs/features/create-pr-stacked/requests/2026-08-21-push-remediation-refspec-guard.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2.md",
+        "docs/features/create-pr-stacked/review-log-stacked-pr-mode-r2/review-log-rounds-38-61.md",
+        "scripts/commit-msg-guard.sh",
+        "scripts/run-skill.sh",
+        "skills/create-pr/references/stack-mode.md",
+        "skills/create-pr/scripts/sanitize-pr-content.sh"
+      ]
+    },
+    {
+      "commit": "18ec6ed57bd86bbf67cc02c34acefcc59a3be812",
+      "subject": "feat(push-gate): Make the pre-push hook opt-in and gate unshared rewrites",
+      "paths": [
+        "rules/discretion.md",
+        "rules/git-workflow.md",
+        "scripts/pre-push-gate.sh",
+        "test/rules/discretion-tiers.test.js",
+        "test/rules/override-contract.test.js",
+        "test/scripts/helpers/detached-spawn.js",
+        "test/scripts/pre-push-gate.test.js"
+      ]
+    },
+    {
+      "commit": "2418ba5b4e9fb051b9179566dcc85bad09f3ce75",
+      "subject": "feat(skills): Route the push workflows through the opt-in gate",
+      "paths": [
+        "docs/cookbook/ship-change.md",
+        "scripts/generate-readme-catalog.js",
+        "skills/codex-setup/SKILL.md",
+        "skills/epic-merge/SKILL.md",
+        "skills/push-ci/SKILL.md",
+        "test/scripts/generate-readme-catalog.test.js",
+        "test/skills/codex-setup.test.js",
+        "test/skills/epic-merge.test.js",
+        "test/skills/push-ci.test.js"
+      ]
+    },
+    {
+      "commit": "e16be48575d0e61225d9800575171e6005e61f7d",
+      "subject": "docs(push-gate-optin): Record the design, implementation and review history",
+      "paths": [
+        "docs/features/push-gate-optin/2-tech-spec.md",
+        "docs/features/push-gate-optin/4-implementation.md",
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r1.md",
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r2.md",
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r3.md",
+        "docs/features/push-gate-optin/requests/2026-08-15-push-gate-optin-r4.md",
+        "docs/features/push-gate-optin/requests/2026-08-20-push-ci-force-with-lease-r5.md",
+        "docs/features/push-gate-optin/review-log-adequacy-gate.md",
+        "docs/features/push-gate-optin/review-log-push-gate-optin.md"
+      ]
+    },
+    {
+      "commit": "2d4e39be2a279852a322fd0897c514b8c6aa6491",
+      "subject": "feat(smart-rebase): Make the analyzer's JSON hold for the bytes git allows",
+      "paths": [
+        "docs/features/ref-name-hardening/2-tech-spec.md",
+        "docs/features/ref-name-hardening/4-implementation.md",
+        "docs/features/ref-name-hardening/requests/2026-08-20-ref-name-hardening-r1.md",
+        "skills/smart-rebase/SKILL.md",
+        "skills/smart-rebase/scripts/smart-rebase-analyze.sh",
+        "test/skills/smart-rebase.test.js"
+      ]
+    },
+    {
+      "commit": "72fe1336bafeebb96a6105195458fba4d70ac0e0",
+      "subject": "fix(update-docs): Spell owesCodeAlignment with the arguments it takes",
+      "paths": [
+        "skills/update-docs/SKILL.md",
+        "test/skills/update-docs.test.js"
+      ]
+    },
+    {
+      "commit": "138845ca776e80a7770c6607d28aac51fe7441ca",
+      "subject": "docs(features): Restore five design records and append dated corrections",
+      "paths": [
+        "docs/features/cross-tool-portability/2-tech-spec.md",
+        "docs/features/harness-engineering-rebrand/1-requirements.md",
+        "docs/features/readme-catalog-sync/2-tech-spec.md",
+        "docs/features/smart-commit-hardening/2-tech-spec.md",
+        "docs/features/smart-commit-hardening/4-implementation.md"
+      ]
+    },
+    {
+      "commit": "5ebaa8e15b166873b537d6dfd1e4cfa2884af7ab",
+      "subject": "docs(lessons): Record the lessons from the push-gate review rounds",
+      "paths": [
+        ".claude/sd0x-dev-flow-lessons.md"
+      ]
+    },
+    {
+      "commit": "11459ac7515486a13b55cf3ff1f3a8eee0b09287",
+      "subject": "feat(review-loop): Add sentinel validator, dispatch decider and fallback reviewer",
+      "paths": [
+        "agents/contract-neutral-reviewer.md",
+        "scripts/lib/review-dispatch.js",
+        "scripts/validate-family-sentinel.js",
+        "test/scripts/lib/review-dispatch.test.js",
+        "test/scripts/validate-family-sentinel.test.js"
+      ]
+    },
+    {
+      "commit": "91283837aec1b16ca1fbb545a40ca5dfb2d1d3cd",
+      "subject": "feat(rules): Carry review gates through a fallback reviewer when Codex is down",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md",
+        "rules/codex-invocation.md",
+        "rules/testing.md"
+      ]
+    },
+    {
+      "commit": "636c5739a43fdf24f53c8caedcf5c3c92cbbc43c",
+      "subject": "feat(skills): Wire review consumers to fallback dispatch and rotation",
+      "paths": [
+        "agents/strict-reviewer.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/codex-setup/SKILL.md",
+        "skills/doc-review/SKILL.md",
+        "skills/doc-review/references/codex-prompt-doc.md",
+        "skills/doc-review/references/review-loop-doc.md",
+        "skills/plan-review/SKILL.md",
+        "skills/plan-review/references/review-loop-plan.md",
+        "skills/test-review/SKILL.md",
+        "skills/test-review/references/codex-prompt-ac-trace.md",
+        "skills/test-review/references/codex-prompt-test-review.md"
+      ]
+    },
+    {
+      "commit": "8f4ace9e2df8fc55247c5360f1cd7acb51658da5",
+      "subject": "test(review-loop): Pin the resilience contract and sync affected pins",
+      "paths": [
+        "test/rules/override-contract.test.js",
+        "test/rules/review-loop-resilience.test.js",
+        "test/scripts/generate-readme-catalog.test.js",
+        "test/skills/claude-md-coverage.test.js",
+        "test/skills/doc-review.test.js",
+        "test/skills/review-dispatch.test.js"
+      ]
+    },
+    {
+      "commit": "88b920222a0f3f9ac0a5ef4462afb13e0092028d",
+      "subject": "docs(review-loop-resilience): Add requirements, tech spec and request records",
+      "paths": [
+        "docs/features/review-loop-resilience/1-requirements.md",
+        "docs/features/review-loop-resilience/2-tech-spec.md",
+        "docs/features/review-loop-resilience/requests/2026-08-23-review-loop-resilience-r1.md",
+        "docs/features/review-loop-resilience/requests/2026-08-23-review-loop-resilience-r2.md",
+        "docs/features/review-loop-resilience/requests/2026-08-23-review-loop-resilience-r3.md",
+        "docs/features/review-loop-resilience/requests/2026-08-23-review-loop-resilience-r4.md"
+      ]
+    },
+    {
+      "commit": "091dd10b02ce91e4b353df180b9d165e5bf86ecd",
+      "subject": "docs(readme): Sync the fallback reviewer story across six locales",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md"
+      ]
+    },
+    {
+      "commit": "76c01904b298464087970d0e2038aac0466da56f",
+      "subject": "chore(lint): Pin deliberate markdown conventions and fix the true findings",
+      "paths": [
+        ".markdownlint-cli2.jsonc",
+        "docs/cookbook/ship-change.md",
+        "docs/features/create-pr-stacked/2-tech-spec/1-core-logic.md",
+        "docs/features/create-pr-stacked/2-tech-spec/2-tech-spec.md"
+      ]
+    },
+    {
+      "commit": "5109a83982a0f7b771a550f2ce416c0426b3850c",
+      "subject": "test(ci): Fix the six Linux-only failures on portability and runner identity",
+      "paths": [
+        "test/scripts/pre-push-gate.test.js",
+        "test/skills/epic-merge.test.js",
+        "test/skills/push-ci.test.js",
+        "test/skills/smart-rebase.test.js"
+      ]
+    },
+    {
+      "commit": "7d83110cf6cdccae9bb19c15a96455541323730f",
+      "subject": "docs(push-gate-optin): Correct the round-39 BASH_ENV refutation to bash 3.2 only",
+      "paths": [
+        "docs/features/push-gate-optin/review-log-push-gate-optin.md"
+      ]
+    },
+    {
+      "commit": "ceedbe0a63954498bbeeaa521d065690d9ca5b67",
+      "subject": "chore: bump to 4.3.1 across package.json, plugin.json, and install-state.json",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "6d73decc55d83861250d56acb4219f06cf5c747e",
+      "subject": "fix(runner): Make lint-argument injection opt-in per script role",
+      "paths": [
+        "scripts/lib/utils.js",
+        "scripts/precommit-runner.js",
+        "scripts/verify-runner.js",
+        "skills/generate-runner/SKILL.md",
+        "skills/generate-runner/references/templates.md",
+        "test/scripts/precommit-runner.test.js",
+        "test/scripts/verify-runner.test.js"
+      ]
+    },
+    {
+      "commit": "8baa3ecd1c53143125d9b3fc681dee0252afb123",
+      "subject": "docs(requests): Record verify-ac outcomes for three re-verified tickets",
+      "paths": [
+        "docs/features/auto-loop-autonomy/requests/2026-07-26-dual-mode-signal-repair-r1.md",
+        "docs/features/auto-loop-evolution/requests/2026-03-31-stop-hook-recursion-guard-r11.md",
+        "docs/features/claude-code-v21-catchup/requests/2026-05-13-v3-0-12-correctness-patch.md"
+      ]
+    },
+    {
+      "commit": "6bbc589b9485b0d3f33b2638b6d4da7ff74de100",
+      "subject": "fix(create-request): Align scan and update contracts with the parser",
+      "paths": [
+        "skills/create-request/SKILL.md",
+        "skills/create-request/references/template.md",
+        "skills/update-docs/SKILL.md",
+        "test/helpers/markdown-structure.js",
+        "test/scripts/generate-readme-catalog.test.js",
+        "test/skills/create-request-scan.test.js"
+      ]
+    },
+    {
+      "commit": "997be8f57606f992890cde88df1efc4e0c14ca7a",
+      "subject": "refactor(rules): Extract review-plane procedure into on-demand contracts",
+      "paths": [
+        "docs/features/auto-loop-autonomy/4-implementation.md",
+        "docs/features/doc-review-phasing/4-implementation.md",
+        "docs/features/ref-name-hardening/4-implementation.md",
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md",
+        "rules/scope-discipline.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/loop-diagnostics.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/codex-code-review/references/scope-contract.md",
+        "skills/update-docs/SKILL.md",
+        "test/rules/auto-loop-behaviour.test.js",
+        "test/rules/contract-routing.test.js",
+        "test/rules/discretion-tiers.test.js",
+        "test/rules/override-contract.test.js",
+        "test/rules/scope-discipline.test.js",
+        "test/skills/claude-md-coverage.test.js"
+      ]
+    },
+    {
+      "commit": "54c730bdc120f64b5db44064d9bd0e3beb45a0f3",
+      "subject": "docs: Repoint the stall-diagnosis citations after the contract extraction",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md"
+      ]
+    },
+    {
+      "commit": "888fea475dbb1b81766f246218936262d3b25fe5",
+      "subject": "docs(rules-residency): Add the tech spec, the r1 record and two review lessons",
+      "paths": [
+        ".claude/sd0x-dev-flow-lessons.md",
+        "docs/features/rules-residency/2-tech-spec.md",
+        "docs/features/rules-residency/requests/2026-08-29-extract-on-demand-contracts-r1.md"
+      ]
+    },
+    {
+      "commit": "8ebfe8e4e861949e45766ffee23b627909a80a85",
+      "subject": "refactor(review): Bound assurance depth and fix the dispatch contract",
+      "paths": [
+        "rules/codex-invocation.md",
+        "rules/fix-all-issues.md",
+        "rules/testing.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/review-common.md",
+        "test/skills/scope-review-contract.test.js"
+      ]
+    },
+    {
+      "commit": "5e75683c1e3272e336173210680f2d0c9394d3ba",
+      "subject": "docs(craft): Nudge design thinking at the moment code is written",
+      "paths": [
+        "CLAUDE.md",
+        "CLAUDE.template.md",
+        "skills/bug-fix/SKILL.md",
+        "skills/codex-implement/references/codex-prompts.md",
+        "skills/feature-dev/SKILL.md"
+      ]
+    },
+    {
+      "commit": "491b2774792801f1eabf767593789bc67a1d4942",
+      "subject": "chore(release): Bump to 4.4.0 and announce the review-gate changes",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "e545732fd73ea0fff1aff1f38cffe0111a747729",
+      "subject": "feat(intent): Add the per-feature intent artifact mechanism",
+      "paths": [
+        "docs/features/intent-artifact/2-tech-spec.md",
+        "rules/docs-numbering.md",
+        "scripts/config/doc-taxonomy.json",
+        "scripts/lib/doc-metadata.js",
+        "scripts/review-state.js",
+        "skills/next-step/scripts/analyze.js",
+        "skills/req-analyze/references/intent-template.md",
+        "test/scripts/doc-classifier.test.js",
+        "test/scripts/doc-metadata.test.js",
+        "test/scripts/next-step-analyze.test.js",
+        "test/scripts/review-state.test.js"
+      ]
+    },
+    {
+      "commit": "5f1a1406728c3d0f3ace7d15ed76fa797e7dc298",
+      "subject": "docs(intent): Wire the producers, consumers and reminders into the skills",
+      "paths": [
+        "skills/bug-fix/SKILL.md",
+        "skills/codex-implement/SKILL.md",
+        "skills/create-request/SKILL.md",
+        "skills/feature-dev/SKILL.md",
+        "skills/next-step/SKILL.md",
+        "skills/req-analyze/SKILL.md",
+        "skills/tech-spec/SKILL.md",
+        "skills/update-docs/SKILL.md"
+      ]
+    },
+    {
+      "commit": "fd9a55052405f99a24ec5becb6090db0b3632234",
+      "subject": "chore(release): Bump to 4.4.1",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "a3672c0170b3585a35f0a90b4a5e4f8a75582a5c",
+      "subject": "feat(review-loop-recovery): Add attention-diffusion subtypes, banking sequence, and a reference-stability refactor mode",
+      "paths": [
+        "docs/features/review-loop-recovery/2-tech-spec.md",
+        "docs/features/review-loop-recovery/intent-review-loop-recovery.md",
+        "rules/auto-loop.md",
+        "rules/docs-writing.md",
+        "skills/codex-code-review/references/loop-diagnostics.md",
+        "skills/refactor/SKILL.md",
+        "test/rules/auto-loop-behaviour.test.js",
+        "test/rules/contract-routing.test.js",
+        "test/rules/durable-references.test.js",
+        "test/skills/refactor.test.js"
+      ]
+    },
+    {
+      "commit": "06a4d9152c61fe49115f2f3716b3d0cb1edc4d6c",
+      "subject": "docs(request-ordering): Design lane-based ticket ordering with an immutable Due field",
+      "paths": [
+        "docs/features/request-ordering/2-tech-spec.md",
+        "docs/features/request-ordering/intent-request-ordering.md"
+      ]
+    },
+    {
+      "commit": "647f2280b7e4b7fb2484d4e6cb1ac1a1c75ab82d",
+      "subject": "chore(release): Bump to 4.4.2",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "6b20e918c6e4a58e3bcbfdba16d415d6d812ba72",
+      "subject": "docs(opportunistic-fix-envelope): Add the intent and tech spec for a risk-calibrated fix budget",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/2-tech-spec.md",
+        "docs/features/opportunistic-fix-envelope/intent-opportunistic-fix-envelope.md"
+      ]
+    },
+    {
+      "commit": "2b95eb27a717ba0987de7bd3c409dbabd783460c",
+      "subject": "docs(opportunistic-fix-envelope): Drop the collector scripts and let the model resolve the envelope",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/2-tech-spec.md",
+        "docs/features/opportunistic-fix-envelope/intent-opportunistic-fix-envelope.md"
+      ]
+    },
+    {
+      "commit": "a80cd66a4b014016214fcf4b55c68776f364eaf3",
+      "subject": "docs(opportunistic-fix-envelope): Open the change_relation and owed-now gate ticket",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/requests/2026-09-02-change-relation-field-and-obligation-gate.md"
+      ]
+    },
+    {
+      "commit": "b6e2687ab87b6eb5044b67b4c044d4225aaa9974",
+      "subject": "feat(scope): Add the change_relation field, fix obligation and the owed-now gate",
+      "paths": [
+        "docs/features/opportunistic-fix-envelope/2-tech-spec.md",
+        "docs/features/opportunistic-fix-envelope/intent-opportunistic-fix-envelope.md",
+        "docs/features/opportunistic-fix-envelope/requests/2026-09-02-change-relation-field-and-obligation-gate.md",
+        "rules/fix-all-issues.md",
+        "rules/scope-discipline.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/codex-code-review/references/scope-contract.md",
+        "test/rules/contract-routing.test.js",
+        "test/rules/scope-discipline.test.js",
+        "test/skills/scope-review-contract.test.js",
+        "test/skills/seek-verdict.test.js"
+      ]
+    },
+    {
+      "commit": "885f6c90dbd46fc7766a761ec6a463dfae4e4661",
+      "subject": "chore(release): Bump to 4.5.0",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "90a263eef87f4eaf403c4933d3f70ebb8b148bb7",
+      "subject": "feat(codex-exec-transport): Add the codex exec transport adapter and fake-CLI test harness",
+      "paths": [
+        "scripts/codex-exec.js",
+        "test/fixtures/codex-exec/fake-codex.js",
+        "test/fixtures/codex-exec/fs-fault.js",
+        "test/scripts/codex-exec.test.js"
+      ]
+    },
+    {
+      "commit": "811d81ac3f433545a861c6ee9b702366cef28f25",
+      "subject": "docs(codex-exec-transport): Add the transport locator reference and guard tests",
+      "paths": [
+        "skills/codex-code-review/references/codex-transport.md",
+        "test/rules/codex-transport-guards.test.js",
+        "test/skills/codex-transport.test.js"
+      ]
+    },
+    {
+      "commit": "6f221ad915343124f3c0664dfeba20c9f2ac4590",
+      "subject": "fix(security-redact): Fix secret truncation, ReDoS, and a redaction design conflict",
+      "paths": [
+        "scripts/security-redact.js",
+        "scripts/skills/ui-first-principles/redact.js",
+        "skills/ui-first-principles/SKILL.md",
+        "test/scripts/security-redact.test.js",
+        "test/skills/ui-first-principles/redact.test.js"
+      ]
+    },
+    {
+      "commit": "1ca3216326b69873dbf3585b05581922ba8a6357",
+      "subject": "docs(auto-loop): Switch the review dispatch rules to the codex exec transport",
+      "paths": [
+        "rules/auto-loop-project.md",
+        "rules/auto-loop.md",
+        "rules/codex-invocation.md",
+        "test/rules/override-contract.test.js",
+        "test/rules/review-loop-resilience.test.js"
+      ]
+    },
+    {
+      "commit": "36afa29d940de91564b3752fb0479a3f48e39d0c",
+      "subject": "feat(codex-code-review): Switch review, doc-review and plan-review to codex exec (1/2)",
+      "paths": [
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-prompt-branch.md",
+        "skills/codex-code-review/references/codex-prompt-fast.md",
+        "skills/codex-code-review/references/codex-prompt-full.md",
+        "skills/codex-code-review/references/codex-research-instructions.md",
+        "skills/codex-code-review/references/review-common.md",
+        "skills/doc-review/SKILL.md",
+        "skills/doc-review/references/codex-prompt-doc.md",
+        "skills/doc-review/references/review-loop-doc.md",
+        "skills/plan-review/SKILL.md",
+        "skills/plan-review/references/codex-prompt-plan.md",
+        "skills/plan-review/references/review-loop-plan.md",
+        "test/skills/codex-code-review-ac.test.js",
+        "test/skills/plan-review.test.js"
+      ]
+    },
+    {
+      "commit": "b03d9eee3d78494762d29e6541022756c237a0a8",
+      "subject": "feat(codex-code-review): Switch test-review, seek-verdict and review shells to codex exec (2/2)",
+      "paths": [
+        "skills/codex-review-branch/SKILL.md",
+        "skills/codex-review-doc/SKILL.md",
+        "skills/codex-review-fast/SKILL.md",
+        "skills/codex-review/SKILL.md",
+        "skills/codex-test-review/SKILL.md",
+        "skills/feature-verify/references/blackbox-testing.md",
+        "skills/seek-verdict/SKILL.md",
+        "skills/seek-verdict/references/policy-mapping.md",
+        "skills/seek-verdict/references/verdict-prompt.md",
+        "skills/test-review/SKILL.md",
+        "skills/test-review/references/codex-prompt-ac-trace.md",
+        "skills/test-review/references/codex-prompt-test-gen.md",
+        "skills/test-review/references/codex-prompt-test-review.md",
+        "test/skills/scope-review-contract.test.js",
+        "test/skills/testing-rules.test.js"
+      ]
+    },
+    {
+      "commit": "d5ce5fad99a3dd8b7289b6e4d0bb84509dfe672a",
+      "subject": "feat(skills): Switch architecture, debate and implement skills to codex exec (1/3)",
+      "paths": [
+        "skills/architecture/SKILL.md",
+        "skills/architecture/references/codex-prompt.md",
+        "skills/best-practices/SKILL.md",
+        "skills/best-practices/references/debate-guide.md",
+        "skills/code-investigate/SKILL.md",
+        "skills/code-investigate/references/prompts.md",
+        "skills/codex-architect/SKILL.md",
+        "skills/codex-brainstorm/SKILL.md",
+        "skills/codex-brainstorm/references/techniques.md",
+        "skills/codex-explain/SKILL.md",
+        "skills/codex-explain/references/codex-prompt-explain.md",
+        "skills/codex-implement/SKILL.md",
+        "skills/codex-implement/references/codex-prompts.md",
+        "test/skills/architecture.test.js",
+        "test/skills/best-practices/skill-contract.test.js"
+      ]
+    },
+    {
+      "commit": "73a6301ddeea0e1385d99f2508538bf203bf7fbd",
+      "subject": "feat(skills): Switch security, feasibility and audit skills to codex exec (2/3)",
+      "paths": [
+        "skills/codex-security/SKILL.md",
+        "skills/debug/SKILL.md",
+        "skills/feasibility-study/SKILL.md",
+        "skills/feasibility-study/references/analysis-phases.md",
+        "skills/feasibility-study/references/codex-discussion-guide.md",
+        "skills/feature-verify/SKILL.md",
+        "skills/feature-verify/references/environments.md",
+        "skills/fp-brief/SKILL.md",
+        "skills/fp-brief/references/codex-verify-prompt.md",
+        "skills/issue-analyze/SKILL.md",
+        "skills/issue-analyze/references/report-template.md",
+        "skills/load-pr-review/SKILL.md",
+        "skills/necessity-audit/SKILL.md",
+        "skills/necessity-audit/references/phase-b-debate-topic.md",
+        "skills/necessity-audit/references/review-loop.md"
+      ]
+    },
+    {
+      "commit": "9b001f9e77e7cbdb579d7d9fb83be78108e1e48c",
+      "subject": "feat(skills): Switch recap, review-spec and agent frontmatters to codex exec (3/3)",
+      "paths": [
+        "agents/codex-architect.md",
+        "agents/codex-implementer.md",
+        "agents/feasibility-analyst.md",
+        "skills/post-dev-recap/SKILL.md",
+        "skills/recap-ask/SKILL.md",
+        "skills/recap-ask/references/qa-prompt.md",
+        "skills/recap-doc/SKILL.md",
+        "skills/recap-doc/references/prompt-template.md",
+        "skills/req-analyze/SKILL.md",
+        "skills/review-spec/SKILL.md",
+        "skills/security-review/SKILL.md",
+        "skills/security-review/references/codex-prompt-security.md",
+        "test/skills/debug.test.js",
+        "test/skills/fp-brief.test.js",
+        "test/skills/recap-ask.test.js"
+      ]
+    },
+    {
+      "commit": "be77925369258c4423db7c4d3e0a17c87f398e51",
+      "subject": "test(skills): Re-pin recap-doc/review-spec and add codex-implement safety tests",
+      "paths": [
+        "test/skills/codex-implement-safety.test.js",
+        "test/skills/recap-doc.test.js",
+        "test/skills/review-spec.test.js"
+      ]
+    },
+    {
+      "commit": "5e58fe7d666d5f6d16f134560ec132fe00d64d36",
+      "subject": "docs(readme): Sweep READMEs and the skill catalog for the codex exec setup",
+      "paths": [
+        "README.es.md",
+        "README.ja.md",
+        "README.ko.md",
+        "README.md",
+        "README.zh-CN.md",
+        "README.zh-TW.md",
+        "docs/skill-catalog.yml",
+        "scripts/generate-readme-catalog.js",
+        "test/scripts/generate-readme-catalog.test.js",
+        "test/scripts/readme-codex-exec-setup.test.js",
+        "test/scripts/readme-codex-mcp.test.js"
+      ]
+    },
+    {
+      "commit": "0beb18e584f01ef06fa76190cae8a748d8a295ea",
+      "subject": "feat(skills): Drop unjustified codex grants and pin the frontmatter grant-surface invariant",
+      "paths": [
+        "skills/codex-test-gen/SKILL.md",
+        "skills/feature-dev/SKILL.md",
+        "skills/sharingan/references/dependency-graph-algorithm.md",
+        "skills/sharingan/references/format-mapping.md",
+        "skills/sharingan/scripts/scan-repo.js",
+        "test/skills/frontmatter-grants.test.js"
+      ]
+    },
+    {
+      "commit": "2281f204de76316c920534ca4143868938b49c15",
+      "subject": "docs(codex-exec-transport): Add the tech spec, intent, and request tickets",
+      "paths": [
+        "docs/features/codex-exec-transport/2-tech-spec.md",
+        "docs/features/codex-exec-transport/intent-codex-exec-transport.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-codex-exec-adapter-and-fake-cli-tests.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-codex-transport-reference-and-guards.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-core-review-family-transport-switch.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-live-acceptance-and-release.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-non-gate-skills-transport-switch.md",
+        "docs/features/codex-exec-transport/requests/2026-09-03-permission-readme-and-catalog-sweep.md",
+        "docs/features/codex-exec-transport/requests/2026-09-04-codex-implement-review-contract.md",
+        "docs/features/codex-exec-transport/requests/2026-09-04-frontmatter-grant-surface-burndown.md"
+      ]
+    },
+    {
+      "commit": "3d3c4c705972fba52db8706543537d4918fdb2ec",
+      "subject": "chore(release): Bump to 4.6.0",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    },
+    {
+      "commit": "0d3b1ca7e02aa68fdb952aedba8cc1cd3d538190",
+      "subject": "feat(codex-exec): Add a progress channel and a liveness-checked stale sweep to the adapter",
+      "paths": [
+        "docs/features/codex-exec-transport/2-tech-spec.md",
+        "docs/features/codex-exec-transport/intent-codex-exec-transport.md",
+        "docs/features/codex-exec-transport/requests/2026-09-05-observer-lifecycle-and-stale-alloc.md",
+        "scripts/codex-exec.js",
+        "test/fixtures/codex-exec/fake-codex.js",
+        "test/fixtures/codex-exec/fs-fault.js",
+        "test/scripts/codex-exec.test.js"
+      ]
+    },
+    {
+      "commit": "286980eaeb9bc72365adfe1e4956d64300141255",
+      "subject": "feat(codex-code-review): Observe background dispatches by push and let the watcher end itself",
+      "paths": [
+        "docs/features/codex-exec-transport/requests/2026-09-03-live-acceptance-and-release.md",
+        "docs/features/codex-exec-transport/requests/2026-09-05-progress-channel.md",
+        "skills/codex-code-review/SKILL.md",
+        "skills/codex-code-review/references/codex-transport.md",
+        "skills/codex-review-branch/SKILL.md",
+        "skills/codex-review-fast/SKILL.md",
+        "skills/codex-review/SKILL.md",
+        "test/rules/codex-transport-guards.test.js",
+        "test/skills/codex-transport.test.js"
+      ]
+    },
+    {
+      "commit": "78443ce44ac88d34e2cda63e33f2ade0e19c85af",
+      "subject": "chore(release): Bump to 4.6.1",
+      "paths": [
+        ".claude-plugin/plugin.json",
+        ".sd0x/install-state.json",
+        "package.json"
+      ]
+    }
+  ]
+}
