@@ -18,7 +18,7 @@ Select the mode that matches the requested project-local surface. One allowliste
 
 The bundled [setup entrypoint](scripts/setup.js) is the only project-writing implementation for all four modes.
 
-`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"setup/setup.js","cwd":"<repository-root>","args":[]}'`
+`mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"setup/setup.js","cwd":"<repository-root>","args":[]}'`
 
 For a non-default selected mode, the args array in this same allowlisted call is replaced only by its closed value listed above.
 

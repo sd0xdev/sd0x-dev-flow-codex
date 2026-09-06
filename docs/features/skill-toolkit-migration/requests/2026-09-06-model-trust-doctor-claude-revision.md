@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-09-06
 > **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P1
 > **Depends On**: [Previous unit owner](./2026-09-05-native-auto-loop-doctor-claude-revision.md); [Latest durable owner](./2026-07-28-wave6-doctor-claude-promotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -22,5 +22,5 @@
 | Phase | Status | Note |
 |---|---|---|
 | Development | Complete | Native payload `0fc1630c03e21ead75c48df53996b713fe739d3cb85ae4f45c0c501d5e6835b6`. |
-| Testing | Complete | Preflight `f39d1fd5acf7a81579ef48c7b0581dcffa40c367026675e86158b1aaa1bb560f`; static routing, operation and test-identity audit passed. Full repository verification remains pending. |
-| Acceptance | Candidate Complete | Pending current fingerprint primary review and deterministic verification; no final completion claim. |
+| Testing | Complete | Preflight `f39d1fd5acf7a81579ef48c7b0581dcffa40c367026675e86158b1aaa1bb560f`; Final audit `658a3a71a6de4d4611e29307147066f133edda5aa6d1d441cd3b5c73d68207b7` passed. Fingerprint-bound repository verification passed. |
+| Acceptance | Complete | Runtime-owned request closure and promotion evidence bind this Completed owner. |

@@ -230,7 +230,7 @@
       "wave": 6,
       "routing_owner": "doctor",
       "promotion_unit_id": "doctor/claude",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-doctor-claude-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-07-remove-claude-mcp-doctor-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },

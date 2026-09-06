@@ -104,7 +104,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 正式 Codex plugin 目前包含：
 
 - 86 個 skills：`architecture`、`architecture-advice`、`ask`、`best-practices`、`brainstorm`、`bug-fix`、`bump-version`、`check-coverage`、`code-explore`、`code-investigate`、`contract-decode`、`create-pr`、`create-request`、`de-ai-flavor`、`debug`、`deep-explore`、`deep-research`、`dep-audit`、`dev-security-audit`、`doc-refactor`、`doc-review`、`doctor`、`epic-merge`、`explain`、`feasibility-study`、`feature-dev`、`feature-verify`、`fp-brief`、`generate-runner`、`git-investigate`、`git-profile`、`issue-analyze`、`jira`、`load-pr-review`、`merge-prep`、`necessity-audit`、`next-step`、`obsidian-cli`、`op-session`、`orchestrate`、`plan-review`、`portfolio`、`post-dev-recap`、`post-dev-test`、`pr-comment`、`pr-review`、`pr-summary`、`pre-pr-audit`、`project-audit`、`project-brief`、`push-ci`、`readme-i18n-sync`、`recap-ask`、`recap-doc`、`refactor`、`remind`、`repo-intake`、`req-analyze`、`request-tracking`、`reset`、`review`、`review-spec`、`risk-assess`、`runbook`、`safe-remove`、`security-review`、`seek-verdict`、`setup`、`sharingan`、`simplify`、`skill-health-check`、`smart-commit`、`smart-rebase`、`statusline-config`、`tech-brief`、`tech-spec`、`test-deep`、`test-gen`、`test-health`、`test-review`、`ui-first-principles`、`update-docs`、`update-readme`、`verify`、`watch-ci`、`zh-tw`。
-- 1 個 bundled MCP server：`sd0x_claude_review`。保留 legacy connection key 以相容已安裝 entrypoints；只提供 allowlisted `run_skill_script`，server identity 為 `sd0x-skill-runtime`，沒有 LLM review tool。
+- 1 個 bundled MCP server：`sd0x_skill_runtime`。舊 Claude MCP connection 已移除；只提供 allowlisted `run_skill_script`，server identity 為 `sd0x-skill-runtime`，沒有 LLM review tool。
 - 1 個 project-scoped reviewer profile：Codex primary，預設繼承 parent model／reasoning effort。
 - Session、prompt、edit、subagent 與 Stop lifecycle hooks。
 - Fingerprint state machine、deterministic verification、project setup、doctor 與 dev-link tooling。
@@ -315,7 +315,7 @@ Hook interception 只是 workflow guardrail。Shell 或其他等價路徑可能�
 
 `test-review` 是獨立 non-gating assessment。Review 停滯時先根據具體 finding 診斷、採取 bounded adjustment 並記錄結果；不能用 round cap 或 deferred P2 取得 pass。
 
-Claude CLI adapter、`review_worktree` 與 managed Claude wrapper 已退休。舊 MCP connection key `sd0x_claude_review` 僅為 deterministic runner 的相容名稱。Historical Claude evidence 仍可唯讀稽核，不能滿足 current gate。
+Claude CLI adapter、`review_worktree` 與 managed Claude wrapper 已退休。MCP connection 使用 `sd0x_skill_runtime`，不再註冊舊 Claude connection key。Historical Claude evidence 仍可唯讀稽核，不能滿足 current gate。
 
 模型繼承與 native config precedence 依 [官方 subagent 文件](https://learn.chatgpt.com/docs/agent-configuration/subagents) 校準。`sandbox_mode = "read-only"` 是 profile default；parent live permissions（包括 `--yolo`）可能優先，reviewer 行為仍必須唯讀。
 

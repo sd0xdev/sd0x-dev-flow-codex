@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "sd0x_claude_review": {
+    "sd0x_skill_runtime": {
       "type": "stdio",
       "command": "node",
       "args": [

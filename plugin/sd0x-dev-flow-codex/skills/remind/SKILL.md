@@ -9,7 +9,7 @@ The allowlisted bundled entrypoint below performs the read-only status inspectio
 
 ## Bounded runtime
 
-`mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"remind/status.js","cwd":"<repository-root>","args":[]}'`
+`mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"remind/status.js","cwd":"<repository-root>","args":[]}'`
 
 - `reviewer-unavailable`: preserve failure evidence; use the reset skill under existing user authorization within its scope, or ask before reset if none applies.
 - `review-in-progress`: wait for the configured primary terminal result.

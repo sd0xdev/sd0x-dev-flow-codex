@@ -21,6 +21,6 @@
 
 | Phase | Status | Note |
 |---|---|---|
-| Development | Complete | Native payload `0a8293743a5522afb8fd74f113c3a6e0d6df26f74f45ee0b291ae1b755832b0d`. |
-| Testing | Complete | Preflight `c9b3e9ab78dbb1562579be11bc9a8d047a0bfee3c2edc80ce4c5a4b08144a7ad`; static routing, operation and test-identity audit passed. Full repository verification remains pending. |
-| Acceptance | Candidate Complete | Pending current fingerprint primary review and deterministic verification; no final completion claim. |
+| Development | Complete | Native payload `6161a7396b092542593b5d92a95e89868c279b463511e2a2d1a51b46b6c8d219`. |
+| Testing | Complete | Preflight `d75bed70b2b279306a6420d60f2d1b3c2f3a993f57a745bb8f54345a829fcef4` passed. |
+| Acceptance | Candidate Complete | 新版 payload 已通過 canonical move-window audit；等待 fingerprint-bound review、verify 與 durable closure。 |

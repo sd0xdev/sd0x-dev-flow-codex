@@ -63,7 +63,10 @@ function mcpServerStatus(pluginRoot, execute = spawnSync) {
   let server;
   try {
     const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    server = config.mcpServers?.sd0x_claude_review;
+    if (Object.hasOwn(config.mcpServers || {}, 'sd0x_claude_review')) {
+      return { ready: false, reason: 'retired-review-connection-present' };
+    }
+    server = config.mcpServers?.sd0x_skill_runtime;
   } catch (error) {
     return { ready: false, reason: `invalid-config:${error.message}` };
   }

@@ -7,7 +7,7 @@
     },
     {
       "path": ".mcp.json",
-      "sha256": "30ae9e85e46747a94d67c42d426dcee95523a0198bd36b54f461f88e88f64ef5"
+      "sha256": "478805a26032ba44c69776d614d0833b228b264521393d5c617576897725c4be"
     },
     {
       "path": "LICENSE",
@@ -23,7 +23,7 @@
     },
     {
       "path": "scripts/runtime/cli.js",
-      "sha256": "df6321cc77bae0806e18e3107e357bcb43b5c0adf7cf680bcea918dd949dcc87"
+      "sha256": "2109c2467da19bde6cd39e33f206f3cff36e0494c0e3e174e175707464586525"
     },
     {
       "path": "scripts/runtime/collaboration.js",
@@ -303,7 +303,7 @@
     },
     {
       "path": "skills/doctor/SKILL.md",
-      "sha256": "b9ab29013c2aef099a5720a255b1e173cbc20e7c51786f405b5c904ef46b667c"
+      "sha256": "8942aedf90a7e250dee0d6157d96c9413ca9565813d9a86430095e337fd7d524"
     },
     {
       "path": "skills/doctor/migration-contract.json",
@@ -723,7 +723,7 @@
     },
     {
       "path": "skills/remind/SKILL.md",
-      "sha256": "1a96eacf6a798d89d495fd3b9a47ffd365fe2d152ac7baca21237f02dde1e00a"
+      "sha256": "2b08da78efb2aa43cd2b8697d21a5b1cae5f065e29d16a1b02715a377e7f5020"
     },
     {
       "path": "skills/remind/migration-contract.json",
@@ -803,7 +803,7 @@
     },
     {
       "path": "skills/review/SKILL.md",
-      "sha256": "f16554165faeb5bee5804faf5ee215f732762c312049f647a41b027ab699c352"
+      "sha256": "90ba2b2f98205ed0ec8056b14b2c38becff3299ffd31a86918c5ec6328fbdd23"
     },
     {
       "path": "skills/review/migration-contract.json",
@@ -875,7 +875,7 @@
     },
     {
       "path": "skills/setup/SKILL.md",
-      "sha256": "4066bb306fa943f921442c345de68eb3b3faa1d5b02ec949021ec742809fdb2e"
+      "sha256": "5557ee0446f2b1c09966c7ec04e69438c0398bfc50ac47065030c3fbab6e2878"
     },
     {
       "path": "skills/setup/migration-contract.json",
@@ -1015,7 +1015,7 @@
     },
     {
       "path": "skills/verify/SKILL.md",
-      "sha256": "eab269f30f6433bc50438d78bef026d9bbc37d16835a93af435f0203428f60ae"
+      "sha256": "85f849db402952fcdf9840ad6b27cf94c7b413b4940c66d00911cc7ac00ebac0"
     },
     {
       "path": "skills/verify/migration-contract.json",

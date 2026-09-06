@@ -14,15 +14,15 @@ description: "Record deterministic verification after current-fingerprint primar
 ## Bounded runtime
 
 ```bash
-mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":[]}'
+mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":[]}'
 ```
 
 ```bash
-mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":["--mode","fast","--allow-fixes"]}'
+mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":["--mode","fast","--allow-fixes"]}'
 ```
 
 ```bash
-mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":["--mode","precommit","--allow-fixes"]}'
+mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":["--mode","precommit","--allow-fixes"]}'
 ```
 
 Without `--allow-fixes`, a detected lint-fix step fails closed before any command

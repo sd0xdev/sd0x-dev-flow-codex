@@ -834,3 +834,5 @@ Gate-owner lifecycle：promotion completion 要求 pointed ticket 為 `Completed
 | Formal plugin scope | All 95 canonical units ship from the single distributable plugin；mapping-only aliases do not add duplicate entrypoints；legacy packs are promotion inputs/history only | A future split into multiple published plugins requires a new architecture/guidance request and release-compatible migration |
 | Research default | Medium for explicit broad research；low auto-downgrade for narrow intent；brainstorm auto-trigger only from defined validation conditions | Project budget override after usage data |
 | `statusline-config` | Ship a read-only capability-aware skill；current unsupported versions explain alternatives and fail closed without touching Claude config | Add actual configuration mutation only after an official Codex API is locally or officially verified and separately authorized |
+
+- Active MCP removal request: [Remove Claude MCP Connection — doctor/claude](./requests/2026-09-07-remove-claude-mcp-doctor-revision.md).

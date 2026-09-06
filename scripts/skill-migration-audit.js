@@ -141,7 +141,7 @@ const ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS = new Map([
   { unit: 'create-request/default', acceptance: 'Complete' }
 ]));
 const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->';
-const TRUSTED_RUNTIME_TOOL = 'mcp__sd0x_claude_review__run_skill_script';
+const TRUSTED_RUNTIME_TOOL = 'mcp__sd0x_skill_runtime__run_skill_script';
 const READ_ONLY_RUNTIME_ENTRYPOINTS = new Set([
   'doctor/doctor.js',
   'remind/status.js'

@@ -125,7 +125,7 @@ Reset 不會修改 project files 或停用 active session；它只清除 sd0x ru
 
 `plugin/sd0x-dev-flow-codex/scripts/runtime/worktree.js` 分別雜湊 HEAD→index、index→worktree 的 raw diffs，以及所有未被忽略的 untracked paths/file bodies，也涵蓋 dirty nested Git repositories。即使 staged file 之後被刪除，或 worktree 又改回 HEAD，fingerprint 仍可辨識 staged state。
 
-`skills/review/scripts/provider.js` 回傳單一 Codex primary 與 parent-session 設定來源。`scripts/mcp/server.js` 只提供 allowlisted `run_skill_script`，使用 MCP process 自己的 Node executable，拒絕 PATH shadow 與 loader preload；MCP connection key 暫留 `sd0x_claude_review` 以相容既有 skills，沒有 `review_worktree` 或 Claude CLI 執行能力。`state.js` 原子保存 fingerprint、epoch、primary terminal evidence；`hook.js` 是 Codex event adapter，`verify.js` 是唯一可記錄 deterministic verification 的 owner。
+`skills/review/scripts/provider.js` 回傳單一 Codex primary 與 parent-session 設定來源。`scripts/mcp/server.js` 只提供 allowlisted `run_skill_script`，使用 MCP process 自己的 Node executable，拒絕 PATH shadow 與 loader preload；MCP connection key 為 `sd0x_skill_runtime`，舊 Claude MCP connection 已移除；沒有 `review_worktree` 或 Claude CLI 執行能力。`state.js` 原子保存 fingerprint、epoch、primary terminal evidence；`hook.js` 是 Codex event adapter，`verify.js` 是唯一可記錄 deterministic verification 的 owner。
 
 Runtime state 存在 Git metadata 或 `.sd0x/`，不會成為 tracked project artifact。Hooks 是 workflow guardrails，不是 OS security boundary；repository permissions 與 secret management 仍是實際安全邊界。
 

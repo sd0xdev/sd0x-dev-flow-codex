@@ -63,8 +63,26 @@ test('doctor verifies the real runtime handshake without a review tool', () => {
   assert.equal(result.server_name, 'sd0x-skill-runtime');
 });
 
+test('doctor rejects a retained Claude connection before starting any server', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-retired-connection-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const configuration = JSON.parse(fs.readFileSync(path.resolve(
+    __dirname, '../plugin/sd0x-dev-flow-codex/.mcp.json'
+  ), 'utf8'));
+  assert.deepEqual(Object.keys(configuration.mcpServers), ['sd0x_skill_runtime']);
+  const server = configuration.mcpServers.sd0x_skill_runtime;
+  for (const servers of [
+    { sd0x_claude_review: server },
+    { sd0x_skill_runtime: server, sd0x_claude_review: server }
+  ]) {
+    fs.writeFileSync(path.join(root, '.mcp.json'), JSON.stringify({ mcpServers: servers }));
+    const result = mcpServerStatus(root, () => assert.fail('retired connection must not execute'));
+    assert.deepEqual(result, { ready: false, reason: 'retired-review-connection-present' });
+  }
+});
+
 function createRepo() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-claude-mcp-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-skill-runtime-'));
   initRepository(root);
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 1;\n');
   fs.writeFileSync(path.join(root, 'helper.js'), 'module.exports = 42;\n');
