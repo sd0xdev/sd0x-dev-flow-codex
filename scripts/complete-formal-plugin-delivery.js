@@ -24,7 +24,8 @@ const {
   readEvidenceRecord,
   prepareRequestClosure,
   recordPromotionEvidence,
-  refreshState
+  refreshState,
+  withEvidenceBatch
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   atomicWriteContainedFile,
@@ -1011,7 +1012,7 @@ function main(argv = process.argv.slice(2)) {
   const actions = { prepare, apply, finalize, overlay, record: recordPromotions };
   const action = actions[argv[0]];
   if (!action) fail(`unknown formal delivery phase: ${argv[0]}`);
-  action();
+  withEvidenceBatch(ROOT, action);
 }
 
 if (require.main === module) {

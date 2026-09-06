@@ -29,7 +29,8 @@ const {
   refreshState,
   readEvidenceRecord,
   resolveRuntimeMetadataPath,
-  resetState
+  resetState,
+  withEvidenceBatch
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   retireCompletedManifest
@@ -610,6 +611,99 @@ test('an explicit Git bundle transfers the evidence ref offline', (t) => {
   evidenceGit(imported, ['fetch', bundlePath, `${EVIDENCE_REF}:${EVIDENCE_REF}`]);
   assert.deepEqual(readEvidenceRecord(imported, bundle.value.record_sha256).record,
     bundle.value);
+});
+
+test('evidence batches reuse immutable reads while observing appended records and nested repositories', (t) => {
+  const root = repository();
+  const other = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  t.after(() => fs.rmSync(other, { recursive: true, force: true }));
+  const first = record(root);
+  const appended = appendEvidenceRevision(root, first.value, first.blobs, { expected_old_oid: null });
+  const otherRecord = record(other);
+  appendEvidenceRevision(other, otherRecord.value, otherRecord.blobs, { expected_old_oid: null });
+  const trace = path.join(root, '.git', 'batch-trace.log');
+  const priorTrace = process.env.GIT_TRACE;
+  process.env.GIT_TRACE = trace;
+  t.after(() => {
+    if (priorTrace === undefined) delete process.env.GIT_TRACE;
+    else process.env.GIT_TRACE = priorTrace;
+  });
+  const blobReads = () => (fs.readFileSync(trace, 'utf8').match(/cat-file --batch/g) || []).length;
+  withEvidenceBatch(root, () => {
+    assert.equal(auditEvidenceLedger(root).records, 1);
+    const initialReads = blobReads();
+    assert(initialReads > 0);
+    assert.equal(auditEvidenceLedger(root).records, 1);
+    assert.equal(blobReads(), initialReads, 'unchanged objects must not be fetched again');
+    assert.equal(withEvidenceBatch(other, () => auditEvidenceLedger(other)).records, 1);
+    const afterNestedReads = blobReads();
+    assert.equal(auditEvidenceLedger(root).oid, appended.oid);
+    assert.equal(blobReads(), afterNestedReads, 'nested repositories must restore the outer cache');
+    const next = record(root, {
+      recordedAt: '2026-07-12T00:00:01.000Z', supersedes: first.value.record_sha256
+    });
+    const second = appendEvidenceRevision(root, next.value, next.blobs, {
+      expected_old_oid: appended.oid
+    });
+    const audited = auditEvidenceLedger(root);
+    assert.equal(audited.oid, second.oid);
+    assert.equal(audited.records, 2);
+    assert(blobReads() > afterNestedReads, 'new objects must be fetched after ref advancement');
+  });
+  const afterBatchReads = blobReads();
+  assert.equal(auditEvidenceLedger(root).records, 2);
+  assert(blobReads() > afterBatchReads, 'a new batch must not inherit the old cache');
+});
+
+test('an evidence batch detects same-path blob replacement after the live ref changes', (t) => {
+  const root = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const bundle = record(root);
+  const appended = appendEvidenceRevision(root, bundle.value, bundle.blobs, { expected_old_oid: null });
+  const indexPath = path.join(root, '.git', 'batch-tamper-index');
+  const env = { ...process.env, GIT_INDEX_FILE: indexPath };
+  withEvidenceBatch(root, () => {
+    assert.equal(auditEvidenceLedger(root).ok, true);
+    evidenceGit(root, ['read-tree', `${appended.oid}^{tree}`], { env });
+    const blob = evidenceGit(root, ['hash-object', '-w', '--stdin'], {
+      env, input: '{"redactor_version":"sd0x-redactor-v1","value":{"tampered":true}}\n'
+    });
+    evidenceGit(root, ['update-index', '--add', '--cacheinfo',
+      `100644,${blob},evidence/${bundle.value.record_sha256}/subject-review.json`], { env });
+    const tree = evidenceGit(root, ['write-tree'], { env });
+    const rewritten = evidenceGit(root, ['commit-tree', tree, '-m', 'rewritten evidence root']);
+    evidenceGit(root, ['update-ref', EVIDENCE_REF, rewritten, appended.oid]);
+    assert.throws(() => auditEvidenceLedger(root), /blob is missing or corrupt/);
+    evidenceGit(root, ['update-ref', EVIDENCE_REF, appended.oid, rewritten]);
+    assert.equal(auditEvidenceLedger(root).ok, true);
+  });
+});
+
+test('evidence batches retain live request checks and reject asynchronous lifetime', (t) => {
+  const root = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let invoked = false;
+  assert.throws(() => withEvidenceBatch(root, async () => { invoked = true; }), /synchronous/);
+  assert.equal(invoked, false);
+  const requestPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
+  withEvidenceBatch(root, () => {
+    const pending = prepareRequestClosure(root, {
+      promotion_unit_id: 'fixture/default', request_path: requestPath,
+      proposed_request: completedRequestBytes(root), subject: dirtySubject(root),
+      evidence: passingClosureEvidence(root), recorded_at: '2026-07-12T01:00:00.000Z',
+      supersedes_record_sha256: null
+    });
+    applyRequestClosure(root, { pending_record_sha256: pending.record_sha256 });
+    recordCleanReview(root);
+    finalizeRequestClosure(root, {
+      pending_record_sha256: pending.record_sha256,
+      recorded_at: '2026-07-12T01:01:00.000Z', supersedes_record_sha256: null
+    });
+    assert.equal(auditEvidenceLedger(root).ok, true);
+    fs.appendFileSync(path.join(root, requestPath), '\nlater edit\n');
+    assert.throws(() => auditEvidenceLedger(root), /Current request no longer matches/);
+  });
 });
 
 test('request closure prepare and finalize bind proposal, projection, subject review, and docs review', (t) => {

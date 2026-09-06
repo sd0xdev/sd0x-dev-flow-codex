@@ -3143,14 +3143,56 @@ function latestEvidenceRecord(root, kind, promotionUnitId, oid = evidenceRefOid(
 }
 
 function evidenceFileBytes(root, oid, filePath) {
-  const cache = activeEvidenceAuditContext &&
+  const context = activeEvidenceAuditContext &&
     path.resolve(root) === activeEvidenceAuditContext.root
-    ? activeEvidenceAuditContext.evidenceFiles
+    ? activeEvidenceAuditContext
     : null;
-  if (cache?.has(filePath)) return cache.get(filePath);
-  const bytes = String(runEvidenceGit(root, ['show', `${oid}:${filePath}`]));
-  if (cache) cache.set(filePath, bytes);
-  return bytes;
+  if (!context) return String(runEvidenceGit(root, ['show', `${oid}:${filePath}`]));
+  if (!/^[a-f0-9]{40}$/.test(oid)) throw new Error('Evidence tree requires an exact object ID');
+  if (!context.trees.has(oid)) {
+    const tree = new Map();
+    for (const entry of String(runEvidenceGit(root, ['ls-tree', '-r', '-z', oid]))
+      .split('\0').filter(Boolean)) {
+      const separator = entry.indexOf('\t');
+      const metadata = entry.slice(0, separator).split(' ');
+      if (separator < 0 || metadata[1] !== 'blob' || !/^[a-f0-9]{40}$/.test(metadata[2])) {
+        throw new Error('Evidence tree contains an invalid blob entry');
+      }
+      tree.set(entry.slice(separator + 1), metadata[2]);
+    }
+    const missing = [...new Set(tree.values())].filter((objectId) =>
+      !context.evidenceFiles.has(objectId)
+    );
+    for (let start = 0; start < missing.length; start += 128) {
+      const objects = missing.slice(start, start + 128);
+      const output = runEvidenceGit(root, ['cat-file', '--batch'], {
+        input: `${objects.join('\n')}\n`, encoding: null
+      });
+      let offset = 0;
+      for (const objectId of objects) {
+        const end = output.indexOf(10, offset);
+        const header = output.subarray(offset, end).toString('utf8')
+          .match(/^([a-f0-9]{40}) blob (\d+)$/);
+        if (end < offset || !header || header[1] !== objectId) {
+          throw new Error('Evidence batch returned an invalid blob header');
+        }
+        const size = Number(header[2]);
+        const begin = end + 1;
+        if (!Number.isSafeInteger(size) || begin + size >= output.length ||
+            output[begin + size] !== 10) {
+          throw new Error('Evidence batch returned truncated blob bytes');
+        }
+        context.evidenceFiles.set(objectId,
+          output.subarray(begin, begin + size).toString('utf8'));
+        offset = begin + size + 1;
+      }
+      if (offset !== output.length) throw new Error('Evidence batch returned extra blob bytes');
+    }
+    context.trees.set(oid, tree);
+  }
+  const objectId = context.trees.get(oid).get(filePath);
+  if (!objectId) throw new Error(`Evidence blob is missing: ${filePath}`);
+  return context.evidenceFiles.get(objectId);
 }
 
 function validateEvidenceBlobAt(root, oid, record, name, field, paths = null) {
@@ -3529,19 +3571,40 @@ function auditEvidenceLedgerTransaction(cwd, expected = {}, hooks = {}) {
   };
 }
 
-function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
+// A synchronous batch shares only immutable Git objects, never gate verdicts or
+// mutable refs. Each operation still performs its own live checks and ref CAS.
+function withEvidenceBatch(cwd, operation) {
   const root = findRepoRoot(cwd);
+  if (typeof operation !== 'function' || operation.constructor?.name === 'AsyncFunction') {
+    throw new Error('Evidence batch requires a synchronous operation');
+  }
+  if (activeEvidenceAuditContext?.root === path.resolve(root)) {
+    const result = operation();
+    if (result && typeof result.then === 'function') {
+      throw new Error('Evidence batch cannot outlive its synchronous operation');
+    }
+    return result;
+  }
   const prior = activeEvidenceAuditContext;
   activeEvidenceAuditContext = {
     root: path.resolve(root),
     git: new Map(),
-    evidenceFiles: new Map()
+    evidenceFiles: new Map(),
+    trees: new Map()
   };
   try {
-    return auditEvidenceLedgerTransaction(root, expected, hooks);
+    const result = operation();
+    if (result && typeof result.then === 'function') {
+      throw new Error('Evidence batch cannot outlive its synchronous operation');
+    }
+    return result;
   } finally {
     activeEvidenceAuditContext = prior;
   }
+}
+
+function auditEvidenceLedger(cwd, expected = {}, hooks = {}) {
+  return withEvidenceBatch(cwd, () => auditEvidenceLedgerTransaction(cwd, expected, hooks));
 }
 
 function auditPromotionGeneration(cwd, generation, hooks = {}) {
@@ -3555,13 +3618,7 @@ function auditRequestClosures(cwd, expectations, hooks = {}) {
   if (!Array.isArray(expectations) || expectations.length === 0) {
     throw new Error('Request closure audit requires at least one expectation');
   }
-  const prior = activeEvidenceAuditContext;
-  activeEvidenceAuditContext = {
-    root: path.resolve(root),
-    git: new Map(),
-    evidenceFiles: new Map()
-  };
-  try {
+  return withEvidenceBatch(root, () => {
     const audit = auditEvidenceLedgerTransaction(root, {}, hooks);
     const latestRevision = new Map();
     for (const record of evidenceRecordsAt(root, audit.oid)) {
@@ -3600,9 +3657,7 @@ function auditRequestClosures(cwd, expectations, hooks = {}) {
       throw new Error('Evidence ref changed while request closures were selected');
     }
     return { ...audit, selected };
-  } finally {
-    activeEvidenceAuditContext = prior;
-  }
+  });
 }
 
 function latestCompletionEvidenceSnapshot(cwd) {
@@ -5243,6 +5298,7 @@ module.exports = {
   runtimeStateGeneration,
   setupDeferralPath,
   summarize,
+  withEvidenceBatch,
   withStateLock,
   writeState
 };

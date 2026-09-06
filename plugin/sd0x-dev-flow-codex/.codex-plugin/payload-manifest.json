@@ -47,7 +47,7 @@
     },
     {
       "path": "scripts/runtime/state.js",
-      "sha256": "c15aed596439d3e3a63ffe479b539f4ce825fbc99ea1927eb343cae08862595e"
+      "sha256": "9e790aaab13e9d92729b69236e4106b2d3c215348f4064d42759531fe8c99274"
     },
     {
       "path": "scripts/runtime/verify.js",

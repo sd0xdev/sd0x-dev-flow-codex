@@ -31,7 +31,8 @@ const {
   auditRequestClosures,
   evidenceRefOid,
   hashPayloadTree,
-  latestCompletionEvidenceSnapshot
+  latestCompletionEvidenceSnapshot,
+  withEvidenceBatch
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   snapshot: snapshotWorktree
@@ -8044,6 +8045,10 @@ function selectActiveCandidatePayload(options) {
 }
 
 function auditActiveCandidates(options = {}) {
+  return withEvidenceBatch(options.root || ROOT, () => auditActiveCandidatesTransaction(options));
+}
+
+function auditActiveCandidatesTransaction(options = {}) {
   const root = path.resolve(options.root || ROOT);
   const transactionIdentity = canonicalJson(repositoryIdentity(root));
   const transactionEvidenceOid = evidenceRefOid(root);
