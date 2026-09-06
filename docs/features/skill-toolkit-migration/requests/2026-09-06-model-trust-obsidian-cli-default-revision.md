@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-09-06
 > **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P1
 > **Depends On**: [Previous unit owner](./2026-07-28-wave7-obsidian-cli-default-promotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -22,5 +22,5 @@
 | Phase | Status | Note |
 |---|---|---|
 | Development | Complete | Native payload `ddb60f27c6423fcff9ffb6be2ed134448f9396991af9e79083186bece2dd36f0`. |
-| Testing | Complete | Preflight `8e26ba41148cbf1cc3e46e37030ac92da77b38082b3aba8286a0fd556c883492`; static routing, operation and test-identity audit passed. Full repository verification remains pending. |
-| Acceptance | Candidate Complete | Pending current fingerprint primary review and deterministic verification; no final completion claim. |
+| Testing | Complete | Preflight `8e26ba41148cbf1cc3e46e37030ac92da77b38082b3aba8286a0fd556c883492`; Final audit `8b00926c85601d7c64238561e6aabdb413d3495067760b1b4f279c98abcc3cb7` passed. Fingerprint-bound repository verification passed. |
+| Acceptance | Complete | Runtime-owned request closure and promotion evidence bind this Completed owner. |

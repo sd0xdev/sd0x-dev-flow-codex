@@ -113,8 +113,8 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 
 Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。Current delivery checkpoint：
 
-- Registry checkpoint：0/95 canonical units delivered；95 pending；Wave 1 0/10、Wave 2 0/12、Wave 3 0/8、Wave 4 0/15 delivered；`create-request/default` = `candidate`。
-<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=0 pending=95 wave3=0/8 wave4=0/15 create-request=candidate -->
+- Registry checkpoint：95/95 canonical units delivered；0 pending；Wave 1 10/10、Wave 2 12/12、Wave 3 8/8、Wave 4 15/15 delivered；`create-request/default` = `promoted`。
+<!-- sd0x-migration-delivery:v1 rows=100 units=95 delivered=95 pending=0 wave3=8/8 wave4=15/15 create-request=promoted -->
 - Wave 1 的 10 個 units 均已有 durable closure 與 delivery evidence；`create-request/default` 的 recovery re-promotion 綁定最新 replacement owner、payload 與 single-primary gate fingerprint，promotion revision 為 `e1dd44ef4bd1278022ce1f2746dec2e2399d9c158095820987e40f56adddf1ae`。
 - Wave 2 的 12 個 research units 全部完成 durable delivery；`deep-research/default` 的 origin-identity replacement owner 已完成 closure 與 re-promotion。歷史 accepted bytes 位於 `migration/packs/research-pack/`。
 - Wave 3 的 8 個 development units 已完成 8/8 durable closure 與 delivery；`feature-dev/default` 的 single-primary payload re-promotion 已綁定最新 evidence。

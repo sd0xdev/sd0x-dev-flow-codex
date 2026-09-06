@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-09-06
 > **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P1
 > **Depends On**: [Previous unit owner](./2026-07-28-wave5-verify-fast-promotion.md); [verify/default](./2026-09-06-model-trust-verify-default-revision.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -22,5 +22,5 @@
 | Phase | Status | Note |
 |---|---|---|
 | Development | Complete | Native payload `c6d3107d42111b909b391bd62189d1ff98fd0ddd7c6da5c50ec3996565d039b7`. |
-| Testing | Complete | Preflight `ab4076f2dc42a873d5cbe5c3407430cd555568ea3c9db37883c4dc329bf1042e` passed. |
-| Acceptance | Candidate Complete | 新版 payload 已通過 canonical move-window audit；等待 fingerprint-bound review、verify 與 durable closure。 |
+| Testing | Complete | Preflight `ab4076f2dc42a873d5cbe5c3407430cd555568ea3c9db37883c4dc329bf1042e`; Final audit `4195e16f61ed373dcfb4ee1c5c7ce340f107501f40e673bdabb9a8db5e536af1` passed. Fingerprint-bound repository verification passed. |
+| Acceptance | Complete | Runtime-owned request closure and promotion evidence bind this Completed owner. |

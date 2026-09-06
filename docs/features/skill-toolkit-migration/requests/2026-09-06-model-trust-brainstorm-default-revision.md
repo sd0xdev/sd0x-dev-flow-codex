@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-09-06
 > **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P1
 > **Depends On**: [Previous unit owner](./2026-07-28-wave2-brainstorm-default-formal-promotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -22,5 +22,5 @@
 | Phase | Status | Note |
 |---|---|---|
 | Development | Complete | Native payload `b66243628a63ca82fe355915debbf8453ecb54b454b07c94efa4a2d98757e19d`. |
-| Testing | Complete | Preflight `e3999a7c5bf8670d06c11f63cdc452b13985eba44e91b07138388c4019b1ccd0`; static routing, operation and test-identity audit passed. Full repository verification remains pending. |
-| Acceptance | Candidate Complete | Pending current fingerprint primary review and deterministic verification; no final completion claim. |
+| Testing | Complete | Preflight `e3999a7c5bf8670d06c11f63cdc452b13985eba44e91b07138388c4019b1ccd0`; Final audit `d320b963e157878d430be1c90f874f05424bf067faabec9eb136ca49cf654f11` passed. Fingerprint-bound repository verification passed. |
+| Acceptance | Complete | Runtime-owned request closure and promotion evidence bind this Completed owner. |

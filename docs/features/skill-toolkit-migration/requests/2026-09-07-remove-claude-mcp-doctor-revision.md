@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-09-07
 > **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P1
 > **Depends On**: [Previous completed owner](./2026-09-06-model-trust-doctor-claude-revision.md); [Latest durable owner](./2026-07-28-wave6-doctor-claude-promotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -22,5 +22,5 @@
 | Phase | Status | Note |
 |---|---|---|
 | Development | Complete | Native payload `15bc6eb13c9db0facb93f5f20f304a7dfd08ed20f3e91129bea0b0b36c5d49bb`. |
-| Testing | Complete | Preflight `fd227514fadc46f69648803889c6cd9a548060cd9abb1c844301e5c0dc3231bb` passed. |
-| Acceptance | Candidate Complete | 新版 payload 已通過 canonical move-window audit；等待 fingerprint-bound review、verify 與 durable closure。 |
+| Testing | Complete | Preflight `fd227514fadc46f69648803889c6cd9a548060cd9abb1c844301e5c0dc3231bb`; Final audit `d34bf1a3af484acd699811a7aa1c522bd268dd686205692b439ade08f7672ee9` passed. Fingerprint-bound repository verification passed. |
+| Acceptance | Complete | Runtime-owned request closure and promotion evidence bind this Completed owner. |

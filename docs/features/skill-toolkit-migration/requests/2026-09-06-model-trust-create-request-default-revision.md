@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-09-06
 > **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P1
 > **Depends On**: [Previous unit owner](./2026-07-27-create-request-windows-git-repromotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -22,5 +22,5 @@
 | Phase | Status | Note |
 |---|---|---|
 | Development | Complete | Native payload `628ed03de752e62428cd10a41f68ece11cd29e61e7c652b769d60b1b3465aec6`. |
-| Testing | Complete | Preflight `709220424890de1ab5b310dbf661f1966e70dd4fbf71d3f71d832f26fb9780ec`; static routing, operation and test-identity audit passed. Full repository verification remains pending. |
-| Acceptance | Candidate Complete | Pending current fingerprint primary review and deterministic verification; no final completion claim. |
+| Testing | Complete | Preflight `709220424890de1ab5b310dbf661f1966e70dd4fbf71d3f71d832f26fb9780ec`; Final audit `981d709d9cef6809c770fc4fc8d8d69209e96880d932e3caee497deecf90956e` passed. Fingerprint-bound repository verification passed. |
+| Acceptance | Complete | Runtime-owned request closure and promotion evidence bind this Completed owner. |

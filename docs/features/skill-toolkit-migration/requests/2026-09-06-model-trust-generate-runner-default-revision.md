@@ -3,7 +3,7 @@
 > **Doc class**: Request ticket (date-prefixed non-lifecycle)
 > **Created**: 2026-09-06
 > **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
-> **Status**: Candidate Complete
+> **Status**: Completed
 > **Priority**: P1
 > **Depends On**: [Previous unit owner](./2026-07-28-wave6-generate-runner-default-promotion.md)
 > **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
@@ -22,5 +22,5 @@
 | Phase | Status | Note |
 |---|---|---|
 | Development | Complete | Native payload `efbd7a36fbaecbae52c333d7054948dfb426389e4fb0c88f8407b3d03cc4f54d`. |
-| Testing | Complete | Preflight `e536b56b920eeda1374ac7cc08a220313ebed69d58104d88c7f9ac853ac18483`; static routing, operation and test-identity audit passed. Full repository verification remains pending. |
-| Acceptance | Candidate Complete | Pending current fingerprint primary review and deterministic verification; no final completion claim. |
+| Testing | Complete | Preflight `e536b56b920eeda1374ac7cc08a220313ebed69d58104d88c7f9ac853ac18483`; Final audit `edc898b323cb381ef5c730f3b932986422dfae13ad7c1ed248882e7e079f8949` passed. Fingerprint-bound repository verification passed. |
+| Acceptance | Complete | Runtime-owned request closure and promotion evidence bind this Completed owner. |
