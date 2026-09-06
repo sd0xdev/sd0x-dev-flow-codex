@@ -143,7 +143,7 @@ function buildDisposition(markdown) {
     compatibility_alias_candidates: ALIAS_CANDIDATES,
     alias_policy_decision: {
       policy: 'mapping-only',
-      codex_version: 'codex-cli 0.145.0',
+      codex_version: 'codex-cli 0.153.4',
       evidence: 'migration/alias-capability.json',
       rationale: 'The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only.'
     },

@@ -17,14 +17,14 @@ const { captureRegularTree } = require('./promote-skill-wave');
 const { createRecoveryDirectory } = require('./recovery-directory');
 const {
   routingContractBlock,
-  routingDescription,
+  discoveryDescription,
   routingTestSource
 } = require('./skill-routing-test');
 
 const ROOT = path.resolve(__dirname, '..');
 const PLAN_PATH = path.join(ROOT, 'scripts', 'skill-wave-plans.json');
 const DISPOSITION_PATH = path.join(ROOT, 'migration', 'source-disposition.json');
-const AUTHORIZATION_POLICY = 'later-turn-separate-explicit-user-approval-v1';
+const { CURRENT_POLICY: AUTHORIZATION_POLICY } = require('./skill-authorization-policy');
 const SENSITIVE_OPERATIONS = new Set([
   'commit', 'connector-write', 'history-rewrite', 'pr-write', 'push'
 ]);
@@ -258,7 +258,7 @@ function renderSkill(target, preservedBody = null) {
   return [
     '---',
     `name: ${target.target}`,
-    `description: ${routingDescription(target.target, registry)}`,
+    `description: ${discoveryDescription(target.target, registry)}`,
     '---',
     '',
     body,

@@ -8,7 +8,8 @@ const SIDE_FIELDS = Object.freeze([
   'attacks', 'concessions', 'evidence_refs', 'new_valid_attack',
   'position_changed', 'position_update', 'unresolved_attack'
 ]);
-const ROUND_FIELDS = Object.freeze(['claude_adapter', 'native_codex']);
+const ROUND_FIELDS = Object.freeze(['codex_proponent', 'codex_challenger']);
+const ACTORS = Object.freeze(['codex-proponent', 'codex-challenger']);
 const OUTCOME_PRECEDENCE = Object.freeze(['divergent', 'conditional', 'pure', 'pareto']);
 
 function exactKeys(value, fields) {
@@ -20,7 +21,7 @@ function nonempty(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function validateAttack(attack, claimIds, noveltyKeys, attackIds = new Set()) {
+function validateAttack(attack, claimIds, noveltyKeys, attackIds = new Set(), expectedActor) {
   if (!exactKeys(attack, ATTACK_FIELDS) || !nonempty(attack.attack_id) ||
       !nonempty(attack.target_claim_id) || !nonempty(attack.novelty_key) ||
       attackIds.has(attack.attack_id) || noveltyKeys.has(attack.novelty_key) ||
@@ -34,14 +35,15 @@ function validateAttack(attack, claimIds, noveltyKeys, attackIds = new Set()) {
     ? attack.argument.trim().split(new RegExp('\\s+')).filter(Boolean)
     : [];
   if (argumentWords.length < 3 || !attack.argument.includes(attack.target_claim_id) ||
-      !['native-codex', 'claude-adapter'].includes(attack.proposed_by) ||
+      !ACTORS.includes(attack.proposed_by) ||
+      (expectedActor !== undefined && attack.proposed_by !== expectedActor) ||
       !['valid', 'invalid', 'unresolved'].includes(attack.validity)) return false;
   attackIds.add(attack.attack_id);
   noveltyKeys.add(attack.novelty_key);
   return true;
 }
 
-function validateSide(side, claimIds, noveltyKeys, attackIds) {
+function validateSide(side, claimIds, noveltyKeys, attackIds, actor) {
   if (!exactKeys(side, SIDE_FIELDS) || !Array.isArray(side.attacks) ||
       !Array.isArray(side.concessions) || !side.concessions.every(nonempty) ||
       !Array.isArray(side.evidence_refs) ||
@@ -52,7 +54,7 @@ function validateSide(side, claimIds, noveltyKeys, attackIds) {
       typeof side.position_update !== 'string' ||
       (side.position_changed && !nonempty(side.position_update))) return false;
   if (!side.attacks.every((attack) => validateAttack(
-    attack, claimIds, noveltyKeys, attackIds
+    attack, claimIds, noveltyKeys, attackIds, actor
   ))) return false;
   const derivedValid = side.attacks.some((attack) => attack.validity === 'valid');
   const derivedUnresolved = side.attacks.some((attack) => attack.validity === 'unresolved');
@@ -62,13 +64,23 @@ function validateSide(side, claimIds, noveltyKeys, attackIds) {
 
 function validateRound(round, claimIds, noveltyKeys, attackIds) {
   return exactKeys(round, ROUND_FIELDS) &&
-    validateSide(round.native_codex, claimIds, noveltyKeys, attackIds) &&
-    validateSide(round.claude_adapter, claimIds, noveltyKeys, attackIds);
+    validateSide(round.codex_proponent, claimIds, noveltyKeys, attackIds, 'codex-proponent') &&
+    validateSide(round.codex_challenger, claimIds, noveltyKeys, attackIds, 'codex-challenger');
 }
 
-function transcriptState(rounds, claimIds) {
-  if (!Array.isArray(rounds) || rounds.length === 0 || rounds.length > 5) {
-    throw new Error('debate requires one to five rounds');
+function transcriptState(rounds, claimIds, options = {}) {
+  if (!options || typeof options !== 'object' || Array.isArray(options) ||
+      Object.getOwnPropertySymbols(options).length !== 0 ||
+      Object.getOwnPropertyNames(options).some((key) => !['roundBudget', 'stopRequested'].includes(key))) {
+    throw new Error('debate options are invalid');
+  }
+  const roundBudget = Object.hasOwn(options, 'roundBudget') ? options.roundBudget : 5;
+  const stopRequested = Object.hasOwn(options, 'stopRequested') ? options.stopRequested : false;
+  if (!Number.isSafeInteger(roundBudget) || roundBudget < 1 || typeof stopRequested !== 'boolean') {
+    throw new Error('debate options are invalid');
+  }
+  if (!Array.isArray(rounds) || rounds.length === 0 || rounds.length > roundBudget) {
+    throw new Error('debate requires one or more rounds within the declared round budget');
   }
   if (!(claimIds instanceof Set) || claimIds.size === 0) return 'invalid';
   const noveltyKeys = new Set();
@@ -77,11 +89,11 @@ function transcriptState(rounds, claimIds) {
     return 'invalid';
   }
   const last = rounds.at(-1);
-  const equilibrium = [last.native_codex, last.claude_adapter].every((side) =>
+  const equilibrium = [last.codex_proponent, last.codex_challenger].every((side) =>
     side.new_valid_attack === false && side.unresolved_attack === false
   );
   if (equilibrium) return 'equilibrium';
-  return rounds.length === 5 ? 'divergent' : 'continue';
+  return stopRequested || rounds.length === roundBudget ? 'divergent' : 'continue';
 }
 
 function classifyOutcome(facts) {

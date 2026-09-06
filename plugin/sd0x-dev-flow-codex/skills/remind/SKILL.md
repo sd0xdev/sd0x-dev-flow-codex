@@ -1,22 +1,22 @@
 ---
 name: remind
-description: "Route remind using exact migration registry [{\"unit\":\"remind/default\",\"routing\":{\"negative_boundaries\":[\"Do not run remind; only execute deterministic repository verification.\",\"Only assess test coverage, acceptance criteria, flakiness, and verification gaps.\",\"Only review the current code changes for correctness and defects.\"],\"positive_triggers\":[\"Apply the canonical remind workflow and report its evidence.\",\"Help me run the remind workflow for this repository.\",\"I need the canonical remind procedure with its safety boundaries.\"]}}]."
+description: "Inspect current sd0x runtime status and resume the required review, recovery, or verification action. Existing scoped reset authorization remains valid."
 ---
 
 # Resume the sd0x Loop
 
-The allowlisted bundled entrypoint below performs the read-only status inspection. Follow the returned reason and next action exactly.
+The allowlisted bundled entrypoint below performs the read-only status inspection. Use the returned gate facts and recovery requirements to resume the active task; gate status does not establish completion of the full user objective.
 
 ## Bounded runtime
 
 `mcp__sd0x_claude_review__run_skill_script '{"entrypoint":"remind/status.js","cwd":"<repository-root>","args":[]}'`
 
-- `reviewer-unavailable`: preserve failure evidence and ask before reset.
+- `reviewer-unavailable`: preserve failure evidence; use the reset skill under existing user authorization within its scope, or ask before reset if none applies.
 - `review-in-progress`: wait for the configured primary terminal result.
 - `review-findings-remain`: fix root causes, then review the new fingerprint.
 - `review-required`: dispatch only the configured primary reviewer.
 - `verification-required` or `verification-failed`: default verify follows only after review passes.
-- `all-required-gates-pass`: report completion for that exact fingerprint.
+- `all-required-gates-pass`: report these gates passed for that exact fingerprint. Claim task completion only when the requested scope and deliverables are also satisfied.
 
 Never retry a failed reviewer on the same fingerprint without a user-authorized reset.
 

@@ -1,6 +1,6 @@
 ---
 name: test-health
-description: "Route test-health using exact migration registry [{\"unit\":\"test-health/default\",\"routing\":{\"negative_boundaries\":[\"Analyze coverage gaps for one specific feature request.\",\"Generate new tests for this uncovered behavior.\",\"Review these tests line by line for assertion quality and acceptance traceability.\"],\"positive_triggers\":[\"Analyze test artifacts and flaky patterns to produce a test-health report.\",\"Assess the overall health, reliability, speed, and maintainability of this test system.\",\"Measure test-layer balance, coverage evidence, and suite quality across the repository.\"]}}]."
+description: "Assess test reliability, speed, maintainability, coverage evidence, and layer balance. Historical trends require comparable artifacts."
 ---
 
 # Assess Test-System Health

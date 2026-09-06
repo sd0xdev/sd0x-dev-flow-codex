@@ -1,49 +1,19 @@
 ---
 name: git-investigate
-description: "Route git-investigate using exact migration registry [{\"unit\":\"git-investigate/default\",\"routing\":{\"negative_boundaries\":[\"Commit the regression fix and push it.\",\"Explain only how the current function works without historical context.\",\"Map the architecture of the entire validation subsystem.\"],\"positive_triggers\":[\"Find when this validation branch was introduced and why.\",\"Trace the history of this function across renames and cite the commits.\",\"Use Git archaeology to identify the change that caused this regression.\"]}}]."
+description: "Trace code history, renames and candidate regressions using exact commits and patches. Strictly read-only Git archaeology; does not fetch or change repository state."
 ---
 
 # Git Archaeology
 
-Trace who changed code, when it changed, how it evolved, and what historical evidence supports a causal explanation. Git access is strictly read-only.
+Trace how selected code or behavior evolved and what historical evidence supports the explanation. Bind the analysis to exact commits and distinguish current uncommitted changes from committed history.
 
-## Investigation protocol
+Consult relevant patches, line attribution, history across renamed paths, content searches, tests and surrounding context. Distinguish author, committer and later changes. For regressions, identify supported known-good and known-bad behavior; correlation with a commit is not proof of causation.
 
-1. Define the symbol, path, behavior, time range, and question. Capture the current commit so findings have a stable reference point.
-2. Inspect status and relevant diffs to avoid confusing uncommitted work with history.
-3. Start from current code, then follow line attribution, path history across renames, content searches, and candidate commit patches.
-4. Read surrounding commits and tests rather than inferring intent from a subject line. Distinguish author, committer, review context, and later modification.
-5. For regression questions, identify the last known-good and first known-bad behavior from evidence. Correlation with a commit is not proof of causation.
-6. Stop when the historical chain answers the question or when missing history, shallow clones, or rewritten commits prevent a defensible conclusion.
+Git access is strictly read-only. Never change the index, branch, worktree, references, remotes or configuration; do not fetch, merge, rebase, restore, clean, commit or push.
 
-Never change the index, branch, worktree, references, remotes, or configuration. Never fetch, merge, rebase, restore, clean, commit, or push.
+Return the historical finding, causal assessment, important patches and source locations, with limitations such as shallow or rewritten history. Choose the investigation order from the question and evidence.
 
-## Output
 
-Return the finding, chronological history, key patches, causal assessment, confidence, and limitations. Cite commit identifiers and repository-relative paths.
-
-## Pack handoff
-
-This canonical skill is distributed from the core plugin. Its legacy research-pack payload and pack-ready evidence remain immutable migration provenance and are not a runtime routing surface.
-
-<!-- sd0x-active-semantic-contract:v1 unit=git-investigate/default -->
-Normative semantic requirements:
-- Correlation with a commit is not proof of causation
-- Never change the index, branch, worktree, references, remotes, or configuration
-- follow line attribution, path history across renames
-<!-- sd0x-active-semantic-contract:end -->
-
-<!-- sd0x-semantic-contract:v1 unit=git-investigate/default -->
-```json
-{
-  "required": [
-    "Correlation with a commit is not proof of causation",
-    "Never change the index, branch, worktree, references, remotes, or configuration",
-    "follow line attribution, path history across renames"
-  ],
-  "forbidden": []
-}
-```
 
 <!-- sd0x-routing-contract:v1 unit=git-investigate/default -->
 ```json

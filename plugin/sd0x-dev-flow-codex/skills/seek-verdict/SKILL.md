@@ -1,6 +1,6 @@
 ---
 name: seek-verdict
-description: "Route seek-verdict using exact migration registry [{\"unit\":\"seek-verdict/default\",\"routing\":{\"negative_boundaries\":[\"Fix the defect after assessing it.\",\"Post the verdict to the pull request.\",\"Run the primary code review for the entire dirty worktree.\"],\"positive_triggers\":[\"Get an independent verdict on whether this review finding is valid.\",\"Seek a blind second opinion on this suspected security issue.\",\"Verify whether dismissing this defect is justified using fresh context.\"]}}]."
+description: "Obtain an independent Codex subagent opinion on a bounded disputed finding, preserving evidence identity, severity obligations, and dismissal safeguards. Advisory only; never substitutes for configured primary review."
 ---
 
 # Independent Verdict
@@ -13,10 +13,10 @@ Obtain a blind, evidence-backed second opinion on a bounded finding while preser
 
 1. Package the claim, origin, affected paths, severity assertion, current commit, relevant diff, and neutral verification question. Exclude the requesting analyst's conclusion.
 2. Capture `finding_key + worktree fingerprint + intent`, branch, session, and sorted dismissal records `{evidence_id, binding_hash}`. Hash that exact array. The independent verifier supplies a separate trusted registry keyed by `evidence_id`, with closed `{binding_hash, independence_key, source_id}` records; one `source_id` must map to exactly one independence key, one binding hash cannot identify multiple evidence records, caller-provided independence labels are impossible, binding mismatch fails, and multiple artifacts sharing one trusted source/verifier key count once. Hash the exact registry subset used by the dismissal. Any file, index, commit, branch, session, registry identity, or relevant-evidence change invalidates the verdict.
-3. Select the opposite model in a fresh context: a Claude-origin finding goes to native Codex, a native-Codex finding goes to the configured Claude adapter, and a user finding goes to an uninvolved model or both independently when origin is uncertain. Missing opposite-model capability is inconclusive; one model may not impersonate both roles.
+3. Use a fresh independent read-only Codex subagent, inheriting the parent model and reasoning effort unless the user explicitly overrides them. Independence requires a distinct uninvolved review context and independently verified evidence, not an opposite vendor. Missing subagent capability is inconclusive; the originating analyst must not impersonate the independent verifier.
 4. Apply the exact asymmetric thresholds and state transitions below. A review, test, security, user, or automation finding keeps its original policy obligations.
 5. Permit at most one verifier attempt for each `finding_key + fingerprint + intent` and at most one objective rebuttal in that verdict context. New evidence appends the audit trail but cannot reopen a consumed intent.
-6. Counter persistence is limited to Git metadata or the .sd0x directory, never tracked payload. Persist each complete load/evaluate/save or load/confirm/save transition under one state lock with a monotonic expected-version check; a stale writer fails and must retry from fresh state. Inconclusive evidence keeps the gate failed.
+6. Counter persistence is limited to Git metadata or the .sd0x directory, never tracked payload. Persist each complete load/evaluate/save or load/confirm/save transition under one state lock with a monotonic expected-version check; a stale writer fails and must retry from fresh state. Inconclusive evidence leaves the finding unresolved; this advisory verdict cannot satisfy the configured primary review gate.
 
 ## Thresholds and state
 
@@ -41,26 +41,7 @@ Return fingerprint, neutral claim, evidence inspected, verdict, confidence, orig
 
 This canonical skill is distributed from the core plugin. Its legacy research-pack payload and pack-ready evidence remain immutable migration provenance and are not a runtime routing surface.
 
-<!-- sd0x-active-semantic-contract:v1 unit=seek-verdict/default -->
-Normative semantic requirements:
-- A P0/P1 candidate binds `finding_key + fingerprint + dismissal_evidence_hash`
-- Counter persistence is limited to Git metadata or the .sd0x directory
-- confidence ≥ 0.95 and 4 independent evidence
-- one model may not impersonate both roles
-<!-- sd0x-active-semantic-contract:end -->
 
-<!-- sd0x-semantic-contract:v1 unit=seek-verdict/default -->
-```json
-{
-  "required": [
-    "A P0/P1 candidate binds `finding_key + fingerprint + dismissal_evidence_hash`",
-    "Counter persistence is limited to Git metadata or the .sd0x directory",
-    "confidence ≥ 0.95 and 4 independent evidence",
-    "one model may not impersonate both roles"
-  ],
-  "forbidden": []
-}
-```
 
 <!-- sd0x-routing-contract:v1 unit=seek-verdict/default -->
 ```json

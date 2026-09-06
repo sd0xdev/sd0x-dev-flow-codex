@@ -8,7 +8,7 @@ Validate the closed scope record before reading repository content. The source c
 
 For every scoped path, collect bounded commit subjects, diff statistics, changed hunks, and current-file excerpts through fixed read-only Git and filesystem calls. Cap history, per-file diff bytes, total bytes, and elapsed time. Deleted, binary, renamed, missing, and truncated files remain distinct evidence states.
 
-Brief, normal, and deep select at most five, ten, and fifteen paths by total changed lines, then change-class priority and bytewise path order. Documentation, tests, configuration, and source remain in the recap table even when excerpts focus on implementation logic.
+Include every scoped path in a stable inventory. Select excerpts by material behavior, decisions, and evidence gaps; depth controls explanatory detail. Documentation, tests, configuration, and source remain in the recap table even when excerpts focus on implementation logic.
 
 ## Stage 3: specification evidence
 

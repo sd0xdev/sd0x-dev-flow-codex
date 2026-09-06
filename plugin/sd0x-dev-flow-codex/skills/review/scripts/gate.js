@@ -51,11 +51,7 @@ function runReviewGate(status, args, cwd = process.cwd(), hooks = {}) {
         }, {
           provider,
           reviewers: 1,
-          agents: [
-            provider === 'claude'
-              ? 'sd0x_claude_primary_reviewer'
-              : 'sd0x_codex_primary_reviewer'
-          ],
+          agents: ['sd0x_codex_primary_reviewer'],
           findings: 1,
           summary: 'collaboration evidence changed before gate completion'
         });

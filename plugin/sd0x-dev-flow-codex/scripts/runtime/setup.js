@@ -79,7 +79,9 @@ function projectConfig(existing) {
       throw new Error('.codex/sd0x-dev-flow.json must contain a JSON object');
     }
   }
-  const provider = normalizeReviewProvider(current);
+  const provider = current.review?.provider === 'claude'
+    ? DEFAULT_REVIEW_PROVIDER
+    : normalizeReviewProvider(current);
   const { limits: _obsoleteLimits, ...preserved } = current;
   return `${JSON.stringify({
     ...preserved,
@@ -127,8 +129,7 @@ function setup(cwd = process.cwd(), options = {}) {
       : null)
     : null;
   const agentPlans = [
-    'sd0x-codex-primary-reviewer.toml',
-    'sd0x-claude-primary-reviewer.toml'
+    'sd0x-codex-primary-reviewer.toml'
   ].map((name) => ({
     source: path.join(pluginRoot, 'templates', 'agents', name),
     destination: path.join(root, '.codex', 'agents', name)
@@ -156,6 +157,12 @@ function setup(cwd = process.cwd(), options = {}) {
       file: path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
       status: removeRetiredManagedAgent(path.join(
         root, '.codex', 'agents', 'sd0x-test-reviewer.toml'
+      ))
+    });
+    results.push({
+      file: path.join(root, '.codex', 'agents', 'sd0x-claude-primary-reviewer.toml'),
+      status: removeRetiredManagedAgent(path.join(
+        root, '.codex', 'agents', 'sd0x-claude-primary-reviewer.toml'
       ))
     });
     for (const plan of agentPlans) {
@@ -186,6 +193,7 @@ function setup(cwd = process.cwd(), options = {}) {
     configPath,
     path.join(root, '.codex', 'agents', 'sd0x-reviewer.toml'),
     path.join(root, '.codex', 'agents', 'sd0x-test-reviewer.toml'),
+    path.join(root, '.codex', 'agents', 'sd0x-claude-primary-reviewer.toml'),
     ...agentPlans.map((plan) => plan.destination)
   ]);
   const activationDeferred = results.some((item) =>

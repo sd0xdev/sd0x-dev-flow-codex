@@ -8,7 +8,7 @@ const { readActiveSkill } = require('../scripts/supplemental-active-skill');
 test("verify/fast preserves its source workflow", () => {
   const payload = readActiveSkill("verify", ["scripts/verify.js"]);
   const skill = payload.skill;
-  for (const anchor of ["Fast is non-gating","lint:fix","→","test","continue-all"]) assert.ok(skill.includes(anchor), anchor);
+  for (const anchor of ["Fast is non-gating","lint:fix","test","continue-all","--allow-fixes","no runtime gate write"]) assert.ok(skill.includes(anchor), anchor);
   for (const resource of payload.resources) {
     assert.equal(resource.present, true, resource.relative);
   }

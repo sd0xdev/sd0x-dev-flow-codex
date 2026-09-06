@@ -31,3 +31,5 @@
 ## 6. Open Questions
 
 Do not turn verdicts into feasibility ratings, architecture choices, or implementation tasks.
+
+Use this structure to preserve the document’s required information and stable identifiers. Choose prose, lists, or tables according to the material; do not invent content for an inapplicable dimension. Retain parser-required metadata, statuses, and identifiers.

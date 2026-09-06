@@ -1,6 +1,6 @@
 ---
 name: pre-pr-audit
-description: "Route pre-pr-audit using exact migration registry [{\"unit\":\"pre-pr-audit/default\",\"routing\":{\"negative_boundaries\":[\"Create and publish the pull request for this branch.\",\"Prepare the branch for merge after all pull-request reviews pass.\",\"Summarize the existing pull request for reviewers.\"],\"positive_triggers\":[\"Audit this branch for pull-request readiness without publishing it.\",\"Check whether the current changes, tests, and commits are ready for a pull request.\",\"Perform the final local readiness audit before I create the pull request.\"]}}]."
+description: "Audit local branch readiness for a pull request using scope, commits, acceptance criteria, and current gate evidence. Returns READY, CONDITIONAL, or BLOCKED without publication."
 ---
 
 # Audit Pull-Request Readiness

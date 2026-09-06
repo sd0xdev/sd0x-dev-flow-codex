@@ -42,13 +42,15 @@ These concepts should be translated but must use the same term consistently with
 
 | English | zh-TW | zh-CN | ja | ko | es |
 |---------|-------|-------|----|----|-----|
-| dual review | 雙 review | 双审查 | デュアルレビュー | 듀얼 리뷰 | dual review |
+| dual review (historical source terminology only) | 雙 review | 双审查 | デュアルレビュー | 듀얼 리뷰 | dual review (historical source terminology only) |
 | fail-closed | fail-closed | fail-closed | fail-closed | fail-closed | fail-closed |
 | quality gate | 品質關卡 | 质量关卡 | 品質ゲート | 품질 게이트 | gate de calidad |
 | stop guard | stop guard | stop guard | stop guard | stop guard | stop guard |
 | context window | context window | context window | context window | context window | ventana de contexto |
 | precommit | precommit | precommit | precommit | precommit | precommit |
 | single-reviewer mode | 單 reviewer 模式 | 单 reviewer 模式 | シングルレビューモード | 싱글 리뷰어 모드 | modo single-reviewer |
+
+Current workflow descriptions use configured primary review and Codex subagent review. The historical dual-review term applies only when the source actually describes that former workflow.
 
 ## Style Notes
 

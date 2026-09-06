@@ -1,5 +1,7 @@
 # Feasibility Study Template
 
+Use this as a content guide. Adapt headings, tables and diagrams to the task; preserve required evidence fields and substantive decision or verification coverage.
+
 # {Decision} Feasibility Study
 
 ## 1. Decision and Outcome

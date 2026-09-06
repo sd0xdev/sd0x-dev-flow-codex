@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const DISCOVERY_CATALOG = require('./skill-discovery-catalog.json');
 
 const ROUTING_MARKER = '<!-- sd0x-routing-contract:v1 ';
 
@@ -25,6 +26,23 @@ function routingDescription(target, registry) {
   );
   assert.ok(Buffer.byteLength(encoded) <= 4096,
     `routing description exceeds 4096 bytes for ${target}`);
+  return encoded;
+}
+
+function discoveryDescription(target, registry) {
+  const entry = Object.hasOwn(DISCOVERY_CATALOG.skills, target)
+    ? DISCOVERY_CATALOG.skills[target]
+    : null;
+  const units = registry.map((record) => record.unit).sort();
+  if (!entry || JSON.stringify(units) !== JSON.stringify(entry.units)) {
+    // Historical and synthetic registries retain their own exact descriptions.
+    return routingDescription(target, registry);
+  }
+  assert.ok(typeof entry.description === 'string' && entry.description.trim(),
+    `discovery description is missing for ${target}`);
+  const encoded = JSON.stringify(entry.description);
+  assert.ok(Buffer.byteLength(encoded) <= 4096,
+    `discovery description exceeds 4096 bytes for ${target}`);
   return encoded;
 }
 
@@ -149,9 +167,12 @@ function validateRoutingContract(skillText, spec) {
   assert.ok(frontmatter, 'SKILL.md requires frontmatter for routing');
   const descriptionLine = frontmatter[1].split('\n')
     .find((line) => line.startsWith('description: '));
-  assert.equal(descriptionLine,
-    `description: ${routingDescription(spec.target, spec.registry)}`,
-  `SKILL.md description contradicts routing contract for ${spec.unit}`);
+  const supportedDescriptions = [
+    routingDescription(spec.target, spec.registry),
+    discoveryDescription(spec.target, spec.registry)
+  ].map((description) => `description: ${description}`);
+  assert.ok(supportedDescriptions.includes(descriptionLine),
+    `SKILL.md description contradicts routing contract for ${spec.unit}`);
   let unmanaged = skillText.replace(frontmatter[0], '');
   for (const entry of spec.registry) {
     unmanaged = unmanaged.replace(routingContractBlock(entry.unit, entry.routing), '');
@@ -258,6 +279,7 @@ function defineRoutingContractTests(spec) {
 
 module.exports = {
   defineRoutingContractTests,
+  discoveryDescription,
   routingContractBlock,
   routingDescription,
   routingTestSource,

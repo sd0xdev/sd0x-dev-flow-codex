@@ -34,10 +34,42 @@ const ROOT = path.resolve(__dirname, '..');
 const FORMAL_DELIVERY_STATES = new Set(['candidate', 'promoted']);
 
 function formalRecords() {
-  const disposition = JSON.parse(fs.readFileSync(
-    path.join(ROOT, 'migration', 'source-disposition.json'), 'utf8'
-  ));
-  return records(disposition, FORMAL_DELIVERY_STATES);
+  // This adapter owns the July 28 delivery transaction, not whichever request
+  // currently owns a unit. Rebuild its fixture from the complete immutable
+  // historical request corpus; current successor promotion_request/state fields
+  // must not select (or silently erase) this coverage.
+  const requestDirectory = 'docs/features/skill-toolkit-migration/requests';
+  const requests = fs.readdirSync(path.join(ROOT, requestDirectory))
+    .filter((name) => /^2026-07-28-wave[1-7]-.*-(?:formal-)?promotion\.md$/.test(name))
+    .sort();
+  assert.equal(requests.length, 83, 'the complete historical delivery owner corpus must remain present');
+  const rows = requests.flatMap((name) => {
+    const requestPath = path.posix.join(requestDirectory, name);
+    const markdown = fs.readFileSync(path.join(ROOT, requestPath), 'utf8');
+    const unit = /`([a-z][a-z0-9-]*\/[a-z][a-z0-9-]*)`/.exec(markdown)?.[1];
+    assert.ok(unit, requestPath + ': historical promotion unit is missing');
+    const target = unit.split('/')[0];
+    const contract = JSON.parse(fs.readFileSync(path.join(ROOT,
+      'plugin/sd0x-dev-flow-codex/skills', target, 'migration-contract.json'), 'utf8'));
+    const binding = contract.units.find((entry) => entry.promotion_unit_id === unit);
+    assert.ok(binding, requestPath + ': adapter subject contract is missing');
+    assert.ok(binding.source_names.length > 0, requestPath + ': source identities are missing');
+    // The adapter checks current source-name/behavior bindings separately from
+    // historical ownership. No live delivery state or owner path is consumed.
+    return binding.source_names.map((source) => ({
+      source_name: source,
+      target_skill: target,
+      target_package: 'core',
+      promotion_unit_id: unit,
+      promotion_request: requestPath,
+      delivery_state: 'promoted',
+      alias_candidate: source !== target,
+      alias_policy: source !== target ? 'mapping-only' : 'none'
+    }));
+  });
+  const formal = records({ skills: rows }, FORMAL_DELIVERY_STATES);
+  assert.equal(formal.length, requests.length, 'every historical owner must exercise the adapter');
+  return formal;
 }
 
 test('formal delivery records accept the setup contract successor promotion', () => {
@@ -333,9 +365,11 @@ test('formal proposals require production final-audit identity and pass candidat
 
 test('formal request fixtures cover candidate and finalized or overlaid registry phases', () => {
   const formal = formalRecords();
-  assert.equal(formal.length, 82);
-  assert.equal(formalRecord('deep-research/default'), undefined,
-    'the replacement owner is closed by its own request lifecycle');
+  assert.ok(formal.length > 0);
+  assert.equal(formalRecord('deep-research/default').request_path,
+    'docs/features/skill-toolkit-migration/requests/' +
+      '2026-07-28-wave2-deep-research-default-formal-promotion.md',
+    'historical coverage survives a different current revision owner');
   for (const record of formal) {
     const current = fs.readFileSync(path.join(ROOT, record.request_path), 'utf8');
     const candidate = candidateMarkdown(current);

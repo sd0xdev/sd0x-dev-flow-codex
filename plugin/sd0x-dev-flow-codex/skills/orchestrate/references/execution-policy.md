@@ -8,7 +8,7 @@ Only Codex collaboration roles named by the typed admission allowlist are eligib
 
 - Missing context, malformed plan, unknown role, or unknown skill: stop with a named gap.
 - Repository drift after baseline: stop and report the changed identity; do not restore or refresh the baseline.
-- Worker failure, timeout, or conflicting evidence: report uncertainty and leave the step incomplete.
+- An observation timeout: continue observing the same live worker; do not duplicate it. Confirmed worker failure or unresolved conflicting evidence leaves the step incomplete.
 - A proposed mutation: return a handoff to the canonical workflow without dispatching it.
 - A review or verification need: name the independent gate without recording or claiming it.
 

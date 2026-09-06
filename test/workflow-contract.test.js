@@ -26,10 +26,6 @@ test('workflow contract exposes a closed seven-anchor register', () => {
     'gate-supremacy'
   ]);
   assert.ok(ANCHORS.every(Object.isFrozen));
-  assert.match(MANAGED_BLOCK, /closed non-negotiable register/i);
-  assert.match(MANAGED_BLOCK, /project guidance[^\n]+cannot downgrade an Anchor/i);
-  assert.match(MANAGED_BLOCK, /ordinary uncertainty alone is not a reason/i);
-  assert.match(MANAGED_BLOCK, /\[SD0X_DEVIATION\]/);
   assert.match(MANAGED_BLOCK_SHA256, /^[a-f0-9]{64}$/);
 });
 

@@ -24,7 +24,7 @@ Case files contain IoCs, read-only detection guidance, remediation handoffs, and
 | `confidence` | enum | yes | `high` / `medium` / `low` |
 | `product_type` | enum | no | `app` (default) / `npm-library`. Library cases use lockfile scan for presence check instead of app directory check |
 
-### Required Section Order
+### Case Content
 
 1. Summary
 2. Attack Window & Timeline
@@ -42,10 +42,10 @@ Case files contain IoCs, read-only detection guidance, remediation handoffs, and
 
 | Rule | Description |
 |------|-------------|
-| Line budget | Target under 500 lines. If appendix pushes past 500, split to `<case_id>-analysis.md` |
+| Structure | Keep indicator, evidence and remediation boundaries easy to locate; separate a long analysis appendix when useful |
 | IoC format | Use markdown tables with columns: Type, Indicator, Notes |
 | Detection commands | Include per-platform read-only indicator and inventory guidance |
-| Redaction | Partially redact secrets in examples (show first 8 + last 4 chars) |
+| Redaction | Never include credential material or token prefixes/suffixes; use synthetic examples or non-reversible evidence identifiers |
 | Sources | Every factual claim must cite a source in Source Attribution |
 
 ## Adding a New Case

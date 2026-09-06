@@ -4,7 +4,7 @@
 
 ## Atomic review shape
 
-The publisher creates one GitHub review with event fixed to COMMENT, the exact pull-request head commit ID, an empty summary body, and a bounded ordered collection of inline comments. policy-block decision and request-changes events are unsupported.
+The publisher creates one GitHub review with event fixed to COMMENT, the exact pull-request head commit ID, an empty summary body, and a bounded ordered collection of inline comments. APPROVE and REQUEST_CHANGES events are unsupported.
 
 ## Transmission
 

@@ -158,7 +158,7 @@ function fixture() {
     mcpServers: './.mcp.json',
     interface: {
       websiteURL: REPOSITORY_URL,
-      longDescription: 'Codex-first review with an optional Claude MCP primary.'
+      longDescription: 'A native GPT primary inheriting the parent model and reasoning effort, with deterministic verification.'
     }
   });
   const manifestPath = path.join(pluginRoot, '.codex-plugin', 'plugin.json');
@@ -295,12 +295,25 @@ test('CI and release budgets cover the aggregate repository check', () => {
   assert.match(release, /npm run check/);
 });
 
-test('version setter updates package and plugin manifest together', (t) => {
+test('version setter synchronizes release metadata without changing installation state', (t) => {
   const values = fixture();
   t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
 
+  const installStatePath = path.join(values.root, '.sd0x', 'install-state.json');
+  const installState = '{"plugin_version":"0.1.0","installer_owned":true}\n';
+  fs.mkdirSync(path.dirname(installStatePath), { recursive: true });
+  fs.writeFileSync(installStatePath, installState);
+  const packageBefore = JSON.parse(fs.readFileSync(path.join(values.root, 'package.json')));
+  const manifestBefore = JSON.parse(fs.readFileSync(path.join(values.pluginRoot,
+    '.codex-plugin', 'plugin.json')));
+
   const result = setVersion('2.3.4-rc.1', values.root);
   assert.equal(result.tag, 'v2.3.4-rc.1');
+  assert.equal(fs.readFileSync(installStatePath, 'utf8'), installState);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(values.root, 'package.json'))),
+    { ...packageBefore, version: '2.3.4-rc.1' });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(values.pluginRoot,
+    '.codex-plugin', 'plugin.json'))), { ...manifestBefore, version: '2.3.4-rc.1' });
   assert.equal(
     JSON.parse(fs.readFileSync(path.join(values.root, 'package.json'))).version,
     '2.3.4-rc.1'
@@ -650,20 +663,43 @@ test('version setter preflights the complete release contract without mutation',
   assertSourceBytes(prior);
 });
 
-test('release check rejects metadata that presents Claude as the fixed primary', (t) => {
+test('release check accepts the current native primary manifest description', (t) => {
   const values = fixture();
   t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
   const manifestPath = path.join(values.pluginRoot, '.codex-plugin', 'plugin.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath));
-  manifest.interface.longDescription =
-    'A harness that combines a Claude MCP primary review with Codex reviewers.';
+  manifest.interface.longDescription = JSON.parse(fs.readFileSync(path.join(
+    __dirname, '..', 'plugin', 'sd0x-dev-flow-codex', '.codex-plugin', 'plugin.json'
+  ))).interface.longDescription;
   writeJson(manifestPath, manifest);
   syncAliasFingerprint(values.root, values.pluginRoot);
 
-  assert.throws(
-    () => checkRelease(values.root),
-    /Codex-first review and optional Claude MCP/
-  );
+  assert.equal(checkRelease(values.root).version, '0.1.0');
+});
+
+test('release check rejects retired primary descriptions and missing native guarantees', (t) => {
+  const descriptions = [
+    'A harness that combines a Claude MCP primary review with Codex reviewers.',
+    'Codex-first review with an optional Claude MCP primary.',
+    'A native GPT primary inheriting the parent model and reasoning effort, with deterministic verification and optional Claude MCP.',
+    'A native primary inheriting the parent model and reasoning effort, with deterministic verification.',
+    'A native GPT primary with deterministic verification.',
+    'A native GPT primary inheriting the parent model, with deterministic verification.',
+    'A native GPT primary inheriting the parent model and reasoning effort.'
+  ];
+  const values = fixture();
+  t.after(() => fs.rmSync(values.root, { recursive: true, force: true }));
+  const manifestPath = path.join(values.pluginRoot, '.codex-plugin', 'plugin.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath));
+  for (const description of descriptions) {
+    manifest.interface.longDescription = description;
+    writeJson(manifestPath, manifest);
+    syncAliasFingerprint(values.root, values.pluginRoot);
+    assert.throws(
+      () => checkRelease(values.root),
+      /native GPT primary, inherited parent settings, and deterministic verification/
+    );
+  }
 });
 
 test('release check rejects symlinks in the distributable payload', (t) => {

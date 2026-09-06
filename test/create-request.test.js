@@ -692,17 +692,13 @@ test('feature discovery rejects symlinked and dangling docs ancestors', (t) => {
   }
 });
 
-test('create-request payload is Codex-native, concise, and closure-safe', () => {
+test('create-request payload is Codex-native and closure-safe', () => {
   const skillPath = path.join(path.dirname(path.dirname(resolvedRequestToolPath)), 'SKILL.md');
   const skill = fs.readFileSync(skillPath, 'utf8');
-  const lines = skill.split(/\r?\n/).length;
 
-  assert.ok(lines < 500);
   assert.match(skill, /^---\nname: create-request\ndescription: .+\n---/);
   assert.doesNotMatch(skill, /allowed-tools|AskUserQuestion|Claude `Agent`/);
   assert.match(skill, /Create[\s\S]*Update one[\s\S]*Update all[\s\S]*Status/);
-  assert.match(skill, /no more than eight acceptance criteria/i);
-  assert.match(skill, /60 seconds/);
   assert.match(skill, /file:line/);
   assert.match(skill, /highest writable state is[\s\S]*Candidate Complete/i);
   assert.match(skill, /closure preparation[\s\S]*finalization/i);

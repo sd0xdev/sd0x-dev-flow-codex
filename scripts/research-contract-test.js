@@ -172,10 +172,25 @@ function defineSemanticContractTests(spec) {
       assert.equal(validateSemanticContract(skillText, spec), true);
     });
   }
+  defineResearchBehaviorTests(spec);
+}
+
+function researchBehaviorTestSource(spec) {
+  return [
+    "'use strict';",
+    `// sd0x-migration-runtime-test target=${spec.target} unit=${spec.unit}`,
+    "const { defineResearchBehaviorTests } = require('../scripts/research-contract-test');",
+    `defineResearchBehaviorTests(${JSON.stringify({ target: spec.target })});`,
+    ''
+  ].join('\n');
+}
+
+function defineResearchBehaviorTests(spec) {
   const loadTrustedValidator = () => {
     const name = TRUSTED_VALIDATORS[spec.target];
     assert.ok(name, `trusted validator is missing ${spec.target}`);
-    return require(path.join(__dirname, 'research-validators', name));
+    return require(path.join(__dirname, '..', 'plugin', 'sd0x-dev-flow-codex',
+      'skills', spec.target, 'scripts', PAYLOAD_VALIDATORS[spec.target]));
   };
   if (spec.target === 'ask') {
     const helper = loadTrustedValidator();
@@ -193,7 +208,7 @@ function defineSemanticContractTests(spec) {
     test('brainstorm validates attacks and five-round termination', () => {
       const claims = new Set(['claim-a', 'evidence-a']);
       const novelty = new Set();
-      const attack = { attack_id: 'a1', target_claim_id: 'claim-a', novelty_key: 'n1', argument: 'claim-a fails because evidence conflicts', evidence_refs: ['evidence-a'], proposed_by: 'native-codex', validity: 'valid' };
+      const attack = { attack_id: 'a1', target_claim_id: 'claim-a', novelty_key: 'n1', argument: 'claim-a fails because evidence conflicts', evidence_refs: ['evidence-a'], proposed_by: 'codex-proponent', validity: 'valid' };
       assert.equal(debate.validateAttack(attack, claims, novelty, new Set()), true);
       assert.equal(debate.validateAttack({ ...attack, attack_id: '' }, claims, new Set(), new Set()), false);
       assert.equal(debate.validateAttack({
@@ -212,34 +227,27 @@ function defineSemanticContractTests(spec) {
         unresolved_attack: attacks.some((value) => value.validity === 'unresolved')
       });
       const active = (index) => ({
-        native_codex: side([{ ...attack, attack_id: `a${index}`, novelty_key: `n${index}` }]),
-        claude_adapter: side([])
+        codex_proponent: side([{ ...attack, attack_id: `a${index}`, novelty_key: `n${index}` }]),
+        codex_challenger: side([])
       });
-      const settled = { native_codex: side([]), claude_adapter: side([]) };
+      const settled = { codex_proponent: side([]), codex_challenger: side([]) };
       assert.equal(debate.transcriptState([active(1), active(2), active(3), active(4)], claims), 'continue');
       assert.equal(debate.transcriptState([active(1), active(2), active(3), active(4), active(5)], claims), 'divergent');
       assert.equal(debate.transcriptState([active(1), settled], claims), 'equilibrium');
-      assert.equal(debate.transcriptState([{ native_codex: {}, claude_adapter: {} }, settled], claims), 'invalid');
+      assert.equal(debate.transcriptState([{ codex_proponent: {}, codex_challenger: {} }, settled], claims), 'invalid');
       assert.equal(debate.classifyOutcome({ unresolved: true, condition_dependent: true }), 'divergent');
     });
   } else if (spec.target === 'deep-explore') {
     const exploration = loadTrustedValidator();
-    const conditions = (overrides = {}) => ({
-      concentrationAbove70Percent: false,
-      crossCuttingCriticalGap: false,
-      highRiskDomain: false,
-      ...overrides
-    });
-    test('deep exploration uses the fixed completeness threshold and ceiling', () => {
-      assert.equal(exploration.completeness(0, 0, 1), 70);
-      assert.equal(exploration.completeness(0, 0, 0), 70);
+    test('deep exploration distinguishes supported coverage from unresolved work', () => {
       assert.equal(exploration.completeness(0, 4, 0), 100);
-      assert.equal(exploration.decision({ score: 79, criticalOpen: 0, hardFail: false, wavesRun: 3, waveCeiling: 3, qualifyingConditions: conditions({ crossCuttingCriticalGap: true }) }), 'inconclusive');
-      assert.equal(exploration.decision({ score: 80, criticalOpen: 0, hardFail: false, wavesRun: 2, waveCeiling: 3, qualifyingConditions: conditions() }), 'complete');
-      assert.equal(exploration.decision({ score: 79, criticalOpen: 0, hardFail: false, wavesRun: 2, waveCeiling: 3, qualifyingConditions: conditions() }), 'inconclusive');
-      assert.equal(exploration.decision({ score: 79, criticalOpen: 1, hardFail: false, wavesRun: 2, waveCeiling: 3, qualifyingConditions: conditions({ crossCuttingCriticalGap: true }) }), 'continue');
-      assert.throws(() => exploration.decision({ score: 79, criticalOpen: 1, hardFail: false, wavesRun: 2, waveCeiling: 3, waveThreeTriggered: true }), /input is invalid/);
-      assert.throws(() => exploration.decision({ score: 79, criticalOpen: 1, hardFail: false, wavesRun: 2, waveCeiling: 3, qualifyingConditions: conditions(), extra: true }), /input is invalid/);
+      const input = { questions: [{ id: 'q1', status: 'answered', evidence_refs: ['repo:file:1'], reason: '' }], criticalOpen: 0, hardFail: false, budgetExhausted: false };
+      assert.equal(exploration.decision(input), 'complete');
+      assert.equal(exploration.decision({ ...input, criticalOpen: 1 }), 'continue');
+      assert.equal(exploration.decision({ ...input, hardFail: true, budgetExhausted: true }), 'inconclusive');
+      assert.equal(exploration.decision({ ...input, questions: [{ ...input.questions[0], status: 'unresolved', evidence_refs: [] }] }), 'continue');
+      assert.throws(() => exploration.decision({ ...input, questions: [{ ...input.questions[0], evidence_refs: [] }] }), /question is invalid/);
+      assert.throws(() => exploration.decision({ ...input, score: 100 }), /input is invalid/);
     });
   } else if (spec.target === 'deep-research') {
     const research = loadTrustedValidator();
@@ -295,7 +303,7 @@ function defineSemanticContractTests(spec) {
       secondary.identity_binding_hash = secondaryIdentity.identity_binding_hash;
       const identities = new Map([[secondary.source_id, secondaryIdentity]]);
       const scored = research.claimScore([base, base, secondary], identities);
-      assert.deepEqual(scored, { support: 5, refute: 0, net_score: 5, divergent: false });
+      assert.deepEqual(scored, { support: 5, refute: 0, net_score: 5, has_counterevidence: false });
       assert.equal(research.validateResearchPlan({ questions: ['q'], subquestions: ['s'], required_source_types: ['repository'] }), true);
       assert.equal(research.validateClaim({ claim_id: 'c1', claim: 'claim', evidence: [base], confidence: 0.8, critical: true, status: 'supported' }), true);
       assert.throws(() => research.claimScore([{ ...base, weight: 999 }]), /exact schema/);
@@ -444,7 +452,7 @@ function defineSemanticContractTests(spec) {
       ), false);
       assert.equal(research.ratio(0, 0), 0);
       assert.equal(research.ratio(0, 0, true), 100);
-      assert.equal(research.completeness('compliance', { diversity: 90, cross_verification: 90, gap_coverage: 90, question_closure: 90 }).complete, true);
+      assert.equal(research.completeness('compliance', { diversity: 90, cross_verification: 90, gap_coverage: 90, question_closure: 90 }).meets_threshold, true);
       assert.throws(() => research.completeness('decision', { diversity: 101, cross_verification: 0, gap_coverage: 0, question_closure: 0 }), /finite 0-100/);
       assert.throws(() => research.completeness('decision', { diversity: Infinity, cross_verification: 0, gap_coverage: 0, question_closure: 0 }), /finite 0-100/);
       assert.equal(research.BUDGETS.low.sources, 3);
@@ -514,10 +522,10 @@ function defineSemanticContractTests(spec) {
       decision: 'confirm',
       ...overrides
     });
-    test('seek verdict selects the opposite model and enforces later-turn confirmation', () => {
+    test('seek verdict selects native Codex and enforces later-turn confirmation', () => {
       const evaluated = verdict.evaluate(verdict.freshState(), base, trustedEvidence);
       assert.equal(evaluated.transition, 'DISMISS_CANDIDATE');
-      assert.deepEqual(evaluated.verifier, ['claude-adapter']);
+      assert.deepEqual(evaluated.verifier, ['native-codex']);
       assert.equal(verdict.confirmCandidate(
         evaluated.state, confirmation(base), trustedEvidence
       ).transition, 'DISMISS_VERIFIED');
@@ -547,7 +555,7 @@ function defineSemanticContractTests(spec) {
       assert.throws(() => verdict.evaluate(evaluated.state, base, trustedEvidence), /already consumed/);
       assert.deepEqual(verdict.effectiveDismissThreshold('P2', 3), { confidence: 0.9, evidence: 3 });
       assert.deepEqual(verdict.effectiveDismissThreshold('Nit', 0), { confidence: 0.7, evidence: 1 });
-      assert.deepEqual(verdict.oppositeVerifier('user'), ['native-codex', 'claude-adapter']);
+      assert.deepEqual(verdict.oppositeVerifier('user'), ['native-codex']);
       const pending = verdict.evaluate(verdict.freshState(), base, trustedEvidence);
       const other = verdict.evaluate(pending.state, { ...base, finding_key: 'f2', intent: 'clarify', user_turn: 2 }, trustedEvidence);
       assert.equal(other.state.candidate, null);
@@ -759,6 +767,8 @@ function defineSemanticContractTests(spec) {
 }
 
 module.exports = {
+  defineResearchBehaviorTests,
+  researchBehaviorTestSource,
   defineSemanticContractTests,
   semanticActiveContractBlock,
   semanticContractBlock,

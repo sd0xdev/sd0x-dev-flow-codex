@@ -14,7 +14,7 @@
 
 <Root user or business need, without solution design.>
 
-### 5-Why Trace
+### Underlying Need
 
 1. Surface: <what was requested>
 2. Why: <underlying problem>
@@ -71,3 +71,5 @@
 ```
 
 Omit the Tech Spec line when `2-tech-spec.md` does not exist. Omit the Request tickets line when `requests/` does not exist. `quick` mode may omit Use Cases and Non-Functional Requirements only when they add no decision value; all other sections remain required.
+
+Use this structure to preserve the document’s required information and stable identifiers. Choose prose, lists, or tables according to the material; do not invent content for an inapplicable dimension. Retain parser-required metadata, statuses, and identifiers.

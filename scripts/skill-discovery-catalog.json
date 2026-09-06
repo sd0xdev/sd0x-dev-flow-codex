@@ -1,0 +1,529 @@
+{
+  "schema_version": 1,
+  "skills": {
+    "architecture": {
+      "description": "Create or update a feature architecture document grounded in its approved technical specification and repository boundaries. Use for component design and consequential decisions, not implementation or feature requirements.",
+      "units": [
+        "architecture/default"
+      ]
+    },
+    "architecture-advice": {
+      "description": "Compare architecture choices and offer an evidence-backed second opinion. Returns advice without writing lifecycle documents or implementation.",
+      "units": [
+        "architecture-advice/default"
+      ]
+    },
+    "ask": {
+      "description": "Answer bounded repository questions using attributable code, guidance or Git evidence. Read-only; broader investigation and implementation belong to their dedicated workflows.",
+      "units": [
+        "ask/default"
+      ]
+    },
+    "best-practices": {
+      "description": "Assess a named implementation against current authoritative standards and identify substantiated gaps. Read-only; does not turn generic preferences into project requirements.",
+      "units": [
+        "best-practices/default"
+      ]
+    },
+    "brainstorm": {
+      "description": "Explore competing designs through independent Codex perspectives and evidence-backed challenge. Reports agreement, conditional choices or divergence without implementing the result.",
+      "units": [
+        "brainstorm/default"
+      ]
+    },
+    "bug-fix": {
+      "description": "Diagnose and correct a concrete bug with regression evidence, then complete configured review and deterministic verification. Preserve unrelated user changes.",
+      "units": [
+        "bug-fix/default"
+      ]
+    },
+    "bump-version": {
+      "description": "Synchronize the requested semantic version across authoritative package and plugin release metadata. Does not publish a release or modify unrelated fields.",
+      "units": [
+        "bump-version/default"
+      ]
+    },
+    "check-coverage": {
+      "description": "Map a feature’s behaviors and failure boundaries to existing unit, integration and end-to-end tests. Produces an evidence-backed gap analysis without editing tests.",
+      "units": [
+        "check-coverage/default"
+      ]
+    },
+    "code-explore": {
+      "description": "Explain how a repository subsystem, execution path or data flow connects using source evidence. Read-only; does not implement proposed changes.",
+      "units": [
+        "code-explore/default"
+      ]
+    },
+    "code-investigate": {
+      "description": "Investigate a specific mechanism or suspected root cause through independent Codex analysis and repository evidence. Returns a causal assessment without editing code.",
+      "units": [
+        "code-investigate/default"
+      ]
+    },
+    "contract-decode": {
+      "description": "Decode EVM selectors, calldata and revert payloads using supplied or verified ABI evidence. Distinguishes verified decoding from ambiguous signature candidates; no chain mutation.",
+      "units": [
+        "contract-decode/default"
+      ]
+    },
+    "create-pr": {
+      "description": "Prepare, create or update one GitHub pull request using the branch diff and repository conventions. Validates the target and exact payload before publication.",
+      "units": [
+        "create-pr/default"
+      ]
+    },
+    "create-request": {
+      "description": "Create, update or inspect date-prefixed execution tickets and verify their acceptance criteria. Durable completion uses the runtime closure transaction; does not implement the ticket.",
+      "units": [
+        "create-request/default"
+      ]
+    },
+    "de-ai-flavor": {
+      "description": "Remove generic writing filler and unsolicited self-attribution while preserving facts, technical meaning, quotations and the author’s voice.",
+      "units": [
+        "de-ai-flavor/default"
+      ]
+    },
+    "debug": {
+      "description": "Diagnose a failure from supplied evidence and bounded, sanitized read-only observations. Returns the responsible invariant and correction proposal without applying code changes.",
+      "units": [
+        "debug/default"
+      ]
+    },
+    "deep-explore": {
+      "description": "Investigate a broad repository area with evidence-backed scope coverage and independent Codex work where useful. Reports unresolved material gaps rather than inferring completeness from volume.",
+      "units": [
+        "deep-explore/default"
+      ]
+    },
+    "deep-research": {
+      "description": "Research complex questions across relevant current sources with traceable provenance, conflicts and uncertainty. Produces a supported answer or decision analysis without implementation.",
+      "units": [
+        "deep-research/default"
+      ]
+    },
+    "dep-audit": {
+      "description": "Audit exact resolved dependencies for current security, provenance and maintenance risks. Contextualizes advisories without installing or changing dependencies.",
+      "units": [
+        "dep-audit/default"
+      ]
+    },
+    "dev-security-audit": {
+      "description": "Assess a developer workstation for credential exposure, persistence and supply-chain indicators within the authorized scope. Read-only; cleanup, credential rotation and evidence copying require a separate authorized workflow.",
+      "units": [
+        "dev-security-audit/default"
+      ]
+    },
+    "doc-refactor": {
+      "description": "Restructure existing documentation for clarity while preserving technical meaning, project knowledge and important constraints. Does not impose line-count or diagram quotas.",
+      "units": [
+        "doc-refactor/default"
+      ]
+    },
+    "doc-review": {
+      "description": "Review documentation against current repository behavior, sources and the intended audience. Returns factual defects and readiness without editing.",
+      "units": [
+        "doc-review/default"
+      ]
+    },
+    "doctor": {
+      "description": "Diagnose local plugin installation, real hook activation, reviewer configuration and fingerprint-bound gates through the official read-only runtime entrypoint.",
+      "units": [
+        "doctor/claude"
+      ]
+    },
+    "epic-merge": {
+      "description": "Execute an explicitly authorized squash-merge of a validated linear pull-request stack with exact leases, review/CI checks and recoverable checkpoints. Does not generalize to arbitrary branch merging.",
+      "units": [
+        "epic-merge/default"
+      ]
+    },
+    "explain": {
+      "description": "Explain selected code at the requested depth using relevant source and caller evidence. Read-only; avoids expanding a focused explanation into unrelated investigation.",
+      "units": [
+        "explain/default"
+      ]
+    },
+    "feasibility-study": {
+      "description": "Assess whether an outcome is feasible under verified technical and operational constraints, comparing credible approaches and uncertainty. Does not invent requirements or authorize implementation.",
+      "units": [
+        "feasibility-study/default"
+      ]
+    },
+    "feature-dev": {
+      "description": "Implement a coherent feature from its accepted scope through behavior-focused acceptance evidence and configured review/verification gates.",
+      "units": [
+        "feature-dev/default"
+      ]
+    },
+    "feature-verify": {
+      "description": "Verify deployed feature behavior using allowlisted read-only probes, logs and metrics bound to an exact environment and deployment. Does not satisfy the repository deterministic verification gate.",
+      "units": [
+        "feature-verify/default"
+      ]
+    },
+    "fp-brief": {
+      "description": "Analyze a proposal from first principles, exposing assumptions, causal reasoning, alternatives and decision sensitivity. Returns a read-only briefing.",
+      "units": [
+        "fp-brief/default"
+      ]
+    },
+    "generate-runner": {
+      "description": "Generate or update a contained repository check runner from the supported ecosystem’s closed command catalog. Does not install dependencies or run the generated file.",
+      "units": [
+        "generate-runner/default"
+      ]
+    },
+    "git-investigate": {
+      "description": "Trace code history, renames and candidate regressions using exact commits and patches. Strictly read-only Git archaeology; does not fetch or change repository state.",
+      "units": [
+        "git-investigate/default"
+      ]
+    },
+    "git-profile": {
+      "description": "Inspect or update repository-local Git identity and signing profiles with explicit scope and verified configuration. Does not alter global settings or store secret key material.",
+      "units": [
+        "git-profile/default"
+      ]
+    },
+    "issue-analyze": {
+      "description": "Classify a reported issue and investigate its likely cause, severity and next verification step using repository evidence. Independent Codex verdicts may inform analysis; no fix or external write.",
+      "units": [
+        "issue-analyze/default"
+      ]
+    },
+    "jira": {
+      "description": "Inspect a Jira issue or carry out one explicitly authorized issue, branch-metadata or transition workflow. Validates the exact site, issue and payload before mutation.",
+      "units": [
+        "jira/default"
+      ]
+    },
+    "load-pr-review": {
+      "description": "Load existing GitHub review threads, assess their relevance and draft evidence-backed replies. Read-only; publication and thread resolution belong to a separately authorized workflow.",
+      "units": [
+        "load-pr-review/default"
+      ]
+    },
+    "merge-prep": {
+      "description": "Analyze source branches against an exact target for ancestry, changed paths and likely conflicts. Does not merge, mutate refs or claim readiness without required evidence.",
+      "units": [
+        "merge-prep/default"
+      ]
+    },
+    "necessity-audit": {
+      "description": "Challenge whether proposed requirements or architecture need to exist now, using user value, status quo, alternatives, and carrying cost. Returns a read-only necessity verdict; implementation feasibility and plan review belong elsewhere.",
+      "units": [
+        "necessity-audit/default"
+      ]
+    },
+    "next-step": {
+      "description": "Recommend the next action from the user objective, current repository state, and fingerprint-bound review and verification evidence. Advice only; does not dispatch workflows or mutate state.",
+      "units": [
+        "next-step/default"
+      ]
+    },
+    "obsidian-cli": {
+      "description": "Search a selected Obsidian vault or perform one authorized note or task update through the official CLI, with exact-target validation and readback. Excludes bulk edits, deletion, and direct Markdown editing.",
+      "units": [
+        "obsidian-cli/default"
+      ]
+    },
+    "op-session": {
+      "description": "Diagnose existing 1Password CLI session readiness using non-secret metadata and explain supported interactive setup. Does not sign in or read secrets.",
+      "units": [
+        "op-session/default"
+      ]
+    },
+    "orchestrate": {
+      "description": "Build a validated dependency plan and, when requested, gather bounded read-only evidence through admitted Codex subagents. Mutations and review or verification gates remain separate handoffs.",
+      "units": [
+        "orchestrate/default"
+      ]
+    },
+    "plan-review": {
+      "description": "Independently review an implementation or migration plan for goal coverage, ordering, repository fit, risks, and verification. Returns findings and readiness without editing the plan or satisfying the code-review gate.",
+      "units": [
+        "plan-review/default"
+      ]
+    },
+    "portfolio": {
+      "description": "Explain a repository’s portfolio API, provider routing, normalization, aggregation, and caching from code and supplied evidence. Does not query live wallets or providers.",
+      "units": [
+        "portfolio/default"
+      ]
+    },
+    "post-dev-recap": {
+      "description": "Create an evidence-backed recap of a completed change through recap-doc and support user-requested follow-up questions. Preserves repository and gate state outside the recap artifact.",
+      "units": [
+        "post-dev-recap/default"
+      ]
+    },
+    "post-dev-test": {
+      "description": "Run repository-native tests appropriate to a completed implementation and classify failures. Collects development feedback without recording the deterministic verification gate.",
+      "units": [
+        "post-dev-test/default"
+      ]
+    },
+    "pr-comment": {
+      "description": "Validate and publish one authorized atomic batch of inline GitHub pull-request comments against an exact head and diff. Revalidates positions and verifies the created review.",
+      "units": [
+        "pr-comment/default"
+      ]
+    },
+    "pr-review": {
+      "description": "Perform an author’s read-only pull-request readiness assessment of an exact comparison. Does not publish comments or replace configured primary review.",
+      "units": [
+        "pr-review/default"
+      ]
+    },
+    "pr-summary": {
+      "description": "List and group open pull requests for one repository with filters, ticket relationships, and explicit truncation. Does not change pull requests.",
+      "units": [
+        "pr-summary/default"
+      ]
+    },
+    "pre-pr-audit": {
+      "description": "Audit local branch readiness for a pull request using scope, commits, acceptance criteria, and current gate evidence. Returns READY, CONDITIONAL, or BLOCKED without publication.",
+      "units": [
+        "pre-pr-audit/default"
+      ]
+    },
+    "project-audit": {
+      "description": "Assess repository engineering and open-source health across implementation, tests, security hygiene, operations, documentation, and release practices. Return evidenced scores and prioritized improvements.",
+      "units": [
+        "project-audit/default"
+      ]
+    },
+    "project-brief": {
+      "description": "Convert an approved technical specification into a PM- and CTO-facing brief while preserving scope, commitments, provenance, and unresolved decisions. Does not approve or modify the source specification.",
+      "units": [
+        "project-brief/default"
+      ]
+    },
+    "push-ci": {
+      "description": "Perform one authorized fast-forward branch push with hooks intact, then monitor CI for the exact pushed commit. Excludes force push, history rewriting, and pull-request mutation.",
+      "units": [
+        "push-ci/default"
+      ]
+    },
+    "readme-i18n-sync": {
+      "description": "Translate changed canonical English README sections into maintained locale files while preserving unchanged content, links, identifiers, and glossary terms. Does not edit the canonical English source.",
+      "units": [
+        "readme-i18n-sync/default"
+      ]
+    },
+    "recap-ask": {
+      "description": "Answer questions about an existing recap, distinguishing its claims from verified current evidence. Read-only; unrelated questions are identified for the appropriate workflow.",
+      "units": [
+        "recap-ask/default"
+      ]
+    },
+    "recap-doc": {
+      "description": "Write a post-development recap with design decisions, specification drift, blind spots, and verified source citations. Uses a temporary destination unless a repository output path is requested.",
+      "units": [
+        "recap-doc/default"
+      ]
+    },
+    "refactor": {
+      "description": "Improve a named structural concern while preserving observable behavior and compatibility. Establish regression evidence and complete required review and verification.",
+      "units": [
+        "refactor/default"
+      ]
+    },
+    "remind": {
+      "description": "Inspect current sd0x runtime status and resume the required review, recovery, or verification action. Existing scoped reset authorization remains valid.",
+      "units": [
+        "remind/default"
+      ]
+    },
+    "repo-intake": {
+      "description": "Build a current repository map of entrypoints, tests, tooling, ownership, and integration risks, optionally saving it to a requested destination. Does not execute project code or modify implementation.",
+      "units": [
+        "repo-intake/default"
+      ]
+    },
+    "req-analyze": {
+      "description": "Create or refine feature requirements in 1-requirements.md, with stakeholders, constraints, priorities, and observable acceptance signals. Solution design and execution tickets belong to separate workflows.",
+      "units": [
+        "req-analyze/default"
+      ]
+    },
+    "request-tracking": {
+      "description": "Report cross-feature request status, age, acceptance counts, dependencies, and malformed records without editing tickets. Source status labels are not proof of completion.",
+      "units": [
+        "request-tracking/default"
+      ]
+    },
+    "reset": {
+      "description": "Reset current sd0x review and verification evidence under explicit user authorization, preserving worktree bytes. Corrupt runtime state is quarantined and requires new session activation.",
+      "units": []
+    },
+    "review": {
+      "description": "Run the configured read-only Codex primary review for the exact current fingerprint. Default mode owns the review gate; fast, full, branch, and deep modes return subject-bound reports only.",
+      "units": [
+        "review/branch",
+        "review/deep",
+        "review/default",
+        "review/fast",
+        "review/full"
+      ]
+    },
+    "review-spec": {
+      "description": "Review lifecycle requirements, technical specifications, or architecture for traceability, repository consistency, risks, and testability. Read-only and independent of the code-review gate.",
+      "units": [
+        "review-spec/default"
+      ]
+    },
+    "risk-assess": {
+      "description": "Assess the delivery and operational risk of a bounded change from evidence, including failure scenarios, mitigations, rollout conditions, and rollback.",
+      "units": [
+        "risk-assess/default"
+      ]
+    },
+    "runbook": {
+      "description": "Create, refresh, or check a release runbook against current repository and operational evidence. Does not deploy, roll back, or claim production readiness.",
+      "units": [
+        "runbook/default"
+      ]
+    },
+    "safe-remove": {
+      "description": "Remove an explicitly identified repository asset and proven-safe references, preserving recovery evidence and unrelated work. Unresolved loading or compatibility dependencies block removal.",
+      "units": [
+        "safe-remove/default"
+      ]
+    },
+    "security-review": {
+      "description": "Perform a bounded read-only security assessment of assets, trust boundaries, exploit preconditions, and controls. Return evidence-backed findings without destructive testing or secret exposure.",
+      "units": [
+        "security-review/default"
+      ]
+    },
+    "seek-verdict": {
+      "description": "Obtain an independent Codex subagent opinion on a bounded disputed finding, preserving evidence identity, severity obligations, and dismissal safeguards. Advisory only; never substitutes for configured primary review.",
+      "units": [
+        "seek-verdict/default"
+      ]
+    },
+    "setup": {
+      "description": "Install or refresh project-local managed sd0x guidance, opt-in hook configuration, and the configured primary reviewer through the bundled setup script. Preserve user-authored content and report activation requirements.",
+      "units": [
+        "setup/default",
+        "setup/guidance",
+        "setup/hooks",
+        "setup/scripts"
+      ]
+    },
+    "sharingan": {
+      "description": "Adapt a bounded source workflow into a Codex-native skill with provenance, capability mapping, dependencies, and validation. Does not install or publish the generated skill.",
+      "units": [
+        "sharingan/default"
+      ]
+    },
+    "simplify": {
+      "description": "Remove incidental complexity from a bounded code path while preserving behavior and verifying affected callers. Excludes new features and unrelated architectural replacement.",
+      "units": [
+        "simplify/default"
+      ]
+    },
+    "skill-health-check": {
+      "description": "Audit skill discovery, routing, progressive loading, resources, safety, and verification evidence. Read-only; does not install candidates or claim a review gate.",
+      "units": [
+        "skill-health-check/default"
+      ]
+    },
+    "smart-commit": {
+      "description": "Create one authorized commit from the existing index with hooks, signing, exact-tree validation, and readback intact. Does not stage, unstage, or push.",
+      "units": [
+        "smart-commit/default"
+      ]
+    },
+    "smart-rebase": {
+      "description": "Analyze squash-merge history and perform an authorized bounded topic-branch rebase with a proven cut point and recovery ref. Does not push or guess conflict resolutions.",
+      "units": [
+        "smart-rebase/default"
+      ]
+    },
+    "statusline-config": {
+      "description": "Determine whether the installed Codex version supports an official statusline configuration surface and show verified fields. Read-only; does not invent schemas or write unsupported configuration.",
+      "units": [
+        "statusline-config/default"
+      ]
+    },
+    "tech-brief": {
+      "description": "Write a developer-facing brief from approved specifications, implementation, tests, and decision evidence. Preserve provenance, limitations, and unresolved interpretations.",
+      "units": [
+        "tech-brief/default"
+      ]
+    },
+    "tech-spec": {
+      "description": "Create or refine 2-tech-spec.md from established requirements, including architecture, interfaces, risks, work boundaries, and validation. Deep mode adds proposal validation and alternative analysis; no implementation or ticket mutation.",
+      "units": [
+        "tech-spec/deep",
+        "tech-spec/default"
+      ]
+    },
+    "test-deep": {
+      "description": "Investigate test sufficiency across affected layers using material risks, reproducible execution, and failure triage. Does not edit production code or record the verification gate.",
+      "units": [
+        "test-deep/default"
+      ]
+    },
+    "test-gen": {
+      "description": "Add behavior-focused tests for an identified coverage gap, using existing conventions and meaningful regression proof. Implementation defects are reported rather than encoded as expected behavior.",
+      "units": [
+        "test-gen/default"
+      ]
+    },
+    "test-health": {
+      "description": "Assess test reliability, speed, maintainability, coverage evidence, and layer balance. Historical trends require comparable artifacts.",
+      "units": [
+        "test-health/default"
+      ]
+    },
+    "test-review": {
+      "description": "Provide an independent read-only assessment of tests and acceptance criteria for an exact subject. Returns actionable coverage gaps without participating in the repository review gate.",
+      "units": [
+        "test-review/default"
+      ]
+    },
+    "ui-first-principles": {
+      "description": "Derive UI information hierarchy and field priorities from a user scenario and API field set. Produces design analysis without live user data, screenshots, or frontend implementation.",
+      "units": [
+        "ui-first-principles/default"
+      ]
+    },
+    "update-docs": {
+      "description": "Update existing documentation where current code proves drift, preserving feature scope and user-authored context. Any edit remains subject to current fingerprint review requirements.",
+      "units": [
+        "update-docs/default"
+      ]
+    },
+    "update-readme": {
+      "description": "Regenerate owned README catalog sections from canonical skill and manifest evidence while preserving all other content. Report locale changes for readme-i18n-sync.",
+      "units": [
+        "update-readme/default"
+      ]
+    },
+    "verify": {
+      "description": "Record deterministic verification after current-fingerprint primary review passes. Fast and precommit are non-gating check sequences; lint fixes require scoped authorization and --allow-fixes.",
+      "units": [
+        "verify/default",
+        "verify/fast",
+        "verify/precommit"
+      ]
+    },
+    "watch-ci": {
+      "description": "Monitor required GitHub Actions runs for one exact commit, distinguishing success, failure, missing runs, and timeout. Does not replace repository verification.",
+      "units": [
+        "watch-ci/default"
+      ]
+    },
+    "zh-tw": {
+      "description": "Rewrite the preceding answer or a selected conversation passage in natural Taiwan Traditional Chinese, preserving facts, technical tokens, citations, and structure. Returns only the rewritten content.",
+      "units": [
+        "zh-tw/default"
+      ]
+    }
+  }
+}

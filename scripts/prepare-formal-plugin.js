@@ -23,6 +23,11 @@ const {
 const ROOT = path.resolve(__dirname, '..');
 const DISPOSITION_PATH = path.join(ROOT, 'migration', 'source-disposition.json');
 const FORMAL_REQUEST = './2026-07-28-formal-plugin-delivery-model.md';
+const { LEGACY_POLICY } = require('./skill-authorization-policy');
+
+// Historical 2026-07-28 pack-ready -> core replay only. Current revisions use
+// the live payload and its current candidate/restage owners; this converter must
+// never rebuild a current skill from its immutable legacy research pack.
 const BYTEWISE = (left, right) => Buffer.from(left).compare(Buffer.from(right));
 
 function fail(message) {
@@ -206,6 +211,7 @@ function prepareLegacyTarget(disposition, rows) {
     adaptCandidateMarkdown(candidate);
     const contractPath = path.join(candidate, 'migration-contract.json');
     contract = JSON.parse(fs.readFileSync(contractPath, 'utf8'));
+    assertLegacyReplayContract(contract);
     if (contract.target_skill !== target) fail(`${unit}: predecessor target mismatch`);
     contract.target_package = 'core';
     writeText(contractPath, canonicalJson(contract, true));
@@ -265,8 +271,7 @@ function prepareLegacyTarget(disposition, rows) {
   return details;
 }
 
-function main() {
-  const disposition = JSON.parse(fs.readFileSync(DISPOSITION_PATH, 'utf8'));
+function legacyReplayPlan(disposition) {
   const legacyUnits = new Map();
   for (const row of disposition.skills) {
     if (row.delivery_state !== 'pack-ready') continue;
@@ -277,12 +282,36 @@ function main() {
     .filter((row) => row.delivery_state === 'candidate' &&
       /\/2026-07-28-wave\d-.*-formal-promotion\.md$/.test(row.promotion_request || ''))
     .map((row) => row.target_skill))].sort(BYTEWISE);
+  return { legacyUnits, formalCandidateTargets };
+}
+
+function assertLegacyReplayContract(contract) {
+  if (![1, 2].includes(contract.schema_version) ||
+      contract.authorization?.policy !== LEGACY_POLICY) {
+    fail('historical formal replay requires a legacy v1 authorization contract; use the current live-payload candidate owner for a new revision');
+  }
+}
+
+function main() {
+  const disposition = JSON.parse(fs.readFileSync(DISPOSITION_PATH, 'utf8'));
+  const { legacyUnits, formalCandidateTargets } = legacyReplayPlan(disposition);
+  if (legacyUnits.size === 0 && formalCandidateTargets.length === 0) {
+    process.stdout.write(`${JSON.stringify({
+      ok: true,
+      mode: 'historical-formal-replay',
+      prepared_units: 0,
+      changed: false,
+      reason: 'no-legacy-formal-replay-targets'
+    }, null, 2)}\n`);
+    return;
+  }
   for (const target of formalCandidateTargets) {
     const candidate = path.join(ROOT, 'migration', 'candidates', target);
-    adaptCandidateMarkdown(candidate);
     const contract = JSON.parse(fs.readFileSync(
       path.join(candidate, 'migration-contract.json'), 'utf8'
     ));
+    assertLegacyReplayContract(contract);
+    adaptCandidateMarkdown(candidate);
     const registry = contract.units.map((entry) => ({
       unit: entry.promotion_unit_id,
       routing: canonical(entry.routing)
@@ -324,18 +353,9 @@ function main() {
   for (const unit of [...legacyUnits.keys()].sort(BYTEWISE)) {
     prepared.push(prepareLegacyTarget(disposition, legacyUnits.get(unit)));
   }
-  for (const row of disposition.skills) {
-    if (row.delivery_state === 'planned') row.target_package = 'core';
-    if (row.source_name === 'statusline-config') {
-      row.disposition = 'adapt';
-      row.target_package = 'core';
-      row.target_skill = 'statusline-config';
-      row.target_mode = null;
-      row.routing_owner = 'statusline-config';
-      row.promotion_unit_id = 'statusline-config/default';
-      row.rationale = 'Provide a read-only capability-aware Codex statusline workflow that fails closed when no official configuration API exists.';
-    }
-  }
+  // Only the selected legacy unit rows were changed by prepareLegacyTarget.
+  // Planned/current owners and unrelated statusline mappings belong to their
+  // own generators, including when a mixed registry is replayed.
   writeText(DISPOSITION_PATH, `${JSON.stringify(disposition, null, 2)}\n`);
   process.stdout.write(`${JSON.stringify({
     ok: true,
@@ -355,6 +375,8 @@ if (require.main === module) {
 
 module.exports = {
   adaptCorePackageBoundary,
+  assertLegacyReplayContract,
+  legacyReplayPlan,
   main,
   requestMarkdown,
   routingCatalogHash

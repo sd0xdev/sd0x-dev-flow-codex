@@ -1,12 +1,16 @@
 ---
 name: reset
-description: Reset sd0x Dev Flow review and verification evidence without changing project files; trusted sessions are preserved, while corrupt state is quarantined and requires a new SessionStart. Use when the user explicitly asks to restart a stuck or stale review loop from a clean runtime state.
+description: "Reset current sd0x review and verification evidence under explicit user authorization, preserving worktree bytes. Corrupt runtime state is quarantined and requires new session activation."
 ---
 
 # Reset the Current Loop
 
-Only run this skill when the user explicitly requests a reset. Resetting discards
-the current worktree's recorded review, verification, and reviewer evidence, but
+Run this skill only under explicit user reset authorization. An earlier request
+or ongoing authorization covering the current recovery is sufficient; ask only
+when no such authority exists. Do not request the same permission again.
+
+Resetting discards the current worktree's recorded review, verification, and
+reviewer evidence, but
 does not modify the worktree or bypass any required gate. For valid runtime
 state, active sessions remain active and a dirty worktree immediately returns to
 `review`. If runtime state is corrupt or uses an unsupported schema, reset

@@ -28,10 +28,6 @@ const {
 const { findRepoRoot, snapshot } = require('./worktree');
 const { runPrecommitMode, runVerification } = require('./verify');
 const {
-  claudeRequiredFlags,
-  resolveClaudeExecutable
-} = require('../mcp/server');
-const {
   beginCollaborationReview
 } = require('./collaboration');
 
@@ -60,80 +56,6 @@ function parseInput(args) {
   if (inline) return JSON.parse(inline);
   if (inputFile) return JSON.parse(fs.readFileSync(path.resolve(inputFile), 'utf8'));
   throw new Error('Provide --input JSON or --input-file PATH');
-}
-
-function claudeCliStatus(
-  env = process.env,
-  execute = spawnSync,
-  platform = process.platform,
-  resolveBinary = resolveClaudeExecutable
-) {
-  const configuredBinary = env.SD0X_CLAUDE_BIN || 'claude';
-  let binary;
-  try {
-    binary = resolveBinary(configuredBinary, { env, platform, execute });
-  } catch (error) {
-    return {
-      binary: configuredBinary,
-      installed: false,
-      authenticated: false,
-      reason: error.code === 'ENOENT'
-        ? 'command-not-found'
-        : 'native-windows-cli-required'
-    };
-  }
-  const options = {
-    encoding: 'utf8',
-    env,
-    maxBuffer: 1024 * 1024,
-    timeout: 10_000,
-    windowsHide: true,
-    shell: false
-  };
-  const versionResult = execute(binary, ['--version'], options);
-  if (versionResult.error || versionResult.status !== 0) {
-    return {
-      binary,
-      installed: false,
-      authenticated: false,
-      reason: versionResult.error?.code === 'ENOENT'
-        ? 'command-not-found'
-        : 'version-check-failed'
-    };
-  }
-
-  const version = String(versionResult.stdout || '').trim().split(/\r?\n/, 1)[0];
-  const helpResult = execute(binary, ['--help'], options);
-  const help = helpResult.status === 0 ? String(helpResult.stdout || '') : '';
-  const requiredFlags = claudeRequiredFlags(env);
-  const missingFlags = requiredFlags.filter((flag) => !help.includes(flag));
-  const compatible = helpResult.status === 0 && missingFlags.length === 0;
-  const authResult = execute(binary, ['auth', 'status', '--json'], options);
-  let auth = null;
-  try {
-    auth = JSON.parse(authResult.stdout || '{}');
-  } catch {
-    auth = null;
-  }
-  const authenticated = authResult.status === 0 && auth?.loggedIn === true;
-  return {
-    binary: configuredBinary,
-    ...(binary !== configuredBinary ? { resolved_binary: binary } : {}),
-    installed: true,
-    version: version.slice(0, 200),
-    compatible,
-    missing_flags: missingFlags,
-    authenticated,
-    auth_method: authenticated && typeof auth.authMethod === 'string'
-      ? auth.authMethod
-      : null,
-    api_provider: authenticated && typeof auth.apiProvider === 'string'
-      ? auth.apiProvider
-      : null,
-    reason: !compatible
-      ? 'missing-required-flags'
-      : (authenticated ? null : 'not-authenticated')
-  };
 }
 
 function mcpServerStatus(pluginRoot, execute = spawnSync) {
@@ -197,12 +119,11 @@ function mcpServerStatus(pluginRoot, execute = spawnSync) {
   const runtimeTool = Array.isArray(tools)
     ? tools.find((item) => item.name === 'run_skill_script')
     : null;
-  const serverReady = initialized?.serverInfo?.name === 'sd0x-claude-review';
-  const reviewReady = serverReady && Boolean(reviewTool);
+  const serverReady = initialized?.serverInfo?.name === 'sd0x-skill-runtime';
+  const reviewAbsent = !reviewTool;
   const runtimeReady = serverReady && Boolean(runtimeTool);
   return {
-    ready: reviewReady && runtimeReady,
-    review_ready: reviewReady,
+    ready: reviewAbsent && runtimeReady,
     runtime_ready: runtimeReady,
     server_name: initialized?.serverInfo?.name || null,
     protocol_version: initialized?.protocolVersion || null,
@@ -212,7 +133,7 @@ function mcpServerStatus(pluginRoot, execute = spawnSync) {
       ? 'unexpected-server-identity'
       : !runtimeTool
         ? 'runtime-tool-missing'
-        : !reviewTool ? 'review-tool-missing' : null
+        : reviewTool ? 'retired-review-tool-present' : null
   };
 }
 
@@ -317,21 +238,11 @@ function doctor(cwd, options = {}) {
   if (projectConfig.enabled) {
     checks.push({ check: 'managed-guidance-current', ok: guidance.status === 'current' });
   }
-  const claudeRequired = projectConfig.review.provider === 'claude';
-  const claude = claudeRequired
-    ? (options.claudeStatus || claudeCliStatus)()
-    : { required: false, checked: false };
   const mcp = (options.mcpStatus || mcpServerStatus)(pluginRoot);
   checks.push({
     check: 'skill-runtime-mcp-handshake',
-    ok: mcp.runtime_ready === true
+    ok: mcp.ready === true && mcp.runtime_ready === true
   });
-  if (claudeRequired) {
-    checks.push({ check: 'claude-cli', ok: claude.installed });
-    checks.push({ check: 'claude-capabilities', ok: claude.compatible === true });
-    checks.push({ check: 'claude-auth', ok: claude.authenticated });
-    checks.push({ check: 'claude-review-mcp-handshake', ok: mcp.review_ready === true });
-  }
   let status = null;
   let stateError = null;
   try {
@@ -349,7 +260,6 @@ function doctor(cwd, options = {}) {
     state_path: resolveStatePath(cwd),
     workflow_contract_version: CONTRACT_SCHEMA_VERSION,
     managed_guidance: guidance,
-    claude,
     mcp,
     checks,
     state_error: stateError,
@@ -486,7 +396,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-  claudeCliStatus,
   doctor,
   main,
   mcpServerStatus,

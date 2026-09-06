@@ -236,33 +236,20 @@ test('verification fails when a check mutates the reviewed fingerprint', (t) => 
   assert.equal(nextAction(result.state).action, 'review');
 });
 
-test('verification fails when the review provider changes during checks', (t) => {
+test('verification rejects a retired provider introduced during checks', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   passReview(root);
-  const startingFingerprint = refreshState(root).worktree.fingerprint;
   let changed = false;
-
-  const result = runVerification(root, {
+  assert.throws(() => runVerification(root, {
     onResult() {
       if (changed) return;
       changed = true;
       setReviewProvider(root, 'claude');
     }
-  });
-
-  assert.equal(result.status, 'fail');
-  assert.equal(result.state.worktree.fingerprint, startingFingerprint);
-  assert.equal(result.state.review_provider, 'claude');
-  assert.equal(result.state.gates.review.status, 'pending');
-  assert.equal(result.state.gates.verify.status, 'fail');
-  assert.equal(result.evidence.provider_changed, true);
-  assert.equal(result.evidence.expected_provider, 'codex');
-  assert.equal(result.evidence.observed_provider, 'claude');
-  assert.deepEqual(nextAction(result.state), {
-    action: 'review',
-    reason: 'review-required'
-  });
+  }), /Claude review is retired/);
+  setReviewProvider(root, 'codex');
+  assert.notEqual(refreshState(root).gates.verify.status, 'pass');
 });
 
 test('generic CLI cannot fabricate a passing verification gate', (t) => {

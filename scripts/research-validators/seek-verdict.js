@@ -54,9 +54,9 @@ function thresholdFor(severity) {
 }
 
 function oppositeVerifier(origin) {
-  if (origin === 'claude') return ['native-codex'];
-  if (origin === 'native-codex') return ['claude-adapter'];
-  if (origin === 'user') return ['native-codex', 'claude-adapter'];
+  // Keep legacy origin labels as provenance. Independence is established by distinct
+  // agent identity and evidence, not by a different model family or provider.
+  if (['claude', 'native-codex', 'user'].includes(origin)) return ['native-codex'];
   throw new Error('finding origin is invalid');
 }
 

@@ -1,6 +1,6 @@
 ---
 name: request-tracking
-description: "Route request-tracking using exact migration registry [{\"unit\":\"request-tracking/default\",\"routing\":{\"negative_boundaries\":[\"Create or update a date-prefixed execution request ticket.\",\"Scan only incomplete requests and show the operational work queue.\",\"Verify one request acceptance criteria and mark its completion status.\"],\"positive_triggers\":[\"Build a read-only cross-feature request portfolio report with status, priority, age, blockers, and parse errors.\",\"Show request health trends and broken dependency links without editing any tickets.\",\"Summarize all active and terminal request metadata for planning governance.\"]}}]."
+description: "Report cross-feature request status, age, acceptance counts, dependencies, and malformed records without editing tickets. Source status labels are not proof of completion."
 ---
 
 # Request Portfolio Tracking
@@ -39,17 +39,17 @@ Group records by normalized status, then priority `P0`, `P1`, `P2`, unknown, the
 
 Show scope and timestamp, totals, active/terminal/archived counts, status and priority distribution, stale work, blockers, broken links, parse errors, and the full request table. State the parser rules and any unavailable metadata. Do not claim a status or AC is correct merely because the source text says so.
 
-Before reporting completion:
+Completion requires the following outcomes; choose the inspection and checking sequence that establishes them:
 
-- Confirm every discovered valid or malformed request appears exactly once.
-- Confirm ordering, age, AC counts, terminal validation, blockers, and link errors follow the report contract.
-- Confirm active, terminal, archived-location, and parser-error counts reconcile.
-- Confirm no request, evidence, runtime state, Git metadata, or external system changed.
-- Scan the report for secrets and redact suspicious values.
+- every discovered valid or malformed request appears exactly once.
+- ordering, age, AC counts, terminal validation, blockers, and link errors follow the report contract.
+- active, terminal, archived-location, and parser-error counts reconcile.
+- no request, evidence, runtime state, Git metadata, or external system changed.
+- The report contains no exposed secrets.
 
 ## Pack handoff
 
-[Read the planning-pack handoff specification](references/pack-handoff.md). This canonical skill is distributed from the core plugin; the linked planning-pack handoff is retained only as immutable migration provenance.
+This canonical skill is distributed from the core plugin. The [historical planning-pack handoff](references/pack-handoff.md) is migration provenance only; consult it for historical context, not current workflow instructions.
 
 <!-- sd0x-routing-contract:v1 unit=request-tracking/default -->
 ```json

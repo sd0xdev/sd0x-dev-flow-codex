@@ -1,13 +1,11 @@
 ---
 name: create-request
-description: "Route create-request using exact migration registry [{\"unit\":\"create-request/default\",\"routing\":{\"positive_triggers\":[\"Create a date-prefixed execution request from the approved technical specification.\",\"Scan incomplete request tickets and show the stale work dashboard.\",\"Update this request ticket from implementation evidence and verify its acceptance criteria.\"],\"negative_boundaries\":[\"Analyze the feature-wide problem and write prioritized requirements.\",\"Design the system architecture, risks, work breakdown, and testing strategy.\",\"Implement the approved request and modify production code.\"]}}]."
+description: "Create, update or inspect date-prefixed execution tickets and verify their acceptance criteria. Durable completion uses the runtime closure transaction; does not implement the ticket."
 ---
 
 # Manage Request Tickets
 
-Treat request tickets as execution units, not feature requirements. Keep one concern
-layer per ticket, no more than eight acceptance criteria, and an estimate small enough
-for roughly three days of work.
+Treat request tickets as execution units, not feature requirements. Keep each ticket coherent and independently verifiable. Split independent concerns when that improves execution; do not use delivery estimates as promises.
 
 ## Select a mode
 
@@ -23,8 +21,7 @@ the only resolver. Its resolver mode accepts an optional feature key or canonica
 repository-relative path; its scan mode returns the incomplete-work dashboard.
 Resolve or scan before reading or writing request documents.
 
-Read [references/request-format.md](references/request-format.md) before every create
-or update. It owns both the ticket format and the durable closure transaction.
+Use [references/request-format.md](references/request-format.md) for create and update operations. It owns both the ticket format and the durable closure transaction.
 
 Use the helper's canonical paths and active-request list. Never guess after a null or
 ambiguous resolution. If both a feature key and path are supplied, they must resolve
@@ -37,8 +34,7 @@ to the same slug. The helper is query-only and never creates directories or file
 2. Read the parent tech spec and, when present, requirements document. Read
    [references/request-format.md](references/request-format.md) before rendering.
 3. Derive a single-task scope, related files, dependencies, and evidence-oriented ACs.
-   If the task mixes layers, spans independent areas, exceeds eight ACs, or is larger
-   than about three days, propose focused sibling tickets before writing.
+   If the task spans independent concerns, propose focused sibling tickets when that makes execution and verification clearer. Respect any actual limits reported by the request helper.
 4. Record the current HEAD commit identifier as `Implementation Base SHA`. Name the
    file `YYYY-MM-DD-kebab-case-title.md` and refuse collisions instead of overwriting.
 5. Create only after clear user intent to create a local ticket. Preserve bidirectional
@@ -61,7 +57,7 @@ to the same slug. The helper is query-only and never creates directories or file
 For independent AC verification, start a fresh, isolated, read-only Codex subagent.
 Its bounded context contains only the raw AC list, related paths, repository root,
 implementation base, and subject snapshot.
-Bound it to 60 seconds. Require one structured result per AC with `Complete`,
+Use the supported bounded execution deadline and distinguish observation expiry from a terminal timeout. Require one structured result per AC with `Complete`,
 `Partial`, `Not Found`, or `Inconclusive`; `High`, `Medium`, or `Low` confidence; and
 repo-relative `file:line` evidence for every `Complete`. Timeout, cancellation,
 unavailability, malformed output, missing evidence, or subject drift makes affected

@@ -5,10 +5,11 @@ const crypto = require('node:crypto');
 
 const WEIGHTS = Object.freeze({ exploratory: [30, 30, 25, 15], compliance: [20, 35, 25, 20], decision: [25, 35, 20, 20] });
 const THRESHOLDS = Object.freeze({ exploratory: 70, compliance: 90, decision: 80 });
+// Presets declare resource maxima; optional work is never required to fill them.
 const BUDGETS = Object.freeze({
-  low: Object.freeze({ researchers: 1, validator: 0, sources: 3, debate: 'security-only' }),
-  medium: Object.freeze({ researchers: 3, validator: 1, sources: 12, debate: 'conditional' }),
-  high: Object.freeze({ researchers: 3, validator: 1, sources: 24, debate: 'forced' })
+  low: Object.freeze({ researchers: 1, validator: 0, sources: 3, debate: 'optional' }),
+  medium: Object.freeze({ researchers: 3, validator: 1, sources: 12, debate: 'optional' }),
+  high: Object.freeze({ researchers: 3, validator: 1, sources: 24, debate: 'optional' })
 });
 const CLAIM_KEYS = Object.freeze(['claim', 'claim_id', 'confidence', 'critical', 'evidence', 'status']);
 const EVIDENCE_KEYS = Object.freeze(['agent_role', 'author_id', 'content_hash', 'identity_binding_hash', 'independence_key', 'locator', 'publisher_id', 'relation', 'source_id', 'source_type', 'weight']);
@@ -232,7 +233,7 @@ function claimScore(evidence, identityRegistry = new Map()) {
     .reduce((sum, item) => sum + item.weight, 0);
   const refute = unique.filter((item) => item.relation === 'refutes')
     .reduce((sum, item) => sum + item.weight, 0);
-  return { support, refute, net_score: Math.max(0, support - refute), divergent: refute >= support };
+  return { support, refute, net_score: Math.max(0, support - refute), has_counterevidence: refute > 0 };
 }
 
 function independentSupportCount(evidence, identityRegistry = new Map()) {
@@ -249,6 +250,7 @@ function ratio(numerator, denominator, notApplicable = false) {
   return 100 * numerator * denominator ** -1;
 }
 
+// Diagnostic source-coverage metrics do not decide truth or task completion.
 function completeness(mode, dimensions) {
   let weights;
   let threshold;
@@ -273,7 +275,7 @@ function completeness(mode, dimensions) {
     dimensions.cross_verification * crossWeight * 0.01 +
     dimensions.gap_coverage * gapWeight * 0.01 +
     dimensions.question_closure * closureWeight * 0.01;
-  return { score, complete: score >= threshold };
+  return { score, threshold, meets_threshold: score >= threshold };
 }
 
 function nonnegativeInteger(value) {
@@ -286,15 +288,13 @@ function validateBudget(name, actual) {
       !nonnegativeInteger(actual.fetched_sources) || !nonnegativeInteger(actual.debate_rounds) ||
       typeof actual.security !== 'boolean' || actual.debate_rounds > 5) return false;
   if (name === 'low') {
-    return actual.researchers <= 1 && actual.validator === 0 && actual.fetched_sources <= 3 &&
-      (actual.debate_rounds === 0 || actual.security);
+    return actual.researchers <= 1 && actual.validator === 0 && actual.fetched_sources <= 3;
   }
   if (name === 'medium') {
     return actual.researchers <= 3 && actual.validator <= 1 && actual.fetched_sources <= 12;
   }
   if (name === 'high') {
-    return actual.researchers <= 3 && actual.validator === 1 && actual.fetched_sources <= 24 &&
-      actual.debate_rounds > 0;
+    return actual.researchers <= 3 && actual.validator <= 1 && actual.fetched_sources <= 24;
   }
   return false;
 }

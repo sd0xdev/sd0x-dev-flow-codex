@@ -6,7 +6,7 @@ Report separately whether the official CLI is unavailable, disabled, version-inc
 
 ## IPC and timeout evidence
 
-Every call has a bounded timeout. A timeout, truncated response, unknown-command result, or error-looking response with a successful process status is a failure. Capture the command family, duration, bounded stderr or response digest, and suggested manual check without retrying.
+Every call has a bounded timeout. A transport observation timeout is inconclusive until the same live call or target readback establishes the outcome. Do not duplicate a mutation whose outcome is unknown. Truncated output, an unknown command, or an error response cannot establish success. Capture the command family, duration, and bounded diagnostic evidence; continue safe read-only diagnosis.
 
 ## Vault identity and containment
 

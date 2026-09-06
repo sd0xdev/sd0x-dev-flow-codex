@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "codex_version": "codex-cli 0.145.0",
+  "codex_version": "codex-cli 0.153.4",
   "normalized": true,
   "redactions": {
     "absolute_paths": "removed",
@@ -22,6 +22,7 @@
       "interface",
       "name",
       "path",
+      "pluginId",
       "scope",
       "shortDescription"
     ],
@@ -30,7 +31,9 @@
       "defaultPrompt",
       "displayName",
       "iconLarge",
+      "iconLargeUrl",
       "iconSmall",
+      "iconSmallUrl",
       "shortDescription"
     ],
     "skills_config_write_fields": [

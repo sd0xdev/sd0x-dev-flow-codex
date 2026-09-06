@@ -26,9 +26,8 @@ function sleep(milliseconds) {
 }
 
 function requiredReviewers(provider) {
-  return [provider === 'claude'
-    ? 'sd0x_claude_primary_reviewer'
-    : 'sd0x_codex_primary_reviewer'];
+  if (provider !== 'codex') throw new Error('Collaboration review requires the Codex provider');
+  return ['sd0x_codex_primary_reviewer'];
 }
 
 function sha256(bytes) {
@@ -274,7 +273,7 @@ function readMarker(cwd) {
     if (JSON.stringify(keys) !== JSON.stringify(expected) ||
         marker.schema_version !== MARKER_SCHEMA_VERSION || marker.adapter !== ADAPTER ||
         typeof marker.round_id !== 'string' || !marker.round_id ||
-        !['codex', 'claude'].includes(marker.provider) ||
+        marker.provider !== 'codex' ||
         typeof marker.fingerprint !== 'string' ||
         !(/^[a-f0-9]{64}$/.test(marker.fingerprint) ||
           (marker.fingerprint === 'clean' &&

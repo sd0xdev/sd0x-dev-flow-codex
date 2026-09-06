@@ -1,0 +1,28 @@
+# Native Auto Loop Revision — review/default
+
+> **Doc class**: Request ticket (date-prefixed non-lifecycle)
+> **Created**: 2026-09-05
+> **Implementation Base SHA**: `d6f7e3968881e54c73a73365ad63a9e2b7cc1ba0`
+> **Status**: Candidate Complete
+> **Priority**: P0
+> **Depends On**: [Latest durable owner](./2026-07-26-review-default-final-audit-closure.md)
+> **Tech Spec**: [Skill Toolkit Migration](../2-tech-spec.md)
+
+## Background
+
+使用者要求優先移除 Auto Loop 的 Claude MCP review，改用 GPT subagent，
+預設繼承 parent model／reasoning effort。來源 `6f221ad` 的 redaction 修正亦
+保留於本批。此票接續既有 owner，歷史 payload 與 closure evidence 不改寫。
+
+## Acceptance Criteria
+
+- [x] 此 unit 保留 canonical routing 與原生安全／gate 邊界。
+- [x] 此 unit 的修改由實際 runtime／routing／behavior tests 驗證。
+
+## Progress
+
+| Phase | Status | Note |
+|---|---|---|
+| Development | Complete | Native payload `d3ee04f9d2bbf5da6a7a783716bb72f62ee9e324cee055956873804aeb6b7dc5`. |
+| Testing | Complete | Preflight `962b6675a282acbf2700e3ce6b8d7baf9ddf2c408e0217d6699c23abd9fd82a0`; behavioral checks passed. |
+| Acceptance | Candidate Complete | Pending fingerprint-bound review and verification; no completion claim. |

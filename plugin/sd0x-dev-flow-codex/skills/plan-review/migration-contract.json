@@ -1,6 +1,6 @@
 {
   "authorization": {
-    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "policy": "scoped-explicit-user-authorization-v2",
     "sensitive_operations": []
   },
   "schema_version": 1,

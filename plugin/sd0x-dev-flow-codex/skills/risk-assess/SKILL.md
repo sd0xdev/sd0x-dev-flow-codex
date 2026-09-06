@@ -1,6 +1,6 @@
 ---
 name: risk-assess
-description: "Route risk-assess using exact migration registry [{\"unit\":\"risk-assess/default\",\"routing\":{\"negative_boundaries\":[\"Audit the repository against a named external engineering standard.\",\"Find concrete security vulnerabilities in this change.\",\"Review code correctness and maintainability as a merge gate.\"],\"positive_triggers\":[\"Assess the release and operational risk of this database migration.\",\"Estimate this change's blast radius, reversibility, and required mitigations.\",\"Score the implementation risk of the current diff with evidence.\"]}}]."
+description: "Assess the delivery and operational risk of a bounded change from evidence, including failure scenarios, mitigations, rollout conditions, and rollback."
 ---
 
 # Assess Change Risk

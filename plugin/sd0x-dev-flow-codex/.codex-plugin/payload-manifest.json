@@ -3,7 +3,7 @@
   "files": [
     {
       "path": ".codex-plugin/plugin.json",
-      "sha256": "7666019b5924e96e21d08b17e03c02612d470e9e155cb9d76e8569a74259e649"
+      "sha256": "a5b30f2c143cdf368f6f39aa59152891300d0409514519fe837ca80ee5018bb3"
     },
     {
       "path": ".mcp.json",
@@ -15,27 +15,27 @@
     },
     {
       "path": "hooks/hooks.json",
-      "sha256": "223c1322625c4ea388c733090aad1775afa593c3092ec706240c733d87376279"
+      "sha256": "524ac78c841ad5d043701844c73b0d300f887025a8810dd50280c9c02221aecf"
     },
     {
       "path": "scripts/mcp/server.js",
-      "sha256": "9439dfd6b94ad8d358b3d5319c73e1a95bb3422fe04cb94165cd033580002053"
+      "sha256": "5869d6261a589dbe90decb3094138bbdfdcf4041a66a176a149bdbcc4a8b436f"
     },
     {
       "path": "scripts/runtime/cli.js",
-      "sha256": "39f00bf1ab68ecad82b8ff6e8c7835c65f39b208d3e0c9ceaf0355c683d63f21"
+      "sha256": "df6321cc77bae0806e18e3107e357bcb43b5c0adf7cf680bcea918dd949dcc87"
     },
     {
       "path": "scripts/runtime/collaboration.js",
-      "sha256": "86a72033159b3fa9282b2d2b55f7f36470d5322cc8164b22c77701aff600db68"
+      "sha256": "776fe1ee4c36d634f3e68f07fa7a900f345fb33197d61cf18799df0d76e4f8d0"
     },
     {
       "path": "scripts/runtime/config.js",
-      "sha256": "f45093ef2ae2d71c5ac5e6f593acb09b67c11d48968286d3694c514a9e4503e8"
+      "sha256": "de7842b9e10c1b51b30f5809ca40bfdb774d1fbf3e759565274163a1926b6c12"
     },
     {
       "path": "scripts/runtime/hook.js",
-      "sha256": "b46d39ad7496853d30ea2e74061b5c65733b39803ef6d7a69071d7ba9fdfb993"
+      "sha256": "03c8fe3a559fbc816f97db68499eb81c66dfa341c1041b92357f657bc6b7a0b1"
     },
     {
       "path": "scripts/runtime/request-metadata.js",
@@ -43,11 +43,11 @@
     },
     {
       "path": "scripts/runtime/setup.js",
-      "sha256": "f1f02f447effe98bdcfe670b3cbc28286b00bf5acd872b8673b474e1ffddcfa7"
+      "sha256": "f9366ae6a407af3199c7a32898311716e4fe713852a71a896fb4facc39641a09"
     },
     {
       "path": "scripts/runtime/state.js",
-      "sha256": "8d01064f571669fe0cb3c717ec8723efddb7324064da8187501fbe2d7fe9a1e6"
+      "sha256": "c15aed596439d3e3a63ffe479b539f4ce825fbc99ea1927eb343cae08862595e"
     },
     {
       "path": "scripts/runtime/verify.js",
@@ -55,7 +55,7 @@
     },
     {
       "path": "scripts/runtime/workflow-contract.js",
-      "sha256": "363a3a4af9fefc23b985a422be4835985fa58c162fd14861de27366b75164e40"
+      "sha256": "98be1ec4c2873bcfc0adcd177e6ad67943caa4a55f4c56ede615a9e926c4ab5d"
     },
     {
       "path": "scripts/runtime/worktree.js",
@@ -63,107 +63,107 @@
     },
     {
       "path": "skills/architecture-advice/SKILL.md",
-      "sha256": "5807337b7e10b3999ec8e2f937453325acb2653770069bdb4996227545a29935"
+      "sha256": "87940b9637ef94ba85058d275bf3d002c0550ef95fbe5d72253242745ba1d666"
     },
     {
       "path": "skills/architecture-advice/migration-contract.json",
-      "sha256": "6057112d635ab210ecc0063ed7802acd8a8e8f5d1f190e726cbc0a935f4c77d0"
+      "sha256": "952ec46d1f69aef368ff5f1013e9f7e5f16ec64f02d0445ebe260b5954cab432"
     },
     {
       "path": "skills/architecture/SKILL.md",
-      "sha256": "02f136685f77f896513c938b6783fe532e2bb995ee1fc1de51e671ec089688e1"
+      "sha256": "1de3d1514254652cd755314ea0e9415d005b7f46810b1d04dbf9f32dee8b4228"
     },
     {
       "path": "skills/architecture/migration-contract.json",
-      "sha256": "8ce25c9aea6d5de5a677800f6cb96908d2bd534ac6df9ca525ba9d5af3382ecf"
+      "sha256": "42844e4ee5e2576731fa80004beef7ad302b21192b28505bfc4d95d2416364de"
     },
     {
       "path": "skills/architecture/references/pack-handoff.md",
-      "sha256": "7cae6ffb09ef105d1e5341ba4f140639a677e8703458292b09ac4247f2cff1ee"
+      "sha256": "01f9d43a0b42b2dd246c735dd0a5d0526a2c86b53aa6b24f5459a3bbe1e54245"
     },
     {
       "path": "skills/architecture/references/template.md",
-      "sha256": "be147e83b6defc571925cd3224288c07907eb755b1dccf4283802f4f81077419"
+      "sha256": "ebbc5780374e3718212caf084f42d97515ce25e1632a3eacd9c8b9e084569f6b"
     },
     {
       "path": "skills/ask/SKILL.md",
-      "sha256": "9f62d018980c3fe902220c2edbe44a826c80722aacd29c0fcf5aa89d4923d6d5"
+      "sha256": "a8ad42ae6ad226bb8444b461591f2f649b377df1ca92ffc295262dd9b858ca26"
     },
     {
       "path": "skills/ask/migration-contract.json",
-      "sha256": "6f49bf87ecf6b11c3f02fc0bdf06e71fb3c901ffbe8a2273b062c00d0f10eabb"
+      "sha256": "68e599f49c4a7d72597a71a4e1b1ba11eb29b88e4580b3182a9133552fb1a694"
     },
     {
       "path": "skills/ask/scripts/redact.js",
-      "sha256": "c41e7e6ea9bcf73daea1f717795c74dfab83e6db2ac1d275d04bfb1f75fd0556"
+      "sha256": "7d4fa16b0d75859e2ecb492a965a46c6b39a7740e5b5c8172c13e7ec89481467"
     },
     {
       "path": "skills/best-practices/SKILL.md",
-      "sha256": "e2ab1e1920527cee288cc954b5a67315469613c8b67bfb5a2c472dabf10d3683"
+      "sha256": "053c71213c0055ee6e7e58b9c1c587bb048aabf52e13858eb964fd6eb7377af8"
     },
     {
       "path": "skills/best-practices/migration-contract.json",
-      "sha256": "2d19cef5e12f3fece035e0c7b7dec6563ceffcdb0faf89105c5df3c33bd77a7c"
+      "sha256": "8263ee4625a9d9fdad6325f5fd30254c6071058fb92bd8654ffdd156a82b2751"
     },
     {
       "path": "skills/brainstorm/SKILL.md",
-      "sha256": "bebdcc6b6e49f4602bae2e1475e352af5d874e3876dc14d3fc82bb8aafa0088a"
+      "sha256": "392bed6e53a01ac88404f8b2e59b3f482672129b8cc9de9070b092685aae30ef"
     },
     {
       "path": "skills/brainstorm/migration-contract.json",
-      "sha256": "6c4229bb3bcd7687bd10669ffaec78acfe47de9dd5367e9b1257b3a5f2effdea"
+      "sha256": "daa61d4bbf4816689fa4a36a0e39bcb21d5b42094c3b725c094849babc20f336"
     },
     {
       "path": "skills/brainstorm/scripts/debate.js",
-      "sha256": "85717b5f76cf7416f4451f9d295a4e4d97869eaeffa6ea37c207a00a49f94f12"
+      "sha256": "3cd84c8e76a0c3884c582c5b7e2927c4d77762af6a6faf21ff191d1223c1942c"
     },
     {
       "path": "skills/bug-fix/SKILL.md",
-      "sha256": "d287b56f1b18d0ca1b9fdf552fe1576ca7ac5019a280ae9ae5c49fcbf13fa380"
+      "sha256": "8a0561dfd4acc197b18c46f8e4d308574e804322aa59b45418f907cc3143085d"
     },
     {
       "path": "skills/bug-fix/migration-contract.json",
-      "sha256": "56793f05e97612e70167f3a63f567df8f7b8b5e237c9c8e9d4182ea8309df536"
+      "sha256": "ee409d14e68492f3d702d608155cfbbfc1c873bd7d702b01c6ff60d7e015eb27"
     },
     {
       "path": "skills/bump-version/SKILL.md",
-      "sha256": "120dd602566f8a4c97b6c9f07a46604836cc16b26960617769945f690c7c31d3"
+      "sha256": "e01cff2f35520402c7f70916aa74257195d649632247832e9cc600b1040b7cfb"
     },
     {
       "path": "skills/bump-version/migration-contract.json",
-      "sha256": "77142afd6663ae5d1e1f8d46efd3c2cb3fa90bde45d9572149a35094ba5b48d7"
+      "sha256": "7494f8ec3a325dabd0dd7479a4d065d26e41b9138bb0412864a0f9b6f03f0d9b"
     },
     {
       "path": "skills/check-coverage/SKILL.md",
-      "sha256": "0b85c3268d8a14a1d3a0dcef6417cf03e3472b35a82aa3c737b4eb6cb70d93c4"
+      "sha256": "c149dbda9eda7504c93beb09943de6bdb6ed5adabc365c4eb198c6f2373f1ea2"
     },
     {
       "path": "skills/check-coverage/migration-contract.json",
-      "sha256": "0a1e8439fdcc093bd6a78d4bcbb32eea25e65ebbe59bc0e1fc6a52cf2d460b52"
+      "sha256": "c4067488366acd5ced30fb321af621272da89212f287c54aa7e26b9ac5be907f"
     },
     {
       "path": "skills/code-explore/SKILL.md",
-      "sha256": "baaab5b8f61b8d7362c64360be3befcdf9c026808b079fa8b8712ee3d76545ef"
+      "sha256": "c76f0d1296f004e69a9aa26a52467473d0a843380ac6df775004be3d19c0b988"
     },
     {
       "path": "skills/code-explore/migration-contract.json",
-      "sha256": "0b1ae8df922ae4261fd88c12623f07ba2244f2503035e55f6918562b27c39972"
+      "sha256": "e7086e35ac8dffae07995118d9e3a7d330be04978c8054f2635d78efaef624f3"
     },
     {
       "path": "skills/code-investigate/SKILL.md",
-      "sha256": "701538a226be64a50e4352bd399e102bd132287caed8693eb7a546c42e478000"
+      "sha256": "3a6df0e4867c490017848d63acb6554b6502b035bf4f790b807ba99560cd3ab8"
     },
     {
       "path": "skills/code-investigate/migration-contract.json",
-      "sha256": "96be9f5eacc1f9cb7e14e0797c8ce3236bbc55dd9699819e14d75e7c10eceb7b"
+      "sha256": "a903b3d357af315ba4ab343553e7f55a80675345490e1240ecc448a8704aab73"
     },
     {
       "path": "skills/contract-decode/SKILL.md",
-      "sha256": "6efb873fdf52f64f3fe5e53e95cf5ad080b0a43b46dbc873d71f7c6defac505d"
+      "sha256": "3dfa91ba71fb7294a173d8c3696850f22bdaec6fd7319ea018d86715b819bc28"
     },
     {
       "path": "skills/contract-decode/migration-contract.json",
-      "sha256": "49f71aded249acc2273fb9d303fe082e4db9459df7ca1a3e7e269756c95c432f"
+      "sha256": "2a6b9be90f05686cb289c393c96cb76d2d7af6b45e7da561e245eab1ffbb46c5"
     },
     {
       "path": "skills/contract-decode/references/apis.md",
@@ -171,23 +171,23 @@
     },
     {
       "path": "skills/create-pr/SKILL.md",
-      "sha256": "96c8d8900942ef6bb1edeeac0d7594ea592330a36fbce7b675358a25df59b42f"
+      "sha256": "b2e3debe7f78cac2260a10d0787228d4c33e1e930e3a02af264220cb5bc3af9f"
     },
     {
       "path": "skills/create-pr/migration-contract.json",
-      "sha256": "7846ea135b995f71d010087216110dd22e8b10476489372334de3a0fce9def86"
+      "sha256": "97c2607dd53c871cbe4835d220ecc0c2eb6a5418d1b246d5f063ee21ce3fd721"
     },
     {
       "path": "skills/create-request/SKILL.md",
-      "sha256": "e80855892bcc7d20cb62790f69cbde15e817282a5eb0a134862bb3dfac6b756c"
+      "sha256": "07acb97dd8d749773b10a88ed28c895db19cc95cc895671d448cb1179b9e6b86"
     },
     {
       "path": "skills/create-request/migration-contract.json",
-      "sha256": "d3d999a92f96577a8331bd74351515091fa7e8e7e69cafa72f5b1e36d61a3286"
+      "sha256": "7ad67bbbc6db69c266e11ca5941c506ac5f1888c57add8974ee46b878397fb5b"
     },
     {
       "path": "skills/create-request/references/request-format.md",
-      "sha256": "7995713ca7798deae286a9e7eca1f5cdc52abe38cb21335a3941f94bb937dc99"
+      "sha256": "56591aa8a9f601e26fe4e56d5845bdb5d92011397b09e09141c22676c278290a"
     },
     {
       "path": "skills/create-request/scripts/request-tool.js",
@@ -195,19 +195,19 @@
     },
     {
       "path": "skills/de-ai-flavor/SKILL.md",
-      "sha256": "797c58f1d16e99a8ae8b42f8ff8deb94039877f91316cdfb8d3d308f9103aac3"
+      "sha256": "7c18426c06fdd8fc97267d6bb15eccb17e4b9841dbaafeb8878e0d9236b7bbb9"
     },
     {
       "path": "skills/de-ai-flavor/migration-contract.json",
-      "sha256": "cd2dabe80aa6eba73c5f183bd1cbe98031408a4c269ff64a84b61f74d70b3752"
+      "sha256": "3f36465412d7e9c327af958129df04138d07d10a4c2c1469fd9a2b0264cae493"
     },
     {
       "path": "skills/debug/SKILL.md",
-      "sha256": "707faed64707cc3c33f2ec3e197600bb0e2e9838d9fa19d8a6e4a3e4d04fdb38"
+      "sha256": "d0e4e081249965c02c5336f434491aadf4778a35d46a01bd8fb4f705cfce19e7"
     },
     {
       "path": "skills/debug/migration-contract.json",
-      "sha256": "25941a3d66bb1fcf6a473687af1b4d531ced060af758c7527b2af04967f7d385"
+      "sha256": "872a77c808fb10e7af8bbbb3e02afd17a76a7b5e5f9f98fcefbad22c59eeabce"
     },
     {
       "path": "skills/debug/scripts/probe-policy.js",
@@ -227,55 +227,55 @@
     },
     {
       "path": "skills/deep-explore/SKILL.md",
-      "sha256": "2ec3e1de9305d587acf1523819eadd403dbf2557577f5a365f6a6f1ffd007ef7"
+      "sha256": "4bf00e0236ef7f1cf6bd890956a896801b842651bb1c81e53a4c1f4b274638f2"
     },
     {
       "path": "skills/deep-explore/migration-contract.json",
-      "sha256": "52d322d97d4c65a22d2b8375ef141c68e14ced002131f70d1b076bd724f50536"
+      "sha256": "617bc6b8422d7e3e4e3d93c34d2a9417f303531ed561db3d5bcce1765af54211"
     },
     {
       "path": "skills/deep-explore/scripts/completeness.js",
-      "sha256": "66fba2fafe1d7aa1d18a1b95f767f6f92b7be9bb5572ae8417d5a7516d4222b8"
+      "sha256": "bcb7603d39cdfb3f865f748b364d86f12bee1c40e5edbe6da4dd4257e7aaa264"
     },
     {
       "path": "skills/deep-research/SKILL.md",
-      "sha256": "e17271e93943880c1f213738fb2f93c956df18aec3668b4240ac44da3905fe83"
+      "sha256": "f2d3b5261fb361a504666ca47e1a25bcd64518ce017b540dee1ed5c5df8c44ce"
     },
     {
       "path": "skills/deep-research/migration-contract.json",
-      "sha256": "bfc5eaa1cba17e15625cdca564704e6f7bd29130f619414c7355b3e4a99b4a7a"
+      "sha256": "a239c44c7fce054dd634a29ff2f6079c944d8aff777f0a9179b2a1695829a0f2"
     },
     {
       "path": "skills/deep-research/scripts/research-score.js",
-      "sha256": "434d0af86ccdd17492cc7547a1cbbd451ed8ebf370b0e3c68339080415dca1aa"
+      "sha256": "99d6ebd3d442f5ca662b2f718a7b1ed39d9d0fb56f16b70eedad5aa53fbeb57e"
     },
     {
       "path": "skills/dep-audit/SKILL.md",
-      "sha256": "26f94074ef97481bd1f4ad4b6321fa9b8b2c39b9bf0456fccd510cce8cc79571"
+      "sha256": "a027f1ea3253e2fb9010c168abdcc40c02d888bd837558f21151642b43c88dc8"
     },
     {
       "path": "skills/dep-audit/migration-contract.json",
-      "sha256": "66c7ae938f151414f1589ab8aa47d02b65d18dcd7d0d43de15fbf8b92cdeaeb3"
+      "sha256": "8e1ee8121364bd4ec7ac58708c3b8deba6acb1bc0fb107302909adeedd242287"
     },
     {
       "path": "skills/dev-security-audit/SKILL.md",
-      "sha256": "33f34e930ad3150382830b8faa1464c030b33ffb8f06f47ee3d4f902f3605654"
+      "sha256": "6d169d7745ccef64fbfae43db9142f8a458c6b9f87b1fac96f307f318d497c94"
     },
     {
       "path": "skills/dev-security-audit/migration-contract.json",
-      "sha256": "12f18fe25017f3b78812243a6306a739ded0acdc9867757abd17c2cfa4fb907e"
+      "sha256": "b385a21a567e20a6f536e7160a059ae276d8a1f3a06d6ad2ae891d3a65fa9836"
     },
     {
       "path": "skills/dev-security-audit/references/cases/README.md",
-      "sha256": "d75c6f5c52e3af6e3d21627b9a721224ee13332ff5465538a24e8c54966ff06d"
+      "sha256": "d9f0db6e510d8c648b0e3946077616c4626386da9fbda5c0b638a3d7730c0ef9"
     },
     {
       "path": "skills/dev-security-audit/references/cases/apifox-2026-03.md",
-      "sha256": "3aefbde26c5b2322fe41fe2013a180009c2c52da190e812d58d83f9d428494b0"
+      "sha256": "3d638a23ab24713362a9d3f1c9c39a231cb490d8aed3662bf579c3ab47051674"
     },
     {
       "path": "skills/dev-security-audit/references/cases/axios-2026-03.md",
-      "sha256": "a54b963653485eb040383ec669ab2e24c3e4b7aaf61c37fe9e291e05412880e5"
+      "sha256": "751bc5fa14ef02ec3167f6bfa81349170c6862edb6f86f75a6d89148ee6be7c9"
     },
     {
       "path": "skills/dev-security-audit/references/remediation.md",
@@ -287,27 +287,27 @@
     },
     {
       "path": "skills/doc-refactor/SKILL.md",
-      "sha256": "81c468ecb3587c50579d8b7f53c930df2001dc820fb00b7c2207b8cfcb3ae54d"
+      "sha256": "9b5e6d749f9c6306aab556e9d444ac6218f59dbce889cc1a976bdb7e13469f7e"
     },
     {
       "path": "skills/doc-refactor/migration-contract.json",
-      "sha256": "debf4108e826dbe742ea08146446e0a6bef65a1f081392202d14b772f77d1440"
+      "sha256": "76a982e566fb909f5a6fb8d0dc1520a9ed04285f4539470a98d9d0ce10fbfd66"
     },
     {
       "path": "skills/doc-review/SKILL.md",
-      "sha256": "6b152b9b88e76c9b6751e0492ea9f8f2eaedabbcd75b9a7f12d22bc83868d473"
+      "sha256": "cfe14e658b6b6467f8d0a64a5dafd5e0e46dfb5be5e7a2a6e74c8bfade6cab6b"
     },
     {
       "path": "skills/doc-review/migration-contract.json",
-      "sha256": "d6f121c011adeaa18174bc08989a73c048460dd200d887edae9cb0b2e211ad1d"
+      "sha256": "d61109b8f9bacec0bb4ea29c1258ebc03e3fed2b101dff68e394c861782c0a40"
     },
     {
       "path": "skills/doctor/SKILL.md",
-      "sha256": "5ccf78a0a8fc214087973b3c38b7ad036783da72beb9d347f0a692ff0c08c9a9"
+      "sha256": "b9ab29013c2aef099a5720a255b1e173cbc20e7c51786f405b5c904ef46b667c"
     },
     {
       "path": "skills/doctor/migration-contract.json",
-      "sha256": "f73ef7f97a5d96cff49c45b613fd9bf480d61b698af40f999dc2409449bf5ac0"
+      "sha256": "35463e0c2296d39aa1db8cc3b7b8c46bf7631b9d7f733c3b9d857ab27feec7b5"
     },
     {
       "path": "skills/doctor/scripts/doctor.js",
@@ -315,51 +315,51 @@
     },
     {
       "path": "skills/epic-merge/SKILL.md",
-      "sha256": "eeb4e2d77e58b21fce7be446fd801f2a9deac7c14a450df28cb9577b0418841a"
+      "sha256": "b21a889dec06e2c4b4af6400460ca4ca3f505b7264beddda1355af6273cea053"
     },
     {
       "path": "skills/epic-merge/migration-contract.json",
-      "sha256": "8848b8bcd7383722883d100e73a4bc6848a5bc89c33d834ae5aa973a801aa2f4"
+      "sha256": "a231c212d99b041115d9b7e3c2f9dd257e8bee200aa79d7aefcf06ad7a453f03"
     },
     {
       "path": "skills/explain/SKILL.md",
-      "sha256": "9d2a47c9ea77720b6e2ed6a27b46f0af1a0704355800c2bc0dcc85810d56efc7"
+      "sha256": "797eea11791f0025b62108c3087978a0ed4e6298a4b30f3e61e8928267f7e799"
     },
     {
       "path": "skills/explain/migration-contract.json",
-      "sha256": "ea0f6f72fe6b65cd3118e8da543fd1b81d077da1720670133966dd39a4471a40"
+      "sha256": "c7ef3eb517a73111aff4009b0a778ebae3c2bfe6a7ccdea78e577fefbe5e98f5"
     },
     {
       "path": "skills/feasibility-study/SKILL.md",
-      "sha256": "816238c5876780fd3ea8c88a8bd6018102fa29553feb9fecb41a2c1e79b75944"
+      "sha256": "f0e6733a22d4aeb5ac0fbd25bf06b67c54d7299fb7f529e05e7eede182c91efa"
     },
     {
       "path": "skills/feasibility-study/migration-contract.json",
-      "sha256": "c803ea9e92acd4f626bd7adf9f47a887a5758219bdb6c2ae819bcbe543b84851"
+      "sha256": "2add94eb5ef29305060eacc32d94b069dccfbf1d6e7326fcea70ede55f90ffb6"
     },
     {
       "path": "skills/feasibility-study/references/output-template.md",
-      "sha256": "140863578afd532019d204be7e97e509528723aa4bfc3805233f273a0a223d7f"
+      "sha256": "123cb644c164e4b7911574dc9277bbf703d1e7c7e3cbad91010f60114f87ee19"
     },
     {
       "path": "skills/feasibility-study/references/pack-handoff.md",
-      "sha256": "a1c1809c4905f588f167b89d1e0dfdc74910fa68804e45383be02427e9450ded"
+      "sha256": "01ac7f04fe408a8e4e9b2f0617444901ad928b359090fcea6a1f662974b227e6"
     },
     {
       "path": "skills/feature-dev/SKILL.md",
-      "sha256": "875d38477b0becbc02184be98303816ce20e12d7ab142a362b26a00452b8ada4"
+      "sha256": "53b350f79771cb22039ce1fb70687c2fb266692dc24b8fdc28961689773bf317"
     },
     {
       "path": "skills/feature-dev/migration-contract.json",
-      "sha256": "77180e73c776dfe47b0db4ff9c8b8080f83d29f235a4b8d44688851b3abdea1f"
+      "sha256": "c8187806d93b7ae45d02a2fa2e3cababf22ceef82fcc04c242a558670cf251c6"
     },
     {
       "path": "skills/feature-verify/SKILL.md",
-      "sha256": "0975738b8ec2a0c22f89e2189be40924a5eb79f2899cc84c71eb446acc8f209d"
+      "sha256": "cb52abab5bfd144a3e478baefd5fb40738b069c4667de8f025a4a2c46b0e16b2"
     },
     {
       "path": "skills/feature-verify/migration-contract.json",
-      "sha256": "5fb7cad22ff853f2e7ec3abd83a9e3e915570d5f0d05e898bb2fb1e5203de944"
+      "sha256": "e139a64e1d20c123923ae6483826ac90080bbd0b095786fc8cdffb79bf63561e"
     },
     {
       "path": "skills/feature-verify/references/blackbox-testing.md",
@@ -371,7 +371,7 @@
     },
     {
       "path": "skills/feature-verify/references/output-template.md",
-      "sha256": "2424616b01bae9c9d76b0d0ee78fcbfef9d48b8a1e96aa78afde13d232c6bb56"
+      "sha256": "1436d6ec4805c7737acb75f21325c1bc3f9adafe4b24a1f92f91f72539368993"
     },
     {
       "path": "skills/feature-verify/references/safety-rules.md",
@@ -379,19 +379,19 @@
     },
     {
       "path": "skills/fp-brief/SKILL.md",
-      "sha256": "f1a8025fd0df2998e36677a0b590d3f30254d5fbf8d60f734da3dc8985bef7e9"
+      "sha256": "44c73438c9ba8ecc2b8d955d354d8e4b380b0c74cfe1828aabd0da3f8cab226d"
     },
     {
       "path": "skills/fp-brief/migration-contract.json",
-      "sha256": "c2f6648200880a226cd3fe63d4653fee2aa3657e723a6254defff8c941a467f1"
+      "sha256": "0d5481da5d0451ec925226475a37361a0d238824c24e531c63af94770815fb1d"
     },
     {
       "path": "skills/generate-runner/SKILL.md",
-      "sha256": "e626266046b0b897bf62c744a4e3127ba6113fbfb50eb50e8c64b7abca550325"
+      "sha256": "593dae68a183b38f19b17cba2ff28ad89b1d41ca1123115ce5951262e251c2dc"
     },
     {
       "path": "skills/generate-runner/migration-contract.json",
-      "sha256": "5267c4e059a5f450cdf891a7cc31b69aa8af624abd91774c3c3c0d347103ef22"
+      "sha256": "31f5ce531de468796482adc103400a7d52371f2d4e3a6407a9f4969fa674c473"
     },
     {
       "path": "skills/generate-runner/references/templates.md",
@@ -399,35 +399,35 @@
     },
     {
       "path": "skills/git-investigate/SKILL.md",
-      "sha256": "123889c2f579bc626eb446c9e3e1d06723067b43dd40826ada606b5cf8a2b776"
+      "sha256": "21e7f61426b24bc958680d2ce4dd01e92ac7161d658c36d91f9941e841e9f6b2"
     },
     {
       "path": "skills/git-investigate/migration-contract.json",
-      "sha256": "235990aef086c01c4c76291d36312985931b9977d3fde48923a8a0ad4ef14c5b"
+      "sha256": "1daef1b64377ca2f2ce00fbf04642d4b8c6517ce7893f3d03671e5ae7ae86f0e"
     },
     {
       "path": "skills/git-profile/SKILL.md",
-      "sha256": "f4a698c255a6eac4f1587b0b6cf89db7773068612b3716875cab4bdc8f9c1fb8"
+      "sha256": "7e7198f86844fa44ad3d0059349d9782c7a6052986b1da757c13e2727da9e19a"
     },
     {
       "path": "skills/git-profile/migration-contract.json",
-      "sha256": "8bc0000893ac4ad9f6f988a6720ed18cfe5c8eccf61540e6447a760d4962870a"
+      "sha256": "e8756cbc6533672569d78c32b29ccdcaae0647683774d5c124b2258093d3b3e5"
     },
     {
       "path": "skills/issue-analyze/SKILL.md",
-      "sha256": "082c26a8e2585b41d034b9720f4f2d419cb9c4746f19ab7a281ca4f68cd161e3"
+      "sha256": "343e7596bbb79d554a70bdc76be19ab3185b2014ac97b1e6585cc0001abce574"
     },
     {
       "path": "skills/issue-analyze/migration-contract.json",
-      "sha256": "2bd2102f8b65b138463cc6caa27a4878c586f3785d26532c754b29280ea82a9b"
+      "sha256": "879f459d5eb78c5af36f2fd402b452ca71d4fce18de03dad414b7880d43152c1"
     },
     {
       "path": "skills/jira/SKILL.md",
-      "sha256": "f1a7820171522c9c3855dbcda7c88eaea4c1406a9477b0e37754f93847690cbb"
+      "sha256": "846a24a074d6e528ac369c44cbf929dd64392b657604a86bedcd7b14a916ee58"
     },
     {
       "path": "skills/jira/migration-contract.json",
-      "sha256": "efe505f289f7425ff9f230c5a1d03902207a7ef8e1bcbd9e10661dfd18e965bd"
+      "sha256": "1ef512c4d47e96f05ed67f3fd278fc852b8d1cef314f5f182fecfdfd64718777"
     },
     {
       "path": "skills/jira/references/branch-policy.md",
@@ -443,11 +443,11 @@
     },
     {
       "path": "skills/load-pr-review/SKILL.md",
-      "sha256": "197b3998e2d60e5a0af7326aab2e95a2f43116f800ba6537cdb8a19b7d33ed9a"
+      "sha256": "6320313cbb09fd73595c060f33bf9bb659ebce08f36497eb1fa874013a8222c1"
     },
     {
       "path": "skills/load-pr-review/migration-contract.json",
-      "sha256": "b4c2c9eb7fd73574eb02b3e3d3da643fc80265e9909e9414ae132623ad542cb2"
+      "sha256": "000729c35dd9910740b62ed0608c186de905afae1762dd1957bf1d1671179b81"
     },
     {
       "path": "skills/load-pr-review/references/api-contract.md",
@@ -467,23 +467,23 @@
     },
     {
       "path": "skills/merge-prep/SKILL.md",
-      "sha256": "5e36b0d6a06b742d70b90d5e8088dc35aae540cd3924e7fc7c56fa4f20062ea4"
+      "sha256": "b5cbbdd39571a784f389b2149f2e758910c9dbd0250d732d9c0a216cd7e7755d"
     },
     {
       "path": "skills/merge-prep/migration-contract.json",
-      "sha256": "27cea0bbaa2dc596c6dc9d2bc453678af28e9b9ed93d7cdbe2647c22a0e52472"
+      "sha256": "7cc2d693f1796ce7b002bdb8eb29b6f6203759a7965f9db0fd3456157ef2abd6"
     },
     {
       "path": "skills/necessity-audit/SKILL.md",
-      "sha256": "515c4b78af7c6e8be5a8bfe0d3146898593bdb747445fdbb2c14a53c0aeefa60"
+      "sha256": "7fd27a3831f421942190726118101d8e081f43a5bffea101abd41a35816b0d9d"
     },
     {
       "path": "skills/necessity-audit/migration-contract.json",
-      "sha256": "bd819c08f738fa59fa4dd32a55c728e64198dc93cd691a67912f1177ae6f1634"
+      "sha256": "2290272b96ee00afb10c78bb081c733428535b4cad54cfecc23771a3dad9165d"
     },
     {
       "path": "skills/necessity-audit/references/output-template.md",
-      "sha256": "252469974533637981f4af178f6722e8c368fd109303a974b5a60a203c806567"
+      "sha256": "7ebf26c60bb065745cece204bef4939703a78fb3dc13dd76dbacea8366a2bcdc"
     },
     {
       "path": "skills/necessity-audit/references/pack-handoff.md",
@@ -491,11 +491,11 @@
     },
     {
       "path": "skills/next-step/SKILL.md",
-      "sha256": "e1803e13fe2490d0be656fc55a6e7de318b4cebe1b62f336ac2407e1f74b43c2"
+      "sha256": "271efec9a4620c00c6e396837b42831122b7c41bf3fdbe0f702c16fa08bce3a4"
     },
     {
       "path": "skills/next-step/migration-contract.json",
-      "sha256": "46356d8888e712459746acafa5c79e78aca86fe5d77b8bcf8b3d1d219d44bed8"
+      "sha256": "5a72c007edd4a83b631897a63ef895f55d405efd90276ccaa83e3e480ce1e82a"
     },
     {
       "path": "skills/next-step/references/progression-tables.md",
@@ -503,11 +503,11 @@
     },
     {
       "path": "skills/obsidian-cli/SKILL.md",
-      "sha256": "5e0bfd2d33aacd8bb5b24e16800f6f2c9d07215cc21f3724f78622f875dc486d"
+      "sha256": "a92794b188bdce16c9554217bead0e1c1aeac2396f2219580ec4c2fa77d521af"
     },
     {
       "path": "skills/obsidian-cli/migration-contract.json",
-      "sha256": "416d55817d49c0984d32ff3373eb5b9e66822c4687cfbd70e22d610c498b6976"
+      "sha256": "81356efb82ee36dbe4f65670132ad8cd8ae9653b3073c489861e71d7c0e3ff96"
     },
     {
       "path": "skills/obsidian-cli/references/integration-patterns.md",
@@ -515,23 +515,23 @@
     },
     {
       "path": "skills/obsidian-cli/references/troubleshooting.md",
-      "sha256": "13e33348a011887491219b82450ed5c101d98a1aa443d502279d374e986ac652"
+      "sha256": "9a5069c0859c8f73e8527f3d1a87e6264a4abb056c7c32035177e7a80257b8d8"
     },
     {
       "path": "skills/op-session/SKILL.md",
-      "sha256": "f83eaa528bdc38f578b786bdd82df4b1054fbb7991d92d67409fcceaa837b833"
+      "sha256": "9c304d6a80094523b481521a1807c2ec837c3636134e32dcd83693befd563699"
     },
     {
       "path": "skills/op-session/migration-contract.json",
-      "sha256": "0a5f2bc138009723cb558d047cfa8111b563f0296c8179568004bda71c3bcf5b"
+      "sha256": "be9218396c272d60a8de1a2ab3ecd039ea48c38ee5265c2964ce837090983e48"
     },
     {
       "path": "skills/orchestrate/SKILL.md",
-      "sha256": "1eb69fba2d82259058311071e79e031376255f24710dd340fd4d9d8290965344"
+      "sha256": "0417add35e607a989a0aaaaec535da440fe36b36e0e66bbe94632ba61ee3dc9d"
     },
     {
       "path": "skills/orchestrate/migration-contract.json",
-      "sha256": "479ddf12f7c95dd0c3d86e5fe23d317bda4079f993dbbbb7664db392aa7e3ae6"
+      "sha256": "541ef9a60d75270a8283a9fb9f001af35edc44ff24dc156453ccc79aca3fd121"
     },
     {
       "path": "skills/orchestrate/references/admission-allowlist.json",
@@ -539,7 +539,7 @@
     },
     {
       "path": "skills/orchestrate/references/execution-policy.md",
-      "sha256": "cb5321a640d3cfab21fb696fa873d55a6133a9c2eb963a5d11cfd2d6d3111399"
+      "sha256": "a99e8cb7030acc91d973012270c4d9aea85a1d5d56c3acfc7624e6d886d2050d"
     },
     {
       "path": "skills/orchestrate/references/plan-schema.md",
@@ -563,15 +563,15 @@
     },
     {
       "path": "skills/plan-review/SKILL.md",
-      "sha256": "b86cc5a6b78020ab30295ffaaea5cc5f5134331e70ecaaf907d7d5e50c29e381"
+      "sha256": "26731141dc4d2335d0405d20492789e33c4b9d1809a8b33c7652aa5e38b7a623"
     },
     {
       "path": "skills/plan-review/migration-contract.json",
-      "sha256": "511127f3108c98d82c62e342bb376a8c6edd3ed1a1e413e06a32dcdd60b31c17"
+      "sha256": "68df985cce57162c0c203767fd7a152c84e57b06f4e635426eeb06ba6ec74312"
     },
     {
       "path": "skills/plan-review/references/output-template.md",
-      "sha256": "205805d67f82e9dc3bf90519f634d50449ffd33b82599b4612a15f03e3344f8f"
+      "sha256": "c9a1fe3e028a473921db469e95e87ae2d576c44d30b5c56e9afe50a1574e9361"
     },
     {
       "path": "skills/plan-review/references/pack-handoff.md",
@@ -579,11 +579,11 @@
     },
     {
       "path": "skills/portfolio/SKILL.md",
-      "sha256": "a1d8bda849e0795a86e3ebb804183ada67d1eb78163f9a94ecf3736f28b3efb1"
+      "sha256": "bf9edd65314a481a014c199e759cfcc4a362c67b7ac641bc308959ff67ddda14"
     },
     {
       "path": "skills/portfolio/migration-contract.json",
-      "sha256": "5cba8fdabb736e216b314f166dc3c1688b14af2e324d42aa5f841972a188ebe5"
+      "sha256": "f2319f1970f9f965a31172dff09bd16b4ac5e9daafb18fe9ed44c80e6dbf4927"
     },
     {
       "path": "skills/portfolio/references/api.md",
@@ -595,139 +595,139 @@
     },
     {
       "path": "skills/post-dev-recap/SKILL.md",
-      "sha256": "1a52bc636dff09b45d8525d953d6d1a1be88ca8f729d02d1fa360a67c2822cea"
+      "sha256": "1982b2634e489d3053c765be0087f70c42c2035cbf9d3d9b5bac49a51e386a23"
     },
     {
       "path": "skills/post-dev-recap/migration-contract.json",
-      "sha256": "d392168b20362e3e7c3872f1b80e65d631403c51de27157fb4046cfefc8379f0"
+      "sha256": "f71afa10956b027207060ffa9c3724172083ec93b888673e523dc2d376a61121"
     },
     {
       "path": "skills/post-dev-test/SKILL.md",
-      "sha256": "a7003e46c2a729a6aadaefcaa6e37c939d4b846f1083bfdb5803f4f2449e3094"
+      "sha256": "9ffba0d712ec230ac4558092e7cf5f99c73e513092adc1e400804b0d15962524"
     },
     {
       "path": "skills/post-dev-test/migration-contract.json",
-      "sha256": "cbb7f009fc14d501b056751f8ab07b2ae8b76bdada6644570eefc6b9a2e6de87"
+      "sha256": "a636b6e44d00bffd01546303d32afa492a0db4a3923799d09e3485a8f824fba4"
     },
     {
       "path": "skills/pr-comment/SKILL.md",
-      "sha256": "678d31ed6bc31c4f18216e510b17a9a26c778fd78a8b26fee070353eeee3b025"
+      "sha256": "fcbbd096642698e8b0949e66aa77bc1943ac3314a2e82d95f84c872cde8a670c"
     },
     {
       "path": "skills/pr-comment/migration-contract.json",
-      "sha256": "6efc5b53916363a144e181490a72b27f7f491dbcb2ed632f45321c1f1580a4ce"
+      "sha256": "b7710933edb10f76e8234dec663311c164a245ff0f6be4ccb20a67ad4048cdc9"
     },
     {
       "path": "skills/pr-comment/references/api-and-guardrails.md",
-      "sha256": "23aa7eb7fd1604bb916b7eebf942618eb826049fd4fd6889becc2f979e2f1de7"
+      "sha256": "1dc7d31419a2c1076e8309cb537e1c762cffcc216f4fa3d45c077290f8eaa0d1"
     },
     {
       "path": "skills/pr-review/SKILL.md",
-      "sha256": "6192f6674d33bc294aa4a9e9462c23c5231ab1a7dc9db0c43a1334cd5d133da7"
+      "sha256": "81be8864b23486f0b2ab7c4dd72046b5da70985321e13ffc34b4f07cec3ed9a1"
     },
     {
       "path": "skills/pr-review/migration-contract.json",
-      "sha256": "cc211f1b069141a0108cf1534229fd6f233c00fd95febd4b9657cd7e5bc7618c"
+      "sha256": "a61c226ce34307435708f11aeb5378b2c4ed012ac9aaaaf9161fd1259074810d"
     },
     {
       "path": "skills/pr-summary/SKILL.md",
-      "sha256": "3c5cc49ee2a2c1f8281ea656b806cf2da58d5d0dd77674119d90fef7366b8cf2"
+      "sha256": "3d62aaa24df56bc7e554d6fc77510d01c68cacec1552c67f50700b999cda15d9"
     },
     {
       "path": "skills/pr-summary/migration-contract.json",
-      "sha256": "46fcf8caf2e3625c17547c42911e5fc489a69ffedf377a32123efb2e7eda9fd2"
+      "sha256": "b06b64153ed21689463d7bae5a89d8cacc6e98f6f151ed0879d60e8d14ac7eb0"
     },
     {
       "path": "skills/pre-pr-audit/SKILL.md",
-      "sha256": "82cc7986e72d7514f17f29d4f9a7c36a43714053dab9566525473b4e546902ed"
+      "sha256": "273693e63151fa043404b88d7810cd81f1b7d7f0c204b2f63a6fb2ff7b054536"
     },
     {
       "path": "skills/pre-pr-audit/migration-contract.json",
-      "sha256": "6bc48fa131bd2791348fab62ca4eff24ac384d18951264f7562416a8c080b38e"
+      "sha256": "d98d5fea6559d3e0f6ee5e7b357703eb2ed9461b2ce3df003355a7d15825d456"
     },
     {
       "path": "skills/project-audit/SKILL.md",
-      "sha256": "53f0eb3599de303b62a58f4c3cc875b54473b479ac570792753098f6ad13e68f"
+      "sha256": "0ad60cec1fdc8aa20abd04d22d01460f192c91052bbef3eee12040d6d76d9495"
     },
     {
       "path": "skills/project-audit/migration-contract.json",
-      "sha256": "6bd4a31b2c449885d1762dfa0b4cf725d32eea786a2ee2857ef44518da5b7c8c"
+      "sha256": "e5617e6a7bdaef5ceda9302ff038655bfadf49261c767c7539695a27bd35b200"
     },
     {
       "path": "skills/project-brief/SKILL.md",
-      "sha256": "6aa7f18df6fe60930eebfe00e1571bed5aa2fac1f59caf4481acc45ce1b1cc0f"
+      "sha256": "ab6a5ef4bb628dd92f916140aaf089bdc0015b246cfddd4fbc6a74981edd7b35"
     },
     {
       "path": "skills/project-brief/migration-contract.json",
-      "sha256": "deb817e18840396b2b1636a341f6c06b763f92f888f42bb0a15d18f7f4d001b5"
+      "sha256": "2be86e9852ea2c95277464d1edd51299407dce82a0049ede7034ccbd65fa98a1"
     },
     {
       "path": "skills/push-ci/SKILL.md",
-      "sha256": "2674b3c5d522753119706495466746c49b9e9e9573605d0f0ef4460e673fccd2"
+      "sha256": "f69c8a3854762d832f5fef7db556fe38023cc73bbdf962bceb1b10cc198efc04"
     },
     {
       "path": "skills/push-ci/migration-contract.json",
-      "sha256": "471a07b09b26e7e53282e9badadcbd2e846362f95950226f57e0f58f1d0633e3"
+      "sha256": "46295358ac5d6b5706ae2e1725f0a4dc7842d517bd50d8b62d51280bf26af0f0"
     },
     {
       "path": "skills/readme-i18n-sync/SKILL.md",
-      "sha256": "c511d05b66b576552fbf666790fbc23b9bd1b1ddc98bb5cb4d242c479ddde293"
+      "sha256": "fdc65a5bbd8b3a59fdfe6c795ff57d6195a59f4e2d137369390983dd40f6d531"
     },
     {
       "path": "skills/readme-i18n-sync/migration-contract.json",
-      "sha256": "7d2f28e8226aee6fdbae2473358f5fcc2ff9915b6985cb0a20698fe974a34808"
+      "sha256": "9f2bccf8699abbdcecc4575a1d3fd89d67fd98dbd6bdd206df2992079d47e3d8"
     },
     {
       "path": "skills/readme-i18n-sync/references/glossary.md",
-      "sha256": "f1d19489736bb693cae7b86c6b635ebde4c1d7e71aec7a2f4e372ab3b11cde08"
+      "sha256": "c508900eff9742dcdf76e1a03212adcf82e06a48e7cc8f8d986bb2f61cfdb9d1"
     },
     {
       "path": "skills/recap-ask/SKILL.md",
-      "sha256": "111d884f9653f66dd43b4ff7a6a4cf4a4a49bff6ebca92d36900e9c7fa50f8d4"
+      "sha256": "23e848b59e9256558260037321228cc9c0d1d4c5453aa2599ccdac4638b9cf04"
     },
     {
       "path": "skills/recap-ask/migration-contract.json",
-      "sha256": "4939be1ad7f1ed55402b6fdb282c57f4fd9f31073b1efd0d4d6162ce23a2ea0b"
+      "sha256": "31e90f56569ba83c61943ba13e2056a545c775f6002fdc29b0b8979afc73de77"
     },
     {
       "path": "skills/recap-ask/references/qa-prompt.md",
-      "sha256": "c9521e64edf6c893dd3c39437da71e9832d4ce6be1270484ca134cb1c7dcf099"
+      "sha256": "a46fe3c663457c86e6bd3318763850fa253bc0388af1bd3353ca3e37c2383339"
     },
     {
       "path": "skills/recap-doc/SKILL.md",
-      "sha256": "b6d8290b2994f194dcc06333a287ed7ddebadb5db629fd3fd7fee0af62be9280"
+      "sha256": "52f7ca84dab69dd3ecda9530c53332d95cd477eb006474ea37bb8689a8ea2697"
     },
     {
       "path": "skills/recap-doc/migration-contract.json",
-      "sha256": "89aff60087671c4fb840f3fd1af54d5b3a958c209e0334e7062a62b894565fe7"
+      "sha256": "3131e5109bebd8151470b2445d524d6966fe92cbdce8aa0f2e562a9c0a6a2a73"
     },
     {
       "path": "skills/recap-doc/references/output-template.md",
-      "sha256": "ccbf516eb831e23680b2ecd0a315bf720508f2c2af788629670324ac0f28cdac"
+      "sha256": "aa32a22b336ce39310848b98a221813fdb6043ac2104bdfe7e27d7818898ef35"
     },
     {
       "path": "skills/recap-doc/references/prompt-template.md",
-      "sha256": "717223a5929e756a5a416978172e48c4ba615702cd72a86a684bef8e7da52e59"
+      "sha256": "892520d202cde29ab0be422a3218cf67d86d575be92a3e2d55b5c19445026451"
     },
     {
       "path": "skills/recap-doc/references/source-guide.md",
-      "sha256": "56aa386cc4f441ccd79fe7b830baf714a96659fb6a6912433b078008199a89d9"
+      "sha256": "a3cb82bf10172f6791416ee1a5d9dc32ac80449e319bb89ac618a5c9bf2373e3"
     },
     {
       "path": "skills/refactor/SKILL.md",
-      "sha256": "e27078521eec86ab5dc4a351ba5ecb8f0c44ab3e0718049f66b20c938a381818"
+      "sha256": "a78746875d97a69542fb111c72f9afc52a437d5de409c995274825fcbda4faa6"
     },
     {
       "path": "skills/refactor/migration-contract.json",
-      "sha256": "6ff14f55389eaab1578b1a4e944769d9778a7e8e4b0ad09b91dcb38e96358d24"
+      "sha256": "63a860ac2d9b059d67c8e9eac9adbf09628798ec18eecdea8e1138e053d4cdf9"
     },
     {
       "path": "skills/remind/SKILL.md",
-      "sha256": "e454d8edf007aefc5eb69dfbe87c9b02fb68c58fad931ddbab6bddcf00814e07"
+      "sha256": "1a96eacf6a798d89d495fd3b9a47ffd365fe2d152ac7baca21237f02dde1e00a"
     },
     {
       "path": "skills/remind/migration-contract.json",
-      "sha256": "18dc862dac048468cbe833c683d2c845c6f7817185b9da628c155797cbaad9ec"
+      "sha256": "ff201e302e15dc3b8d3f557cfbf45ff24ecb2ddf5bd374787d8a9dfdc3e6d9dd"
     },
     {
       "path": "skills/remind/scripts/status.js",
@@ -735,35 +735,35 @@
     },
     {
       "path": "skills/repo-intake/SKILL.md",
-      "sha256": "e4f8f6f39745330481f5b35377c973e9a7983bbfb7b48389a706cafef7752772"
+      "sha256": "740b9117c170b3dabdfe66941b2001350d96bc5ea32faabe05a0b1b6fff278b3"
     },
     {
       "path": "skills/repo-intake/migration-contract.json",
-      "sha256": "6c084f34879a362197ea6eb4e465465033bcb16aa9de78b22a9cc0ffa0548ee7"
+      "sha256": "7f363b25076762ec083cfc3da669ad4de314ceaa44c82d44139a77addbbdb075"
     },
     {
       "path": "skills/req-analyze/SKILL.md",
-      "sha256": "97170e225eba9a391acaae42737061dfbe759bd8cabf57897fab660422710a80"
+      "sha256": "ddb9db4e938f3194eb4cfb9ed761ab2a7a6bb33784380dc1ed69c2cf524f98aa"
     },
     {
       "path": "skills/req-analyze/migration-contract.json",
-      "sha256": "10e2a6b1afa089958f72ad425fe08b57f3ef359273af6ba600ef85d8b44b55e5"
+      "sha256": "5c8f296723da3815955b92836455bda383dfcfdb378c0677ca0ded9a014bebb9"
     },
     {
       "path": "skills/req-analyze/references/output-template.md",
-      "sha256": "cd9f449a4d09ee209636aa397a609e717f004c7c9762ef57177aba10a1fc687a"
+      "sha256": "240ca375ef0a08b3cdf8f7909bccf529cefa187651259960a25e189e171ecaa2"
     },
     {
       "path": "skills/req-analyze/references/research-policy.md",
-      "sha256": "ea9068d477a19200bedfe9931b26f5aaf521084ec6b2a028f13ce897b77349d5"
+      "sha256": "966367f68778cdb4666e4a53dbfd2710e4327f85334b7290e17f36537f4835dd"
     },
     {
       "path": "skills/request-tracking/SKILL.md",
-      "sha256": "b44611e79dcb9a33355bd162c22338311f430cf29e5f232ea223ed5d0430f743"
+      "sha256": "374e4257ba4ee4a4962128b535f0f3de0faf144b6bf3e8d0c31716409d67f6c1"
     },
     {
       "path": "skills/request-tracking/migration-contract.json",
-      "sha256": "213cede720d6259e48ae2a4007d02919bd9beaa7981e38f23710eb483f3f64f9"
+      "sha256": "0bb0cda70ddbb2ab1d87d88edc8f32023ff7c50b3b77e26f6a35518a1add7311"
     },
     {
       "path": "skills/request-tracking/references/output-template.md",
@@ -779,7 +779,7 @@
     },
     {
       "path": "skills/reset/SKILL.md",
-      "sha256": "d2c983048b1c11c36863f1f10559a0dc52b8dfcecc481f9ada3c0cd5a82f2a33"
+      "sha256": "8ee5a614308f8b566377bf53671cfc0881bc4f30027911a6ecf2d3ff3d941e58"
     },
     {
       "path": "skills/reset/scripts/reset.js",
@@ -787,15 +787,15 @@
     },
     {
       "path": "skills/review-spec/SKILL.md",
-      "sha256": "5249cf179b29845b313e475f8ead434bb54d2a32b1dd31bca6b96f19c4e3c680"
+      "sha256": "8804baa1b4b62f36f5b6cb81216bd8e086afbc63ce4520a17ce8ecff9798b250"
     },
     {
       "path": "skills/review-spec/migration-contract.json",
-      "sha256": "bd19cb155f5745bd7e4898288ebbb2f91ce6126dea9f607bf1fa45be5b030460"
+      "sha256": "6ac098ef861180a13296ab94d3ff0922a3468f0da5afcb4e16f92c962a421361"
     },
     {
       "path": "skills/review-spec/references/output-template.md",
-      "sha256": "8db7fe38f0aed838a3a3291aded6ddf5ed6ecd7753d42d5bfaba155169055404"
+      "sha256": "71d3715691b33ecdfa23dbd44f08ca202a6b7c391262d83907ae1b75f3878eb6"
     },
     {
       "path": "skills/review-spec/references/pack-handoff.md",
@@ -803,23 +803,23 @@
     },
     {
       "path": "skills/review/SKILL.md",
-      "sha256": "4b5d5d85b617b6b3e13e4a6a1e5a8030140a37a947286e750d35d5ed5c1bb2c3"
+      "sha256": "f16554165faeb5bee5804faf5ee215f732762c312049f647a41b027ab699c352"
     },
     {
       "path": "skills/review/migration-contract.json",
-      "sha256": "a949c2a0ccad2a088f4fb053beac1982a73ae4dcbc024a7dc05174cba0cfd7a6"
+      "sha256": "6884efa5605428589510d3c46046e5d612c06bfc93b89c5df9313202ca308c20"
     },
     {
       "path": "skills/review/references/review-theory.md",
-      "sha256": "f049eeed7f5bfc6a83709e27d1672037e9ac02205e59fc6dd900739e02cdf065"
+      "sha256": "70911ec78300be12b85bcd7efaf82288b4ea750bba91b238a596f881a4e69f0b"
     },
     {
       "path": "skills/review/scripts/gate.js",
-      "sha256": "423c6117bb4feae9a384964fe0cce10fb77cea42657d0d760e5ab26cb9aaf84a"
+      "sha256": "78273256110bf6742d7de15bd9bb48bb9a5256f0d1ce6a24739be0dd5da6d60e"
     },
     {
       "path": "skills/review/scripts/provider.js",
-      "sha256": "e40a80a1a94ed77f597f16603ca1e0147e5f050be3c62abcb0351f9d99e0fad3"
+      "sha256": "04a5621136d65146a7596462ffb57be5caabdfdb5a2a2618663726ea2860e665"
     },
     {
       "path": "skills/review/scripts/round.js",
@@ -831,55 +831,55 @@
     },
     {
       "path": "skills/risk-assess/SKILL.md",
-      "sha256": "0682161e7953299ed64db0fad07177e5f600b6832a35514c27302a10178c2f15"
+      "sha256": "c55160788b0dfee9c7ab2b926e68627629b0e97138a98fc2d7951f02430c6294"
     },
     {
       "path": "skills/risk-assess/migration-contract.json",
-      "sha256": "24c61848bc8c8b40017e4578d2765106805a2e5f61243b118a5cb57c2e052328"
+      "sha256": "790b0c07f0d7ad590a0e82d3413c0cc96ac479cec6e5c4750a494664c613580e"
     },
     {
       "path": "skills/runbook/SKILL.md",
-      "sha256": "43bc545c840bfa9d46836baa4e2644ac0267a4e218074b033b69e798a1db294a"
+      "sha256": "9d01cd21e31a96748dbe09748375bdbc3d8e118b8bd01511e0a83bb7e1b3a252"
     },
     {
       "path": "skills/runbook/migration-contract.json",
-      "sha256": "910234b6a89cdd3fa32bce54aee71c79703b1bc9237f15d6058a6cb27eff98f5"
+      "sha256": "65eb56379777cd414b53cd3f21a3c8e4846502efefd0f0756584ddcfc1df5d7f"
     },
     {
       "path": "skills/safe-remove/SKILL.md",
-      "sha256": "65491d78fcc75981981bc6fa38741f6567b6b162b2bcd7d758d5e60b159828fa"
+      "sha256": "0c58091079d07162880eab4a580c834f99579b21f45e01a511c8e59a4f1906a8"
     },
     {
       "path": "skills/safe-remove/migration-contract.json",
-      "sha256": "6951a574324f462ecf62207584d3cd4b7ac284435270d65bae7af5dbc9d35b36"
+      "sha256": "a43e4d5125a56a36ecedd1515892f256333c3e6f18ff480354f475c4164fd332"
     },
     {
       "path": "skills/security-review/SKILL.md",
-      "sha256": "67eaa60850aa3cd77033fd5080858e8a71efad49778b917e67c6fcf08671e720"
+      "sha256": "bd5b44ed9459e62688cad76c4dea45c6d05c2ab3c31dfb334ce66f281bb58364"
     },
     {
       "path": "skills/security-review/migration-contract.json",
-      "sha256": "503bb0f0908386a3b6fa671aadadbdc580cc7bad94b0a5f1b66e7ab52eaf8cdc"
+      "sha256": "99cc3b4378c985bae124a10af027b6f90ba33bab8bff0f8646d4113c079c76bb"
     },
     {
       "path": "skills/seek-verdict/SKILL.md",
-      "sha256": "d77bd6a2e235cf5d542b009fb8c6a4451bb95918a5a8a807890d92c6f34ca94e"
+      "sha256": "f58ff13e427472e0e846317d387b25e6a1af86c0d5f663de6ceebd02fcb4fdb1"
     },
     {
       "path": "skills/seek-verdict/migration-contract.json",
-      "sha256": "f344b9d4b3ab89d792e8a21e9c9213226104501a55a7dcdd5077e1264ad91262"
+      "sha256": "89c0d032e1abe00da48457b1f5e65dc121d56705abe5df8d8966966f0d1d78e2"
     },
     {
       "path": "skills/seek-verdict/scripts/verdict-state.js",
-      "sha256": "f64f8be776dc29c4211deb763778d8f4904f5ec158ef7ca96cad0241de83aac4"
+      "sha256": "86b70d417822d347e81322a2319e96940c90c5f3fff1fb6680060576e3c9fdc2"
     },
     {
       "path": "skills/setup/SKILL.md",
-      "sha256": "28255575279c2e1d284994350dc9df34d61c5dc55b1be52f2eeeea1b5551b95e"
+      "sha256": "4066bb306fa943f921442c345de68eb3b3faa1d5b02ec949021ec742809fdb2e"
     },
     {
       "path": "skills/setup/migration-contract.json",
-      "sha256": "ea169a6223684f3e8c380273ec3ee2608257e076ad740eaecf9a899f31fbb73e"
+      "sha256": "b82fa851c0f346666bd0cb2a9b0e8505b47c8b7e8e363b09a63f6eac91968315"
     },
     {
       "path": "skills/setup/scripts/setup.js",
@@ -887,139 +887,139 @@
     },
     {
       "path": "skills/sharingan/SKILL.md",
-      "sha256": "ff3c2b0634ef0499fb853b9181dd1f028b6dd703f7d2bd469ff136ce9f18cb28"
+      "sha256": "918690604d0c18e0883bcbb4ad9ca3a6c0bc547ac54dc5e42d85707fc9096b67"
     },
     {
       "path": "skills/sharingan/migration-contract.json",
-      "sha256": "4b89e8b45dcdca750c7ba26ebf20932616c0ef3984b6255f40ca607e709cdff7"
+      "sha256": "6dbe36d065f81a45d621666024d86f028d6ed7583bed52ece53f0c462e74baa4"
     },
     {
       "path": "skills/simplify/SKILL.md",
-      "sha256": "097a5221d473f6e40de8f5cc5cd3efb0559b73108ec2d8b6eaa3e96efdf319cd"
+      "sha256": "79f79589f82bb3ecd03ed3ea2bb47dd3b14033f567957a3428e87aab28b0fd9d"
     },
     {
       "path": "skills/simplify/migration-contract.json",
-      "sha256": "0c4cb52534af55f6ba150161211bcc10a92d6412771212c46b54a025fa54f52a"
+      "sha256": "5de1195e4e59522e4308892bb8cdb995453335b7b5346c4ea445b801d5365ea3"
     },
     {
       "path": "skills/skill-health-check/SKILL.md",
-      "sha256": "0a8c22666c967864b945d96a0acca53866dad8504f8119b4b291bccb8c3c7e65"
+      "sha256": "72e66b413e9bddbbfcfbf47a941cf8f4927805dc493403883b1e23c0e4f2fedd"
     },
     {
       "path": "skills/skill-health-check/migration-contract.json",
-      "sha256": "06341b862171b4c3e9cd77a4498358e007dc946ed717928af0ed226fe05c9e47"
+      "sha256": "ef3172b19415a3faee743ed66f6a9878c9bf53c915c4f33d9479cb7f4076ff55"
     },
     {
       "path": "skills/smart-commit/SKILL.md",
-      "sha256": "67462ca38d8ea5c3be0ce41fe68c9f5345c2688355feb9a195ef06f4d75323a7"
+      "sha256": "22ba0f00ecf0c4de3a7f2ee7aef652ce8ee7b156881950638322a4a9b49afce3"
     },
     {
       "path": "skills/smart-commit/migration-contract.json",
-      "sha256": "83fede52c87606a7679ee5c90068b61d053287322766a1a427141485d3e43793"
+      "sha256": "e6c37b4f76656c028408f734c10749fc728caec6070042682ec6484dc13d424b"
     },
     {
       "path": "skills/smart-rebase/SKILL.md",
-      "sha256": "2cf241f88011a24e1d0e9fb7a28de9d86da0c8f46255d9f6de3e7194af6dec30"
+      "sha256": "9f4994a7532e29aca5fe0654a9b4632c742f6fe4ca23bbe0ed06e7422515c3b3"
     },
     {
       "path": "skills/smart-rebase/migration-contract.json",
-      "sha256": "85e5ae9fe4bc219909b61e2bd4cc8d2f511068fc0ecabbad20d8e8671956ad01"
+      "sha256": "873f6eb446113455530c651da988c234f45ccae826db50fb7bda281841af08bf"
     },
     {
       "path": "skills/statusline-config/SKILL.md",
-      "sha256": "a9977f14605d1fdf83524fa1ac1f7310577f808c895f5c90987c13a8070689b7"
+      "sha256": "bf9d2f1efc2af05fb5a64318c89fb6174c9fa6d37d4af766252fdb8f9b64c720"
     },
     {
       "path": "skills/statusline-config/migration-contract.json",
-      "sha256": "d1b0494c0055e06068f9e6b79b6e0221fff0fffb33749affd91ae9a6fadfd6fa"
+      "sha256": "3295dd59072e22b97263e26ce4fca31a027b10c0c4259d3858ad515b36275329"
     },
     {
       "path": "skills/tech-brief/SKILL.md",
-      "sha256": "b344c7025595d6bb2d48d816553f2e345a498e6de3da9656d8ce270a13bc2f44"
+      "sha256": "d4c1e9d0ed961a610eaf2dac4464b812dc9d2837bc02b8708fa3f03b132ea147"
     },
     {
       "path": "skills/tech-brief/migration-contract.json",
-      "sha256": "a9aa8ad833aed1cac89918ae4e71637b5d4664f7a549ae2291cbd40d3a0ac4d0"
+      "sha256": "56a93f6877b555413da20909a89e4c85a58d4f69cb3ed99919fe2d3f8578d736"
     },
     {
       "path": "skills/tech-spec/SKILL.md",
-      "sha256": "d0987a19649cddfb75a90b0b10799e7baf50b2ad087e8c4bfc1ab84680da872e"
+      "sha256": "fea0fc25f301e40139e8f7d19a69333b187c7c5e390fe234df416a4a27d6626d"
     },
     {
       "path": "skills/tech-spec/migration-contract.json",
-      "sha256": "156b08beee3d556aab1a809f8687ce4e8c1cc755431d602e8e9286fbb58f612c"
+      "sha256": "b55ce7393989b755d1fe8ed2238e877c7fa61f74fc46d8ffdff0a53043bc2663"
     },
     {
       "path": "skills/tech-spec/references/research-policy.md",
-      "sha256": "239e147ff2d693d83d7cd2681b413ea404196a52666f3ac220e819cde501903c"
+      "sha256": "e4526fdceadbe4c192e1aec3daefc77f6e41b35e5766cb4d7ecbbcfb697fb07b"
     },
     {
       "path": "skills/tech-spec/references/template.md",
-      "sha256": "9dfd194e591bbcfd9a81737455171424727cdef25c8592bd249efdcffde5b0ee"
+      "sha256": "e092837055fd246a372b6a95831cca33d617b96a9c601c81155c289472e9eff0"
     },
     {
       "path": "skills/test-deep/SKILL.md",
-      "sha256": "3b7c7e9aedb1e7d5b71e720d8e973e825902755bd2639f8026a9627bbee2cae6"
+      "sha256": "3d78597ce292ad491d7631a2191a0704205e4b88615f966302d3b4dda12f5ec7"
     },
     {
       "path": "skills/test-deep/migration-contract.json",
-      "sha256": "048b23620855d7d187f8992137f8e4a13deb83ecf06f5dc34fb0b1d979a79d1a"
+      "sha256": "f059dbeecd8f50742fdc633b10fd2d1678bb137726a43e3bb4a3295ea30e7d93"
     },
     {
       "path": "skills/test-gen/SKILL.md",
-      "sha256": "447367cc34c9dedd3244e6652c196021e131d8ae99846778565f58023ae6066f"
+      "sha256": "cf0b7beb182afc2e454922822a0adf289340d94326aa29ebdfdb4198039d6dab"
     },
     {
       "path": "skills/test-gen/migration-contract.json",
-      "sha256": "c2c8e69069942775ab7c184d454147f6f1257d5a1f1321c0cd487a56cf0d3a72"
+      "sha256": "1235b98a70a8e14eb47e0342e7b19c87c6e2ef6339556bddd4f1a9798dac176f"
     },
     {
       "path": "skills/test-health/SKILL.md",
-      "sha256": "b04c6cae549c56d41df656716f705fee356063b0b9592cc94a52fc3b031a04b2"
+      "sha256": "0fd4a37b39e40bc5356f3fc93059664241a0b2797b9b671b857e95b8a6dea3bb"
     },
     {
       "path": "skills/test-health/migration-contract.json",
-      "sha256": "87bc123f681f8854a428c053a6cfad9a3893715d524edf67b14f277ed46b7264"
+      "sha256": "d57ee7de24f231a7511724509b80b60235932a785978ab5f4211bc15baf903c6"
     },
     {
       "path": "skills/test-review/SKILL.md",
-      "sha256": "7c7d0c2a4555e53e137a58ac6c7928ef02a49e75d961eac42bec5a929c6522a4"
+      "sha256": "64da1d4336828d03b101dc05fd1ebed5abf22b1341b5fb93b215c59c9bb53cc6"
     },
     {
       "path": "skills/test-review/migration-contract.json",
-      "sha256": "382ebcb6c9d323b105529757fc8ecfb0cd1854bec4a2bba1fae00762935ad244"
+      "sha256": "ab4b451c4ae48f6336f95069d83e3a430fc60b8aa20501745aac9882b6c8d33d"
     },
     {
       "path": "skills/ui-first-principles/SKILL.md",
-      "sha256": "cf8b26731ffdd86fd5c4ea574addf9b3aecf05b8fbf1a4b87210bdc176eda174"
+      "sha256": "a50fe216124fe525d27789b26ebff5913b2568e20513755d3502cd6ea900502b"
     },
     {
       "path": "skills/ui-first-principles/migration-contract.json",
-      "sha256": "6e596a128ef46c64633cb449eddd71c6e41e978d896dc1b0493d5f55bfa463ac"
+      "sha256": "38f4e7fe967d7199be75716d02a1e357eae0a332f1a92a52bd0e3361fc88d485"
     },
     {
       "path": "skills/update-docs/SKILL.md",
-      "sha256": "3c64ee9072e035cdea0f0f98da9f4f0029f3678a80928adc65d0c6ede8d109bf"
+      "sha256": "018c88a556827ad7e5d7549afcdf138c1c47715a7cb9d09fa624be1a65c60f66"
     },
     {
       "path": "skills/update-docs/migration-contract.json",
-      "sha256": "1bba29700e657a45543fc31b359d311e450301697000c4e8886a0534679b287c"
+      "sha256": "98b8bf412de98299a8c365faaf895deaac7a337b40706f16baa6ee331ab5ca39"
     },
     {
       "path": "skills/update-readme/SKILL.md",
-      "sha256": "3ada38971c0b8c8030b9a4b441fa09a5bb0f8959b53f2b715c1a1dc9749bcbb2"
+      "sha256": "9f36b75cbe2554eb54d1323cc193773467a541704b0d9a223bd2353e8ddcd03e"
     },
     {
       "path": "skills/update-readme/migration-contract.json",
-      "sha256": "258493bb574ce5e8a1a8161bb4923895fc272b1c301165343d1a84b63767e270"
+      "sha256": "aa3b41fb5b22bc7f8f4c45669a54e1760c5a83ab0c3e320dac7da064ab3d3b11"
     },
     {
       "path": "skills/verify/SKILL.md",
-      "sha256": "dbfef1787303062d2c3262fc19d2cedf4fc5fba053f16ad68e1350aa13986006"
+      "sha256": "eab269f30f6433bc50438d78bef026d9bbc37d16835a93af435f0203428f60ae"
     },
     {
       "path": "skills/verify/migration-contract.json",
-      "sha256": "0fd3c1b5416ab6d57bda4c6d407a491f05d6f0b5b836fbab63d48b5f1909c5e5"
+      "sha256": "f6cd80c44e72c96d2c1e2c8e0283b7d4325d4ecb51c42501e824dd96eac38eed"
     },
     {
       "path": "skills/verify/scripts/verify.js",
@@ -1027,27 +1027,23 @@
     },
     {
       "path": "skills/watch-ci/SKILL.md",
-      "sha256": "0f3059af61daf2c739cfcbf7c2fb6b5e824d04f951bee49cde8ce70f03171fbf"
+      "sha256": "6d0ea6c1fdb85d8f98b954b034c56855779138648aa074211f1f615880a3584e"
     },
     {
       "path": "skills/watch-ci/migration-contract.json",
-      "sha256": "7706ff22593bd02264c18e3c244d46d3e6d5d44db743c6efe11325fcacdeb60a"
+      "sha256": "9962352f86c08411e67eab26e2d2813b991a75cf60d776ceb1f80d1661df1d26"
     },
     {
       "path": "skills/zh-tw/SKILL.md",
-      "sha256": "87a1214d0881edcd153f6956235b932fff0a181d4f3967e918d7c23fd9bd0209"
+      "sha256": "ceb1b4d4bc327647bcce4ef426eee160c8fe828d02d363f3edb55b57b1b25b17"
     },
     {
       "path": "skills/zh-tw/migration-contract.json",
-      "sha256": "1aa8e63918199687e49ccd779162e3bd2f080dccf7356e1d1bfe219fa96cabf8"
-    },
-    {
-      "path": "templates/agents/sd0x-claude-primary-reviewer.toml",
-      "sha256": "d576a2923cc6721779841241d8d1eb738af6d85f62428995d65aec335eabfa5a"
+      "sha256": "5d0d6614e1c91fd4cfc162352014e4cdd712a83d17804950d25fb88b02ede768"
     },
     {
       "path": "templates/agents/sd0x-codex-primary-reviewer.toml",
-      "sha256": "839decd946deca2440d7cc84db80b380d89a7f05bedc03649034307cf1916869"
+      "sha256": "0f89063dda091c91d3f41d400b0a577070e910488b077a238f2e35ef544f1459"
     }
   ]
 }

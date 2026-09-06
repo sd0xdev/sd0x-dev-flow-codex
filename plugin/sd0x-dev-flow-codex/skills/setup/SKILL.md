@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "Route setup using exact migration registry [{\"unit\":\"setup/default\",\"routing\":{\"negative_boundaries\":[\"Do not run setup; only execute deterministic repository verification.\",\"Only assess test coverage, acceptance criteria, flakiness, and verification gaps.\",\"Only review the current code changes for correctness and defects.\"],\"positive_triggers\":[\"Apply the canonical setup workflow and report its evidence.\",\"Help me run the setup workflow for this repository.\",\"I need the canonical setup procedure with its safety boundaries.\"]}},{\"unit\":\"setup/guidance\",\"routing\":{\"negative_boundaries\":[\"Do not run setup guidance mode; only execute deterministic repository verification.\",\"Only assess test coverage, acceptance criteria, flakiness, and verification gaps.\",\"Only review the current code changes for correctness and defects.\"],\"positive_triggers\":[\"Apply the canonical setup guidance mode workflow and report its evidence.\",\"Help me run the setup guidance mode workflow for this repository.\",\"I need the canonical setup guidance mode procedure with its safety boundaries.\"]}},{\"unit\":\"setup/hooks\",\"routing\":{\"negative_boundaries\":[\"Do not run setup hooks mode; only execute deterministic repository verification.\",\"Only assess test coverage, acceptance criteria, flakiness, and verification gaps.\",\"Only review the current code changes for correctness and defects.\"],\"positive_triggers\":[\"Apply the canonical setup hooks mode workflow and report its evidence.\",\"Help me run the setup hooks mode workflow for this repository.\",\"I need the canonical setup hooks mode procedure with its safety boundaries.\"]}},{\"unit\":\"setup/scripts\",\"routing\":{\"negative_boundaries\":[\"Do not run setup scripts mode; only execute deterministic repository verification.\",\"Only assess test coverage, acceptance criteria, flakiness, and verification gaps.\",\"Only review the current code changes for correctness and defects.\"],\"positive_triggers\":[\"Apply the canonical setup scripts mode workflow and report its evidence.\",\"Help me run the setup scripts mode workflow for this repository.\",\"I need the canonical setup scripts mode procedure with its safety boundaries.\"]}}]."
+description: "Install or refresh project-local managed sd0x guidance, opt-in hook configuration, and the configured primary reviewer through the bundled setup script. Preserve user-authored content and report activation requirements."
 ---
 
 # Set Up sd0x Dev Flow
@@ -24,7 +24,7 @@ For a non-default selected mode, the args array in this same allowlisted call is
 
 After default or hooks mode changes activation state, start a new Codex task. After setup, run the doctor skill and report created, updated, removed, preserved, and unchanged paths.
 
-Never install the Claude CLI or begin authentication silently. Never replace unowned agent files or content outside the managed guidance block.
+Do not install external model CLIs or begin authentication as part of setup. Never replace unowned agent files or content outside the managed guidance block.
 
 <!-- sd0x-routing-contract:v1 unit=setup/default -->
 ```json

@@ -1,6 +1,6 @@
 ---
 name: test-gen
-description: "Route test-gen using exact migration registry [{\"unit\":\"test-gen/default\",\"routing\":{\"negative_boundaries\":[\"Implement the refund service behavior before tests exist.\",\"Run the existing test suite and report its failures.\",\"Trace the root cause of the current parser regression without writing tests.\"],\"positive_triggers\":[\"Add focused regression tests for this uncovered parser behavior.\",\"Generate tests for the new refund service using the repository conventions.\",\"Write missing happy-path, error, and edge-case tests for this method.\"]}}]."
+description: "Add behavior-focused tests for an identified coverage gap, using existing conventions and meaningful regression proof. Implementation defects are reported rather than encoded as expected behavior."
 ---
 
 # Generate Focused Tests

@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: "Route plan-review using exact migration registry [{\"unit\":\"plan-review/default\",\"routing\":{\"negative_boundaries\":[\"Generate the final component architecture document for the feature.\",\"Inspect the dirty worktree and record the fingerprint-bound code review gate.\",\"Judge whether an existing lifecycle specification is correct and internally consistent.\"],\"positive_triggers\":[\"Critique this implementation plan for missing steps, dependency errors, risks, and weak verification.\",\"Review the proposed execution sequence before work begins and return actionable findings.\",\"Stress-test the rollback, validation, and decision points in this plan.\"]}}]."
+description: "Independently review an implementation or migration plan for goal coverage, ordering, repository fit, risks, and verification. Returns findings and readiness without editing the plan or satisfying the code-review gate."
 ---
 
 # Plan Review
@@ -19,7 +19,7 @@ State the plan's intended outcome, scope, non-goals, assumptions, constraints, a
 
 Do not treat the plan's claims as evidence. Inspect the repository paths, interfaces, tests, configurations, dependency edges, deployment behavior, and existing conventions that materially affect the proposed sequence. Keep Git inspection read-only and cite repository-relative locations for consequential findings.
 
-When collaboration is available, assign one read-only reviewer only the raw plan, declared goals, and referenced paths. The reviewer checks the plan independently while the main agent traces ordering and validation seams. Do not exchange conclusions before both passes finish. When collaboration is unavailable, disclose that limitation and complete both perspectives locally.
+When an independently useful challenge would improve the assessment, give a read-only Codex subagent the raw plan, declared goals, and referenced paths. The reviewer checks the plan independently while the main agent traces ordering and validation seams. Do not exchange conclusions before both passes finish. Otherwise assess both perspectives locally; report any consequential evidence gap.
 
 ## 3. Apply review dimensions
 
@@ -50,16 +50,16 @@ Each finding includes the plan step or section, repository evidence when applica
 
 End with `Ready`, `Revise`, or `Need Human`. `Ready` means no Blocker or Major findings remain; it is not implementation approval and does not satisfy the core review gate. Return the critique in the response and leave the candidate plan unchanged.
 
-Before reporting completion:
+Completion requires the following outcomes; choose the inspection and checking sequence that establishes them:
 
-- Confirm plan coverage, dependency ordering, repository fit, risks, verification, rollout/rollback, and open decisions were examined.
-- Confirm every actionable finding has precise evidence and a closure check.
-- Confirm no plan, repository, Git, runtime-state, or external-system mutation occurred.
-- Scan the response for secrets and redact suspicious values.
+- plan coverage, dependency ordering, repository fit, risks, verification, rollout/rollback, and open decisions were examined.
+- every actionable finding has precise evidence and a closure check.
+- no plan, repository, Git, runtime-state, or external-system mutation occurred.
+- The response contains no exposed secrets.
 
 ## Pack handoff
 
-[Read the planning-pack handoff specification](references/pack-handoff.md). This canonical skill is distributed from the core plugin; the linked planning-pack handoff is retained only as immutable migration provenance.
+This canonical skill is distributed from the core plugin. The [historical planning-pack handoff](references/pack-handoff.md) is migration provenance only; consult it for historical context, not current workflow instructions.
 
 <!-- sd0x-routing-contract:v1 unit=plan-review/default -->
 ```json

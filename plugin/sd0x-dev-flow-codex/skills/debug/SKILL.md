@@ -1,6 +1,6 @@
 ---
 name: debug
-description: "Route debug using exact migration registry [{\"unit\":\"debug/default\",\"routing\":{\"negative_boundaries\":[\"Implement a new cache invalidation feature from the approved specification.\",\"Patch the cache regression and add a regression test.\",\"Review the current cache diff for correctness and test gaps.\"],\"positive_triggers\":[\"Analyze this supplied failing command and output, then trace the execution path that produced them.\",\"Diagnose the intermittent cache failure and report the evidenced root cause without editing code.\",\"Trace why the request returns stale data and identify the failing invariant.\"]}}]."
+description: "Diagnose a failure from supplied evidence and bounded, sanitized read-only observations. Returns the responsible invariant and correction proposal without applying code changes."
 ---
 
 # Diagnose a Failure
@@ -30,9 +30,6 @@ The bundled [probe runner](scripts/probe-runner.js) is the exclusive execution b
 
 Return reproduction evidence, probe classification and limits, sanitized execution trace, hypothesis table, root cause, impact, suggested correction, regression case, and unresolved questions.
 
-## Pack handoff
-
-This canonical skill is distributed from the core plugin. Its legacy development-pack payload remains immutable migration provenance and is not a runtime routing surface.
 
 <!-- sd0x-routing-contract:v1 unit=debug/default -->
 ```json

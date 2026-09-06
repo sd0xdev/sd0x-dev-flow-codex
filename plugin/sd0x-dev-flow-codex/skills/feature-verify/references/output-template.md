@@ -1,5 +1,7 @@
 # Feature Runtime Verification Report
 
+Use this as a content guide. Adapt headings, tables and diagrams to the task; preserve required evidence fields and substantive decision or verification coverage.
+
 ## Summary
 
 Report verdict, confidence, degradation level, environment, deployment identity, and the evidence window.

@@ -62,7 +62,7 @@ test('hook definition observes the exec command that completes setup', () => {
   ));
   assert.ok(hooks.SubagentStart.some((entry) =>
     entry.matcher.includes('sd0x_codex_primary_reviewer') &&
-    entry.matcher.includes('sd0x_claude_primary_reviewer') &&
+    !entry.matcher.includes('sd0x_claude_primary_reviewer') &&
     !entry.matcher.includes('sd0x_test_reviewer')
   ));
 });
@@ -413,7 +413,6 @@ test('Stop advises review without forcing continuation for a dirty worktree', (t
       stateSignal(output.systemMessage).reason],
     ['review', 'review-required']
   );
-  assert.match(output.systemMessage, /model owns whether and how to continue/i);
 });
 
 test('repeated Stop events remain advisory without a continuation ceiling', (t) => {
@@ -443,7 +442,6 @@ test('Stop advises while review is in progress without forcing continuation', (t
   const output = JSON.parse(invoke(root, { hook_event_name: 'Stop' }).stdout);
   assert.equal(output.continue, true);
   assert.equal(stateSignal(output.systemMessage).reason, 'review-in-progress');
-  assert.match(output.systemMessage, /model owns whether and how to continue/i);
 });
 
 test('Stop advises verification-required and verification-failed states', (t) => {
@@ -602,7 +600,6 @@ test('multiple activated sessions retain hook enforcement', (t) => {
     const output = JSON.parse(result.stdout);
     assert.equal(output.continue, true);
     assert.equal(stateSignal(output.systemMessage).reason, 'review-required');
-    assert.match(output.systemMessage, /model owns whether and how to continue/i);
   }
 });
 
@@ -615,7 +612,8 @@ test('Subagent hooks record completion and return valid event JSON', (t) => {
     agent_id: 'agent-1',
     agent_type: 'sd0x_codex_primary_reviewer'
   });
-  assert.match(JSON.parse(start.stdout).hookSpecificOutput.additionalContext, /read-only/);
+  const context = JSON.parse(start.stdout).hookSpecificOutput.additionalContext;
+  assert.ok(context.includes(readState(root).worktree.fingerprint));
   const stop = invoke(root, {
     hook_event_name: 'SubagentStop',
     agent_id: 'agent-1',
@@ -722,57 +720,11 @@ test('Stop yields to the user when reviewer infrastructure is unavailable', (t) 
       stateSignal(output.systemMessage).reason],
     ['fail', 'reviewer-unavailable']
   );
-  assert.match(output.systemMessage, /user authorizes runtime reset/i);
   assert.doesNotMatch(output.systemMessage, /or start a new Codex task/i);
   assert.match(output.systemMessage, /fingerprint changes/i);
   const state = readState(root);
   assert.equal(state.gates.review.status, 'fail');
   assert.equal(state.review_agents.started.length, 1);
-});
-
-test('PostToolUse records successful structured Claude MCP evidence', (t) => {
-  const root = createRepo({ provider: 'claude' });
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
-  const current = refreshState(root);
-  const fingerprint = current.worktree.fingerprint;
-  const started = invoke(root, {
-    hook_event_name: 'PreToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'claude-call-1',
-    tool_input: { cwd: root, fingerprint }
-  });
-  assert.match(started.stdout, /Bound Claude review start/);
-  const result = invoke(root, {
-    hook_event_name: 'PostToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'claude-call-1',
-    tool_input: { cwd: root, fingerprint },
-    tool_response: {
-      content: [{ type: 'text', text: 'No actionable findings remain.' }],
-      structuredContent: {
-        schema_version: 1,
-        reviewer: 'claude_mcp',
-        perspective: 'primary',
-        repository_root: root,
-        fingerprint,
-        outcome: 'clean',
-        summary: 'No findings.',
-        findings: [],
-        duration_ms: 5
-      },
-      isError: false
-    }
-  });
-  assert.equal(result.status, 0);
-  assert.match(
-    JSON.parse(result.stdout).hookSpecificOutput.additionalContext,
-    /Recorded Claude MCP clean evidence/
-  );
-  const state = readState(root);
-  assert.equal(state.external_review.fingerprint, fingerprint);
-  assert.equal(state.external_review.completed[0].tool_use_id, 'claude-call-1');
-  assert.equal(state.external_review.completed[0].outcome, 'clean');
 });
 
 test('Codex review provider blocks Claude before any external review starts', (t) => {
@@ -788,199 +740,6 @@ test('Codex review provider blocks Claude before any external review starts', (t
   });
   const output = JSON.parse(result.stdout);
   assert.equal(output.hookSpecificOutput.permissionDecision, 'deny');
-  assert.match(output.hookSpecificOutput.permissionDecisionReason, /disabled/);
+  assert.match(output.hookSpecificOutput.permissionDecisionReason, /retired/);
   assert.deepEqual(readState(root).external_review.started, []);
-});
-
-test('reset rejects a late Claude result from another session runtime epoch', (t) => {
-  const root = createRepo({ provider: 'claude' });
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  invoke(root, { hook_event_name: 'SessionStart', session_id: 'session-2' });
-  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
-  const beforeReset = refreshState(root);
-  const fingerprint = beforeReset.worktree.fingerprint;
-  invoke(root, {
-    hook_event_name: 'PreToolUse',
-    session_id: 'session-2',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'claude-before-reset',
-    tool_input: { cwd: root, fingerprint }
-  });
-  const afterReset = resetState(root);
-  assert.notEqual(afterReset.runtime_epoch, beforeReset.runtime_epoch);
-
-  const reviewResult = (durationMs) => ({
-    schema_version: 1,
-    reviewer: 'claude_mcp',
-    perspective: 'primary',
-    repository_root: root,
-    fingerprint,
-    outcome: 'clean',
-    summary: 'No findings.',
-    findings: [],
-    duration_ms: durationMs
-  });
-  const late = invoke(root, {
-    hook_event_name: 'PostToolUse',
-    session_id: 'session-2',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'claude-before-reset',
-    tool_input: { cwd: root, fingerprint },
-    tool_response: {
-      structuredContent: reviewResult(60_000),
-      isError: false
-    }
-  });
-  assert.match(late.stderr, /no matching start in the current runtime epoch/);
-  assert.deepEqual(readState(root).external_review.completed, []);
-
-  invoke(root, {
-    hook_event_name: 'PreToolUse',
-    session_id: 'session-2',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'claude-after-reset',
-    tool_input: { cwd: root, fingerprint }
-  });
-  const current = invoke(root, {
-    hook_event_name: 'PostToolUse',
-    session_id: 'session-2',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'claude-after-reset',
-    tool_input: { cwd: root, fingerprint },
-    tool_response: {
-      structuredContent: reviewResult(0),
-      isError: false
-    }
-  });
-  assert.match(current.stdout, /Recorded Claude MCP clean evidence/);
-  assert.equal(
-    readState(root).external_review.completed[0].tool_use_id,
-    'claude-after-reset'
-  );
-});
-
-test('failed or malformed Claude MCP output records no evidence', (t) => {
-  const root = createRepo({ provider: 'claude' });
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
-  const fingerprint = refreshState(root).worktree.fingerprint;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const toolUseId = `claude-call-failed-${attempt}`;
-    invoke(root, {
-      hook_event_name: 'PreToolUse',
-      tool_name: 'mcp__sd0x_claude_review__review_worktree',
-      tool_use_id: toolUseId,
-      tool_input: { cwd: root, fingerprint }
-    });
-    const failed = invoke(root, {
-      hook_event_name: 'PostToolUse',
-      tool_name: 'mcp__sd0x_claude_review__review_worktree',
-      tool_use_id: toolUseId,
-      tool_input: { cwd: root, fingerprint },
-      tool_response: {
-        content: [{ type: 'text', text: 'Claude review failed: unavailable' }],
-        isError: true
-      }
-    });
-    assert.match(
-      JSON.parse(failed.stdout).hookSpecificOutput.additionalContext,
-      /No review evidence was recorded/
-    );
-  }
-  assert.equal(readState(root).external_review.completed.length, 0);
-  assert.equal(readState(root).external_review.started.length, 0);
-  const malformedId = 'claude-call-malformed';
-  invoke(root, {
-    hook_event_name: 'PreToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: malformedId,
-    tool_input: { cwd: root, fingerprint }
-  });
-  const malformed = invoke(root, {
-    hook_event_name: 'PostToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: malformedId,
-    tool_input: { cwd: root, fingerprint },
-    tool_response: {
-      structuredContent: { schema_version: 1 },
-      isError: false
-    }
-  });
-  assert.match(malformed.stderr, /Unexpected external reviewer identity/);
-  assert.equal(readState(root).external_review.started.length, 0);
-
-  const replay = invoke(root, {
-    hook_event_name: 'PostToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: malformedId,
-    tool_input: { cwd: root, fingerprint },
-    tool_response: {
-      structuredContent: {
-        schema_version: 1,
-        reviewer: 'claude_mcp',
-        perspective: 'primary',
-        repository_root: root,
-        fingerprint,
-        outcome: 'clean',
-        summary: 'No findings.',
-        findings: [],
-        duration_ms: 1
-      },
-      isError: false
-    }
-  });
-  assert.match(replay.stderr, /no matching start/);
-});
-
-test('Claude review ledger requires exact session and tool-use identity', (t) => {
-  const root = createRepo({ provider: 'claude' });
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  invoke(root, { hook_event_name: 'SessionStart', session_id: 'session-2' });
-  fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
-  const current = refreshState(root);
-  const fingerprint = current.worktree.fingerprint;
-  const missingId = invoke(root, {
-    hook_event_name: 'PreToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_input: { cwd: root, fingerprint }
-  });
-  assert.match(missingId.stderr, /requires session and tool-use identity/);
-
-  invoke(root, {
-    hook_event_name: 'PreToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'expected-tool',
-    tool_input: { cwd: root, fingerprint }
-  });
-  const structuredContent = {
-    schema_version: 1,
-    reviewer: 'claude_mcp',
-    perspective: 'primary',
-    repository_root: root,
-    fingerprint,
-    outcome: 'clean',
-    summary: 'No findings.',
-    findings: [],
-    duration_ms: 1
-  };
-  const wrongTool = invoke(root, {
-    hook_event_name: 'PostToolUse',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'wrong-tool',
-    tool_input: { cwd: root, fingerprint },
-    tool_response: { structuredContent, isError: false }
-  });
-  assert.match(wrongTool.stderr, /no matching start/);
-  assert.equal(readState(root).external_review.started.length, 1);
-
-  const wrongSession = invoke(root, {
-    hook_event_name: 'PostToolUse',
-    session_id: 'session-2',
-    tool_name: 'mcp__sd0x_claude_review__review_worktree',
-    tool_use_id: 'expected-tool',
-    tool_input: { cwd: root, fingerprint },
-    tool_response: { structuredContent, isError: false }
-  });
-  assert.match(wrongSession.stderr, /no matching start/);
-  assert.equal(readState(root).external_review.started.length, 1);
 });

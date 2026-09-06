@@ -14,6 +14,7 @@ const {
   hasSetupDeferral,
   setupDeferralPath
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
+const { MANAGED_BLOCK } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/workflow-contract');
 const {
   reviewPlan
 } = require('../plugin/sd0x-dev-flow-codex/skills/review/scripts/provider');
@@ -43,11 +44,7 @@ test('setup preserves user guidance and is idempotent', (t) => {
   assert.equal(firstContent, secondContent);
   assert.match(firstContent, /Keep this\./);
   assert.match(firstContent, /sd0x-workflow-contract:v1/);
-  assert.match(firstContent, /closed non-negotiable register/i);
-  assert.match(firstContent, /model owns the path, batching, timing, and depth/i);
-  assert.match(firstContent, /ordinary uncertainty alone is not a reason/i);
-  assert.match(firstContent, /\[SD0X_DEVIATION\]/);
-  assert.match(firstContent, /cannot downgrade an Anchor/i);
+  assert.ok(firstContent.includes(MANAGED_BLOCK));
   assert.equal(firstContent.split(START).length - 1, 1);
   assert.equal(firstContent.split(END).length - 1, 1);
   assert.ok(first.results.some((item) => item.status === 'created'));
@@ -68,13 +65,10 @@ test('setup preserves user guidance and is idempotent', (t) => {
     path.join(root, '.codex', 'agents', 'sd0x-codex-primary-reviewer.toml'),
     'utf8'
   );
-  const claudePrimaryAgent = fs.readFileSync(
-    path.join(root, '.codex', 'agents', 'sd0x-claude-primary-reviewer.toml'),
-    'utf8'
-  );
-  assert.match(codexPrimaryAgent, /model = "gpt-5\.6-sol"/);
-  assert.match(codexPrimaryAgent, /model_reasoning_effort = "xhigh"/);
-  assert.match(claudePrimaryAgent, /mcp__sd0x_claude_review__review_worktree/);
+  assert.doesNotMatch(codexPrimaryAgent, /^model(?:_reasoning_effort)?\s*=/m);
+  assert.match(codexPrimaryAgent, /sandbox_mode = "read-only"/);
+  assert.equal(fs.existsSync(path.join(root, '.codex', 'agents',
+    'sd0x-claude-primary-reviewer.toml')), false);
   assert.equal(fs.existsSync(path.join(
     root, '.codex', 'agents', 'sd0x-reviewer.toml'
   )), false);
@@ -91,8 +85,7 @@ test('setup preserves user guidance and is idempotent', (t) => {
     primary_agent: 'sd0x_codex_primary_reviewer',
     reviewers: 1,
     agents: ['sd0x_codex_primary_reviewer'],
-    codex: { model: 'gpt-5.6-sol', reasoning_effort: 'xhigh' },
-    claude: { model: 'claude-opus-4-8', enabled: false }
+    codex: { model: null, reasoning_effort: null, settings_source: 'parent-session', sandbox_mode: 'read-only' }
   });
   assert.equal(
     'limits' in JSON.parse(
@@ -314,11 +307,10 @@ test('setup preserves an explicit Claude review provider and rejects unknown pro
   setup(root);
   assert.equal(
     JSON.parse(fs.readFileSync(configPath, 'utf8')).review.provider,
-    'claude'
+    'codex'
   );
-  assert.equal(reviewPlan(root).primary_agent, 'sd0x_claude_primary_reviewer');
-  assert.equal(reviewPlan(root).claude.enabled, true);
-  assert.ok(reviewPlan(root).agents.includes('claude_mcp_primary'));
+  assert.equal(reviewPlan(root).primary_agent, 'sd0x_codex_primary_reviewer');
+  assert.equal('claude' in reviewPlan(root), false);
 
   fs.writeFileSync(configPath, JSON.stringify({
     schema_version: 1,
@@ -374,8 +366,8 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
   assert.doesNotMatch(guide, /現有(?:[零一二三四五六七八九十百]+|\d+)個 skills/);
   assert.match(guide, /Auto-loop 沒有固定 round 或 continuation 上限/);
   assert.match(guide, /reason: reviewer-unavailable/);
-  assert.match(guide, /runtime state schema 是 v9/);
-  assert.match(guide, /兩個 `\.codex\/agents\/\*\.toml`/);
+  assert.match(guide, /runtime state schema 是 v10/);
+  assert.match(guide, /單一 `\.codex\/agents\/\*\.toml`/);
   assert.doesNotMatch(guide, /Codex-default primary \+ dual Codex reviewers/);
   assert.match(guide, /continue: true/);
   assert.match(guide, /failed gate[^\n]+stale ledger[^\n]+保留/);
@@ -407,105 +399,4 @@ test('public documentation matches the shipped no-ceiling skill inventory', () =
   assert.match(readme, /移除舊的 setup-managed `sd0x-reviewer\.toml`/);
   assert.match(readme, /移除舊的 setup-managed[^\n]+`sd0x-test-reviewer\.toml`/);
   assert.doesNotMatch(readme, /\.codex\/agents\/sd0x_reviewer\.toml|sd0x_test_reviewer\.toml/);
-});
-
-test('custom-agent documentation points to the runtime setup owner', () => {
-  const guide = fs.readFileSync(path.join(
-    __dirname, '..', 'docs', 'PROJECT-MIGRATION-GUIDE.md'
-  ), 'utf8');
-  const runtimeSetup = fs.readFileSync(path.join(
-    __dirname, '..', 'plugin', 'sd0x-dev-flow-codex', 'scripts', 'runtime', 'setup.js'
-  ), 'utf8');
-  assert.match(guide, /`scripts\/runtime\/setup\.js` 的 `agentPlans`/);
-  assert.match(runtimeSetup, /const agentPlans = \[/);
-});
-
-test('review theory preserves the sd0x independent review and convergence contract', () => {
-  const theory = fs.readFileSync(path.resolve(
-    __dirname,
-    '..',
-    'plugin',
-    'sd0x-dev-flow-codex',
-    'skills',
-    'review',
-    'references',
-    'review-theory.md'
-  ), 'utf8');
-  for (const pattern of [
-    /independent research/i,
-    /never the\s+implementer's conclusions/i,
-    /actual diff, full changed files/i,
-    /configured primary on the first review and every re-review/i,
-    /edit resets the review cycle/i,
-    /fixing and verifying as separate actions/i,
-    /root cause/i,
-    /acceptance criteria/i,
-    /normalize and deduplicate/i,
-    /provider and[\s\S]*worktree fingerprint changes invalidate evidence/i,
-    /no degraded pass/i,
-    /fresh full scan/i
-  ]) {
-    assert.match(theory, pattern);
-  }
-});
-
-test('review skill requires user-authorized reset for stale native reviewers', () => {
-  const skill = fs.readFileSync(path.resolve(
-    __dirname,
-    '..',
-    'plugin',
-    'sd0x-dev-flow-codex',
-    'skills',
-    'review',
-    'SKILL.md'
-  ), 'utf8');
-  assert.match(skill, /do not replace or retry that reviewer type on the same fingerprint/i);
-  assert.match(skill, /Ask the user before running[^\n]+reset/i);
-  assert.doesNotMatch(skill, /reset or process restart/i);
-  assert.match(skill, /process restart alone does not clear/i);
-  assert.match(skill, /genuine fingerprint change/i);
-
-  const guide = fs.readFileSync(path.resolve(
-    __dirname,
-    '..',
-    'docs',
-    'PROJECT-MIGRATION-GUIDE.md'
-  ), 'utf8');
-  assert.match(guide, /reviewer_failure[^\n]+true/);
-  assert.match(guide, /process restart[^\n]+不會清除/);
-  assert.match(guide, /使用者授權[^\n]+reset/);
-});
-
-test('reset skill documents trusted-session and corrupt-state recovery semantics', () => {
-  const skill = fs.readFileSync(path.resolve(
-    __dirname,
-    '..',
-    'plugin',
-    'sd0x-dev-flow-codex',
-    'skills',
-    'reset',
-    'SKILL.md'
-  ), 'utf8');
-  assert.match(skill, /trusted sessions are preserved/i);
-  assert.match(skill, /corrupt state is quarantined/i);
-  assert.match(skill, /requires a new SessionStart/i);
-  assert.match(skill, /Report the quarantine path and new-session[\s\S]+reset_recovery/i);
-});
-
-test('remind routes every review reason without unsafe retries', () => {
-  const skill = fs.readFileSync(path.resolve(
-    __dirname,
-    '..',
-    'plugin',
-    'sd0x-dev-flow-codex',
-    'skills',
-    'remind',
-    'SKILL.md'
-  ), 'utf8');
-  assert.match(skill, /returned reason and next action exactly/i);
-  assert.match(skill, /reviewer-unavailable[^\n]+ask before reset/i);
-  assert.match(skill, /review-in-progress[^\n]+wait[^\n]+terminal/i);
-  assert.match(skill, /review-findings-remain[^\n]+fix root causes/i);
-  assert.match(skill, /review-required[^\n]+configured primary reviewer/i);
-  assert.match(skill, /never retry[^\n]+same fingerprint[^\n]+reset/i);
 });

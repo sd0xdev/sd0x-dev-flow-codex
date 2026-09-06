@@ -6,13 +6,13 @@ const { findRepoRoot } = require('./worktree');
 
 const CONFIG_RELATIVE_PATH = path.join('.codex', 'sd0x-dev-flow.json');
 const DEFAULT_REVIEW_PROVIDER = 'codex';
-const REVIEW_PROVIDERS = new Set(['codex', 'claude']);
+const REVIEW_PROVIDERS = new Set(['codex']);
 
 function normalizeReviewProvider(value) {
   const provider = value?.review?.provider ?? DEFAULT_REVIEW_PROVIDER;
   if (!REVIEW_PROVIDERS.has(provider)) {
     throw new Error(
-      'review.provider must be either "codex" or "claude"'
+      'review.provider must be "codex"; Claude review is retired. Run setup to migrate a legacy Claude configuration.'
     );
   }
   return provider;

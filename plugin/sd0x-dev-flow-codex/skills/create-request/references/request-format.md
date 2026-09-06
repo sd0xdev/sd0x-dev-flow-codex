@@ -60,7 +60,7 @@ Use this reference for create and update modes.
 ## Invariants
 
 - Location: `docs/features/{feature}/requests/YYYY-MM-DD-{slug}.md`.
-- One ticket owns one concern layer and no more than eight ACs.
+- One ticket owns a coherent concern with independently verifiable ACs; enforce actual helper schema limits rather than a prose quality quota.
 - `Implementation Base SHA` is required for new tickets. Never invent a base for a
   legacy ticket; ask for an exact base or keep completion inconclusive.
 - Canonical lifecycle: `Pending -> In Progress -> Candidate Complete -> Completed`.
@@ -109,9 +109,9 @@ Resolve the runtime CLI relative to the installed skill as
    `Commit-Subject-SHA256: <hash>` line, import that round, record the review gate,
    complete deterministic verification against the clean HEAD, and submit the same
    subject JSON to the runtime commit-review-attest operation. Caller-authored reviewer hashes
-   are never commit evidence. This clean-commit transaction currently requires the
-   Codex review provider; a Claude-configured repository must stay fail-closed until
-   an equivalent subject-bound Claude range adapter exists.
+   are never commit evidence. This clean-commit transaction requires the Codex review provider. A repository
+   configured with a retired provider remains fail-closed and requires configuration
+   migration; no Claude range adapter is an active review path.
    The current and proposed request must carry the same canonical `Implementation
    Base SHA`, it must be an ancestor of the subject HEAD, and for a commit subject it
    must equal `base_sha`. A legacy ticket without it requires an explicit

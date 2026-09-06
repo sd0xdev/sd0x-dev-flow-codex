@@ -1,6 +1,6 @@
 ---
 name: ask
-description: "Route ask using exact migration registry [{\"unit\":\"ask/default\",\"routing\":{\"negative_boundaries\":[\"Implement the configuration change in the repository.\",\"Perform a comprehensive multi-source study of competing frameworks.\",\"Trace the complete execution path across the whole application.\"],\"positive_triggers\":[\"Answer what changed recently in this repository and cite the relevant commits.\",\"Explain where the current feature stores its configuration using repository evidence.\",\"Tell me which project rule applies to this file and show the source.\"]}}]."
+description: "Answer bounded repository questions using attributable code, guidance or Git evidence. Read-only; broader investigation and implementation belong to their dedicated workflows."
 ---
 
 # Context-Aware Repository Q&A
@@ -11,9 +11,9 @@ Answer bounded development questions with concise, attributable repository evide
 
 [Read the deterministic secret-path and redaction helper](scripts/redact.js).
 
-1. Restate the question and identify whether it concerns code, documentation, project guidance, or Git history.
+1. Identify the evidence needed to answer the bounded question; a restatement is useful only when it resolves material ambiguity.
 2. Resolve the repository root and inspect only contained real paths in the smallest relevant context. Reject absolute paths, traversal, symlink escapes, and ambiguous repositories. Prefer exact files, symbols, recent commits, diffs, and blame records over speculation.
-3. For mixed questions, keep evidence streams separate before synthesis. When one bounded read-only investigator materially reduces uncertainty, give it the question without a proposed answer and verify its findings locally.
+3. For mixed questions, keep evidence streams separate before synthesis. When one bounded read-only investigator materially reduces uncertainty, give it the question without a proposed answer and validate consequential findings against their evidence.
 4. Distinguish observed facts, inferences, and unknowns. Cite repository-relative paths and commit identifiers for consequential claims.
 5. Stop when the question is answered. Recommend a deeper workflow only when the remaining uncertainty cannot be closed economically.
 
@@ -23,28 +23,8 @@ Never read `.env`, `credentials.*`, `*secret*`, private-key, token-store, or equ
 
 Return the direct answer first, followed by compact evidence and any important uncertainty. When the premise is false or ambiguous, say so and show why.
 
-## Pack handoff
 
-This canonical skill is distributed from the core plugin. Its legacy research-pack payload and pack-ready evidence remain immutable migration provenance and are not a runtime routing surface.
 
-<!-- sd0x-active-semantic-contract:v1 unit=ask/default -->
-Normative semantic requirements:
-- Before returning evidence, replace every high-confidence credential value with exact [REDACTED]
-- Never read `.env`, `credentials.*`, `*secret*`
-- Reject absolute paths, traversal, symlink escapes
-<!-- sd0x-active-semantic-contract:end -->
-
-<!-- sd0x-semantic-contract:v1 unit=ask/default -->
-```json
-{
-  "required": [
-    "Before returning evidence, replace every high-confidence credential value with exact [REDACTED]",
-    "Never read `.env`, `credentials.*`, `*secret*`",
-    "Reject absolute paths, traversal, symlink escapes"
-  ],
-  "forbidden": []
-}
-```
 
 <!-- sd0x-routing-contract:v1 unit=ask/default -->
 ```json

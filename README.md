@@ -36,26 +36,7 @@ flowchart LR
 
 - 已安裝支援 plugins 的 Codex CLI。
 - Node.js 24 或更新版本。
-- 只有將 `review.provider` 切換為 `claude` 時，才需要安裝並登入 Claude Code CLI。
-
-選用 Claude provider 時的一次性設定：
-
-```bash
-# macOS / Linux / WSL
-curl -fsSL https://claude.ai/install.sh | bash
-
-# macOS alternative
-brew install --cask claude-code
-
-# Windows alternative
-winget install Anthropic.ClaudeCode
-
-claude auth login
-claude --version
-claude auth status --json
-```
-
-Windows reviewer 需要 Anthropic 原生 `claude.exe`；基於參數完整性與安全性，runtime 會拒絕 `.cmd`、`.bat` 與 PowerShell shims。
+- Review 使用 GPT subagent，預設沿用使用者目前主工作階段的模型與思考程度。
 
 ### 從 GitHub marketplace 安裝
 
@@ -80,7 +61,7 @@ codex plugin add sd0x-dev-flow-codex@sd0xdev-marketplace
 
 4. 再開一個新的 Codex session，讓 SessionStart 載入 project agents 並正式啟用 gates。
 
-`setup` 會建立 `.codex/sd0x-dev-flow.json`、在 `AGENTS.md` 加入一段受管理內容，並安裝 `.codex/agents/sd0x-codex-primary-reviewer.toml` 與 `sd0x-claude-primary-reviewer.toml`。Refresh 時會移除舊的 setup-managed `sd0x-reviewer.toml` 與 `sd0x-test-reviewer.toml`，但保留同名的使用者自訂檔、既有使用者指引與其他 custom agents；尚未執行 setup 的 repository 中，hooks 保持 inert。
+`setup` 會建立 `.codex/sd0x-dev-flow.json`、在 `AGENTS.md` 加入一段受管理內容，並安裝 `.codex/agents/sd0x-codex-primary-reviewer.toml` 。Refresh 時會移除舊的 setup-managed `sd0x-reviewer.toml` 與 `sd0x-test-reviewer.toml` 與 `sd0x-claude-primary-reviewer.toml`，但保留同名的使用者自訂檔、既有使用者指引與其他 custom agents；尚未執行 setup 的 repository 中，hooks 保持 inert。
 
 預設設定不會呼叫 Claude：
 
@@ -92,7 +73,9 @@ codex plugin add sd0x-dev-flow-codex@sd0xdev-marketplace
 }
 ```
 
-Codex provider 的 primary review agent 固定使用 `gpt-5.6-sol`、`xhigh` 與 read-only sandbox。若要明確改用 Claude primary，把 `review.provider` 改為 `claude`，再開新 session；Claude MCP 只會由 `sd0x_claude_primary_reviewer` wrapper subagent 內部呼叫。Provider 切換或 schema v8 以前的 multi-reviewer evidence 都會使既有 review/verify evidence 失效。只有 agent templates 本身更新時才需 rerun `$sd0x-dev-flow-codex:setup`。
+Primary profile 保留 `sandbox_mode = "read-only"`，省略固定 model／reasoning effort。Dispatch 預設繼承主工作階段的兩個設定；若有 host-wide subagent defaults，需明確傳入目前 parent 的兩個值。使用者明確指定 reviewer override 時才覆寫。原生 host 的即時 permissions 可能優先於 profile；reviewer 本身仍須保持唯讀。
+
+Claude MCP review 已移除。Legacy `review.provider: "claude"` 會 fail closed；執行 `$sd0x-dev-flow-codex:setup` 才轉為 Codex，且只刪除 managed Claude agent。Schema v10 保留既有 sessions，但更換 epoch 並清除 v9 以前的 current review／verify evidence，舊結果不能重放。更新 agent template 後需 rerun setup 並開新 task。
 
 ### 更新與移除
 
@@ -142,11 +125,9 @@ Reset 不會修改 project files 或停用 active session；它只清除 sd0x ru
 
 `plugin/sd0x-dev-flow-codex/scripts/runtime/worktree.js` 分別雜湊 HEAD→index、index→worktree 的 raw diffs，以及所有未被忽略的 untracked paths/file bodies，也涵蓋 dirty nested Git repositories。即使 staged file 之後被刪除，或 worktree 又改回 HEAD，fingerprint 仍可辨識 staged state。
 
-`skills/review/scripts/provider.js` 從 project config 解析 primary backend。`scripts/mcp/server.js` 在所有 provider 提供 `run_skill_script`：只接受固定 allowlist 內的 installed skill entrypoint，以 MCP runtime 自己的 `process.execPath` 執行，忽略 project cwd/PATH 的 Node shadow，並移除 Node/loader preload 環境變數；修改這個 server 或 tool registry 後必須開新 task。相同 server 另提供 opt-in 的唯讀 Claude `review_worktree`，傳入兩層 tracked diff，並拒絕 stale fingerprint、protected changed paths、tracked binary changes、超量/缺漏內容與非結構化結果。`state.js` 原子化保存 provider、gate 與 reviewer evidence；provider 或 fingerprint 改變都會使舊 evidence 失效。`workflow-contract.js` 是 managed guidance 與 factual signal schema 的單一 owner；`hook.js` 只負責 Codex event adapter，並在 Codex mode 直接拒絕 Claude review tool call；`verify.js` 執行 native checks，不讓 model 自行宣告通過。
+`skills/review/scripts/provider.js` 回傳單一 Codex primary 與 parent-session 設定來源。`scripts/mcp/server.js` 只提供 allowlisted `run_skill_script`，使用 MCP process 自己的 Node executable，拒絕 PATH shadow 與 loader preload；MCP connection key 暫留 `sd0x_claude_review` 以相容既有 skills，沒有 `review_worktree` 或 Claude CLI 執行能力。`state.js` 原子保存 fingerprint、epoch、primary terminal evidence；`hook.js` 是 Codex event adapter，`verify.js` 是唯一可記錄 deterministic verification 的 owner。
 
 Runtime state 存在 Git metadata 或 `.sd0x/`，不會成為 tracked project artifact。Hooks 是 workflow guardrails，不是 OS security boundary；repository permissions 與 secret management 仍是實際安全邊界。
-
-選用 Claude provider 時，primary reviewer 預設只執行 `claude-opus-4-8`，最多 15 分鐘與 20 agentic turns，不會自動再消耗第二個 model attempt。可用 `SD0X_CLAUDE_REVIEW_MODEL` 更換 primary；需要額外 fallback 時，再明確設定 `SD0X_CLAUDE_REVIEW_FALLBACK_MODEL=claude-fable-5`。另可用 `SD0X_CLAUDE_REVIEW_TIMEOUT_MS` 與 `SD0X_CLAUDE_REVIEW_MAX_TURNS` 調整時間與 turns。
 
 ## 發布版本
 

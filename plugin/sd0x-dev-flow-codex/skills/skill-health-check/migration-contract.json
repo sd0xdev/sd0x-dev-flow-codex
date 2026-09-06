@@ -3,7 +3,7 @@
   "target_skill": "skill-health-check",
   "target_package": "core",
   "authorization": {
-    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "policy": "scoped-explicit-user-authorization-v2",
     "sensitive_operations": []
   },
   "units": [

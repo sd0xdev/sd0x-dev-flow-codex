@@ -1,6 +1,6 @@
 ---
 name: project-audit
-description: "Route project-audit using exact migration registry [{\"unit\":\"project-audit/default\",\"routing\":{\"negative_boundaries\":[\"Assess only the security properties of this code change.\",\"Check whether this feature has enough unit and integration coverage.\",\"Review this branch specifically for pull-request readiness.\"],\"positive_triggers\":[\"Assess this repository's overall engineering and open-source health.\",\"Audit project robustness, maintainability, testing, documentation, and release readiness.\",\"Produce a scored repository health report with prioritized improvements.\"]}}]."
+description: "Assess repository engineering and open-source health across implementation, tests, security hygiene, operations, documentation, and release practices. Return evidenced scores and prioritized improvements."
 ---
 
 # Audit Repository Health

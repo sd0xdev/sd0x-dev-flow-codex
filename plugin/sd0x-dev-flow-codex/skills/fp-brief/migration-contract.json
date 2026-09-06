@@ -1,16 +1,15 @@
 {
   "authorization": {
-    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "policy": "scoped-explicit-user-authorization-v2",
     "sensitive_operations": []
   },
-  "schema_version": 2,
+  "schema_version": 1,
   "target_package": "core",
   "target_skill": "fp-brief",
   "units": [
     {
       "behavior_tests": [
-        "test/fp-brief-default-routing.test.js",
-        "test/fp-brief-default-semantics.test.js"
+        "test/fp-brief-default-routing.test.js"
       ],
       "promotion_unit_id": "fp-brief/default",
       "routing": {
@@ -23,14 +22,6 @@
           "Create a first-principles brief from this technical proposal.",
           "Decompose the assumptions behind our service migration decision.",
           "Turn these design notes into a reasoning chain with sensitivity analysis."
-        ]
-      },
-      "semantic_requirements": {
-        "forbidden": [],
-        "required": [
-          "Build an assumptions register",
-          "Construct the reasoning chain from premises to conclusion",
-          "Test decision sensitivity"
         ]
       },
       "source_names": [

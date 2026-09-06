@@ -1,16 +1,15 @@
 {
   "authorization": {
-    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "policy": "scoped-explicit-user-authorization-v2",
     "sensitive_operations": []
   },
-  "schema_version": 2,
+  "schema_version": 1,
   "target_package": "core",
   "target_skill": "architecture-advice",
   "units": [
     {
       "behavior_tests": [
-        "test/architecture-advice-default-routing.test.js",
-        "test/architecture-advice-default-semantics.test.js"
+        "test/architecture-advice-default-routing.test.js"
       ],
       "promotion_unit_id": "architecture-advice/default",
       "routing": {
@@ -23,14 +22,6 @@
           "Compare architecture options for introducing an event bus in this codebase.",
           "Give an independent architecture second opinion on this proposed caching design.",
           "Recommend a component boundary for the billing integration with repository evidence."
-        ]
-      },
-      "semantic_requirements": {
-        "forbidden": [],
-        "required": [
-          "Challenge the preferred option with the strongest counterexample",
-          "Develop at least two credible options independently",
-          "Keep repository and Git access read-only"
         ]
       },
       "source_names": [

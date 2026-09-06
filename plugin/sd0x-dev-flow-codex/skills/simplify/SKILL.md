@@ -1,6 +1,6 @@
 ---
 name: simplify
-description: "Route simplify using exact migration registry [{\"unit\":\"simplify/default\",\"routing\":{\"negative_boundaries\":[\"Design a replacement architecture for the entire billing subsystem.\",\"Implement a new helper capability and expose it through the API.\",\"Refactor several modules around a new responsibility boundary.\"],\"positive_triggers\":[\"Reduce duplication in this single helper without changing its behavior.\",\"Simplify this small function by flattening unnecessary nesting.\",\"Streamline the named code path with the smallest behavior-preserving edit.\"]}}]."
+description: "Remove incidental complexity from a bounded code path while preserving behavior and verifying affected callers. Excludes new features and unrelated architectural replacement."
 ---
 
 # Simplify a Bounded Code Path

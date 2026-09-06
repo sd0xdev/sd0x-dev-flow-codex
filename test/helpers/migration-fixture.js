@@ -157,8 +157,21 @@ function fixtureRoot(options = {}) {
   const currentAliasCapability = readJson(ROOT, 'migration/alias-capability.json');
   const currentAliasOwner = currentAliasCapability.owner_request_path;
   fs.mkdirSync(path.dirname(path.join(root, currentAliasOwner)), { recursive: true });
-  fs.copyFileSync(path.join(ROOT, currentAliasOwner), path.join(root, currentAliasOwner));
+  // The synthetic owner belongs to the pinned fixture HEAD, not the live upgrade.
+  const aliasOwnerText = fs.readFileSync(path.join(ROOT, currentAliasOwner), 'utf8')
+    .replace(/^> \*\*Implementation Base SHA\*\*: `[^`]+`$/m,
+      '> **Implementation Base SHA**: `'+ LEGACY_FIXTURE_COMMIT + '`');
+  fs.writeFileSync(path.join(root, currentAliasOwner), aliasOwnerText);
+  for (const owner of currentAliasCapability.owner_history) {
+    fs.mkdirSync(path.dirname(path.join(root, owner.path)), { recursive: true });
+    fs.copyFileSync(path.join(ROOT, owner.path), path.join(root, owner.path));
+  }
   const disposition = structuredClone(historicalDisposition);
+  // Replay historical units with the current capability evidence copied above.
+  // A stale alias version would mask the specific mutation under test.
+  disposition.alias_policy_decision = structuredClone(
+    readJson(ROOT, 'migration/source-disposition.json').alias_policy_decision
+  );
   for (const [sourceName, deliveryState] of Object.entries(
     options.deliveryStateOverrides || {}
   )) {
@@ -236,7 +249,9 @@ function fixtureRoot(options = {}) {
     'plugin/sd0x-dev-flow-codex/.codex-plugin/plugin.json',
     'plugin/sd0x-dev-flow-codex/skills/setup/scripts/setup.js',
     'scripts/supplemental-behavior-tests.json',
-    'scripts/skill-routing-test.js'
+    'scripts/skill-routing-test.js',
+    'scripts/skill-discovery-catalog.json',
+    'scripts/skill-authorization-policy.js'
   ]) {
     fs.copyFileSync(path.join(ROOT, relative), path.join(root, relative));
   }

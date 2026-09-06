@@ -2766,7 +2766,7 @@ test('clean commit closure fails closed for the Claude provider', (t) => {
   };
   assert.throws(
     () => beginCommitClosureReview(root, subject),
-    /requires the codex review provider/
+    /Claude review is retired/
   );
 });
 

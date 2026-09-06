@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: "Route brainstorm using exact migration registry [{\"unit\":\"brainstorm/default\",\"routing\":{\"negative_boundaries\":[\"Explain this function line by line.\",\"Implement the selected offline synchronization design.\",\"Research the full market landscape with a multi-source evidence report.\"],\"positive_triggers\":[\"Brainstorm competing designs for offline synchronization and challenge each one.\",\"Explore solution options adversarially until they converge or clearly diverge.\",\"Stress-test our proposed migration strategy with independent positions.\"]}}]."
+description: "Explore competing designs through independent Codex perspectives and evidence-backed challenge. Reports agreement, conditional choices or divergence without implementing the result."
 ---
 
 # Adversarial Brainstorming
@@ -12,11 +12,11 @@ Explore difficult solution spaces through independently formed positions, bounde
 [Read the deterministic debate validator](scripts/debate.js).
 
 1. Define the decision, shared constraints, success criteria, and non-negotiable facts.
-2. Native Codex develops Position A from repository evidence. A configured Claude adapter develops Position B from the same neutral question and constraints without seeing Position A. If either model is unavailable, stop as divergent; one model may not impersonate both positions.
+2. Develop independent positions through separate read-only Codex agents receiving the same neutral question and constraints without seeing each other’s position. If an independent position is unavailable, report divergent rather than impersonating the missing agent.
 3. Compare positions only after both are complete. Register stable claim identifiers, assumptions, conflicts, and evidence gaps.
-4. Conduct at most five attack/rebuttal rounds. Every attack record is `{attack_id, target_claim_id, novelty_key, argument, evidence_refs[], proposed_by, validity}`; novelty keys are transcript-global, evidence references must resolve to the claim registry, and the argument must directly rebut its target. Each side records `position_changed`, adjudicated `new_valid_attack`, concessions, position updates, and evidence references in every round.
+4. The bundled validator uses a default budget of five attack/rebuttal rounds; select a positive integer `roundBudget` appropriate to the investigation, and indicate `stopRequested` when further work is unwarranted. Unresolved attacks at either stopping condition remain divergent. Every attack record is `{attack_id, target_claim_id, novelty_key, argument, evidence_refs[], proposed_by, validity}`; novelty keys are transcript-global, evidence references must resolve to the claim registry, and the argument must directly rebut its target. Round sides are `codex_proponent` and `codex_challenger`, with matching `proposed_by` actors `codex-proponent` and `codex-challenger`. Each side records `position_changed`, adjudicated `new_valid_attack`, concessions, position updates, and evidence references in every round.
 5. A semantic-validity dispute goes to a blind verifier that generated neither position. A verdict without evidence remains unresolved. Equilibrium exists only when the same round gives both sides no valid or unresolved new attack.
-6. Stop early only at equilibrium. After round five, any valid or unresolved attack produces `divergent` with assumptions and Need Human inputs.
+6. Stop with the validated outcome when evidence supports it. If the resource ceiling is reached with valid or unresolved attacks, report `divergent` and identify the decision-sensitive unknowns; do not manufacture additional rounds or consensus.
 
 ## Closed outcomes
 
@@ -28,32 +28,8 @@ Do not fabricate a second position, cross-seed independent analysis, mutate the 
 
 Return the decision frame, independent positions, challenge record, equilibrium assessment, agreed actions, divergences, and decision-sensitive unknowns.
 
-## Pack handoff
 
-This canonical skill is distributed from the core plugin. Its legacy research-pack payload and pack-ready evidence remain immutable migration provenance and are not a runtime routing surface.
 
-<!-- sd0x-active-semantic-contract:v1 unit=brainstorm/default -->
-Normative semantic requirements:
-- Apply precedence `divergent → conditional → pure → pareto`
-- Conduct at most five attack/rebuttal rounds
-- Every attack record is `{attack_id, target_claim_id, novelty_key, argument, evidence_refs[], proposed_by, validity}`
-- one model may not impersonate both positions
-<!-- sd0x-active-semantic-contract:end -->
-
-<!-- sd0x-semantic-contract:v1 unit=brainstorm/default -->
-```json
-{
-  "required": [
-    "Apply precedence `divergent → conditional → pure → pareto`",
-    "Conduct at most five attack/rebuttal rounds",
-    "Every attack record is `{attack_id, target_claim_id, novelty_key, argument, evidence_refs[], proposed_by, validity}`",
-    "one model may not impersonate both positions"
-  ],
-  "forbidden": [
-    "at most three rounds"
-  ]
-}
-```
 
 <!-- sd0x-routing-contract:v1 unit=brainstorm/default -->
 ```json

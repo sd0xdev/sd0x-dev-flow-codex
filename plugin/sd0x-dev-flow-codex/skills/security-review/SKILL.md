@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: "Route security-review using exact migration registry [{\"unit\":\"security-review/default\",\"routing\":{\"negative_boundaries\":[\"Assess general code quality and maintainability for merge readiness.\",\"Check current dependency advisories across the whole lockfile.\",\"Estimate release risk across compatibility, rollout, and operations.\"],\"positive_triggers\":[\"Perform a threat-driven security review of this authentication change.\",\"Review this API diff for authorization, injection, secrets, and data exposure risks.\",\"Security-audit the selected module and provide evidence-backed findings.\"]}}]."
+description: "Perform a bounded read-only security assessment of assets, trust boundaries, exploit preconditions, and controls. Return evidence-backed findings without destructive testing or secret exposure."
 ---
 
 # Review Security
@@ -18,7 +18,7 @@ This skill provides a threat-driven, read-only security review of a bounded impl
 
 ## Result
 
-Report the threat model, inspected surface, findings by severity, positive controls, unknowns, and security gate.
+Report the threat model, inspected surface, findings by severity, positive controls, unknowns, and advisory security readiness. This assessment records no primary-review or verification gate.
 
 <!-- sd0x-routing-contract:v1 unit=security-review/default -->
 ```json

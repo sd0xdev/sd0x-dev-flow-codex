@@ -1,120 +1,128 @@
 # sd0x Review Theory
 
-This rubric adapts the reviewer model from `sd0x-dev-flow` to a Codex-hosted,
-fingerprint-bound workflow. Review quality comes from independent research and
-complete evidence, not from reviewer count alone.
+The configured Codex primary provides independent judgment over the complete
+changed-file set and its behavioral effects. The reviewer chooses how much
+context and which evidence are needed; an implementer's conclusions or a prior
+clean verdict cannot establish correctness at the current fingerprint.
 
-## Source Alignment
+## Review Contract
 
-The provider switch changes execution, not the review contract. These principles
-are preserved from `sd0x-dev-flow`'s `codex-invocation`, `auto-loop`,
-`fix-all-issues`, code-review, and test-review workflows:
+- Cover implementation, security, reliability, tests, and acceptance criteria
+  relevant to the selected change. Where requirements or request documents exist,
+  trace changed behavior and its tests to their concrete acceptance criteria.
+- Report defects caused or exposed by the selected subject. Inspect surrounding code and dependencies to establish or refute a concrete failure. Evidence may come from unchanged code.
+- Findings need repository-relative file and line evidence, a concrete failure or
+  violated invariant, impact-based severity, an actionable recommendation, and
+  recurrence protection. Do not expose secrets. Protection can be an existing
+  control; it does not require another guard artifact.
+- Any edit requires the configured primary to review the new fingerprint before
+  deterministic verification. Re-evaluate the entire current changed set and fix
+  impacts; valid contextual knowledge may be reused, stale verdicts may not.
+  Prior finding identities are hypotheses to check, not authoritative conclusions.
+- Only runtime-recorded evidence from the configured primary can pass review.
+  Missing, stale, malformed, cancelled, or failed reviewer evidence cannot pass.
+  Runtime epoch and fingerprint changes invalidate evidence. No substitute
+  reviewer, parent summary, or degraded pass satisfies the gate.
 
-- Give the configured reviewer change metadata and an independent-research
-  mandate, never the implementer's conclusions. The reviewer must read
-  the actual diff, full changed files, related code, tests, guidance, and specs.
-- Dispatch the configured primary on the first review and every re-review. An
-  edit resets the review cycle for that primary.
-- Treat fixing and verifying as separate actions: fix the root cause, add
-  recurrence protection, then re-observe the new change set.
-- Deliberate over evidence, surrounding context, false positives, impact-based
-  severity, and adjacent gaps before reporting a finding.
-- Normalize and deduplicate findings by canonical issue while retaining the
-  strongest severity and source attribution.
-- Trace implementation and tests back to acceptance criteria when request or
-  specification documents exist.
-- Persist the loop through review and deterministic verification; saying that a
-  review should run is not evidence that it ran.
+## Evidence and Severity
 
-Codex-native intentional differences are stricter and explicit: the configured
-primary is blocking, P0/P1/P2 all block, Nits are excluded, provider and
-worktree fingerprint changes invalidate evidence, and no degraded pass exists.
-Instead of the source workflow's fixed round cap and stateful-primary shortcut,
-every new fingerprint gets a fresh full scan; a user-operated reset is the only
-escape hatch for stale runtime evidence and never bypasses a gate.
+An actionable finding demonstrates a real failure on the selected subject's
+behavioral path. Its evidence accounts for the relevant surrounding contracts,
+intentional platform behavior, and existing protections. Unverified suspicions
+are omitted, not assigned a lower severity.
 
-## Invariants
+| Severity | Credible impact |
+| --- | --- |
+| P0 | System outage, data loss/corruption, critical security vulnerability, authentication bypass, or similarly catastrophic impact. |
+| P1 | Functional anomaly, broken acceptance criterion, serious reliability or concurrency defect, or severe performance regression. |
+| P2 | Bounded but real correctness, coverage, performance, maintainability, or testability defect with a concrete failure or recurrence risk. |
+| Nit | Style and preference feedback; excluded from findings. |
 
-1. **Independent research, not anchoring.** Give the reviewer the changed-file
-   scope, then let it inspect the diff, full files, callers, tests, repository
-   guidance, and relevant specifications itself. Do not seed the reviewer with
-   conclusions from an earlier fingerprint.
-2. **Change causality plus full context.** Report only defects caused or exposed
-   by this worktree, but follow dependencies far enough to prove the runtime
-   effect. Evidence may live in unchanged surrounding code.
-3. **Complete primary perspective.** The configured Codex or Claude primary
-   covers implementation, security, tests, acceptance criteria, flakiness, and
-   verification gaps in one coherent review.
-4. **Impact-based severity.** Severity describes credible user or engineering
-   impact, not reviewer confidence. Unverified suspicions are omitted rather
-   than downgraded.
-5. **Evidence before judgment.** Every finding must survive the deliberate
-   checks below and include a repository-relative file, line, concrete evidence,
-   violated invariant or root cause, actionable recommendation, and regression
-   protection without exposing secrets.
-6. **Convergence is re-observation.** Fixing is not verifying. Any edit changes
-   the fingerprint and requires the primary reviewer to review again.
-7. **Fail closed.** A missing, stale, malformed, cancelled, or failed reviewer
-   cannot contribute clean evidence.
+Every P0/P1/P2 finding blocks until fixed and re-reviewed. Normalize and
+deduplicate by canonical issue while retaining the strongest severity and source
+attribution. The terminal clean output is exactly `No actionable findings remain.`;
+this is a parser interface, not a general prose convention. The optional
+`test-review` skill is a separate read-only assessment with no gate authority.
 
-## Review Dimensions
+## Behavioral Coverage
 
-Implementation perspective:
+Coverage is an outcome, not a fixed reading sequence. Assess affected behavior across all changed files, including relevant boundaries, state
+transitions, failure paths, security and data-integrity invariants, concurrency,
+and performance or reliability regressions. Inspect surrounding code, guidance,
+and specifications where they change that assessment.
 
-- Correctness: logic, boundaries, nullability, type contracts, error handling,
-  state transitions, regressions, and data integrity.
-- Security: injection, authorization/authentication bypass, sensitive-data
-  exposure, unsafe trust boundaries, and other concrete exploit paths.
-- Performance and reliability: severe regressions, blocking work, leaks,
-  unbounded growth, concurrency races, cancellation, timeouts, and retries.
-- Maintainability and testability: actionable design defects such as duplicated
-  invariants, hidden coupling, or brittle abstractions that create a credible
-  defect risk. Naming or style preferences are not findings.
+Tests should demonstrate the changed behavior and acceptance criteria with
+meaningful assertions. Consider relevant malformed input, unavailable resources,
+permissions, cancellation, ordering, or repeated-call cases. Assess whether mocks,
+timing assumptions, or test-layer choices hide a credible defect. Naming and
+style preferences are not findings; maintainability concerns need a concrete
+failure or recurrence risk.
 
-Test and acceptance perspective:
+## Assurance Boundary
 
-- Acceptance traceability: when repository requirements or request documents
-  exist, connect changed behavior to their concrete acceptance criteria.
-- Coverage completeness: changed public behavior, branches, state transitions,
-  and regression paths have meaningful assertions.
-- Boundaries and errors: empty, missing, extreme, malformed, timeout, permission,
-  unavailable-resource, and external-failure cases relevant to the change.
-- Concurrency and state: repeated calls, ordering, cancellation, races, and state
-  invalidation are covered where applicable.
-- Test quality: assertions prove behavior, mocks do not make the test tautological,
-  the unit/integration/end-to-end layer matches the risk, and timing/environment
-  assumptions do not create avoidable flakiness.
+Review material defects. A representative accepting and rejecting case through
+the actual runtime path establishes a property's ordinary assurance boundary.
+Further hardening needs an unmet acceptance criterion, a security/data-integrity
+invariant, or a concrete counterexample showing that existing evidence misses a
+real defect. Hypothetical attacks on a test's own guard strength are not P2
+findings merely because another layer could be added. This boundary never
+dismisses a demonstrated P0/P1/P2 defect or weakens a gate.
 
-## Deliberate Checks
+Stop expanding a dependency path once its contract and protections settle the
+question. This does not omit changed files or lower acceptance/test scrutiny.
+Unrelated pre-existing improvements may be recorded separately.
 
-Before reporting each finding, answer all five:
+Prefer existing regression coverage and observable outcomes over redundant
+assertions that pin wording, helper names, or another test's source text. Preserve
+routing/schema contracts and real refusal/acceptance cases at trust boundaries.
+Do not introduce meta-tests solely to enforce this rubric.
 
-1. Evidence: what exact repository code or missing behavioral assertion proves it?
-2. Context: were the full changed file and relevant callers, dependencies, tests,
-   comments, guidance, or specs inspected?
-3. False positive: could this be intentional, platform-specific, or already
-   protected elsewhere?
-4. Severity: what credible impact makes this P0, P1, or P2?
-5. Gap: what adjacent branch, failure mode, or acceptance criterion could expose
-   the same root cause?
+## Dispatch and Recovery
 
-Only findings that survive all five checks are actionable.
+The primary uses the current parent model and reasoning effort by default. Its
+profile pins neither value; host dispatch must preserve both unless the user
+explicitly overrides them. Host permission overrides do not authorize reviewer
+writes. Historical Claude evidence is immutable provenance only and has no
+current gate authority.
 
-## Severity and Gate
+The review skill owns the evidence-sensitive wrapper order and host lifecycle
+requirements. A transport observation timeout does not prove that a running
+reviewer failed. Observe the same live work until terminal evidence or confirmed
+unavailability establishes the next action.
 
-- **P0:** credible system outage, data loss/corruption, critical security
-  vulnerability, authentication bypass, or similarly catastrophic impact.
-- **P1:** functional anomaly, broken acceptance criterion, serious reliability or
-  concurrency defect, or severe performance regression.
-- **P2:** bounded but real correctness, coverage, performance, maintainability, or
-  testability defect with a concrete failure or recurrence risk.
-- **Nit:** intentionally excluded. Pure style and preference feedback adds noise.
+Keep dispatch grounded in the original task, comparison baseline, acceptance
+criteria, user-supplied focus, current fingerprint, changed paths, and this review
+contract. Do not progressively add implementer-authored attack lists or stronger
+guard demands between rounds. The primary judges independently.
 
-This Codex-native implementation is deliberately stricter than the source
-workflow's merge-ready sentinel: every P0/P1/P2 blocks until fixed and re-reviewed.
-The configured primary is blocking; there is no degraded pass. Re-review starts
-with a fresh full scan on the new fingerprint. It may receive only its own prior
-finding identities as non-authoritative hypotheses so it can verify the
-root-cause fix without being anchored by stale conclusions. The optional
-`test-review` skill remains a separate read-only assessment and never records or
-satisfies this gate.
+When fixes stop improving the result, diagnose the concrete obstacle and choose
+a bounded adjustment based on observed evidence. Record the cause, adjustment,
+and outcome so that the next round can use what was learned. Repeating an
+unsuccessful adjustment, adding a round cap, automatically committing/stashing,
+replacing the reviewer, or clearing an aged ledger does not resolve the obstacle.
+
+A failed reviewer ledger at the same fingerprint requires formal reset before a
+retry. Existing explicit user authorization, including ongoing authorization for
+this recovery, is sufficient; ask only when authority is absent. Reset never
+passes a gate. Corrupt runtime state is quarantined and requires the new
+session activation reported by reset. Fixing remains separate from verification:
+completion requires current configured-primary review followed by deterministic
+verification at that same fingerprint.
+
+## Source and Research Context
+
+This Codex-hosted contract adapts `sd0x-dev-flow`'s independent review,
+acceptance traceability, root-cause repair, and evidence-based convergence. It
+uses one configured primary covering implementation and tests. Unlike the source
+workflow's merge-ready sentinel, all P0/P1/P2 findings block, and there is no
+fixed round cap or stale-verdict shortcut.
+
+The bounded-assurance and rules-residency direction comes from sd0x-harness v4.4
+(`c087245` and `add1f9c`).
+[IFScale](https://arxiv.org/abs/2507.11538) measures instruction-density effects
+on a keyword-following benchmark; [Chroma's context-rot report](https://www.trychroma.com/research/context-rot)
+measures context-length and distractor effects;
+[Vercel's evaluation](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)
+compares documentation delivery in its own Next.js tasks. They motivate concise
+contracts and accessible references, but do not establish this repository's
+defect-detection rate or justify relaxing its evidence anchors.

@@ -460,9 +460,12 @@ function checkRelease(root = ROOT) {
   assert(manifest.interface?.websiteURL === REPOSITORY_URL, `manifest websiteURL must be ${REPOSITORY_URL}`);
   assert(
     typeof manifest.interface?.longDescription === 'string' &&
-      /Codex-first review/i.test(manifest.interface.longDescription) &&
-      /optional Claude MCP/i.test(manifest.interface.longDescription),
-    'manifest longDescription must describe Codex-first review and optional Claude MCP'
+      /\bGPT primary\b/i.test(manifest.interface.longDescription) &&
+      /parent model/i.test(manifest.interface.longDescription) &&
+      /reasoning effort/i.test(manifest.interface.longDescription) &&
+      /deterministic verification/i.test(manifest.interface.longDescription) &&
+      !/\bClaude\b/i.test(manifest.interface.longDescription),
+    'manifest longDescription must describe the native GPT primary, inherited parent settings, and deterministic verification'
   );
   assert(marketplace.name === MARKETPLACE_NAME, `marketplace name must be ${MARKETPLACE_NAME}`);
 

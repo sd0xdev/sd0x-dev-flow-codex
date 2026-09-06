@@ -1,6 +1,6 @@
 ---
 name: test-deep
-description: "Route test-deep using exact migration registry [{\"unit\":\"test-deep/default\",\"routing\":{\"negative_boundaries\":[\"Generate a missing unit test for one known function.\",\"Record the authoritative repository verification gate for this fingerprint.\",\"Run only the focused tests for the feature I just implemented.\"],\"positive_triggers\":[\"Build a risk-led test matrix for this cross-service change and execute it progressively.\",\"Investigate these test failures across unit, integration, and end-to-end layers.\",\"Run deep context-aware testing for this change and triage every unresolved failure.\"]}}]."
+description: "Investigate test sufficiency across affected layers using material risks, reproducible execution, and failure triage. Does not edit production code or record the verification gate."
 ---
 
 # Deep Test Investigation
@@ -11,7 +11,7 @@ Build and carry out a risk-led test strategy across affected layers, then triage
 
 1. Inspect the change surface, dependency graph, test configuration, package scripts, and existing coverage.
 2. Build a compact risk matrix covering changed behavior, shared boundaries, failure modes, persistence, concurrency, and external seams that are actually in scope.
-3. Select tests from the risk matrix. Start with the fastest discriminating checks, then progress through broader unit, integration, and end-to-end layers.
+3. Select tests from the risk matrix. Choose test order and batching by diagnostic value, affected risk, and cost; broaden across layers where the remaining risk requires it.
 4. Record every command, exit status, selected scope, skipped layer, and concise failure signature. Redact secrets before retaining or summarizing output.
 5. Triage failures into code regression, test defect, environment gap, flaky behavior, or inconclusive evidence. Validate classifications against repository evidence.
 6. Retry only when it distinguishes flakiness from determinism. Do not alter production files or claim the authoritative verification gate.

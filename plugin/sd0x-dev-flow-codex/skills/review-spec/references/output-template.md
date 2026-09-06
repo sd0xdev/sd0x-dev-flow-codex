@@ -45,3 +45,5 @@
 - Remaining uncertainty:
 
 The verdict does not edit the artifact, authorize implementation, or record a runtime review gate.
+
+Use this structure to preserve the document’s required information and stable identifiers. Choose prose, lists, or tables according to the material; do not invent content for an inapplicable dimension. Retain parser-required metadata, statuses, and identifiers.

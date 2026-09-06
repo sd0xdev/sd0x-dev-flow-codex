@@ -5,10 +5,10 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { readActiveSkill } = require('../scripts/supplemental-active-skill');
 
-test("doctor/claude preserves its source workflow", () => {
+test("doctor/claude reports retirement without restoring a Claude execution path", () => {
   const payload = readActiveSkill("doctor", ["scripts/doctor.js"]);
   const skill = payload.skill;
-  for (const anchor of ["Claude mode","provider to be"]) assert.ok(skill.includes(anchor), anchor);
+  for (const anchor of ["Claude review is retired", "No Claude CLI or authentication check runs"]) assert.ok(skill.includes(anchor), anchor);
   for (const resource of payload.resources) {
     assert.equal(resource.present, true, resource.relative);
   }

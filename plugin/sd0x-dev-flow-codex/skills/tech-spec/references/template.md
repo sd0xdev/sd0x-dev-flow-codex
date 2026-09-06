@@ -78,3 +78,5 @@ A[Existing boundary] --- B[New or changed boundary]
 |---|---|---|
 
 Omit inapplicable subsections explicitly rather than filling them with invented detail. Work-breakdown rows describe implementation boundaries, not progress or ownership.
+
+Use this structure to preserve the document’s required information and stable identifiers. Choose prose, lists, or tables according to the material; do not invent content for an inapplicable dimension. Retain parser-required metadata, statuses, and identifiers.

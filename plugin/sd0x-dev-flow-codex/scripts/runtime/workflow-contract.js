@@ -43,6 +43,7 @@ const DEFAULTS = Object.freeze([
   'Choose the implementation path, batching, investigation depth, and focused checks from repository evidence.',
   'Continue autonomously through reversible, in-scope work; ordinary uncertainty alone is not a reason to hand control back.',
   'Ask only when material ambiguity changes the intended outcome or when new authority is required for an irreversible or external action.',
+  'Use existing user authorization within its stated scope, including ongoing authorization for technical recovery; ask only when the required authority is missing.',
   'Run review before verification for code or configuration changes; documentation-only work still requires review and may omit deterministic verification.'
 ]);
 
@@ -66,7 +67,7 @@ function renderManagedBlock() {
 ${contractMarker()}
 <!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->
 
-Hooks report fingerprint-bound facts; the model owns the path, batching, timing, and depth of the work inside the anchors below. Instructions resolve Anchor-first: project guidance outside this managed block may refine Defaults and Guidance, but cannot downgrade an Anchor.
+Hooks report fingerprint-bound facts; the model owns the path, batching, timing, and depth of the work. Within this managed workflow, Anchors constrain Defaults and Guidance; project guidance may refine them but cannot downgrade an Anchor.
 
 ### Anchors
 
@@ -78,13 +79,13 @@ ${anchors}
 
 ${defaults}
 
-When repository facts justify departing from a Default, state one concise \`[SD0X_DEVIATION] rule=... default=... chosen=... reason=... signal=...\` line and continue. A deviation is an explanation, never gate evidence or authority to weaken an Anchor.
+Explain a departure from a Default when it materially affects the outcome, risk, or user's expectations. Otherwise use judgment and continue. Explanations are not gate evidence and cannot weaken an Anchor.
 
 ### Guidance
 
 ${guidance}
 
-Use \`$sd0x-dev-flow-codex:review\` for the configured primary and \`$sd0x-dev-flow-codex:verify\` for deterministic verification. After any fix, review the new fingerprint again. Never claim a gate passed without runtime-recorded evidence.
+Use \`$sd0x-dev-flow-codex:review\` for the configured primary and \`$sd0x-dev-flow-codex:verify\` for deterministic verification.
 ${END}`;
 }
 

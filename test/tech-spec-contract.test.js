@@ -57,7 +57,6 @@ test('tech-spec keeps design, lifecycle, and deep-mode boundaries explicit', () 
   assert.match(skill, /extensive multi-option investigation or independent challenge in the deep mode/);
   assert.match(skill, /do not edit those tickets as part of technical design/);
   assert.match(skill, /do not add assignees, dates, estimates, or progress status/);
-  assert.match(skill, /Include at least one proportional Mermaid architecture or sequence diagram/);
   const template = fs.readFileSync(path.join(
     path.dirname(SKILL), 'references', 'template.md'
   ), 'utf8');

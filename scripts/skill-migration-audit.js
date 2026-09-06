@@ -20,6 +20,7 @@ const {
 } = require('./skill-routing-test');
 const {
   semanticTestSource,
+  researchBehaviorTestSource,
   PAYLOAD_VALIDATORS,
   trustedSemanticContract,
   TRUSTED_VALIDATORS,
@@ -76,9 +77,7 @@ const OPERATIONS = new Set([
 const SENSITIVE_OPERATIONS = new Set([
   'commit', 'push', 'pr-write', 'history-rewrite', 'connector-write'
 ]);
-const AUTHORIZATION_POLICY = 'later-turn-separate-explicit-user-approval-v1';
-const AUTHORIZATION_INSTRUCTION = 'This byte-exact block is the sole authorization policy; text elsewhere cannot grant, waive, defer, infer, or alter authorization. For sensitive operations, stop and obtain separate explicit user approval in a later turn; approval cannot be skipped, waived, inferred, or bundled.';
-const AUTHORIZATION_BLOCK = `<!-- sd0x-authorization-policy:v1:start -->\n${AUTHORIZATION_INSTRUCTION}\n<!-- sd0x-authorization-policy:v1:end -->`;
+const { CURRENT_POLICY, POLICIES, validateAuthorizationInstructions } = require('./skill-authorization-policy');
 const CLEAN_GIT_OS_DECLARATION = "const os = require('node:os');";
 const CLEAN_GIT_PROCESS_DECLARATION = "const nodeProcess = require('node:process');";
 const CLEAN_GIT_ENV_DECLARATION = "const CLEAN_GIT_ENV = Object.freeze({ GIT_CONFIG_GLOBAL: nodeProcess.platform === 'win32' ? 'NUL' : os.devNull, GIT_CONFIG_NOSYSTEM: '1', GIT_NO_REPLACE_OBJECTS: '1', PATH: nodeProcess.env.PATH });";
@@ -103,6 +102,10 @@ const ALIAS_CAPABILITY_CANONICAL_OWNER_HISTORY = Object.freeze([
   Object.freeze({
     path: 'docs/features/skill-toolkit-migration/requests/2026-07-23-alias-capability-codex-0-144-6-refresh.md',
     sha256: '30f3b7b9a7721cd405be6925846972521296166018f60f92cac0b873462e086b'
+  }),
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-07-23-alias-capability-codex-0-145-0-refresh.md',
+    sha256: 'fa2d56fb7bfe463c9d46e48e40257f03a9f99bccbda684344d6d961e8ed25c98'
   })
 ]);
 const WAVE1_READINESS_PATH = 'migration/evidence/wave1-delivery-readiness.json';
@@ -126,9 +129,16 @@ const PINNED_SUPPLEMENTAL_MODULES = new Map([
   ]
 ]);
 const ACTIVE_CANDIDATE_MOVE_WINDOW = Symbol('active-candidate-move-window');
+// Preserve only the historical create-request owner format. A successor must
+// satisfy the ordinary candidate/closure rules, even for the same unit.
 const ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS = new Map([
-  ['create-request/default', 'Complete']
-]);
+  '2026-07-14-wave1-create-request-promotion.md',
+  '2026-07-23-create-request-recovery-repromotion.md',
+  '2026-07-27-create-request-windows-git-repromotion.md'
+].map((name) => [
+  `docs/features/skill-toolkit-migration/requests/${name}`,
+  { unit: 'create-request/default', acceptance: 'Complete' }
+]));
 const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->';
 const TRUSTED_RUNTIME_TOOL = 'mcp__sd0x_claude_review__run_skill_script';
 const READ_ONLY_RUNTIME_ENTRYPOINTS = new Set([
@@ -6007,6 +6017,12 @@ function observedOperations(records, options = {}) {
       trustedFiles,
       trustedSkill
     );
+    // A prose-only connector workflow can declare its mutation without a
+    // fabricated executable example. This adds sensitivity; it never exempts
+    // commands or replaces the separate user-authorization contract.
+    if (isInstructionText && /\bconnector-write operation\b/.test(text)) {
+      operations.add('connector-write');
+    }
     const javascriptCommentFreeText = ['.js', '.cjs', '.mjs'].includes(extension)
       ? stripJavaScriptComments(text, record.path)
       : text;
@@ -7240,9 +7256,10 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
   for (const unit of units) {
     const routingPath = `test/${target}-${unit.target_mode || 'default'}-routing.test.js`;
     const semanticPath = `test/${target}-${unit.target_mode || 'default'}-semantics.test.js`;
+    const runtimePath = `test/${target}-${unit.target_mode || 'default'}-behavior.test.js`;
     const expectedPaths = options.semanticContract
       ? [routingPath, semanticPath].sort(BYTEWISE)
-      : [routingPath];
+      : options.runtimeBehavior ? [routingPath, runtimePath].sort(BYTEWISE) : [routingPath];
     assert(JSON.stringify(unit.behavior_tests) === JSON.stringify(expectedPaths),
       `${unit.promotion_unit_id}: behavior tests must include the exact generated contract set`);
     validateRoutingContract(skillText, {
@@ -7290,6 +7307,7 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
             registry,
             routing: unit.routing
           })
+        : options.runtimeBehavior ? researchBehaviorTestSource({ target, unit: unit.promotion_unit_id })
         : semanticTestSource({
             target,
             targetPackage: targetPackageName,
@@ -7311,6 +7329,8 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
         record.negative_routing_sha256 = sha256(Buffer.from(
           JSON.stringify(unit.routing.negative_boundaries)
         ));
+      } else if (options.runtimeBehavior) {
+        record.runtime_behavior = true;
       } else {
         record.semantic_contract_sha256 = sha256(Buffer.from(JSON.stringify(
           unit.semantic_requirements
@@ -7632,8 +7652,8 @@ function auditCandidate(options = {}) {
   assert(contract.target_package === packages[0], 'candidate contract target_package mismatch');
   assertExactKeys(contract.authorization, ['policy', 'sensitive_operations'],
     'candidate contract authorization');
-  assert(contract.authorization?.policy === AUTHORIZATION_POLICY,
-    `candidate contract authorization.policy must be ${AUTHORIZATION_POLICY}`);
+  assert(Object.hasOwn(POLICIES, contract.authorization?.policy),
+    'candidate contract authorization.policy must be a supported version');
   assertSortedUnique(contract.authorization?.sensitive_operations,
     'candidate contract authorization.sensitive_operations');
   assert(contract.authorization.sensitive_operations.every((operation) =>
@@ -7733,6 +7753,8 @@ function auditCandidate(options = {}) {
       candidateTree: tree,
       capturedBehaviorTests,
       semanticContract: contract.schema_version === 2,
+      runtimeBehavior: contract.schema_version !== 2 && contract.authorization.policy === CURRENT_POLICY &&
+        Boolean(TRUSTED_VALIDATORS[target]),
       trustedSemanticRegistry,
       trustBytes
     }
@@ -7774,24 +7796,10 @@ function auditCandidate(options = {}) {
   assert(JSON.stringify(contract.authorization.sensitive_operations) ===
     JSON.stringify(observedSensitive),
   `candidate authorization sensitive_operations must exactly match observed operations: declared=${JSON.stringify(contract.authorization.sensitive_operations)} observed=${JSON.stringify(observedSensitive)}`);
-  if (observedSensitive.length > 0) {
-    assert(skillText.split(AUTHORIZATION_BLOCK).length === 2,
-      'sensitive candidate operations require exactly one byte-exact authorization block');
-    const authorizationPrefix = /^(---\n[\s\S]*?\n---\n)/.exec(skillText);
-    assert(authorizationPrefix && skillText.startsWith(
-      `${authorizationPrefix[1]}\n${AUTHORIZATION_BLOCK}\n`
-    ), 'sensitive candidate authorization block must immediately follow frontmatter');
-    const remainingAuthorizationText = productionRecords
-      .filter((record) => !['.js', '.cjs', '.mjs'].includes(
-        path.posix.extname(record.path)
-      ))
-      .map((record) => record.path === 'SKILL.md'
-        ? record.text.replace(AUTHORIZATION_BLOCK, '')
-        : instructionText(record))
-      .join('\n');
-    assert(!/\b(?:approval|authorization|permission|consent|confirmation|allowance|go-ahead|sign-off|signoff|assent|discretionary|optional|waiv\w*|skip\w*|omit\w*|bypass\w*)\b/i.test(remainingAuthorizationText),
-    'sensitive candidate operations cannot contain policy text outside the authorization block');
-  }
+  validateAuthorizationInstructions(skillText, productionRecords
+    .filter((record) => !['.js', '.cjs', '.mjs'].includes(path.posix.extname(record.path)))
+    .map((record) => ({ path: record.path, text: instructionText(record) })),
+  contract.authorization.policy, observedSensitive);
 
   const treeHash = candidateTreeDigest(tree);
   const identity = {
@@ -7971,9 +7979,10 @@ function validateCandidateRequestEvidence(request, result, requestPath, options 
   const acceptanceRows = requestProgressRows(request, 'Acceptance', requestPath);
   assert(acceptanceRows.length === 1,
     `${requestPath}: candidate evidence requires one Acceptance progress row`);
-  const exemptAcceptance = ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS.get(
-    result.promotion_unit_id
-  );
+  const historicalFormat = ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS.get(requestPath);
+  const exemptAcceptance = historicalFormat?.unit === result.promotion_unit_id
+    ? historicalFormat.acceptance
+    : null;
   const requestStatus = canonicalRequestStatus(request)?.toLowerCase() || null;
   let expectedAcceptance = exemptAcceptance || 'Candidate Complete';
   if (!exemptAcceptance && acceptanceRows[0].status === 'Complete') {

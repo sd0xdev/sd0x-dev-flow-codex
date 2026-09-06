@@ -1,49 +1,19 @@
 ---
 name: code-investigate
-description: "Route code-investigate using exact migration registry [{\"unit\":\"code-investigate/default\",\"routing\":{\"negative_boundaries\":[\"Determine why this cache invalidation path behaves differently in production.\",\"Implement the cache invalidation fix now.\",\"Map the entire service architecture and all data flows.\"],\"positive_triggers\":[\"Ask Claude and Codex to independently confirm why this cache path differs in production.\",\"Get independent Claude and Codex confirmation of this parser root cause.\",\"Investigate this retry mechanism with separate Claude and Codex evidence.\"]}}]."
+description: "Investigate a specific mechanism or suspected root cause through independent Codex analysis and repository evidence. Returns a causal assessment without editing code."
 ---
 
 # Focused Code Investigation
 
-Investigate one mechanism, discrepancy, or suspected root cause through independent repository evidence. The result is a tested explanation, not an implementation.
+Investigate one mechanism, discrepancy or suspected root cause without applying changes. Establish the question, observable symptoms, competing explanations and bounded repository scope.
 
-## Investigation protocol
+Obtain independent read-only Codex analysis for the two positions. Give a separate Codex subagent the same neutral question and scope without the preferred hypothesis or first position. If independent analysis is unavailable, report that limitation and keep the independent assessment inconclusive; one agent cannot impersonate both positions.
 
-1. State the hypothesis, competing explanations, observable symptoms, and a bounded repository scope.
-2. Native Codex develops Position A from implementation, callers, tests, configuration, and relevant Git diff or history. A configured Claude adapter receives the same neutral question and scope to develop Position B without the preferred hypothesis or first position. If either independent model is unavailable, stop as inconclusive; one model may not impersonate both positions.
-3. Integrate only after both positions are complete. Trace the exact normal and failing paths, including inputs, state transitions, error handling, concurrency boundaries, and environment-dependent branches.
-4. Seek disconfirming evidence. A claim is confirmed only when code and at least one independent corroborating artifact support it; otherwise label it probable, possible, or rejected.
-5. Reconcile the independent positions and any conflicting findings in a claim table with evidence, confidence, and remaining checks.
-6. Stop when the mechanism or root cause is supported, falsified, or blocked by a named missing artifact.
+Reconcile findings only after both positions are available. Trace consequential normal and failing paths, including state, errors, concurrency and environment dependencies. Seek disconfirming evidence. A confirmed claim needs source evidence and independent corroboration; weaker claims remain probable, possible or rejected.
 
-All work is read-only. Do not modify source, execute destructive commands, alter Git state, or contact write-capable services.
+Do not modify source, alter Git state, execute destructive commands or contact write-capable services. Return the supported explanation, evidence, conflicting findings, confidence and remaining verification needs.
 
-## Output
 
-Return the question, evidence summary, execution trace, hypothesis assessment, root-cause conclusion, confidence, and next verification step. Separate fact from inference.
-
-## Pack handoff
-
-This canonical skill is distributed from the core plugin. Its legacy research-pack payload and pack-ready evidence remain immutable migration provenance and are not a runtime routing surface.
-
-<!-- sd0x-active-semantic-contract:v1 unit=code-investigate/default -->
-Normative semantic requirements:
-- A configured Claude adapter receives the same neutral question and scope
-- Native Codex develops Position A
-- one model may not impersonate both positions
-<!-- sd0x-active-semantic-contract:end -->
-
-<!-- sd0x-semantic-contract:v1 unit=code-investigate/default -->
-```json
-{
-  "required": [
-    "A configured Claude adapter receives the same neutral question and scope",
-    "Native Codex develops Position A",
-    "one model may not impersonate both positions"
-  ],
-  "forbidden": []
-}
-```
 
 <!-- sd0x-routing-contract:v1 unit=code-investigate/default -->
 ```json

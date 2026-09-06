@@ -22,7 +22,7 @@ Preserve the original engineering invariants, not the original command inventory
 | `.claude-plugin/plugin.json` | `.codex-plugin/plugin.json` | Rebuilt with Codex manifest and install metadata. |
 | Slash commands | Curated plugin skills | Consolidated into nine intent-driven workflows to protect context budget. |
 | `allowed-tools` skill metadata | Runtime permissions plus narrow skill instructions | Removed because it is not the Codex skill contract. |
-| Codex MCP primary review | Configured primary subagent | Defaults to `gpt-5.6-sol`/`xhigh`; an explicit project setting selects the Claude wrapper and bundled read-only adapter. |
+| Codex MCP primary review | Configured primary subagent | Inherits the current parent model and reasoning effort by default; only the Codex primary has current gate authority. |
 | `Task` secondary reviewer | Optional `test-review` skill | Preserves focused test/AC analysis as a read-only, non-gating workflow rather than a required project agent. |
 | Claude Edit/Write payload fields | Canonical Codex `apply_patch` adapter | Parses `tool_input.command` patch headers. |
 | Claude Stop loop | Codex Stop non-blocking completion advisory | The model decides whether more review/verification is warranted; exact-fingerprint gate state remains visible and cannot be claimed as passed without runtime evidence. |
@@ -48,7 +48,7 @@ Preserve the original engineering invariants, not the original command inventory
 
 - Claude-only tool names, frontmatter, prompt routing, and `.claude/` filesystem assumptions.
 - One-to-one copies of low-use or overlapping skills.
-- General nested model calls through MCP. The only optional MCP model boundary is the curated Claude primary-review adapter selected by `review.provider: "claude"`.
+- General nested model calls through MCP. The bundled MCP server exposes only the allowlisted deterministic skill runner; Claude review is retired.
 - Claims that hooks are a security boundary. Codex hooks are workflow guardrails and do not intercept every equivalent shell operation.
 - Automatic activation in every repository where the plugin is installed.
 
@@ -69,3 +69,5 @@ Do not migrate another Claude skill merely because it exists. Add it to the Code
 - [Build skills](https://learn.chatgpt.com/docs/build-skills)
 - [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 - [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+
+Current source evolution is tracked in [the 2026-09-05 inventory](../migration/upstream-evolution-2026-09-05.md), pinned to source 4.6.1.

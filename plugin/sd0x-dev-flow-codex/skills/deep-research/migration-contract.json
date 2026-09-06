@@ -1,16 +1,16 @@
 {
   "authorization": {
-    "policy": "later-turn-separate-explicit-user-approval-v1",
+    "policy": "scoped-explicit-user-authorization-v2",
     "sensitive_operations": []
   },
-  "schema_version": 2,
+  "schema_version": 1,
   "target_package": "core",
   "target_skill": "deep-research",
   "units": [
     {
       "behavior_tests": [
-        "test/deep-research-default-routing.test.js",
-        "test/deep-research-default-semantics.test.js"
+        "test/deep-research-default-behavior.test.js",
+        "test/deep-research-default-routing.test.js"
       ],
       "promotion_unit_id": "deep-research/default",
       "routing": {
@@ -23,16 +23,6 @@
           "Compare database migration strategies using official sources, repository constraints, and real-world evidence.",
           "Conduct deep research on this technical decision from multiple independent source types.",
           "Research the current landscape and produce a claim registry with conflicts and confidence."
-        ]
-      },
-      "semantic_requirements": {
-        "forbidden": [],
-        "required": [
-          "Evidence is `{source_id, publisher_id, author_id, identity_binding_hash, independence_key, source_type, agent_role, locator, content_hash, relation, weight}`",
-          "Low is one inline shard, at most three fetched sources",
-          "Record a redacted trace `{dispatch_id, role, scope_hash, prompt_template_hash, input_artifact_hashes[], started_at, completed_at, evidence_count}`",
-          "Unknown, unverified, or mismatched declared identity is unresolved and contributes no cross-verification",
-          "net_score = max(0, support - refute)"
         ]
       },
       "source_names": [

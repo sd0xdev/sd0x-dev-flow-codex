@@ -1,5 +1,7 @@
 # Architecture Document Template
 
+Use this as a content guide. Adapt headings, tables and diagrams to the task; preserve required evidence fields and substantive decision or verification coverage.
+
 # {Feature Name} Architecture
 
 > **Technical specification**: rendered relative Markdown link to the canonical technical specification

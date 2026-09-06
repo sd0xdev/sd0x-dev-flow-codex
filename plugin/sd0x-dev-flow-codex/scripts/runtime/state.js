@@ -18,7 +18,7 @@ const {
   canonicalRequestStatus
 } = require('./request-metadata');
 
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 const LOCK_WAIT_MS = 5_000;
 const LOCK_RETRY_MS = 20;
 const LOCK_OWNER_GRACE_MS = 1_000;
@@ -4075,7 +4075,8 @@ function assertCurrentStateShape(value, options = {}) {
         .test(value.runtime_epoch)) {
     throw new Error('runtime state.runtime_epoch must be a UUID');
   }
-  if (!['codex', 'claude'].includes(value.review_provider)) {
+  if (options.legacyProvider ? !['codex', 'claude'].includes(value.review_provider)
+    : value.review_provider !== 'codex') {
     throw new Error('runtime state.review_provider is invalid');
   }
   timestamp(value.updated_at, 'runtime state.updated_at');
@@ -4136,6 +4137,10 @@ function assertCurrentStateShape(value, options = {}) {
 
   collection(value.review_agents, 'runtime state.review_agents');
   collection(value.external_review, 'runtime state.external_review');
+  if (!options.legacyProvider && (value.external_review.started.length ||
+      value.external_review.completed.length)) {
+    throw new Error('Retired external review evidence cannot enter the current runtime');
+  }
   if (!(options.allowMissingCollaborationRoundId &&
         value.review_agents.collaboration_round_id === undefined) &&
       value.review_agents.collaboration_round_id !== null &&
@@ -4269,11 +4274,12 @@ function inferLegacyCollaborationRound(reviewAgents) {
 
 function normalizeState(value) {
   const base = defaultState();
-  if (!value || ![1, 2, 3, 4, 5, 6, 7, 8, SCHEMA_VERSION].includes(value.schema_version)) {
+  if (!value || ![1, 2, 3, 4, 5, 6, 7, 8, 9, SCHEMA_VERSION].includes(value.schema_version)) {
     throw new Error('runtime state schema_version is missing or unsupported');
   }
   if (value.schema_version === SCHEMA_VERSION) assertCurrentStateShape(value);
-  const invalidatesLegacyEvidence = value.schema_version <= 8;
+  if (value.schema_version === 9) assertCurrentStateShape(value, { legacyProvider: true });
+  const invalidatesLegacyEvidence = value.schema_version <= 9;
   const legacyCollaborationRound = value.schema_version === 6
     ? inferLegacyCollaborationRound(value.review_agents)
     : { present: false, roundId: null };
@@ -4310,11 +4316,11 @@ function normalizeState(value) {
     ...base,
     ...value,
     schema_version: SCHEMA_VERSION,
-    runtime_epoch: typeof value.runtime_epoch === 'string' &&
+    runtime_epoch: !invalidatesLegacyEvidence && typeof value.runtime_epoch === 'string' &&
         /^[0-9a-f-]{36}$/i.test(value.runtime_epoch)
       ? value.runtime_epoch
       : base.runtime_epoch,
-    review_provider: ['codex', 'claude'].includes(value.review_provider)
+    review_provider: !invalidatesLegacyEvidence && value.review_provider === 'codex'
       ? value.review_provider
       : base.review_provider,
     sessions,
@@ -4661,20 +4667,6 @@ function markGate(cwd, gate, status, evidence) {
           `Review pass requires observed clean terminal results from ${requiredTypes.join(', ')}`
         );
       }
-      const hasCleanClaudeReview =
-        state.external_review.fingerprint === worktree.fingerprint &&
-        currentExternalResults.some((entry) =>
-          entry.reviewer === 'claude_mcp' &&
-          entry.perspective === 'primary' &&
-          entry.outcome === 'clean' &&
-          entry.findings === 0 &&
-          typeof entry.result_sha256 === 'string'
-        );
-      if (provider === 'claude' && !hasCleanClaudeReview) {
-        throw new Error(
-          'Review pass requires an observed clean Claude MCP primary result'
-        );
-      }
     }
     state.gates[gate] = {
       status,
@@ -4697,7 +4689,7 @@ function recordVerification(
   if (evidence.runner !== 'sd0x-deterministic-v1') {
     throw new Error('Verification evidence must come from the deterministic runner');
   }
-  if (!['codex', 'claude'].includes(expectedProvider)) {
+  if (expectedProvider !== 'codex') {
     throw new Error('Verification evidence requires the starting review provider');
   }
   const worktree = snapshot(cwd);
@@ -4858,7 +4850,7 @@ function currentCollaborationRound(reviewAgents) {
 function recordCollaborationRoundStart(cwd, details) {
   if (!details || typeof details !== 'object' ||
       typeof details.expected_fingerprint !== 'string' ||
-      !['codex', 'claude'].includes(details.expected_provider) ||
+      details.expected_provider !== 'codex' ||
       typeof details.expected_runtime_epoch !== 'string' ||
       typeof details.round_id !== 'string' || !details.round_id) {
     throw new Error('Collaboration review round start is malformed');
@@ -4910,7 +4902,7 @@ function recordCollaborationRoundStart(cwd, details) {
 function recordCollaborationReview(cwd, details) {
   if (!details || typeof details !== 'object' ||
       typeof details.expected_fingerprint !== 'string' ||
-      !['codex', 'claude'].includes(details.expected_provider) ||
+      details.expected_provider !== 'codex' ||
       typeof details.expected_runtime_epoch !== 'string' ||
       typeof details.expected_round_id !== 'string' || !details.expected_round_id ||
       !(details.expected_commit_subject_sha256 === null ||
@@ -5017,7 +5009,7 @@ function recordCollaborationReview(cwd, details) {
 function recordCollaborationFailure(cwd, details, evidence) {
   if (!details || typeof details !== 'object' ||
       typeof details.expected_fingerprint !== 'string' ||
-      !['codex', 'claude'].includes(details.expected_provider) ||
+      details.expected_provider !== 'codex' ||
       typeof details.expected_runtime_epoch !== 'string' ||
       typeof details.expected_round_id !== 'string' ||
       !details.expected_round_id) {
@@ -5070,176 +5062,6 @@ function recordCollaborationFailure(cwd, details, evidence) {
     return current;
   });
   return { recorded, reason, state };
-}
-
-function recordExternalReview(cwd, details) {
-  if (!details || typeof details !== 'object') {
-    throw new Error('External review details are required');
-  }
-  const result = details.result;
-  if (!result || typeof result !== 'object') {
-    throw new Error('External review structured result is required');
-  }
-  if (result.schema_version !== 1 || result.reviewer !== 'claude_mcp' ||
-      result.perspective !== 'primary') {
-    throw new Error('Unexpected external reviewer identity');
-  }
-  if (!['clean', 'findings'].includes(result.outcome) ||
-      !Array.isArray(result.findings)) {
-    throw new Error('Invalid external review outcome');
-  }
-  if ((result.outcome === 'clean') !== (result.findings.length === 0)) {
-    throw new Error('External review outcome does not match its finding count');
-  }
-  if (!Number.isInteger(result.duration_ms) || result.duration_ms < 0) {
-    throw new Error('External review duration is required');
-  }
-  if (typeof details.input_fingerprint !== 'string' ||
-      details.input_fingerprint !== result.fingerprint) {
-    throw new Error('External review input/output fingerprint mismatch');
-  }
-  if (typeof details.session_id !== 'string' || !details.session_id ||
-      typeof details.tool_use_id !== 'string' || !details.tool_use_id) {
-    throw new Error('External review session and tool-use identity are required');
-  }
-
-  const provider = reviewProvider(cwd);
-  if (provider !== 'claude') {
-    throw new Error('Claude review evidence requires review.provider="claude"');
-  }
-  const worktree = snapshot(cwd);
-  if (!sameRealPath(details.input_root, worktree.root) ||
-      !sameRealPath(result.repository_root, worktree.root)) {
-    throw new Error('External review repository root mismatch');
-  }
-  if (worktree.fingerprint !== result.fingerprint) {
-    throw new Error('External review result is stale for the current worktree');
-  }
-  const canonicalResult = JSON.stringify(result);
-
-  let rejection = null;
-  const recorded = withStateLock(cwd, (state) => {
-    applySnapshot(state, worktree);
-    applyReviewProvider(state, provider);
-    if (state.external_review.fingerprint !== worktree.fingerprint) {
-      state.external_review = {
-        fingerprint: worktree.fingerprint,
-        started: [],
-        completed: []
-      };
-    }
-    state.external_review.started = pruneExternalReviewStarts(
-      state.external_review.started
-    );
-    const startedIndex = state.external_review.started.findIndex((entry) =>
-      entry.session_id === details.session_id &&
-      entry.runtime_epoch === state.runtime_epoch &&
-      entry.tool_use_id === details.tool_use_id
-    );
-    if (startedIndex < 0) {
-      rejection = new Error(
-        'External review result has no matching start in the current runtime epoch'
-      );
-      return state;
-    }
-    state.external_review.started.splice(startedIndex, 1);
-    const entry = {
-      reviewer: result.reviewer,
-      perspective: result.perspective,
-      outcome: result.outcome,
-      findings: result.findings.length,
-      tool_use_id: details.tool_use_id || 'unknown',
-      duration_ms: Number.isInteger(result.duration_ms)
-        ? Math.max(0, result.duration_ms)
-        : null,
-      result_sha256: crypto.createHash('sha256').update(canonicalResult).digest('hex'),
-      recorded_at: now()
-    };
-    const existing = state.external_review.completed.findIndex((item) =>
-      item.tool_use_id === entry.tool_use_id &&
-      item.result_sha256 === entry.result_sha256
-    );
-    if (existing >= 0) state.external_review.completed[existing] = entry;
-    else state.external_review.completed.push(entry);
-    if (entry.outcome === 'findings') {
-      blockGatesForFinding(state, worktree, 'claude_mcp_primary');
-    }
-    return state;
-  });
-  if (rejection) throw rejection;
-  return recorded;
-}
-
-function recordExternalReviewStart(cwd, details) {
-  if (!details || typeof details !== 'object') {
-    throw new Error('External review start details are required');
-  }
-  const provider = reviewProvider(cwd);
-  if (provider !== 'claude') {
-    throw new Error('Claude review requires review.provider="claude"');
-  }
-  const worktree = snapshot(cwd);
-  if (!sameRealPath(details.input_root, worktree.root)) {
-    throw new Error('External review start repository root mismatch');
-  }
-  if (details.input_fingerprint !== worktree.fingerprint) {
-    throw new Error('External review start fingerprint is stale');
-  }
-  if (typeof details.session_id !== 'string' || !details.session_id ||
-      typeof details.tool_use_id !== 'string' || !details.tool_use_id) {
-    throw new Error('External review start requires session and tool-use identity');
-  }
-
-  return withStateLock(cwd, (state) => {
-    applySnapshot(state, worktree);
-    applyReviewProvider(state, provider);
-    if (state.external_review.fingerprint !== worktree.fingerprint) {
-      state.external_review = {
-        fingerprint: worktree.fingerprint,
-        started: [],
-        completed: []
-      };
-    }
-    state.external_review.started = pruneExternalReviewStarts(
-      state.external_review.started
-    );
-    const entry = {
-      session_id: details.session_id,
-      tool_use_id: details.tool_use_id,
-      runtime_epoch: state.runtime_epoch,
-      recorded_at: now()
-    };
-    const existing = state.external_review.started.findIndex((item) =>
-      item.session_id === entry.session_id &&
-      item.tool_use_id === entry.tool_use_id
-    );
-    if (existing >= 0) state.external_review.started[existing] = entry;
-    else state.external_review.started.push(entry);
-    state.external_review.started = pruneExternalReviewStarts(
-      state.external_review.started
-    );
-    return state;
-  });
-}
-
-function discardExternalReviewStart(cwd, details) {
-  if (!details || typeof details !== 'object' ||
-      typeof details.session_id !== 'string' || !details.session_id ||
-      typeof details.tool_use_id !== 'string' || !details.tool_use_id) {
-    return readState(cwd);
-  }
-  const worktree = snapshot(cwd);
-  return withStateLock(cwd, (state) => {
-    applySnapshot(state, worktree);
-    if (state.external_review.fingerprint !== worktree.fingerprint) return state;
-    state.external_review.started = pruneExternalReviewStarts(
-      state.external_review.started
-    ).filter((entry) =>
-      entry.session_id !== details.session_id ||
-      entry.tool_use_id !== details.tool_use_id
-    );
-    return state;
-  });
 }
 
 function isCurrentPass(state, gate) {
@@ -5388,7 +5210,6 @@ module.exports = {
   evidenceRefOid,
   consumeSetupDeferral,
   defaultState,
-  discardExternalReviewStart,
   hasSetupDeferral,
   hasSessionActivationFailure,
   hashPayloadTree,
@@ -5407,8 +5228,6 @@ module.exports = {
   readState,
   readEvidenceRecord,
   prepareRequestClosure,
-  recordExternalReview,
-  recordExternalReviewStart,
   recordCollaborationFailure,
   recordCollaborationReview,
   recordCollaborationRoundStart,

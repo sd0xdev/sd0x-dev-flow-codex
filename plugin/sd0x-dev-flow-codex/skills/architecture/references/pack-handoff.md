@@ -1,4 +1,6 @@
-# Planning-Pack Handoff Specification
+# Historical Planning-Pack Handoff
+
+This record is non-normative migration provenance. Its former package, research-budget and discovery restrictions do not govern the current core skill.
 
 | Field | Value |
 |---|---|

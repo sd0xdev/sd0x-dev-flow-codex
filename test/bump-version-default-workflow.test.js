@@ -5,12 +5,20 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 const { readActiveSkill } = require('../scripts/supplemental-active-skill');
 
-test("bump-version/default preserves its source workflow", () => {
-  const payload = readActiveSkill("bump-version", []);
-  const skill = payload.skill;
-  for (const anchor of ["Prohibited","Step 1: Read Current Versions","Step 2: Determine New Version","Step 3: Update All Files","Step 4: Report","Version Bump"]) assert.ok(skill.includes(anchor), anchor);
-  for (const resource of payload.resources) {
-    assert.equal(resource.present, true, resource.relative);
-  }
+test("bump-version/default preserves domain and operation boundaries", () => {
+  const skill = readActiveSkill("bump-version", []).skill;
+  assert.match(skill, /release\.js in the repository-root scripts directory/);
+  assert.match(skill, /setVersion/);
+  assert.match(skill, /PROJECT-MIGRATION-GUIDE\.md/);
+  assert.match(skill, /migration\/alias-capability\.json/);
+  assert.match(skill, /alias owner request’s decision hash/);
+  assert.match(skill, /Do not create or edit installation\/runtime state/);
+  assert.match(skill, /dev:local:unlink/);
+  assert.match(skill, /dev:local:link/);
+  assert.match(skill, /dev:local:status/);
+  assert.ok(skill.includes('close the old Codex process'));
+  assert.ok(skill.includes('Keep global Codex home unchanged'));
+  assert.match(skill, /pending migration units or a Completed alias owner/);
+  assert.doesNotMatch(skill, /prevents the plugin startup drift sentinel/);
   assert.doesNotMatch(skill, /allowed-tools:|AskUserQuestion|mcp__claude_ai_/);
 });

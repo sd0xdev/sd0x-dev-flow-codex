@@ -45,11 +45,8 @@ test('req-analyze delegates deterministic context selection to the shared resolv
   }), /does not match/);
 });
 
-test('req-analyze preserves bounded parallel research and lifecycle backlinks', () => {
+test('req-analyze preserves lifecycle backlinks without mutating execution tickets', () => {
   const skill = fs.readFileSync(SKILL, 'utf8');
-  assert.match(skill, /assign at most one read-only repository investigator/);
-  assert.match(skill, /both evidence streams proceed in parallel/);
-  assert.match(skill, /same bounded parallel repository and external research as standard mode/);
   assert.match(skill, /adds the missing relative `\.\/1-requirements\.md` backlink/);
   assert.match(skill, /Do not edit each request ticket merely to add a backlink/);
 });

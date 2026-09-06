@@ -3,7 +3,7 @@
   "units": {
     "bump-version/default": {
       "path": "test/bump-version-default-workflow.test.js",
-      "sha256": "c9001ef9f054af44655d3cf92bcd967af5d3a1cf869e2b0fa712e05fe2380696"
+      "sha256": "af0923bda14d7f152479732c1752e7fba905aa26508333a97f62462f6e50f5e7"
     },
     "contract-decode/default": {
       "path": "test/contract-decode-default-workflow.test.js",
@@ -27,11 +27,11 @@
     },
     "doc-refactor/default": {
       "path": "test/doc-refactor-default-workflow.test.js",
-      "sha256": "e290b3b435971927729dcb3d46fb385237a40b037619f71fd6d250936f706346"
+      "sha256": "2ae8b633930c63f7775269c12e050982848e01de7a838f4c1555275ed8897e1f"
     },
     "doctor/claude": {
       "path": "test/doctor-claude-workflow.test.js",
-      "sha256": "da4434d11a147a1514113145c2ab19d9ccfb8b6c46fd99bd701d416b204a9729"
+      "sha256": "e4d48eb8f447c6a01bca488064af4a21b58319128035a3190141b99cab444fef"
     },
     "epic-merge/default": {
       "path": "test/epic-merge-default-workflow.test.js",
@@ -179,7 +179,7 @@
     },
     "update-docs/default": {
       "path": "test/update-docs-default-workflow.test.js",
-      "sha256": "d23dc711f7741d9764579a01af2b38dde46c62bee87b7100ef6518d004f804a8"
+      "sha256": "87d691a8ca2d703d4f435b7febf93a352f45153dbfa18c77ff60f0b9af41a14e"
     },
     "update-readme/default": {
       "path": "test/update-readme-default-workflow.test.js",
@@ -191,11 +191,11 @@
     },
     "verify/fast": {
       "path": "test/verify-fast-workflow.test.js",
-      "sha256": "404046dac150242dcced4be75c559d5a711268212a390867f05b119096c3ba52"
+      "sha256": "c7ae15d4d279d886af96a0099940d75fd440a99c18300341bf03899f2b3e4aac"
     },
     "verify/precommit": {
       "path": "test/verify-precommit-workflow.test.js",
-      "sha256": "7f1e54dbfec262d6c08f1c83ae462120babd9335698083fd116e86fdf98ec50a"
+      "sha256": "ec30564e91a85009a7d124441d2cfc349c1b0fcc5733b45520ebf421ebddd853"
     },
     "watch-ci/default": {
       "path": "test/watch-ci-default-workflow.test.js",
