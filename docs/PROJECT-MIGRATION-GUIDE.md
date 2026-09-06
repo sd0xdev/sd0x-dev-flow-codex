@@ -4,7 +4,7 @@
 
 > 最後校準日期：2026-09-05
 > 來源盤點：`sd0x-harness` `4.6.2` / `04e8a5e`；`78443ce` 前次快照與歷史 inventory 保留，增量見 migration/upstream-evolution-2026-09-05.md
-> Codex 版本：`sd0x-dev-flow-codex` `0.5.0`
+> Codex 版本：`sd0x-dev-flow-codex` `0.5.1`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 

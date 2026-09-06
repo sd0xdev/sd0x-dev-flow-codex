@@ -10,7 +10,7 @@
   "registry_dump_hash": "1c59dc30ae25eaa3958eab67320a6edb7862d053e6b4809063938ab6160d19d5",
   "fixture_manifest_path": "test/fixtures/alias-capability/plugin/.codex-plugin/plugin.json",
   "fixture_manifest_hash": "7834bc05d6cb26d033604afe7c1b9b7ff2448bca48d939946b2b9474107c3ad2",
-  "plugin_fingerprint": "a5b30f2c143cdf368f6f39aa59152891300d0409514519fe837ca80ee5018bb3",
+  "plugin_fingerprint": "72a20c930e2dc561b56b6c31d1da66ceb66e18174bca0c3ca3886cd109390e23",
   "owner_request_path": "docs/features/skill-toolkit-migration/requests/2026-09-05-alias-capability-codex-0-153-4-refresh.md",
   "owner_history": [
     {
