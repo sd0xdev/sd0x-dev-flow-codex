@@ -14,6 +14,7 @@ const {
 } = require('./state');
 const { reviewProvider } = require('./config');
 const { findRepoRoot, snapshot } = require('./worktree');
+const { inspectSessionContext, locateTranscript } = require('./session-context');
 
 const ADAPTER = 'codex-collaboration-jsonl-v2';
 const MARKER_SCHEMA_VERSION = 4;
@@ -110,44 +111,6 @@ function withMarkerLock(cwd, callback, hooks = {}) {
   }
 }
 
-function containedPath(parent, candidate) {
-  const relative = path.relative(parent, candidate);
-  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-}
-
-function findTranscriptFiles(directory, suffix, depth = 0) {
-  if (depth > 5) return [];
-  const matches = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const candidate = path.join(directory, entry.name);
-    if (entry.isSymbolicLink()) continue;
-    if (entry.isDirectory()) {
-      matches.push(...findTranscriptFiles(candidate, suffix, depth + 1));
-    } else if (entry.isFile() && entry.name.endsWith(suffix)) {
-      matches.push(candidate);
-    }
-  }
-  return matches;
-}
-
-function locateTranscript(env = process.env) {
-  const threadId = env.CODEX_THREAD_ID;
-  const codexHome = env.CODEX_HOME;
-  if (typeof threadId !== 'string' || !/^[0-9a-f-]{36}$/i.test(threadId) ||
-      typeof codexHome !== 'string' || !codexHome) {
-    return null;
-  }
-  const sessions = path.join(codexHome, 'sessions');
-  if (!fs.existsSync(sessions)) return null;
-  const sessionsReal = fs.realpathSync(sessions);
-  const suffix = `-${threadId}.jsonl`;
-  const matches = findTranscriptFiles(sessionsReal, suffix)
-    .map((candidate) => fs.realpathSync(candidate))
-    .filter((candidate) => containedPath(sessionsReal, candidate));
-  if (matches.length !== 1) return null;
-  return matches[0];
-}
-
 function writeMarker(cwd, marker) {
   const filePath = markerPath(cwd);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -181,7 +144,8 @@ function beginCollaborationReview(cwd = process.cwd(), options = {}) {
     expected_runtime_epoch: state.runtime_epoch,
     round_id: roundId
   };
-  const transcriptPath = options.transcriptPath || locateTranscript(options.env);
+  const context = inspectSessionContext(root, options.env || process.env);
+  const transcriptPath = context.available ? context.transcript_path : null;
   const transcriptReal = transcriptPath ? fs.realpathSync(transcriptPath) : null;
   const transcriptBytes = transcriptReal ? fs.readFileSync(transcriptReal) : null;
   const transcriptStat = transcriptReal ? fs.statSync(transcriptReal) : null;
@@ -251,6 +215,7 @@ function beginCollaborationReview(cwd = process.cwd(), options = {}) {
     : {
         available: false,
         reason: 'collaboration-transcript-unavailable',
+        context,
         round_id: roundId,
         fingerprint: worktree.fingerprint,
         provider,
@@ -521,6 +486,8 @@ function importCollaborationReview(cwd = process.cwd(), options = {}) {
     throw new Error('Collaboration review marker is stale for the current worktree');
   }
   const transcriptPath = fs.realpathSync(marker.transcript_path);
+  // The prefix check below binds the metadata validated at begin. Check physical
+  // identity first so replacement/truncation retains its precise failure reason.
   const currentTranscript = locateTranscript(options.env);
   if (transcriptPath !== marker.transcript_path ||
       !currentTranscript || transcriptPath !== currentTranscript) {

@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const readline = require('node:readline');
 const { spawn } = require('node:child_process');
+const { inspectSessionContext, sessionEnvironment } = require('../runtime/session-context');
 
 // The MCP connection key remains stable for installed skill entrypoints.
 // This server executes allowlisted deterministic scripts; it has no LLM tool.
@@ -54,12 +55,24 @@ const RUN_SKILL_SCRIPT_TOOL = {
   description: [
     'Run one allowlisted script from the installed sd0x plugin with the exact Node',
     'executable that owns this MCP runtime. The entrypoint is resolved inside the',
-    'installed plugin payload and never through the repository working directory or PATH.'
+    'installed plugin payload and never through the repository working directory or PATH.',
+    'For review, doctor, and verification, pass the current shell CODEX_HOME and CODEX_THREAD_ID',
+    'as context.codex_home and context.thread_id on every call. MCP startup may not inherit',
+    'task identity. Context locates evidence; it does not establish a review pass.'
   ].join(' '),
   inputSchema: {
     type: 'object',
     additionalProperties: false,
     properties: {
+      context: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          codex_home: { type: 'string', minLength: 1, maxLength: 4096 },
+          thread_id: { type: 'string', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' }
+        },
+        required: ['codex_home', 'thread_id']
+      },
       entrypoint: {
         type: 'string',
         enum: Object.keys(RUNTIME_ENTRYPOINTS)
@@ -108,7 +121,7 @@ function validateRuntimeToolInput(input) {
     throw new Error('runtime tool input must be an object');
   }
   const extra = Object.keys(input)
-    .filter((name) => !['args', 'cwd', 'entrypoint'].includes(name));
+    .filter((name) => !['args', 'cwd', 'entrypoint', 'context'].includes(name));
   if (extra.length > 0) {
     throw new Error(`runtime tool input contains unsupported fields: ${extra.join(', ')}`);
   }
@@ -134,7 +147,7 @@ function validateRuntimeToolInput(input) {
   if (!fs.statSync(cwd).isDirectory()) {
     throw new Error('cwd must resolve to an existing directory');
   }
-  return { args, cwd, entrypoint: input.entrypoint };
+  return { args, cwd, entrypoint: input.entrypoint, context: input.context };
 }
 
 function runSkillScript(input, options = {}) {
@@ -152,6 +165,12 @@ function runSkillScript(input, options = {}) {
   const nodeExecutable = fs.realpathSync(options.nodeExecutable || process.execPath);
   const spawnProcess = options.spawnProcess || spawn;
   const maxOutputBytes = options.maxOutputBytes || MAX_RUNTIME_OUTPUT_BYTES;
+  const environment = runtimeChildEnvironment(sessionEnvironment(
+    validated.context, options.environment || process.env, validated.cwd
+  ));
+  const context = inspectSessionContext(validated.cwd, environment);
+  const diagnostic = !context.available && /^(doctor|review|verify|remind)\//.test(validated.entrypoint)
+    ? `[sd0x review-context] ${JSON.stringify(context)}\n` : '';
 
   return new Promise((resolve, reject) => {
     let settled = false;
@@ -160,7 +179,7 @@ function runSkillScript(input, options = {}) {
     const stderr = [];
     const child = spawnProcess(nodeExecutable, [script, ...validated.args], {
       cwd: validated.cwd,
-      env: runtimeChildEnvironment(options.environment || process.env),
+      env: environment,
       signal: options.signal,
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true
@@ -191,7 +210,7 @@ function runSkillScript(input, options = {}) {
       exit_code: Number.isInteger(code) ? code : -1,
       signal: signal || null,
       stdout: Buffer.concat(stdout).toString('utf8'),
-      stderr: Buffer.concat(stderr).toString('utf8')
+      stderr: diagnostic + Buffer.concat(stderr).toString('utf8')
     })));
   });
 }

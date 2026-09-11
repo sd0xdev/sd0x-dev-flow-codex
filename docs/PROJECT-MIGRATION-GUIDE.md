@@ -4,7 +4,7 @@
 
 > 最後校準日期：2026-09-05
 > 來源盤點：`sd0x-harness` `4.6.2` / `04e8a5e`；`78443ce` 前次快照與歷史 inventory 保留，增量見 migration/upstream-evolution-2026-09-05.md
-> Codex 版本：`sd0x-dev-flow-codex` `0.5.1`
+> Codex 版本：`sd0x-dev-flow-codex` `0.5.2`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -577,6 +577,44 @@ npm run dev:local:status
 `review.provider: "claude"` 不會自動降級或沿用舊 gates；執行 setup 遷移至 Codex。Setup 只刪除 managed Claude agent，保留 user-owned 檔案與 custom config。開新 task 後確認 doctor 的 MCP identity 是 `sd0x-skill-runtime`、tool list 只有 `run_skill_script`。
 
 如果舊 task 的 registry 仍列 `review_worktree`，不要呼叫它；那是舊 process，不代表更新後仍有此能力。完成下方 reload 與 `/hooks` re-trust 後再確認。
+
+### MCP 腳本服務缺少當前 task context
+
+`sd0x_skill_runtime` 只執行確定性腳本，原生 Codex configured primary 才負責審查。
+Codex shell tool 的 `CODEX_HOME`、`CODEX_THREAD_ID` 不一定存在於長駐 MCP
+process；上游也有[相同回報](https://github.com/openai/codex/issues/19937)。
+僅設定 MCP startup `env_vars` 不能保證取得當前 thread，reset 也不會補上資訊。
+
+在**目前 Codex shell tool** 讀取這兩個值，逐次透過工具的 `context` 傳遞：
+
+```json
+{
+  "entrypoint": "doctor/doctor.js",
+  "cwd": "<absolute-repository-root>",
+  "args": [],
+  "context": {
+    "codex_home": "<current-shell-CODEX_HOME>",
+    "thread_id": "<current-shell-CODEX_THREAD_ID>"
+  }
+}
+```
+
+同一輪 `review/round.js` begin/import 與 `review/gate.js` 必須帶入相同的
+context。服務僅替該次 child process 設定兩個變數，避免並行 thread 互相污染；
+拒絕缺欄位、額外 environment 欄位、重複 transcript、thread metadata 或 repository
+不匹配。不得猜測全域 home、挑選最新 transcript，或複用另一個 task 的 ID。
+也可在同一個 Codex shell 直接執行已安裝的 bundled script，沿用真實環境。
+
+`doctor` 的 `review-session-context` 檢查與 `review_context` 結果會直接指出缺失；
+MCP 的 doctor/review/verify/remind 回應也會帶出診斷，**不依賴 hook 才顯示**。
+context 可定位 transcript，不代表審查已通過：adapter 仍需本輪 configured primary
+的真實 start/terminal 事件與完整 fingerprint/epoch 檢查。停用 hook 時無法使用
+native hook fallback；若 host transcript 未提供必要事件，應直接回報能力不足，
+不能把補齊環境變數、重新啟動或重設當成 gate evidence。
+
+更新 MCP tool schema、新增 runtime 檔案與升版後，依第 9 節完成 repository-only
+unlink/link/status 與新 task，才能載入新的 `context` 欄位；只修改 live JS 不會
+更新已啟動服務記憶體中的 tool schema。
 
 ### Verify 後又要求 review
 

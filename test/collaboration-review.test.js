@@ -6,6 +6,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const test = require('node:test');
+const { runSkillScript } = require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server');
+const { inspectSessionContext, sessionEnvironment } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/session-context');
 const {
   beginCollaborationReview,
   completeCollaborationReview,
@@ -88,7 +90,7 @@ function runGateAsync(values, evidence = passEvidence()) {
   });
 }
 
-function fixture() {
+function fixture(threadId = '019f51d5-3300-73a0-ac86-8d67c7b4e173') {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-collaboration-'));
   initRepository(root);
   fs.mkdirSync(path.join(root, '.codex'), { recursive: true });
@@ -103,7 +105,6 @@ function fixture() {
   fs.writeFileSync(path.join(root, 'app.js'), 'const value = 2;\n');
 
   const codexHome = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-codex-home-'));
-  const threadId = '019f51d5-3300-73a0-ac86-8d67c7b4e173';
   const transcript = path.join(
     codexHome,
     'sessions',
@@ -115,8 +116,8 @@ function fixture() {
   fs.mkdirSync(path.dirname(transcript), { recursive: true });
   fs.writeFileSync(transcript, `${JSON.stringify({
     timestamp: '2026-07-12T00:00:00.000Z',
-    type: 'event_msg',
-    payload: { type: 'baseline' }
+    type: 'session_meta',
+    payload: { id: threadId, cwd: root }
   })}\n`);
   const env = { CODEX_HOME: codexHome, CODEX_THREAD_ID: threadId };
   return {
@@ -129,6 +130,76 @@ function fixture() {
     }
   };
 }
+
+test('per-call MCP context completes transcript review without native hooks or server task environment', async (t) => {
+  const first = fixture();
+  const second = fixture('019f51d5-3300-73a0-ac86-8d67c7b4e174');
+  t.after(() => { first.cleanup(); second.cleanup(); });
+  const environment = { ...process.env };
+  delete environment.CODEX_HOME;
+  delete environment.CODEX_THREAD_ID;
+  const call = (values, entrypoint, args) => runSkillScript({
+    cwd: values.root, entrypoint, args,
+    context: { codex_home: values.env.CODEX_HOME, thread_id: values.env.CODEX_THREAD_ID }
+  }, { environment });
+  const rounds = await Promise.all([first, second].map((values) =>
+    call(values, 'review/round.js', ['begin'])
+  ));
+  for (let index = 0; index < rounds.length; index += 1) {
+    assert.equal(rounds[index].exit_code, 0, rounds[index].stderr);
+    assert.equal(JSON.parse(rounds[index].stdout).transcript_path, fs.realpathSync([first, second][index].transcript));
+  }
+  assert.equal(environment.CODEX_HOME, undefined);
+  assert.equal(environment.CODEX_THREAD_ID, undefined);
+  for (const values of [first, second]) {
+    // Fixture transcript events stand in for real host events; no native hooks are invoked.
+    appendRows(values.transcript, cleanRows());
+    const result = await call(values, 'review/gate.js', ['pass', '--evidence', JSON.stringify(passEvidence())]);
+    assert.equal(result.exit_code, 0, result.stderr);
+    assert.equal(isCurrentPass(readState(values.root), 'review'), true);
+  }
+});
+
+test('MCP and doctor expose missing task context even when no hooks execute', async (t) => {
+  const values = fixture();
+  t.after(() => values.cleanup());
+  const environment = { ...process.env };
+  delete environment.CODEX_HOME;
+  delete environment.CODEX_THREAD_ID;
+  const result = await runSkillScript({ cwd: values.root, entrypoint: 'doctor/doctor.js' }, { environment });
+  assert.equal(result.exit_code, 1);
+  const doctor = JSON.parse(result.stdout);
+  assert.equal(doctor.ok, false);
+  assert.deepEqual(doctor.review_context.missing, ['CODEX_HOME', 'CODEX_THREAD_ID']);
+  assert.equal(doctor.checks.find((check) => check.check === 'review-session-context').ok, false);
+  assert.match(result.stderr, /context.*codex_home.*thread_id/);
+  const round = await runSkillScript({ cwd: values.root, entrypoint: 'review/round.js', args: ['begin'] }, { environment });
+  assert.equal(JSON.parse(round.stdout).context.reason, 'session-context-missing');
+  assert.match(round.stderr, /With hooks disabled, transcript evidence is required/);
+  assert.equal(isCurrentPass(readState(values.root), 'review'), false);
+});
+
+test('per-call task context rejects malformed, ambiguous and cross-repository transcript selectors', (t) => {
+  const values = fixture();
+  const other = fixture();
+  t.after(() => { values.cleanup(); other.cleanup(); });
+  const context = { codex_home: values.env.CODEX_HOME, thread_id: values.env.CODEX_THREAD_ID };
+  for (const invalid of [null, {}, { ...context, NODE_OPTIONS: '--require=evil' },
+    { ...context, codex_home: 'relative' }, { ...context, thread_id: 'latest' }]) {
+    assert.throws(() => sessionEnvironment(invalid, {}, values.root), /context requires/);
+  }
+  assert.throws(() => sessionEnvironment(context, {}, other.root), /session-repository-mismatch/);
+  for (const missing of ['CODEX_HOME', 'CODEX_THREAD_ID']) {
+    const env = { ...values.env }; delete env[missing];
+    assert.deepEqual(inspectSessionContext(values.root, env).missing, [missing]);
+  }
+  const duplicate = path.join(path.dirname(values.transcript), `duplicate-${context.thread_id}.jsonl`);
+  fs.copyFileSync(values.transcript, duplicate);
+  assert.throws(() => sessionEnvironment(context, {}, values.root), /session-transcript-unavailable/);
+  fs.rmSync(duplicate);
+  fs.writeFileSync(values.transcript, JSON.stringify({ type: 'session_meta', payload: { id: 'other', cwd: values.root } }) + '\n');
+  assert.throws(() => sessionEnvironment(context, {}, values.root), /session-metadata-mismatch/);
+});
 
 function activity(agentType, kind = 'interacted', suffix = '') {
   return {

@@ -6,6 +6,7 @@ const crypto = require('node:crypto');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { readProjectConfig } = require('./config');
+const { inspectSessionContext } = require('./session-context');
 const {
   CONTRACT_SCHEMA_VERSION,
   inspectManagedGuidance
@@ -246,6 +247,8 @@ function doctor(cwd, options = {}) {
     check: 'skill-runtime-mcp-handshake',
     ok: mcp.ready === true && mcp.runtime_ready === true
   });
+  const reviewContext = inspectSessionContext(cwd, options.env || process.env);
+  checks.push({ check: 'review-session-context', ok: reviewContext.available });
   let status = null;
   let stateError = null;
   try {
@@ -264,6 +267,7 @@ function doctor(cwd, options = {}) {
     workflow_contract_version: CONTRACT_SCHEMA_VERSION,
     managed_guidance: guidance,
     mcp,
+    review_context: reviewContext,
     checks,
     state_error: stateError,
     status

@@ -3,7 +3,7 @@
   "files": [
     {
       "path": ".codex-plugin/plugin.json",
-      "sha256": "72a20c930e2dc561b56b6c31d1da66ceb66e18174bca0c3ca3886cd109390e23"
+      "sha256": "2789085e0fe1714f65be14a934bb2c3bfb4db16f65918bad26305e1eae4c5d32"
     },
     {
       "path": ".mcp.json",
@@ -19,15 +19,15 @@
     },
     {
       "path": "scripts/mcp/server.js",
-      "sha256": "5869d6261a589dbe90decb3094138bbdfdcf4041a66a176a149bdbcc4a8b436f"
+      "sha256": "66016b90ba1fcae981b594168677ec1a66f3b31d9983ed6855c32cd9b804370f"
     },
     {
       "path": "scripts/runtime/cli.js",
-      "sha256": "2109c2467da19bde6cd39e33f206f3cff36e0494c0e3e174e175707464586525"
+      "sha256": "73e648b5ab1be8c244f1cc94470bd3bf18094cfddf2b92f7bd0900ecbbfb5bed"
     },
     {
       "path": "scripts/runtime/collaboration.js",
-      "sha256": "776fe1ee4c36d634f3e68f07fa7a900f345fb33197d61cf18799df0d76e4f8d0"
+      "sha256": "77b22360a587d12c8e41eb1b4d35500d1da819b20774017b7fd80d70c3750f6f"
     },
     {
       "path": "scripts/runtime/config.js",
@@ -40,6 +40,10 @@
     {
       "path": "scripts/runtime/request-metadata.js",
       "sha256": "8c75a3a2e3d753abbcbbb96f2f1c5336639376e825c1639c73927fe1354e5e2f"
+    },
+    {
+      "path": "scripts/runtime/session-context.js",
+      "sha256": "c493b519faf2b43c2439500ed2302078bec4d1228cb51fb5e5df8552ac034d71"
     },
     {
       "path": "scripts/runtime/setup.js",
