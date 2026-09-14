@@ -108,6 +108,40 @@ function fixtureRoot(options = {}) {
     cwd: root,
     env: process.env
   });
+  // Preserve the historical tree while making newer immutable alias owners'
+  // implementation bases real ancestors of this synthetic replay subject.
+  const currentAliasCapability = readJson(ROOT, 'migration/alias-capability.json');
+  const ownerBases = [...new Set(currentAliasCapability.owner_history.map(owner => {
+    const markdown = fs.readFileSync(path.join(ROOT, owner.path), 'utf8');
+    const match = markdown.match(/^> \*\*Implementation Base SHA\*\*: `([a-f0-9]{40})`$/m);
+    if (!match) throw new Error(`Historical alias owner lacks a valid base: ${owner.path}`);
+    return match[1];
+  }))];
+  const parents = [LEGACY_FIXTURE_COMMIT];
+  for (const base of ownerBases) {
+    try {
+      execFileSync('git', ['merge-base', '--is-ancestor', base, LEGACY_FIXTURE_COMMIT], {
+        cwd: root, env: process.env, stdio: 'pipe'
+      });
+    } catch (error) {
+      if (error.status !== 1) throw error;
+      parents.push(base);
+    }
+  }
+  if (parents.length > 1) {
+    const tree = execFileSync('git', ['rev-parse', `${LEGACY_FIXTURE_COMMIT}^{tree}`], {
+      cwd: root, env: process.env, encoding: 'utf8'
+    }).trim();
+    const subject = execFileSync('git', [
+      'commit-tree', tree, ...parents.flatMap(parent => ['-p', parent])
+    ], {
+      cwd: root, env: process.env, encoding: 'utf8',
+      input: 'Bind immutable alias owner ancestry to the historical fixture tree\n'
+    }).trim();
+    execFileSync('git', ['update-ref', 'HEAD', subject, LEGACY_FIXTURE_COMMIT], {
+      cwd: root, env: process.env
+    });
+  }
   const historicalResearchValidators = new Map();
   const historicalResearchPack = path.join(
     root, 'migration', 'packs', 'research-pack'
@@ -154,7 +188,6 @@ function fixtureRoot(options = {}) {
     recursive: true,
     force: true
   });
-  const currentAliasCapability = readJson(ROOT, 'migration/alias-capability.json');
   const currentAliasOwner = currentAliasCapability.owner_request_path;
   fs.mkdirSync(path.dirname(path.join(root, currentAliasOwner)), { recursive: true });
   // The synthetic owner belongs to the pinned fixture HEAD, not the live upgrade.

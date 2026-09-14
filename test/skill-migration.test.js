@@ -682,7 +682,7 @@ test('current repository passes the source, distribution, and request-DAG audit'
   assert.equal(result.external_dependencies, 36);
   assert.equal(result.requests, requestDocumentCount(ROOT));
   assert.equal(result.alias_policy, 'mapping-only');
-  assert.equal(result.alias_codex_version, 'codex-cli 0.153.4');
+  assert.equal(result.alias_codex_version, 'codex-cli 0.154.0');
   assert.equal(result.readiness_units, 9);
 });
 
@@ -2228,12 +2228,28 @@ test('Wave 1 readiness independently binds canonical behavior-test bytes', (t) =
     /readiness behavior test differs from reviewed subject/);
 });
 
+test('migration fixture preserves immutable alias owner bytes and their ancestry', (t) => {
+  const values = fixtureRoot();
+  t.after(() => fs.rmSync(values.workspace, { recursive: true, force: true }));
+  const decision = readJson(ROOT, 'migration/alias-capability.json');
+  for (const owner of decision.owner_history) {
+    const bytes = fs.readFileSync(path.join(values.root, owner.path));
+    assert.deepEqual(bytes, fs.readFileSync(path.join(ROOT, owner.path)));
+    const base = bytes.toString().match(
+      /^> \*\*Implementation Base SHA\*\*: `([a-f0-9]{40})`$/m
+    )[1];
+    assert.doesNotThrow(() => git(values.root, ['merge-base', '--is-ancestor', base, 'HEAD']));
+  }
+  assert.equal(git(values.root, ['rev-parse', 'HEAD^{tree}']).toString(),
+    git(values.root, ['rev-parse', '6bbdfbcf1294fb8cacd4efaa712ed3c51dfabc20^{tree}']).toString());
+});
+
 test('alias capability evidence locks every compatibility alias to mapping-only', () => {
   const disposition = readJson(ROOT, 'migration/source-disposition.json');
   const result = validateAliasCapability(ROOT, disposition);
   assert.deepEqual(result, {
     decision: 'mapping-only',
-    codex_version: 'codex-cli 0.153.4'
+    codex_version: 'codex-cli 0.154.0'
   });
   const aliases = disposition.skills.filter((row) => row.alias_candidate);
   assert.equal(aliases.length, disposition.compatibility_alias_candidates.length);
@@ -2777,9 +2793,9 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   candidateRejects(/owner history must match the complete canonical R4 owner chain/);
   restore();
   fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
-    .replace('"codex_version":"codex-cli 0.153.4"',
+    .replace('"codex_version":"codex-cli 0.154.0"',
       '"codex_version":"codex-cli 0.145.1"') +
-    '\nCodex version: `codex-cli 0.153.4`; Tested at: `2026-07-23T17:08:50+08:00`\n');
+    '\nCodex version: `codex-cli 0.154.0`; Tested at: `2026-07-23T17:08:50+08:00`\n');
   assert.throws(() => auditSource({ root: values.root }),
     /owner evidence does not match the decision artifact/);
   candidateRejects(/owner evidence does not match the decision artifact/);
@@ -2811,7 +2827,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   candidateRejects(/owner request must have complete acceptance criteria/);
   restore();
   const ownerMutationOptions = () => ({
-    codexVersion: 'codex-cli 0.153.4',
+    codexVersion: 'codex-cli 0.154.0',
     afterOwnerRequestRead({ ownerRequestPath: capturedPath }) {
       fs.writeFileSync(capturedPath, fs.readFileSync(capturedPath, 'utf8')
         .replace(/^<!-- sd0x-alias-capability-owner:v1 [^\r\n]+ -->\n?/m, ''));
@@ -2835,7 +2851,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   }), /owner request changed while validating capability/);
   restore();
   const splitDecisionOptions = () => ({
-    codexVersion: 'codex-cli 0.153.4',
+    codexVersion: 'codex-cli 0.154.0',
     afterDecisionRead() {
       const mutated = readJson(values.root, 'migration/alias-capability.json');
       mutated.reproduce_argv[0] = 'CODEX_HOME=~/.codex codex --version';
@@ -2873,7 +2889,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   };
   assert.throws(() => auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.153.4' },
+    aliasCapability: { codexVersion: 'codex-cli 0.154.0' },
     requestDag: lateOwnerMutationOptions()
   }), /request differs from its prior source snapshot/);
   restore();
@@ -2881,7 +2897,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.153.4' },
+    aliasCapability: { codexVersion: 'codex-cli 0.154.0' },
     requestDag: lateOwnerMutationOptions()
   }), /request differs from its prior source snapshot/);
   restore();
@@ -2907,13 +2923,13 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   syncAliasOwnerRequest(values.root, invalidMappingDecision);
   assert.throws(() => auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.153.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
   }), /mapping-only decision cannot claim a registry exclusion mechanism/);
   assert.throws(() => auditCandidate({
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.153.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
   }), /mapping-only decision cannot claim a registry exclusion mechanism/);
   restore();
 
@@ -2938,7 +2954,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   writeJson(values.root, 'migration/source-disposition.json', disposition);
   syncAliasOwnerRequest(values.root, decision);
   assert.throws(() => validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.153.4'
+    codexVersion: 'codex-cli 0.154.0'
   }), /manual-only registry evidence is missing or ambiguous/);
   dump.observations.repository_probe.neutral_catalog_has_alias = false;
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', dump);
@@ -2947,10 +2963,10 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   writeJson(values.root, 'migration/alias-capability.json', decision);
   syncAliasOwnerRequest(values.root, decision);
   assert.deepEqual(validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.153.4'
+    codexVersion: 'codex-cli 0.154.0'
   }), {
     decision: 'manual-only',
-    codex_version: 'codex-cli 0.153.4'
+    codex_version: 'codex-cli 0.154.0'
   });
   prepareRow(values.root, 'architecture', { capabilities: ['core'] });
   const manualCandidate = writeCandidate(values.root, {
@@ -2963,11 +2979,11 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: manualCandidate,
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.153.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
   }).ok, true);
   assert.equal(auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.153.4' },
+    aliasCapability: { codexVersion: 'codex-cli 0.154.0' },
     skipDeliveredEvidence: true
   }).ok, true);
 
@@ -3002,13 +3018,13 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     writeJson(values.root, 'migration/alias-capability.json', candidateDecision);
     syncAliasOwnerRequest(values.root, candidateDecision);
     assert.throws(() => validateAliasCapability(values.root, disposition, {
-      codexVersion: 'codex-cli 0.153.4'
+      codexVersion: 'codex-cli 0.154.0'
     }), pattern, name);
     assert.throws(() => auditCandidate({
       root: values.root,
       candidate: manualCandidate,
       target: 'architecture',
-      aliasCapability: { codexVersion: 'codex-cli 0.153.4' }
+      aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
     }), pattern, `${name}-candidate`);
   }
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', consistentDump);
@@ -3033,7 +3049,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.153.4' }
+    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
   }), /stale for Codex version/);
 });
 
