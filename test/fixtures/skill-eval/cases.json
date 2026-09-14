@@ -1,0 +1,216 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "r01",
+      "kind": "routing",
+      "prompt": "請逐行解釋 src/parser.js 的 parseHeader，讓剛接觸這個專案的人看得懂。",
+      "allowed_skills": [
+        "explain"
+      ]
+    },
+    {
+      "id": "r02",
+      "kind": "routing",
+      "prompt": "請追出付款請求從 HTTP handler 到 repository 的資料流，說明各層如何連接。先不要修改。",
+      "allowed_skills": [
+        "code-explore"
+      ]
+    },
+    {
+      "id": "r03",
+      "kind": "routing",
+      "prompt": "同一筆 webhook 偶爾被處理兩次，幫我追查是哪個機制造成的，只查因不修。",
+      "allowed_skills": [
+        "code-investigate",
+        "debug"
+      ]
+    },
+    {
+      "id": "r04",
+      "kind": "routing",
+      "prompt": "剛接手這個 repository，請整理主要入口、測試方式與各模組負責人。",
+      "allowed_skills": [
+        "repo-intake"
+      ]
+    },
+    {
+      "id": "r05",
+      "kind": "routing",
+      "prompt": "按照已核准規格完成使用者通知偏好 API，包含必要測試與驗收。",
+      "allowed_skills": [
+        "feature-dev"
+      ]
+    },
+    {
+      "id": "r06",
+      "kind": "routing",
+      "prompt": "發票金額四捨五入錯誤已有重現步驟，請修正並補回歸測試。",
+      "allowed_skills": [
+        "bug-fix"
+      ]
+    },
+    {
+      "id": "r07",
+      "kind": "routing",
+      "prompt": "獨立審查這次變更的測試是否真的證明驗收條件，找出缺少的失敗與邊界案例，先不要寫測試。",
+      "allowed_skills": [
+        "test-review"
+      ]
+    },
+    {
+      "id": "r08",
+      "kind": "routing",
+      "prompt": "請用兩個獨立立場辯論離線同步設計；預設用 Codex，不需要其他平台。",
+      "allowed_skills": [
+        "brainstorm"
+      ]
+    },
+    {
+      "id": "r09",
+      "kind": "routing",
+      "prompt": "依剛提供的技能設計文章，檢查我們 Plugin 的技能描述、路由與漸進載入可以怎麼改進。只分析。",
+      "allowed_skills": [
+        "skill-health-check"
+      ]
+    },
+    {
+      "id": "r10",
+      "kind": "routing",
+      "prompt": "直接算出 19 乘以 23，不需要任何專案操作。",
+      "allowed_skills": [
+        null
+      ]
+    },
+    {
+      "id": "r11",
+      "kind": "routing",
+      "prompt": "謝謝，今天先這樣。",
+      "allowed_skills": [
+        null
+      ]
+    },
+    {
+      "id": "r12",
+      "kind": "routing",
+      "prompt": "Give a quick diff-only review of the unstaged changes. Do not run checks or close the formal review gate.",
+      "allowed_skills": [
+        "review"
+      ],
+      "expected_mode": "fast"
+    },
+    {
+      "id": "t01",
+      "kind": "task",
+      "prompt": "讀取 src/options.js，說明沒有傳入 timeout 時 normalizeOptions({}) 的 timeout 是多少。answer 只填十進位數字，引用來源檔案。",
+      "allowed_skills": [
+        "explain",
+        "ask",
+        null
+      ],
+      "expected_answer": "3000",
+      "evidence_paths": [
+        "src/options.js"
+      ]
+    },
+    {
+      "id": "t02",
+      "kind": "task",
+      "prompt": "根據這個 fixture 專案的 package.json，它要求哪個 Node.js 版本範圍？answer 只填原始版本範圍字串。",
+      "allowed_skills": [
+        "ask",
+        null
+      ],
+      "expected_answer": ">=24",
+      "evidence_paths": [
+        "package.json"
+      ]
+    },
+    {
+      "id": "t03",
+      "kind": "task",
+      "prompt": "讀取 src/cache.js。新建 cache 後，對同一個 key 連續呼叫 get 兩次，loader 每次都回傳數字 0。loader 總共會被呼叫幾次？只查因、不改程式，answer 只填數字。",
+      "allowed_skills": [
+        "code-investigate",
+        "debug",
+        "explain",
+        "ask",
+        null
+      ],
+      "expected_answer": "2",
+      "evidence_paths": [
+        "src/cache.js"
+      ]
+    },
+    {
+      "id": "t04",
+      "kind": "task",
+      "prompt": "讀取 src/limits.js，回報匯出的 maxItems 數值。answer 只填數字，不做任何修改。",
+      "allowed_skills": [
+        "ask",
+        "explain",
+        null
+      ],
+      "expected_answer": "42",
+      "evidence_paths": [
+        "src/limits.js"
+      ]
+    },
+    {
+      "id": "t05",
+      "kind": "task",
+      "prompt": "讀取 skills/review/SKILL.md 與必要參考文件。fast 模式會寫入正式 review gate 嗎？這是文件問題，不要執行審查。answer 只填 true 或 false。",
+      "allowed_skills": [
+        "ask",
+        "review",
+        null
+      ],
+      "expected_answer": "false",
+      "evidence_paths": [
+        "skills/review/SKILL.md"
+      ]
+    },
+    {
+      "id": "t06",
+      "kind": "task",
+      "prompt": "讀取 skills/verify/SKILL.md 與必要參考文件。使用者既有授權已涵蓋 lint 修正時，執行 fast 模式前是否需要再次索取同一項授權？只解釋文件，不要執行。answer 只填 true 或 false。",
+      "allowed_skills": [
+        "ask",
+        "verify",
+        null
+      ],
+      "expected_answer": "false",
+      "evidence_paths": [
+        "skills/verify/SKILL.md"
+      ]
+    },
+    {
+      "id": "t07",
+      "kind": "task",
+      "prompt": "讀取 skills/review/SKILL.md 與必要參考文件。default 模式下，沒有 actionable findings 的 configured primary 應回傳哪一句精確終結文字？這是文件問題，不要執行審查。answer 只填那句原文。",
+      "allowed_skills": [
+        "ask",
+        "review",
+        null
+      ],
+      "expected_answer": "No actionable findings remain.",
+      "evidence_paths": [
+        "skills/review/SKILL.md"
+      ]
+    },
+    {
+      "id": "t08",
+      "kind": "task",
+      "prompt": "讀取 skills/review/SKILL.md 與必要參考文件。fast 模式允許執行 project checks 嗎？這是文件問題，不要執行審查。answer 只填 true 或 false。",
+      "allowed_skills": [
+        "ask",
+        "review",
+        null
+      ],
+      "expected_answer": "false",
+      "evidence_paths": [
+        "skills/review/SKILL.md"
+      ]
+    }
+  ]
+}
