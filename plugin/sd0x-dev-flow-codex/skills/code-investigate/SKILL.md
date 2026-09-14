@@ -1,6 +1,6 @@
 ---
 name: code-investigate
-description: "Investigate a specific mechanism or suspected root cause through independent Codex analysis and repository evidence. Returns a causal assessment without editing code."
+description: "Trace the cause of a specific failure or unexplained repository behavior without editing."
 ---
 
 # Focused Code Investigation

@@ -1,6 +1,6 @@
 ---
 name: ask
-description: "Answer bounded repository questions using attributable code, guidance or Git evidence. Read-only; broader investigation and implementation belong to their dedicated workflows."
+description: "Answer a focused question about existing repository code, configuration, or project guidance."
 ---
 
 # Context-Aware Repository Q&A

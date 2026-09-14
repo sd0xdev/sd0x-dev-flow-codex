@@ -136,6 +136,8 @@ function stateEnvelope(eventName, summary) {
     reviewer_authority: 'configured-primary-only',
     review: summary.review,
     verify: summary.verify,
+    completion_scope: 'worktree-gates',
+    task_completion: 'not-assessed',
     next_action: summary.next_action,
     reason: summary.reason
   };

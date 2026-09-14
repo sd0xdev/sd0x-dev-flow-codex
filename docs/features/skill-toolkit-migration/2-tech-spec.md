@@ -836,3 +836,20 @@ Gate-owner lifecycle：promotion completion 要求 pointed ticket 為 `Completed
 | `statusline-config` | Ship a read-only capability-aware skill；current unsupported versions explain alternatives and fail closed without touching Claude config | Add actual configuration mutation only after an official Codex API is locally or officially verified and separately authorized |
 
 - Active MCP removal request: [Remove Claude MCP Connection — doctor/claude](./requests/2026-09-07-remove-claude-mcp-doctor-revision.md).
+- Brainstorm fallback revision: [Native Default and Optional Claude Fallback](./requests/2026-09-12-brainstorm-optional-claude-fallback.md).
+
+### Behavior-evaluated entrypoint revisions
+
+- [ask/default](./requests/2026-09-12-behavior-eval-ask-default-revision.md).
+- [explain/default](./requests/2026-09-12-behavior-eval-explain-default-revision.md).
+- [code-explore/default](./requests/2026-09-12-behavior-eval-code-explore-default-revision.md).
+- [code-investigate/default](./requests/2026-09-12-behavior-eval-code-investigate-default-revision.md).
+- [deep-explore/default](./requests/2026-09-12-behavior-eval-deep-explore-default-revision.md).
+- [review/deep](./requests/2026-09-12-behavior-eval-review-deep-revision.md).
+- [review/default](./requests/2026-09-12-behavior-eval-review-default-revision.md).
+- [review/full](./requests/2026-09-12-behavior-eval-review-full-revision.md).
+- [review/branch](./requests/2026-09-12-behavior-eval-review-branch-revision.md).
+- [review/fast](./requests/2026-09-12-behavior-eval-review-fast-revision.md).
+- [verify/precommit](./requests/2026-09-12-behavior-eval-verify-precommit-revision.md).
+- [verify/fast](./requests/2026-09-12-behavior-eval-verify-fast-revision.md).
+- [verify/default](./requests/2026-09-12-behavior-eval-verify-default-revision.md).

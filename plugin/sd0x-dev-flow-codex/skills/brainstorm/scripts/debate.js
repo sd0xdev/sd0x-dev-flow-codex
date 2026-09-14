@@ -9,7 +9,9 @@ const SIDE_FIELDS = Object.freeze([
   'position_changed', 'position_update', 'unresolved_attack'
 ]);
 const ROUND_FIELDS = Object.freeze(['codex_proponent', 'codex_challenger']);
-const ACTORS = Object.freeze(['codex-proponent', 'codex-challenger']);
+const ACTORS = Object.freeze([
+  'codex-proponent', 'codex-challenger', 'claude-proponent', 'claude-challenger'
+]);
 const OUTCOME_PRECEDENCE = Object.freeze(['divergent', 'conditional', 'pure', 'pareto']);
 
 function exactKeys(value, fields) {
@@ -62,10 +64,23 @@ function validateSide(side, claimIds, noveltyKeys, attackIds, actor) {
     side.unresolved_attack === derivedUnresolved;
 }
 
+function roundBindings(round) {
+  if (!round || typeof round !== 'object' || Array.isArray(round)) return null;
+  const proponent = Object.hasOwn(round, 'codex_proponent')
+    ? { field: 'codex_proponent', actor: 'codex-proponent', side: round.codex_proponent }
+    : { field: 'claude_proponent', actor: 'claude-proponent', side: round.claude_proponent };
+  const challenger = Object.hasOwn(round, 'codex_challenger')
+    ? { field: 'codex_challenger', actor: 'codex-challenger', side: round.codex_challenger }
+    : { field: 'claude_challenger', actor: 'claude-challenger', side: round.claude_challenger };
+  const bindings = [proponent, challenger];
+  return exactKeys(round, bindings.map((binding) => binding.field)) ? bindings : null;
+}
+
 function validateRound(round, claimIds, noveltyKeys, attackIds) {
-  return exactKeys(round, ROUND_FIELDS) &&
-    validateSide(round.codex_proponent, claimIds, noveltyKeys, attackIds, 'codex-proponent') &&
-    validateSide(round.codex_challenger, claimIds, noveltyKeys, attackIds, 'codex-challenger');
+  const bindings = roundBindings(round);
+  return bindings !== null && bindings.every((binding) =>
+    validateSide(binding.side, claimIds, noveltyKeys, attackIds, binding.actor)
+  );
 }
 
 function transcriptState(rounds, claimIds, options = {}) {
@@ -83,14 +98,18 @@ function transcriptState(rounds, claimIds, options = {}) {
     throw new Error('debate requires one or more rounds within the declared round budget');
   }
   if (!(claimIds instanceof Set) || claimIds.size === 0) return 'invalid';
+  const bindings = roundBindings(rounds[0]);
+  if (bindings === null) return 'invalid';
+  const fields = bindings.map((binding) => binding.field);
+  if (!rounds.every((round) => exactKeys(round, fields))) return 'invalid';
   const noveltyKeys = new Set();
   const attackIds = new Set();
   if (!rounds.every((round) => validateRound(round, claimIds, noveltyKeys, attackIds))) {
     return 'invalid';
   }
   const last = rounds.at(-1);
-  const equilibrium = [last.codex_proponent, last.codex_challenger].every((side) =>
-    side.new_valid_attack === false && side.unresolved_attack === false
+  const equilibrium = roundBindings(last).every((binding) =>
+    binding.side.new_valid_attack === false && binding.side.unresolved_attack === false
   );
   if (equilibrium) return 'equilibrium';
   return stopRequested || rounds.length === roundBudget ? 'divergent' : 'continue';

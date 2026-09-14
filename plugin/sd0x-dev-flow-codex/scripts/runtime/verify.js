@@ -5,6 +5,8 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { findRepoRoot, snapshot } = require('./worktree');
 const {
+  closureVerificationContext,
+  evidenceRefOid,
   isCurrentPass,
   recordVerification,
   refreshState
@@ -299,6 +301,10 @@ function commandForPlatform(command, platform = process.platform) {
   return command;
 }
 
+function resolveCommand(spec, platform = process.platform) {
+  return commandSpec(commandForPlatform(spec.command, platform), spec.args);
+}
+
 function truncate(value) {
   if (value.length <= OUTPUT_LIMIT) return value;
   return `[truncated]\n${value.slice(-OUTPUT_LIMIT)}`;
@@ -307,10 +313,7 @@ function truncate(value) {
 function execute(spec, root, options = {}) {
   const started = Date.now();
   const platform = options.platform || process.platform;
-  const resolvedSpec = commandSpec(
-    commandForPlatform(spec.command, platform),
-    spec.args
-  );
+  const resolvedSpec = resolveCommand(spec, platform);
   const spawnProcess = options.spawnProcess || spawnSync;
   const result = spawnProcess(resolvedSpec.command, resolvedSpec.args, {
     cwd: root,
@@ -339,7 +342,7 @@ function execute(spec, root, options = {}) {
 }
 
 function runVerification(cwd = process.cwd(), options = {}) {
-  const { root, commands } = detectCommands(cwd);
+  const { root, commands: fullCommands } = detectCommands(cwd);
   const startingState = refreshState(root);
   if (!isCurrentPass(startingState, 'review')) {
     throw new Error(
@@ -348,6 +351,15 @@ function runVerification(cwd = process.cwd(), options = {}) {
   }
   const startingFingerprint = startingState.worktree.fingerprint;
   const startingProvider = startingState.review_provider;
+  const packagePath = path.join(root, 'package.json');
+  const scripts = fs.existsSync(packagePath)
+    ? JSON.parse(fs.readFileSync(packagePath, 'utf8')).scripts : null;
+  const closure = typeof scripts?.['check:closure'] === 'string' && scripts['check:closure'].trim()
+    ? closureVerificationContext(root, startingState,
+      fullCommands.map(command => printable(resolveCommand(command)))) : null;
+  const commands = closure
+    ? [...fullCommands.slice(0, 2), scriptCommand(packageRunner(root), 'check:closure')]
+    : fullCommands;
   const results = [];
   const divergentFiles = stagedWorktreeDivergence(root);
 
@@ -361,6 +373,9 @@ function runVerification(cwd = process.cwd(), options = {}) {
     });
   } else {
     for (const command of commands) {
+      if (typeof options.onStart === 'function') {
+        options.onStart({ command: printable(resolveCommand(command)), started_at: new Date().toISOString() });
+      }
       const result = execute(command, root);
       results.push(result);
       if (typeof options.onResult === 'function') options.onResult(result);
@@ -372,12 +387,14 @@ function runVerification(cwd = process.cwd(), options = {}) {
   }
 
   const endingFingerprint = snapshot(root).fingerprint;
+  const closureEvidenceChanged = Boolean(closure && evidenceRefOid(root) !== closure.evidence_ref_oid);
   const status = results.every((result) => result.exit_code === 0) &&
-      endingFingerprint === startingFingerprint
+      endingFingerprint === startingFingerprint && !closureEvidenceChanged
     ? 'pass'
     : 'fail';
   const evidence = {
     runner: 'sd0x-deterministic-v1',
+    ...(closure ? { closure_projection: closure, closure_evidence_changed: closureEvidenceChanged } : {}),
     commands: results,
     starting_fingerprint: startingFingerprint,
     ending_fingerprint: endingFingerprint,
@@ -405,6 +422,7 @@ module.exports = {
   ecosystemPlan,
   execute,
   printable,
+  resolveCommand,
   runPrecommitMode,
   runVerification,
   stagedWorktreeDivergence

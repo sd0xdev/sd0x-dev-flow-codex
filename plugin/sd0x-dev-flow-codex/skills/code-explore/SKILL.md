@@ -1,6 +1,6 @@
 ---
 name: code-explore
-description: "Explain how a repository subsystem, execution path or data flow connects using source evidence. Read-only; does not implement proposed changes."
+description: "Map how a repository subsystem, execution path, or data flow connects."
 ---
 
 # Code-Path Exploration

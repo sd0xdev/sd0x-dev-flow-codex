@@ -316,8 +316,10 @@ function main(argv = process.argv.slice(2), cwd = process.cwd()) {
   }
   if (command === 'verify') {
     const result = runVerification(cwd, {
+      onStart(item) {
+        process.stdout.write(`\n$ ${item.command}\n[started ${item.started_at}]\n`);
+      },
       onResult(item) {
-        process.stdout.write(`\n$ ${item.command}\n`);
         if (item.output) process.stdout.write(`${item.output}\n`);
         process.stdout.write(`[exit ${item.exit_code}, ${item.duration_ms}ms]\n`);
       }

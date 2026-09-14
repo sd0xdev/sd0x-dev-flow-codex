@@ -65,6 +65,44 @@ test('rounds reject legacy participants and cross-side actor impersonation', () 
   assert.equal(debate.validateAttack(attack('claude-adapter', 1), claims, new Set()), false);
 });
 
+test('optional Claude participants retain their actual provider and role through equilibrium', () => {
+  for (const providers of [['codex', 'claude'], ['claude', 'codex'], ['claude', 'claude']]) {
+    const [proponent, challenger] = providers;
+    const round = {
+      [`${proponent}_proponent`]: side([attack(`${proponent}-proponent`, 'p')]),
+      [`${challenger}_challenger`]: side([attack(`${challenger}-challenger`, 'c')])
+    };
+    const settled = { [`${proponent}_proponent`]: side(), [`${challenger}_challenger`]: side() };
+    assert.equal(debate.transcriptState([round], claims), 'continue');
+    assert.equal(debate.transcriptState([round, settled], claims), 'equilibrium');
+    assert.equal(debate.transcriptState([round], claims, { roundBudget: 1 }), 'divergent');
+  }
+});
+
+test('fallback transcripts reject provider relabeling, duplicate roles, and mid-debate substitution', () => {
+  const mixed = { codex_proponent: side(), claude_challenger: side([attack('claude-challenger', 'c')]) };
+  for (const actor of ['codex-challenger', 'claude-proponent']) {
+    const changed = structuredClone(mixed);
+    changed.claude_challenger.attacks[0].proposed_by = actor;
+    assert.equal(debate.transcriptState([changed], claims), 'invalid');
+  }
+  assert.equal(debate.transcriptState([{ ...mixed, codex_challenger: side() }], claims), 'invalid');
+  assert.equal(debate.transcriptState([{ codex_proponent: side(), other_challenger: side() }], claims), 'invalid');
+  assert.equal(debate.transcriptState([mixed, settledRound()], claims), 'invalid');
+});
+
+test('fallback transcripts preserve evidence, novelty, and unresolved-attack integrity', () => {
+  const mixed = { codex_proponent: side(), claude_challenger: side([attack('claude-challenger', 'c', 'unresolved')]) };
+  assert.equal(debate.transcriptState([mixed], claims, { stopRequested: true }), 'divergent');
+  assert.equal(debate.transcriptState([mixed, mixed], claims), 'invalid');
+  const missingEvidence = structuredClone(mixed);
+  missingEvidence.claude_challenger.attacks[0].evidence_refs = ['unknown'];
+  assert.equal(debate.transcriptState([missingEvidence], claims), 'invalid');
+  const hiddenUnresolved = structuredClone(mixed);
+  hiddenUnresolved.claude_challenger.unresolved_attack = false;
+  assert.equal(debate.transcriptState([hiddenUnresolved], claims), 'invalid');
+});
+
 test('actor migration preserves evidence membership, novelty, and derived state integrity', () => {
   const absentEvidence = activeRound(1);
   absentEvidence.codex_challenger.attacks[0].evidence_refs = ['invented-evidence'];

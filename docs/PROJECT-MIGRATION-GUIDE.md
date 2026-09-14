@@ -257,6 +257,12 @@ Unborn repository 使用 cached diff。之後按 project type 選擇：
 
 Evidence 記錄 command、exit code、duration、截斷後 output，以及 runner 前後 fingerprint。Generic gate CLI 不能寫入 verify pass；只有 deterministic runner 可以。Verify command 若修改 worktree，runner 會記錄 fail、原 review fingerprint 失效，下一步必須回到 review。
 
+CLI 在每個命令啟動前輸出命令與開始時間，結束後才輸出結果；開始訊息不代表完成，也不提供虛構的進度百分比。`status` 與 hook facts 明確帶有 `completion_scope: "worktree-gates"`、`task_completion: "not-assessed"`。因此 `next_action: "complete"` 只表示工作樹所需 gates 已滿足；安裝、當前 session 啟用、CI 或發布仍依使用者要求與各自的實測結果判斷。
+
+專案可明確提供 `check:closure`，定義只變更結案文件時的檢查。只有最新 durable closure 完整覆蓋同一批 request、目前 bytes 等於 runtime 核准 proposal、非 request projection 未變，且原始完整 command plan 確實通過時，runner 才會選擇此 script。新 fingerprint 仍必須先通過 primary review，並實際執行 whitespace 與 closure checks；新的 gate evidence 同時記錄原始驗證與 closure bindings。缺少條件時使用完整檢查；evidence 損壞則報錯。執行期間 fingerprint 或 evidence ref 改變、或 closure check 失敗，都不能得到 pass。
+
+本 repository 的 `check:closure` 執行 syntax、payload inventory、source migration 與 active candidate audits，省去相同程式內容的完整測試重跑。程式、配置、未納入結案批次的文件或交付 overlay 變更仍使用完整 `npm run check`。這項選擇不把舊 fingerprint 的 pass 搬到新 fingerprint，也不省略第一次完整驗證。
+
 Verifier 會同時執行 cached 與 HEAD/worktree whitespace checks。若同一路徑在 index 與 working tree 版本分歧，tests 只能執行 working copy、無法證明 staged blob，因此先留下 deterministic fail evidence，要求先統一兩層內容再驗證。
 
 ## 6. Hook lifecycle 與 activation boundary

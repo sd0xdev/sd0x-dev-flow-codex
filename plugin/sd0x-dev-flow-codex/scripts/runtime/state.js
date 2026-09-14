@@ -5119,6 +5119,64 @@ function recordCollaborationFailure(cwd, details, evidence) {
   return { recorded, reason, state };
 }
 
+// A repository may opt into a closure-specific check script. This proof only
+// selects that script; it never transfers a prior gate pass to a new fingerprint.
+function closureVerificationContext(cwd, state, expectedCommands) {
+  const root = findRepoRoot(cwd);
+  const oid = evidenceRefOid(root);
+  if (!oid || !isCurrentPass(state, 'review')) return null;
+  const records = evidenceRecordsAt(root, oid);
+  const latest = (kind, unit) => records.filter(record =>
+    record.kind === kind && record.promotion_unit_id === unit
+  ).sort((a, b) => Date.parse(a.recorded_at) - Date.parse(b.recorded_at)).at(-1);
+  const closures = records.filter(record => record.kind === 'request-closure' &&
+    record.docs_fingerprint === state.worktree.fingerprint &&
+    latest('request-closure', record.promotion_unit_id)?.record_sha256 === record.record_sha256);
+  if (!closures.length) return null;
+  // Corruption is an error, not a reason to choose a less strict plan.
+  auditEvidenceLedger(root);
+  const paths = closures.map(record => record.request_path).sort();
+  if (new Set(paths).size !== paths.length) return null;
+  const projection = snapshotProjection(root, paths).fingerprint;
+  let subject = null;
+  const bindings = [];
+  for (const closure of closures) {
+    const pending = latest('request-closure-pending', closure.promotion_unit_id);
+    if (!pending || pending.schema_version !== EVIDENCE_SCHEMA_VERSION ||
+        pending.record_sha256 !== closure.pending_record_sha256 ||
+        pending.subject.kind !== 'dirty' || !pending.verify_required ||
+        pending.non_request_projection_sha256 !== projection) return null;
+    const request = validateEvidenceBlobAt(root, oid, pending, 'request.json',
+      'proposed_request_blob_sha256');
+    if (canonicalJson(closureProjectionPaths(request, pending)) !== canonicalJson(paths) ||
+        sha256(readBoundRegularFile(root, closure.request_path).bytes) !==
+          pending.proposed_request_content_sha256) return null;
+    const verification = validateEvidenceBlobAt(root, oid, pending, 'verify.json',
+      'verify_evidence_sha256');
+    const evidence = verification.evidence;
+    if (verification.provider !== state.review_provider ||
+        evidence.runner !== 'sd0x-deterministic-v1' ||
+        evidence.fingerprint_changed !== false || evidence.provider_changed !== false ||
+        evidence.starting_fingerprint !== pending.subject.fingerprint ||
+        evidence.ending_fingerprint !== pending.subject.fingerprint ||
+        !Array.isArray(evidence.commands) ||
+        canonicalJson(evidence.commands.map(item => item.command)) !==
+          canonicalJson(expectedCommands) ||
+        evidence.commands.some(item => item.exit_code !== 0)) return null;
+    const binding = canonicalJson(pending.subject);
+    if (subject !== null && subject !== binding) return null;
+    subject = binding;
+    bindings.push({ request_path: closure.request_path,
+      closure_record_sha256: closure.record_sha256,
+      verify_evidence_sha256: pending.verify_evidence_sha256 });
+  }
+  if (evidenceRefOid(root) !== oid || snapshot(root).fingerprint !== state.worktree.fingerprint) {
+    throw new Error('Closure verification inputs changed during planning');
+  }
+  return { evidence_ref_oid: oid, subject: JSON.parse(subject),
+    non_request_projection_sha256: projection, bindings };
+}
+
 function isCurrentPass(state, gate) {
   const value = state.gates[gate];
   const current = value.status === 'pass' &&
@@ -5240,6 +5298,8 @@ function summarize(state, options = {}) {
     external_reviews_completed: state.external_review.completed.length,
     active_sessions: state.sessions.length,
     reset_recovery: state.reset_recovery || null,
+    completion_scope: 'worktree-gates',
+    task_completion: 'not-assessed',
     next_action: action.action,
     reason: action.reason
   };
@@ -5279,6 +5339,7 @@ module.exports = {
   nextAction,
   canonicalEvidenceBlob,
   canonicalJson,
+  closureVerificationContext,
   finalizeRequestClosure,
   readState,
   readEvidenceRecord,

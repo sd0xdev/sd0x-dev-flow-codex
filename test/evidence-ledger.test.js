@@ -18,6 +18,7 @@ const {
   beginCommitClosureReview,
   canonicalEvidenceBlob,
   canonicalJson,
+  closureVerificationContext,
   commitClosureReviewerContext,
   finalizeRequestClosure,
   markGate,
@@ -36,6 +37,8 @@ const {
   retireCompletedManifest
 } = require('../scripts/complete-formal-plugin-delivery');
 const { snapshot } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/worktree');
+const { detectCommands, execute, printable, resolveCommand, runVerification } =
+  require('../plugin/sd0x-dev-flow-codex/scripts/runtime/verify');
 const { commit, git, initRepository, isolateGitEnvironment } = require('./helpers/git');
 
 isolateGitEnvironment();
@@ -810,6 +813,123 @@ test('request closure prepare and finalize bind proposal, projection, subject re
   });
   assert.equal(restarted.reused, true);
   assert.equal(restarted.record_sha256, closure.record_sha256);
+});
+
+test('closure proof accepts Windows runner evidence and rejects a changed command policy', t => {
+  for (const runner of ['npm', 'pnpm', 'yarn']) {
+    const root = repository();
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ scripts: {
+      check: 'node --test', 'check:closure': 'node --test'
+    } }));
+    if (runner !== 'npm') {
+      fs.writeFileSync(path.join(root, runner === 'pnpm' ? 'pnpm-lock.yaml' : 'yarn.lock'), '');
+    }
+    const subject = dirtySubject(root);
+    const evidence = passingClosureEvidence(root, subject);
+    const commands = detectCommands(root).commands;
+    // Exercise Windows argv resolution on this host; this is a platform-adapter
+    // fixture, not a claim that Windows executables ran on a different OS.
+    const results = commands.map(spec => execute(spec, root, {
+      platform: 'win32', spawnProcess(command, args) {
+        assert.deepEqual(args, spec.args);
+        assert.equal(command, spec.command === 'git' ? 'git' : runner + '.cmd');
+        return { status: 0, stdout: '', stderr: '' };
+      }
+    }));
+    const state = recordVerification(root, 'pass', {
+      runner: 'sd0x-deterministic-v1', commands: results,
+      starting_fingerprint: subject.fingerprint, ending_fingerprint: subject.fingerprint,
+      fingerprint_changed: false
+    }, subject.fingerprint, 'codex');
+    evidence.verify.evidence = state.gates.verify.evidence;
+    const pending = prepareRequestClosure(root, {
+      promotion_unit_id: 'fixture/default',
+      request_path: 'docs/features/fixture/requests/2026-07-12-fixture.md',
+      proposed_request: completedRequestBytes(root), subject, evidence,
+      recorded_at: '2026-07-12T03:00:00.000Z', supersedes_record_sha256: null
+    });
+    applyRequestClosure(root, { pending_record_sha256: pending.record_sha256 });
+    recordCleanReview(root);
+    finalizeRequestClosure(root, {
+      pending_record_sha256: pending.record_sha256,
+      recorded_at: '2026-07-12T03:01:00.000Z', supersedes_record_sha256: null
+    });
+    const current = refreshState(root);
+    const expected = commands.map(spec => printable(resolveCommand(spec, 'win32')));
+    assert.equal(closureVerificationContext(root, current, expected).bindings.length, 1);
+    assert.equal(closureVerificationContext(root, current, commands.map(printable)), null);
+    expected[expected.length - 1] += ' --changed-policy';
+    assert.equal(closureVerificationContext(root, current, expected), null);
+  }
+});
+
+test('closure checks require a fully finalized batch, original command policy, and fresh review', t => {
+  const root = repository();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({ scripts: {
+    check: 'node -e "require(\'fs\').appendFileSync(\'.git/full-checks\', \'x\')"',
+    'check:closure': 'node -e "process.exit(require(\'fs\').existsSync(\'.git/fail-closure\') ? 9 : 0)"'
+  } }));
+  const firstPath = 'docs/features/fixture/requests/2026-07-12-fixture.md';
+  const secondPath = 'docs/features/fixture/requests/2026-07-12-fixture-two.md';
+  fs.copyFileSync(path.join(root, firstPath), path.join(root, secondPath));
+  const subject = dirtySubject(root);
+  const evidence = passingClosureEvidence(root, subject);
+  const initial = runVerification(root);
+  assert.equal(initial.status, 'pass');
+  assert.equal(initial.evidence.closure_projection, undefined);
+  evidence.verify.evidence = initial.evidence;
+  const fullCommands = detectCommands(root).commands.map(printable);
+  const requests = [firstPath, secondPath].sort();
+  const pending = requests.map((request_path, index) => prepareRequestClosure(root, {
+    promotion_unit_id: index ? 'fixture-two/default' : 'fixture/default',
+    request_path, proposed_request: completedRequestBytes(root), subject, evidence,
+    projection_request_paths: requests, recorded_at: `2026-07-12T02:0${index}:00.000Z`,
+    supersedes_record_sha256: null
+  }));
+  for (const item of pending) applyRequestClosure(root, { pending_record_sha256: item.record_sha256 });
+  assert.throws(() => runVerification(root), /current review pass/);
+  recordCleanReview(root);
+  const finalize = index => finalizeRequestClosure(root, {
+    pending_record_sha256: pending[index].record_sha256,
+    recorded_at: `2026-07-12T02:1${index}:00.000Z`, supersedes_record_sha256: null
+  });
+  finalize(0);
+  assert.equal(closureVerificationContext(root, refreshState(root), fullCommands), null);
+  finalize(1);
+  assert.equal(closureVerificationContext(root, refreshState(root), ['other-command']), null);
+  const result = runVerification(root);
+  assert.equal(result.status, 'pass');
+  assert.equal(result.evidence.closure_projection.bindings.length, 2);
+  assert.equal(result.evidence.commands.at(-1).command, 'npm run check:closure');
+  assert.notEqual(result.evidence.starting_fingerprint, initial.evidence.starting_fingerprint);
+  assert.equal(fs.readFileSync(path.join(root, '.git/full-checks'), 'utf8'), 'x');
+  fs.writeFileSync(path.join(root, '.git/fail-closure'), 'fail');
+  const failed = runVerification(root);
+  assert.equal(failed.status, 'fail');
+  assert.equal(failed.evidence.commands.at(-1).exit_code, 9);
+  fs.rmSync(path.join(root, '.git/fail-closure'));
+  const priorRef = evidenceGit(root, ['rev-parse', EVIDENCE_REF]);
+  try {
+    const drifted = runVerification(root, {
+      onStart(item) {
+        if (item.command === 'npm run check:closure') {
+          evidenceGit(root, ['update-ref', EVIDENCE_REF, 'HEAD', priorRef]);
+        }
+      }
+    });
+    assert.equal(drifted.status, 'fail');
+    assert.equal(drifted.evidence.closure_evidence_changed, true);
+  } finally {
+    evidenceGit(root, ['update-ref', EVIDENCE_REF, priorRef]);
+  }
+  fs.appendFileSync(path.join(root, 'app.js'), '// implementation change\n');
+  recordCleanReview(root);
+  const changed = runVerification(root);
+  assert.equal(changed.evidence.closure_projection, undefined);
+  assert.equal(changed.evidence.commands.at(-1).command, 'npm run check');
+  assert.equal(fs.readFileSync(path.join(root, '.git/full-checks'), 'utf8'), 'xx');
 });
 
 test('batched request closures bind a shared canonical projection and apply sequentially', (t) => {

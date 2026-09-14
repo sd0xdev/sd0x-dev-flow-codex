@@ -1,6 +1,6 @@
 ---
 name: deep-explore
-description: "Investigate a broad repository area with evidence-backed scope coverage and independent Codex work where useful. Reports unresolved material gaps rather than inferring completeness from volume."
+description: "Investigate a broad repository area and report its structure, behavior, and material unknowns."
 ---
 
 # Deep Repository Exploration

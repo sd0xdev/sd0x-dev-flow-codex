@@ -68,6 +68,8 @@ test('state signal is factual, versioned, names one reviewer authority, and omit
     reviewer_authority: 'configured-primary-only',
     review: 'pending',
     verify: 'pending',
+    completion_scope: 'worktree-gates',
+    task_completion: 'not-assessed',
     next_action: 'review',
     reason: 'review-required'
   });
@@ -75,4 +77,15 @@ test('state signal is factual, versioned, names one reviewer authority, and omit
   assert.ok(signal.startsWith(`${STATE_SIGNAL_PREFIX} {`));
   assert.doesNotMatch(signal, /secret\/project/);
   assert.doesNotMatch(signal, /run \$sd0x|must continue|ask the user/i);
+});
+
+test('a complete gate signal does not claim activation or user-task completion', () => {
+  const signal = stateEnvelope('Stop', {
+    fingerprint: 'b'.repeat(64), files: [], requires_review: false,
+    requires_verify: false, review: 'pass', verify: 'pass',
+    next_action: 'complete', reason: 'all-required-gates-pass'
+  });
+  assert.equal(signal.next_action, 'complete');
+  assert.equal(signal.completion_scope, 'worktree-gates');
+  assert.equal(signal.task_completion, 'not-assessed');
 });

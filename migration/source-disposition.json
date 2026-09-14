@@ -108,7 +108,7 @@
       "wave": 2,
       "routing_owner": "ask",
       "promotion_unit_id": "ask/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-ask-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-ask-default-revision.md",
       "license_status": "approved",
       "rationale": "Port the source workflow while preserving its bounded behavior."
     },
@@ -253,7 +253,7 @@
       "wave": 2,
       "routing_owner": "code-explore",
       "promotion_unit_id": "code-explore/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-code-explore-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-code-explore-default-revision.md",
       "license_status": "approved",
       "rationale": "Port the source workflow while preserving its bounded behavior."
     },
@@ -277,7 +277,7 @@
       "wave": 2,
       "routing_owner": "code-investigate",
       "promotion_unit_id": "code-investigate/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-code-investigate-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-code-investigate-default-revision.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -325,7 +325,7 @@
       "wave": 2,
       "routing_owner": "brainstorm",
       "promotion_unit_id": "brainstorm/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-brainstorm-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-brainstorm-optional-claude-fallback.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -350,7 +350,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/deep",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-review-deep-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-deep-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -375,7 +375,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-review-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-default-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -397,7 +397,7 @@
       "wave": 2,
       "routing_owner": "explain",
       "promotion_unit_id": "explain/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-explain-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-explain-default-revision.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -447,7 +447,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/full",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-review-full-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-full-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -472,7 +472,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/branch",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-review-branch-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-branch-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -520,7 +520,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/fast",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-review-fast-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-fast-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -787,7 +787,7 @@
       "wave": 2,
       "routing_owner": "deep-explore",
       "promotion_unit_id": "deep-explore/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-deep-explore-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-deep-explore-default-revision.md",
       "license_status": "approved",
       "rationale": "Adapt source assumptions to Codex-native tools, authority, and evidence contracts."
     },
@@ -1621,7 +1621,7 @@
       "wave": 5,
       "routing_owner": "verify",
       "promotion_unit_id": "verify/precommit",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-verify-precommit-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-verify-precommit-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1646,7 +1646,7 @@
       "wave": 5,
       "routing_owner": "verify",
       "promotion_unit_id": "verify/fast",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-verify-fast-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-verify-fast-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -2441,7 +2441,7 @@
       "wave": 5,
       "routing_owner": "verify",
       "promotion_unit_id": "verify/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-verify-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-verify-default-revision.md",
       "license_status": "approved",
       "rationale": "Retain the existing canonical workflow and adapt only at shared runtime boundaries."
     },

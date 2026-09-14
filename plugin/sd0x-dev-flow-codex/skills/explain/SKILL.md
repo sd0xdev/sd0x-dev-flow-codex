@@ -1,6 +1,6 @@
 ---
 name: explain
-description: "Explain selected code at the requested depth using relevant source and caller evidence. Read-only; avoids expanding a focused explanation into unrelated investigation."
+description: "Explain a selected file, function, or snippet at the requested depth."
 ---
 
 # Explain Code

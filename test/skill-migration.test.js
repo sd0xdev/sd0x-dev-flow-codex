@@ -5283,9 +5283,14 @@ test('Candidate Complete criteria cannot claim final audit or durable closure', 
 });
 
 test('Wave 4 review payload retains the executable strict gate contract', () => {
-  const review = fs.readFileSync(activeReviewSkillPath(), 'utf8');
+  const entrypoint = activeReviewSkillPath();
+  const review = fs.readFileSync(entrypoint, 'utf8');
+  assert.ok(review.includes('[review theory](references/review-theory.md)'));
+  assert.ok(review.includes('[the gate protocol](references/default.md)'));
+  const protocol = fs.readFileSync(path.join(
+    path.dirname(entrypoint), 'references/default.md'
+  ), 'utf8');
   for (const required of [
-    '[review theory](references/review-theory.md)',
     'review/provider.js',
     'review/snapshot.js',
     'review/round.js',
@@ -5294,9 +5299,9 @@ test('Wave 4 review payload retains the executable strict gate contract', () => 
     'sd0x_codex_primary_reviewer',
     'No actionable findings remain.'
   ]) {
-    assert.match(review, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+    assert.match(protocol, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
-  assert.doesNotMatch(review, /sd0x_test_reviewer/);
+  assert.doesNotMatch(review + protocol, /sd0x_test_reviewer/);
 });
 
 test('Wave 4 non-default review modes have explicit no-gate execution contracts', () => {

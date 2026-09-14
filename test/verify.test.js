@@ -10,7 +10,8 @@ const {
   markGate,
   nextAction,
   recordSubagent,
-  refreshState
+  refreshState,
+  summarize
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 const {
   TIMEOUT_MS,
@@ -82,6 +83,33 @@ function passReview(root) {
     findings: 0
   });
 }
+
+test('verification announces each command before execution without claiming a pass', t => {
+  const root = createRepo({ checkScript:
+    'node -e "require(\'fs\').writeFileSync(\'.git/progress\', \'done\')"' });
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  passReview(root);
+  const events = [];
+  const result = runVerification(root, {
+    onStart(item) {
+      events.push(['start', item.command]);
+      assert.ok(Number.isFinite(Date.parse(item.started_at)));
+      assert.equal(refreshState(root).gates.verify.status, 'pending');
+      if (item.command === 'npm run check') {
+        assert.equal(fs.existsSync(path.join(root, '.git/progress')), false);
+      }
+    },
+    onResult(item) { events.push(['result', item.command]); }
+  });
+  assert.equal(result.status, 'pass');
+  assert.equal(fs.readFileSync(path.join(root, '.git/progress'), 'utf8'), 'done');
+  assert.deepEqual(events, result.evidence.commands.flatMap(item =>
+    [['start', item.command], ['result', item.command]]));
+  const status = summarize(result.state);
+  assert.equal(status.next_action, 'complete');
+  assert.equal(status.completion_scope, 'worktree-gates');
+  assert.equal(status.task_completion, 'not-assessed');
+});
 
 test('Node repositories prefer one aggregate check script', (t) => {
   const root = createRepo();

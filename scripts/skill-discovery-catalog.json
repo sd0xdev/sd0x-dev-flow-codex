@@ -14,7 +14,7 @@
       ]
     },
     "ask": {
-      "description": "Answer bounded repository questions using attributable code, guidance or Git evidence. Read-only; broader investigation and implementation belong to their dedicated workflows.",
+      "description": "Answer a focused question about existing repository code, configuration, or project guidance.",
       "units": [
         "ask/default"
       ]
@@ -50,13 +50,13 @@
       ]
     },
     "code-explore": {
-      "description": "Explain how a repository subsystem, execution path or data flow connects using source evidence. Read-only; does not implement proposed changes.",
+      "description": "Map how a repository subsystem, execution path, or data flow connects.",
       "units": [
         "code-explore/default"
       ]
     },
     "code-investigate": {
-      "description": "Investigate a specific mechanism or suspected root cause through independent Codex analysis and repository evidence. Returns a causal assessment without editing code.",
+      "description": "Trace the cause of a specific failure or unexplained repository behavior without editing.",
       "units": [
         "code-investigate/default"
       ]
@@ -92,7 +92,7 @@
       ]
     },
     "deep-explore": {
-      "description": "Investigate a broad repository area with evidence-backed scope coverage and independent Codex work where useful. Reports unresolved material gaps rather than inferring completeness from volume.",
+      "description": "Investigate a broad repository area and report its structure, behavior, and material unknowns.",
       "units": [
         "deep-explore/default"
       ]
@@ -140,7 +140,7 @@
       ]
     },
     "explain": {
-      "description": "Explain selected code at the requested depth using relevant source and caller evidence. Read-only; avoids expanding a focused explanation into unrelated investigation.",
+      "description": "Explain a selected file, function, or snippet at the requested depth.",
       "units": [
         "explain/default"
       ]
@@ -360,7 +360,7 @@
       "units": []
     },
     "review": {
-      "description": "Run the configured read-only Codex primary review for the exact current fingerprint. Default mode owns the review gate; fast, full, branch, and deep modes return subject-bound reports only.",
+      "description": "Review changes: default closes the worktree gate; fast (quick diff), full, branch, and deep return reports.",
       "units": [
         "review/branch",
         "review/deep",
@@ -506,7 +506,7 @@
       ]
     },
     "verify": {
-      "description": "Record deterministic verification after current-fingerprint primary review passes. Fast and precommit are non-gating check sequences; lint fixes require scoped authorization and --allow-fixes.",
+      "description": "Run fingerprint-bound verification after review, or explicitly requested non-gating fast/precommit checks.",
       "units": [
         "verify/default",
         "verify/fast",
