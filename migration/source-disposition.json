@@ -26,7 +26,7 @@
   ],
   "alias_policy_decision": {
     "policy": "mapping-only",
-    "codex_version": "codex-cli 0.154.0",
+    "codex_version": "codex-cli 0.159.2",
     "evidence": "migration/alias-capability.json",
     "rationale": "The Codex registry exposes explicit and implicit invocation but no inspectable automatic-candidate exclusion mechanism, so compatibility aliases remain mapping-only."
   },
@@ -230,7 +230,7 @@
       "wave": 6,
       "routing_owner": "doctor",
       "promotion_unit_id": "doctor/claude",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-07-remove-claude-mcp-doctor-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-doctor-claude-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -350,7 +350,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/deep",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-deep-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-review-deep-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -375,7 +375,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-review-default-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -447,7 +447,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/full",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-full-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-review-full-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -472,7 +472,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/branch",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-branch-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-review-branch-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -520,7 +520,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/fast",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-review-fast-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-review-fast-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -569,7 +569,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-setup-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-setup-default-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1130,7 +1130,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/hooks",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-setup-hooks-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-setup-hooks-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1155,7 +1155,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/guidance",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-setup-guidance-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-setup-guidance-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1180,7 +1180,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/scripts",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-setup-scripts-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-setup-scripts-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1621,7 +1621,7 @@
       "wave": 5,
       "routing_owner": "verify",
       "promotion_unit_id": "verify/precommit",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-verify-precommit-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-verify-precommit-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1646,7 +1646,7 @@
       "wave": 5,
       "routing_owner": "verify",
       "promotion_unit_id": "verify/fast",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-verify-fast-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-verify-fast-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1718,7 +1718,7 @@
       "wave": 6,
       "routing_owner": "setup",
       "promotion_unit_id": "setup/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-setup-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-setup-default-revision.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -1865,7 +1865,7 @@
       "wave": 6,
       "routing_owner": "remind",
       "promotion_unit_id": "remind/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-06-model-trust-remind-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-remind-default-revision.md",
       "license_status": "approved",
       "rationale": "Retain the existing canonical workflow and adapt only at shared runtime boundaries."
     },
@@ -2441,7 +2441,7 @@
       "wave": 5,
       "routing_owner": "verify",
       "promotion_unit_id": "verify/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-12-behavior-eval-verify-default-revision.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-09-30-local-runner-verify-default-revision.md",
       "license_status": "approved",
       "rationale": "Retain the existing canonical workflow and adapt only at shared runtime boundaries."
     },

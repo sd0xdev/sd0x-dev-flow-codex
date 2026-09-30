@@ -9,7 +9,9 @@ The allowlisted bundled entrypoint below performs the read-only diagnosis.
 
 ## Bounded runtime
 
-`mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"doctor/doctor.js","cwd":"<repository-root>","args":[]}'`
+Resolve `<plugin-root>` as two directories above this skill's installed directory, from the current `SKILL.md` location. The runner inherits `CODEX_HOME` and `CODEX_THREAD_ID` from the current Codex shell. The runner returns JSON with `exit_code`, `stdout`, and `stderr`; parse the script's JSON from `stdout` and respect failures.
+
+`node "<plugin-root>/scripts/runtime/runner.js" '{"entrypoint":"doctor/doctor.js","cwd":"<repository-root>","args":[]}'`
 
 Default mode diagnoses plugin installation, local reload state, runtime metadata, project opt-in, managed guidance, configured primary reviewer, and current gates. The legacy `doctor/claude` routing name is retained only for migration compatibility: Claude review is retired, and a legacy Claude provider fails closed with setup migration guidance. No Claude CLI or authentication check runs.
 

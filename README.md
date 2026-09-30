@@ -6,7 +6,7 @@
 
 一套 Codex-native 的工程品質迴圈。它把 review 與 verification 證據綁定到「產生證據的那一份 worktree」；任何檔案變更都會改變 fingerprint，使舊證據立即失效。
 
-本專案借鏡 [sd0x-dev-flow](https://github.com/sd0xdev/sd0x-dev-flow) 的 Harness Engineering 原則，以 clean-room 方式重新設計成 Codex plugin。它不逐項翻譯 Claude commands，也不把 Claude hook payload 假設帶進 Codex runtime，而是採用 Codex plugins、hooks、skills、project agents，以及可選用的唯讀 Claude review MCP adapter。
+本專案借鏡 [sd0x-dev-flow](https://github.com/sd0xdev/sd0x-dev-flow) 的 Harness Engineering 原則，以 clean-room 方式重新設計成 Codex plugin。它不逐項翻譯 Claude commands，也不把 Claude hook payload 假設帶進 Codex runtime，而是採用 Codex plugins、hooks、skills、project agents，以及本機 deterministic runner。
 
 ## 為什麼需要它
 
@@ -51,7 +51,7 @@ codex plugin add sd0x-dev-flow-codex@sd0xdev-marketplace
 
 安裝完成後：
 
-1. 開啟新的 Codex session，讓 skills 與 bundled MCP 被重新探索。
+1. 開啟新的 Codex session，讓 skills 與 plugin manifest 被重新載入。
 2. 執行 `/hooks`，閱讀目前 hook commands 並信任該版本的 hook hash。安裝或 enable plugin 不會自動信任 hooks。
 3. 在要啟用 workflow 的 repository 執行：
 
@@ -101,7 +101,7 @@ codex plugin remove sd0x-dev-flow-codex@sd0xdev-marketplace
 - `verify`：依 repository 類型選擇 deterministic checks，記錄 verification gate。
 - `remind`：在中斷或 context compaction 後，恢復下一個尚未完成的 gate。
 - `reset`：旋轉 runtime epoch、清除 sd0x gate/reviewer evidence，要求目前 dirty worktree 重新 review。
-- `doctor`：檢查安裝、runtime、目前 provider 與 gate 狀態；所有 provider 都要求 bundled MCP 的 allowlisted skill-runtime tool ready，只有 Claude mode 額外要求 Claude CLI/auth 與 review tool readiness。
+- `doctor`：檢查安裝、runtime、目前 provider 與 gate 狀態；確認本機 allowlisted runner 可執行，並檢查當前 Codex session context。
 - `setup`：為目標 repository 安裝 project guidance 與 reviewer profiles。
 
 Setup 安裝的 managed `AGENTS.md` 採 Anchor / Default / Guidance 契約：exact fingerprint、單一 configured primary、deterministic verification 與 runtime integrity 不可降級；實作路徑、批次、時機、研究深度與 focused checks 則交由模型依 repository facts 自主判斷。Hooks 以 versioned `[SD0X_STATE]` 回報事實，不以固定 choreography 指揮每一步。Doctor 會檢查 managed contract 是否缺漏、過期或損壞。
@@ -125,7 +125,7 @@ Reset 不會修改 project files 或停用 active session；它只清除 sd0x ru
 
 `plugin/sd0x-dev-flow-codex/scripts/runtime/worktree.js` 分別雜湊 HEAD→index、index→worktree 的 raw diffs，以及所有未被忽略的 untracked paths/file bodies，也涵蓋 dirty nested Git repositories。即使 staged file 之後被刪除，或 worktree 又改回 HEAD，fingerprint 仍可辨識 staged state。
 
-`skills/review/scripts/provider.js` 回傳單一 Codex primary 與 parent-session 設定來源。`scripts/mcp/server.js` 只提供 allowlisted `run_skill_script`，使用 MCP process 自己的 Node executable，拒絕 PATH shadow 與 loader preload；MCP connection key 為 `sd0x_skill_runtime`，舊 Claude MCP connection 已移除；沒有 `review_worktree` 或 Claude CLI 執行能力。`state.js` 原子保存 fingerprint、epoch、primary terminal evidence；`hook.js` 是 Codex event adapter，`verify.js` 是唯一可記錄 deterministic verification 的 owner。
+`skills/review/scripts/provider.js` 回傳單一 Codex primary 與 parent-session 設定來源。`scripts/runtime/runner.js` 透過本機 shell 執行 allowlisted scripts，使用 runner 自己的 Node executable、清理 child loader 環境並限制入口只能位於已安裝 payload。每次呼叫繼承 shell 的 `CODEX_HOME`／`CODEX_THREAD_ID`，回傳包含 exit_code、stdout、stderr 的 JSON；插件不註冊 MCP server。`state.js` 原子保存 fingerprint、epoch、primary terminal evidence；`hook.js` 是 Codex event adapter，`verify.js` 是唯一可記錄 deterministic verification 的 owner。
 
 Runtime state 存在 Git metadata 或 `.sd0x/`，不會成為 tracked project artifact。Hooks 是 workflow guardrails，不是 OS security boundary；repository permissions 與 secret management 仍是實際安全邊界。
 
@@ -151,7 +151,7 @@ npm run release:check
 - 兩處版本完全一致且符合 SemVer。
 - Alias capability 的 plugin fingerprint 與 current owner decision hash 都和更新後 bytes 一致。
 - 公開 repository、marketplace name、plugin selector 與相對 payload path 正確。
-- manifest 引用的 skills、MCP、hooks 與 license 都存在。
+- manifest 引用的 skills、hooks、local runner 與 license 都存在，且不註冊 MCP server。
 - 唯一 distributable `plugin/sd0x-dev-flow-codex/` 不含 symlink。
 
 把版本變更合併到 `main` 後，[Auto Release workflow](.github/workflows/release.yml) 會：

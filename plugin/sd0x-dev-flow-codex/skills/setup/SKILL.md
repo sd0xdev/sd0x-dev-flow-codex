@@ -16,9 +16,11 @@ Select the mode that matches the requested project-local surface. One allowliste
 
 ## Bounded runtime
 
+Resolve `<plugin-root>` as two directories above this skill's installed directory, from the current `SKILL.md` location. The runner inherits `CODEX_HOME` and `CODEX_THREAD_ID` from the current Codex shell. The runner returns JSON with `exit_code`, `stdout`, and `stderr`; parse the script's JSON from `stdout` and respect failures.
+
 The bundled [setup entrypoint](scripts/setup.js) is the only project-writing implementation for all four modes.
 
-`mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"setup/setup.js","cwd":"<repository-root>","args":[]}'`
+`node "<plugin-root>/scripts/runtime/runner.js" '{"entrypoint":"setup/setup.js","cwd":"<repository-root>","args":[]}'`
 
 For a non-default selected mode, the args array in this same allowlisted call is replaced only by its closed value listed above.
 

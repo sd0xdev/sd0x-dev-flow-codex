@@ -477,7 +477,9 @@ function checkRelease(root = ROOT) {
   assert(entry.policy?.installation === 'AVAILABLE', 'marketplace plugin must be installable');
 
   assertRelativePayloadPath(paths.pluginRoot, manifest.skills, 'skills');
-  assertRelativePayloadPath(paths.pluginRoot, manifest.mcpServers, 'mcpServers');
+  assert(!Object.hasOwn(manifest, 'mcpServers'), 'plugin must not register MCP servers');
+  assert(!fs.existsSync(path.join(paths.pluginRoot, '.mcp.json')), 'plugin must not ship MCP configuration');
+  assertRelativePayloadPath(paths.pluginRoot, './scripts/runtime/runner.js', 'runtime runner');
   assertRelativePayloadPath(paths.pluginRoot, './hooks/hooks.json', 'hooks');
   assert(fs.existsSync(path.join(paths.pluginRoot, 'LICENSE')), 'plugin payload must include LICENSE');
 

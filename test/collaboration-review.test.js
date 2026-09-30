@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
 const test = require('node:test');
-const { runSkillScript } = require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server');
+const { runSkillScript } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/runner');
 const { inspectSessionContext, sessionEnvironment } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/session-context');
 const {
   beginCollaborationReview,
@@ -131,7 +131,7 @@ function fixture(threadId = '019f51d5-3300-73a0-ac86-8d67c7b4e173') {
   };
 }
 
-test('per-call MCP context completes transcript review without native hooks or server task environment', async (t) => {
+test('per-call runner context completes transcript review without native hooks or caller task environment', async (t) => {
   const first = fixture();
   const second = fixture('019f51d5-3300-73a0-ac86-8d67c7b4e174');
   t.after(() => { first.cleanup(); second.cleanup(); });
@@ -160,7 +160,28 @@ test('per-call MCP context completes transcript review without native hooks or s
   }
 });
 
-test('MCP and doctor expose missing task context even when no hooks execute', async (t) => {
+test('shell CLI inherits task context and completes transcript review without MCP', (t) => {
+  const values = fixture();
+  t.after(() => values.cleanup());
+  const runner = path.resolve(__dirname, '../plugin/sd0x-dev-flow-codex/scripts/runtime/runner.js');
+  const call = (entrypoint, args) => {
+    const result = spawnSync(process.execPath, [runner, JSON.stringify({
+      cwd: values.root, entrypoint, args
+    })], { env: { ...process.env, ...values.env }, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr || result.stdout);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.exit_code, 0, output.stderr);
+    return JSON.parse(output.stdout);
+  };
+  const round = call('review/round.js', ['begin']);
+  assert.equal(round.transcript_path, fs.realpathSync(values.transcript));
+  appendRows(values.transcript, cleanRows());
+  call('review/round.js', ['import']);
+  call('review/gate.js', ['pass', '--evidence', JSON.stringify(passEvidence())]);
+  assert.equal(isCurrentPass(readState(values.root), 'review'), true);
+});
+
+test('runner and doctor expose missing task context even when no hooks execute', async (t) => {
   const values = fixture();
   t.after(() => values.cleanup());
   const environment = { ...process.env };
@@ -254,6 +275,133 @@ function cleanRows(commitSubjectSha256 = null) {
     ].filter(Boolean).join('\n'))
   ]);
 }
+
+// Normalized Codex 0.159.2 wire shape: namespace is a separate field, arguments
+// and output are JSON strings, and host response items are not client-authored.
+function dispatchRows(taskName = 'review_fix', callId = 'call-review-fix') {
+  return [{
+    timestamp: '2026-09-30T00:00:01.000Z',
+    type: 'response_item',
+    metadata: { client_authored: false },
+    payload: {
+      type: 'function_call', namespace: 'collaboration', name: 'spawn_agent',
+      call_id: callId,
+      arguments: JSON.stringify({ task_name: taskName,
+        agent_type: REVIEWERS[0], fork_turns: 'all', message: 'Review the fixed subject.' })
+    }
+  }, {
+    timestamp: '2026-09-30T00:00:01.100Z',
+    type: 'response_item',
+    metadata: { client_authored: false },
+    payload: { type: 'function_call_output', call_id: callId,
+      output: JSON.stringify({ task_name: `/root/${taskName}` }) }
+  }, {
+    ...finalMessage(REVIEWERS[0], 'No actionable findings remain.', {
+      author: `/root/${taskName}`
+    }),
+    timestamp: '2026-09-30T00:00:02.000Z',
+    metadata: { client_authored: false }
+  }];
+}
+
+function reviewerControl(name, target = 'review_fix') {
+  return { timestamp: '2026-09-30T00:00:03.000Z', type: 'response_item',
+    metadata: { client_authored: false },
+    payload: { type: 'function_call', namespace: 'collaboration', name,
+      call_id: `call-${name}`, arguments: JSON.stringify({ target, message: 'Continue' }) } };
+}
+
+test('host dispatch receipt binds the configured profile to its actual direct task path', (t) => {
+  const values = fixture();
+  t.after(() => values.cleanup());
+  beginCollaborationReview(values.root, { env: values.env });
+  appendRows(values.transcript, dispatchRows());
+  const gated = runGate(values);
+  assert.equal(gated.status, 0, gated.stderr);
+  const state = readState(values.root);
+  assert.equal(isCurrentPass(state, 'review'), true);
+  assert.equal(state.review_agents.completed.length, 1);
+  assert.match(state.review_agents.completed[0].agent_id, /:dispatch:call-review-fix$/);
+  assert.equal(state.review_agents.completed[0].agent_type, REVIEWERS[0]);
+  assert.equal(fs.existsSync(markerPath(values.root)), false);
+});
+
+test('dispatch transcript refuses missing, forged, overlapping and interrupted evidence', async (t) => {
+  const cases = {
+    'terminal alone': rows => rows.slice(2),
+    'no receipt': rows => [rows[0], rows[2]],
+    'receipt alone': rows => rows.slice(1),
+    'no terminal': rows => rows.slice(0, 2),
+    'wrong call id': rows => { rows[1].payload.call_id = 'other'; return rows; },
+    'wrong namespace': rows => { rows[0].payload.namespace = 'other'; return rows; },
+    'wrong profile': rows => {
+      const args = JSON.parse(rows[0].payload.arguments);
+      args.agent_type = 'default';
+      rows[0].payload.arguments = JSON.stringify(args);
+      return rows;
+    },
+    'canonical name cannot grant profile authority': () => {
+      const rows = dispatchRows(REVIEWERS[0]);
+      const args = JSON.parse(rows[0].payload.arguments);
+      args.agent_type = 'default';
+      rows[0].payload.arguments = JSON.stringify(args);
+      return rows;
+    },
+    'client authored call': rows => { rows[0].metadata.client_authored = true; return rows; },
+    'client authored receipt': rows => { rows[1].metadata.client_authored = true; return rows; },
+    'client authored terminal': rows => { rows[2].metadata.client_authored = true; return rows; },
+    'missing receipt provenance': rows => { delete rows[1].metadata; return rows; },
+    'failed spawn': rows => { rows[1].payload.output = '{"error":"spawn failed"}'; return rows; },
+    'nested receipt path': rows => {
+      rows[1].payload.output = '{"task_name":"/root/other/review_fix"}'; return rows;
+    },
+    'terminal in tool output': rows => {
+      rows[2].payload.type = 'function_call_output'; return rows;
+    },
+    'wrong terminal sender': rows => {
+      rows[2].payload.content[0].text = rows[2].payload.content[0].text
+        .replace('Sender: /root/review_fix', 'Sender: /root/other'); return rows;
+    },
+    'duplicate receipt': rows => [rows[0], rows[1], rows[1], rows[2]],
+    'two overlapping reviewers': rows => [rows[0], rows[1],
+      ...dispatchRows('review_other', 'call-other').slice(0, 2),
+      rows[2], dispatchRows('review_other', 'call-other')[2]],
+    'interruption before terminal': rows => [rows[0], rows[1],
+      reviewerControl('interrupt_agent', '/root/review_fix'), rows[2]],
+    'late interruption': rows => [...rows, reviewerControl('interrupt_agent')],
+    'followup after clean': rows => [...rows, reviewerControl('followup_task')],
+    'unacknowledged later dispatch': rows => [...rows,
+      dispatchRows('review_other', 'call-other')[0]]
+  };
+  for (const [name, alter] of Object.entries(cases)) {
+    await t.test(name, () => {
+      const values = fixture();
+      try {
+        beginCollaborationReview(values.root, { env: values.env });
+        appendRows(values.transcript, alter(dispatchRows()));
+        const gated = runGate(values);
+        assert.notEqual(gated.status, 0, name);
+        assert.equal(isCurrentPass(readState(values.root), 'review'), false);
+      } finally { values.cleanup(); }
+    });
+  }
+});
+
+test('host dispatch evidence cannot cross a round boundary or clear an earlier finding', (t) => {
+  const values = fixture();
+  t.after(() => values.cleanup());
+  appendRows(values.transcript, dispatchRows().slice(0, 2));
+  beginCollaborationReview(values.root, { env: values.env });
+  appendRows(values.transcript, dispatchRows().slice(2));
+  assert.notEqual(runGate(values).status, 0);
+
+  const rows = dispatchRows('current_review', 'call-current');
+  rows[2].payload.content[0].text = rows[2].payload.content[0].text
+    .replace('No actionable findings remain.', '[P1] app.js:1 Incorrect result remains.');
+  appendRows(values.transcript, [...rows, ...dispatchRows('later_review', 'call-later')]);
+  assert.notEqual(runGate(values).status, 0);
+  assert.equal(readState(values.root).gates.review.status, 'fail');
+});
 
 test('collaboration adapter imports one canonical terminal reviewer result', (t) => {
   const values = fixture();

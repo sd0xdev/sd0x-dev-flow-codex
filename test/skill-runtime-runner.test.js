@@ -4,11 +4,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { EventEmitter } = require('node:events');
-const { PassThrough } = require('node:stream');
+const { spawnSync, spawn } = require('node:child_process');
 const test = require('node:test');
-const { RUN_SKILL_SCRIPT_TOOL, runSkillScript, serve } = require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server');
-const { doctor, mcpServerStatus } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/cli');
+const { RUNTIME_ENTRYPOINTS, runSkillScript } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/runner');
+const { doctor, runnerStatus } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/cli');
 const { snapshot } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/worktree');
 const {
   refreshState,
@@ -26,59 +25,39 @@ const {
 
 isolateGitEnvironment();
 
-test('MCP exposes only the deterministic runner and rejects the retired review tool', async (t) => {
-  let executions = 0;
-  const harness = protocolHarness(async () => {
-    executions += 1;
-    return { exit_code: 0, stdout: 'ok', stderr: '' };
-  });
-  t.after(() => harness.close());
-  const initialized = await harness.request({
-    jsonrpc: '2.0', id: 1, method: 'initialize',
-    params: { protocolVersion: '2025-11-25' }
-  });
-  assert.equal(initialized.result.serverInfo.name, 'sd0x-skill-runtime');
-  const listed = await harness.request({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
-  assert.deepEqual(listed.result.tools.map((tool) => tool.name), ['run_skill_script']);
-  const rejected = await harness.request({
-    jsonrpc: '2.0', id: 3, method: 'tools/call',
-    params: { name: 'review_worktree', arguments: {} }
-  });
-  assert.equal(rejected.error.code, -32602);
-  assert.equal(executions, 0);
-  const executed = await harness.request({
-    jsonrpc: '2.0', id: 4, method: 'tools/call',
-    params: { name: 'run_skill_script', arguments: {} }
-  });
-  assert.equal(executed.result.isError, false);
-  assert.equal(executions, 1);
-  assert.equal(require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server').reviewWorktree, undefined);
-});
+const PLUGIN = path.resolve(__dirname, '../plugin/sd0x-dev-flow-codex');
+const RUNNER = path.join(PLUGIN, 'scripts/runtime/runner.js');
 
-test('doctor verifies the real runtime handshake without a review tool', () => {
-  const result = mcpServerStatus(path.resolve(__dirname, '../plugin/sd0x-dev-flow-codex'));
+test('plugin exposes the local runner without MCP configuration', () => {
+  const manifest = JSON.parse(fs.readFileSync(path.join(PLUGIN, '.codex-plugin/plugin.json')));
+  assert.equal(Object.hasOwn(manifest, 'mcpServers'), false);
+  assert.equal(fs.existsSync(path.join(PLUGIN, '.mcp.json')), false);
+  assert.equal(fs.existsSync(path.join(PLUGIN, 'scripts/mcp/server.js')), false);
+  const result = runnerStatus(PLUGIN);
   assert.equal(result.ready, true);
-  assert.equal(result.runtime_ready, true);
-  assert.equal(result.tool, null);
-  assert.equal(result.server_name, 'sd0x-skill-runtime');
+  assert.equal(result.transport, 'cli');
+  assert.deepEqual(result.entrypoints, Object.keys(RUNTIME_ENTRYPOINTS));
 });
 
-test('doctor rejects a retained Claude connection before starting any server', (t) => {
+test('doctor rejects retained MCP registration before executing a runner', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-retired-connection-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  const configuration = JSON.parse(fs.readFileSync(path.resolve(
-    __dirname, '../plugin/sd0x-dev-flow-codex/.mcp.json'
-  ), 'utf8'));
-  assert.deepEqual(Object.keys(configuration.mcpServers), ['sd0x_skill_runtime']);
-  const server = configuration.mcpServers.sd0x_skill_runtime;
-  for (const servers of [
-    { sd0x_claude_review: server },
-    { sd0x_skill_runtime: server, sd0x_claude_review: server }
-  ]) {
-    fs.writeFileSync(path.join(root, '.mcp.json'), JSON.stringify({ mcpServers: servers }));
-    const result = mcpServerStatus(root, () => assert.fail('retired connection must not execute'));
-    assert.deepEqual(result, { ready: false, reason: 'retired-review-connection-present' });
-  }
+  fs.mkdirSync(path.join(root, '.codex-plugin'));
+  const manifest = path.join(root, '.codex-plugin/plugin.json');
+  fs.writeFileSync(manifest, JSON.stringify({ mcpServers: './.mcp.json' }));
+  const execute = () => assert.fail('retained MCP configuration must not execute');
+  assert.equal(runnerStatus(root, execute).reason, 'mcp-configuration-present');
+  fs.writeFileSync(manifest, '{}');
+  fs.writeFileSync(path.join(root, '.mcp.json'), '{}');
+  assert.equal(runnerStatus(root, execute).reason, 'mcp-configuration-present');
+});
+
+test('doctor fails closed on a broken runner or unexpected description', () => {
+  for (const result of [
+    { error: { code: 'ETIMEDOUT' } }, { status: 1 },
+    { status: 0, stdout: 'not JSON' },
+    { status: 0, stdout: JSON.stringify({ schema_version: 1, transport: 'cli', entrypoints: [] }) }
+  ]) assert.equal(runnerStatus(PLUGIN, () => result).ready, false);
 });
 
 function createRepo() {
@@ -93,57 +72,7 @@ function createRepo() {
   return root;
 }
 
-function protocolHarness(executeRuntime) {
-  const input = new PassThrough();
-  const output = new PassThrough();
-  const pending = new Map();
-  let buffer = '';
-  output.setEncoding('utf8');
-  output.on('data', (chunk) => {
-    buffer += chunk;
-    let index;
-    while ((index = buffer.indexOf('\n')) >= 0) {
-      const line = buffer.slice(0, index);
-      buffer = buffer.slice(index + 1);
-      if (!line) continue;
-      const message = JSON.parse(line);
-      const request = pending.get(message.id);
-      if (request) {
-        pending.delete(message.id);
-        clearTimeout(request.timer);
-        request.resolve(message);
-      }
-    }
-  });
-  const lines = serve({ input, output, runSkillScript: executeRuntime });
-  return {
-    request(message) {
-      return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          pending.delete(message.id);
-          reject(new Error('MCP response timeout'));
-        }, 1000);
-        pending.set(message.id, { resolve, reject, timer });
-        input.write(`${JSON.stringify(message)}\n`);
-      });
-    },
-    notify(message) {
-      input.write(`${JSON.stringify(message)}\n`);
-    },
-    close() {
-      lines.close();
-      input.end();
-      output.end();
-      for (const request of pending.values()) {
-        clearTimeout(request.timer);
-        request.reject(new Error('MCP transport closed'));
-      }
-      pending.clear();
-    }
-  };
-}
-
-test('runtime tool pins the host Node executable and installed script in hostile environments',
+test('runtime runner pins the host Node executable and installed script in hostile environments',
   async (t) => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-runtime-tool-'));
     t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -202,7 +131,7 @@ test('runtime tool pins the host Node executable and installed script in hostile
     });
   });
 
-test('runtime tool rejects malformed inputs and installed entrypoint escapes', (t) => {
+test('runtime runner rejects malformed inputs and installed entrypoint escapes', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-runtime-tool-reject-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const pluginRoot = path.join(root, 'plugin');
@@ -236,22 +165,22 @@ test('runtime tool rejects malformed inputs and installed entrypoint escapes', (
 test('doctor always checks the skill runtime but skips Claude checks for Codex', (t) => {
   const root = createRepo();
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  let mcpChecks = 0;
+  let runnerChecks = 0;
   const status = doctor(root, {
     claudeStatus: () => {
       throw new Error('Claude status must not run in Codex mode');
     },
-    mcpStatus: () => {
-      mcpChecks += 1;
-      return { ready: true, runtime_ready: true };
+    runnerStatus: () => {
+      runnerChecks += 1;
+      return { ready: true, transport: 'cli' };
     }
   });
   assert.equal(status.review_provider, 'codex');
   assert.equal('claude' in status, false);
-  assert.equal(mcpChecks, 1);
-  assert.equal(status.mcp.runtime_ready, true);
+  assert.equal(runnerChecks, 1);
+  assert.equal(status.runtime.ready, true);
   assert.equal(
-    status.checks.find((check) => check.check === 'skill-runtime-mcp-handshake').ok,
+    status.checks.find((check) => check.check === 'skill-runtime-cli').ok,
     true
   );
   assert.equal(status.checks.some((check) => check.check === 'claude-cli'), false);
@@ -271,7 +200,7 @@ test('doctor reports managed guidance contract drift for enabled projects', (t) 
     review: { provider: 'codex' }
   }));
   const options = {
-    mcpStatus: () => ({ runtime_ready: true, review_ready: false })
+    runnerStatus: () => ({ ready: true, transport: 'cli' })
   };
 
   let status = doctor(root, options);
@@ -342,7 +271,7 @@ test('doctor fails when any shipped skill artifact is missing', (t) => {
   const options = {
     pluginRoot,
     claudeStatus: () => ({ installed: true, compatible: true, authenticated: true }),
-    mcpStatus: () => ({ runtime_ready: true, review_ready: true })
+    runnerStatus: () => ({ ready: true, transport: 'cli' })
   };
 
   const representativeArtifacts = [
@@ -391,7 +320,7 @@ test('doctor rejects symbolic payload files and a symbolic manifest', (t) => {
   const options = {
     pluginRoot,
     claudeStatus: () => ({ installed: true, compatible: true, authenticated: true }),
-    mcpStatus: () => ({ runtime_ready: true, review_ready: true })
+    runnerStatus: () => ({ ready: true, transport: 'cli' })
   };
 
   const relative = 'skills/test-review/SKILL.md';
@@ -423,63 +352,69 @@ test('doctor rejects symbolic payload files and a symbolic manifest', (t) => {
   { check: manifestRelative, ok: false });
 });
 
-test('MCP cancellation aborts the active runtime request', async (t) => {
-  let started;
-  const reviewStarted = new Promise((resolve) => { started = resolve; });
-  const harness = protocolHarness((_input, options) => new Promise((_resolve, reject) => {
-    started();
-    options.signal.addEventListener('abort', () => {
-      const error = new Error('Runtime cancelled');
-      error.code = 'ABORT_ERR';
-      reject(error);
-    }, { once: true });
-  }));
-  t.after(() => harness.close());
-  const responsePromise = harness.request({
-    jsonrpc: '2.0',
-    id: 9,
-    method: 'tools/call',
-    params: {
-      name: 'run_skill_script',
-      arguments: { cwd: '/repo', fingerprint: 'a'.repeat(64) }
-    }
-  });
-  await reviewStarted;
-  harness.notify({
-    jsonrpc: '2.0',
-    method: 'notifications/cancelled',
-    params: { requestId: 9, reason: 'client stopped waiting' }
-  });
-  const response = await responsePromise;
-  assert.equal(response.result.isError, true);
-  assert.match(response.result.content[0].text, /cancelled/);
+test('CLI reports script output and preserves failing script exit status', (t) => {
+  const root = createRepo();
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const env = { ...process.env };
+  delete env.CODEX_HOME;
+  delete env.CODEX_THREAD_ID;
+  for (const [entrypoint, expected] of [['review/provider.js', 0], ['doctor/doctor.js', 1]]) {
+    const result = spawnSync(process.execPath, [RUNNER, JSON.stringify({
+      cwd: root, entrypoint, args: []
+    })], { env, encoding: 'utf8' });
+    assert.equal(result.status, expected, result.stderr);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.exit_code, expected);
+    assert.equal(output.entrypoint, entrypoint);
+    assert.equal(typeof JSON.parse(output.stdout), 'object');
+    if (expected) assert.match(output.stderr, /session-context-missing/);
+  }
+  for (const args of [[], ['{bad'], ['{}', '{}'], [JSON.stringify({
+    cwd: root, entrypoint: 'review_worktree'
+  })]]) {
+    const result = spawnSync(process.execPath, [RUNNER, ...args], { encoding: 'utf8' });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /sd0x runner:/);
+  }
 });
 
-test('closing the MCP transport aborts active runtime work', async () => {
-  let started;
-  let aborted;
-  const reviewStarted = new Promise((resolve) => { started = resolve; });
-  const reviewAborted = new Promise((resolve) => { aborted = resolve; });
-  const harness = protocolHarness((_input, options) => new Promise((_resolve, reject) => {
-    started();
-    options.signal.addEventListener('abort', () => {
-      aborted();
-      const error = new Error('transport closed');
-      error.code = 'ABORT_ERR';
-      reject(error);
-    }, { once: true });
-  }));
-  const responsePromise = harness.request({
-    jsonrpc: '2.0',
-    id: 10,
-    method: 'tools/call',
-    params: {
-      name: 'run_skill_script',
-      arguments: { cwd: '/repo', fingerprint: 'a'.repeat(64) }
-    }
+function childFixture(t, body) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-runner-child-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const pluginRoot = path.join(root, 'plugin');
+  fs.cpSync(PLUGIN, pluginRoot, { recursive: true });
+  fs.writeFileSync(path.join(pluginRoot, 'skills/remind/scripts/status.js'), body);
+  return { root, pluginRoot, input: { cwd: root, entrypoint: 'remind/status.js' } };
+}
+
+test('runner terminates output-overflow work and honors an abort signal', async (t) => {
+  const values = childFixture(t, "process.stdout.write('x'.repeat(4096)); setInterval(() => {}, 1000);");
+  await assert.rejects(runSkillScript(values.input, {
+    pluginRoot: values.pluginRoot, maxOutputBytes: 128
+  }), /output exceeded the limit/);
+  const controller = new AbortController();
+  const running = runSkillScript(values.input, {
+    pluginRoot: values.pluginRoot, signal: controller.signal
   });
-  await reviewStarted;
-  harness.close();
-  await reviewAborted;
-  await assert.rejects(responsePromise, /transport closed/);
+  controller.abort();
+  await assert.rejects(running, { code: 'ABORT_ERR' });
+});
+
+test('CLI cancellation aborts its running script', { skip: process.platform === 'win32' }, async (t) => {
+  const values = childFixture(t, "require('node:fs').writeFileSync('started', String(process.pid)); setInterval(() => {}, 1000);");
+  const child = spawn(process.execPath, [path.join(values.pluginRoot, 'scripts/runtime/runner.js'),
+    JSON.stringify(values.input)], { stdio: ['ignore', 'pipe', 'pipe'] });
+  t.after(() => child.kill('SIGKILL'));
+  const closed = new Promise((resolve, reject) => {
+    child.once('error', reject);
+    child.once('close', (code, signal) => resolve({ code, signal }));
+  });
+  const marker = path.join(values.root, 'started');
+  const deadline = Date.now() + 5000;
+  while (!fs.existsSync(marker) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.ok(fs.existsSync(marker), 'script must start before cancellation');
+  child.kill('SIGTERM');
+  assert.deepEqual(await closed, { code: 143, signal: null });
 });

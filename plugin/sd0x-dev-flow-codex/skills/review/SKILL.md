@@ -18,10 +18,10 @@ mode that records the repository review gate.
 Non-default modes are direct reporting workflows. The `round.js` and `gate.js`
 wrappers are excluded; these modes never write runtime evidence or satisfy
 repository completion.
-They still fail closed on a stale subject. Before dispatch, run
-`mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"review/snapshot.js","cwd":"<repository-root>","args":[]}'`
+They still fail closed on a stale subject. Resolve `<plugin-root>` as two directories above this skill's installed directory, from the current `SKILL.md` location. The runner inherits `CODEX_HOME` and `CODEX_THREAD_ID` from the current Codex shell. The runner returns JSON with `exit_code`, `stdout`, and `stderr`; parse the script's JSON from `stdout` and respect failures. Before dispatch, run
+`node "<plugin-root>/scripts/runtime/runner.js" '{"entrypoint":"review/snapshot.js","cwd":"<repository-root>","args":[]}'`
 and retain its canonical root and fingerprint. Immediately after the reviewer
-returns, run the same exact tool call again. Discard the reviewer output and report that
+returns, run the same exact runner command again. Discard the reviewer output and report that
 the subject changed whenever either value differs; never present stale findings
 as the selected subject.
 Return their findings to the user with the selected mode, exact subject, inspected

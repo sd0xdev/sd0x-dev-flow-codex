@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "codex_version": "codex-cli 0.154.0",
+  "codex_version": "codex-cli 0.159.2",
   "normalized": true,
   "redactions": {
     "absolute_paths": "removed",

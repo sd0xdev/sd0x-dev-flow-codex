@@ -9,9 +9,9 @@ Default is the only gating mode. After current-fingerprint primary review passes
 
 The bundled runtime call is:
 
-`mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":[]}'`
+`node "<plugin-root>/scripts/runtime/runner.js" '{"entrypoint":"verify/verify.js","cwd":"<repository-root>","args":[]}'`
 
-Provide the current shell `CODEX_HOME` and `CODEX_THREAD_ID` as `context.codex_home` and `context.thread_id` on each call. Select args from the mode table below. The [bundled entrypoint](scripts/verify.js) owns ecosystem detection, command selection, execution and result recording.
+Resolve `<plugin-root>` as two directories above this skill's installed directory, from the current `SKILL.md` location. The runner inherits `CODEX_HOME` and `CODEX_THREAD_ID` from the current Codex shell. Parse the runner's JSON envelope and respect its `exit_code` and `stderr`. Default mode's `stdout` contains command logs and the verification gate result; fast and precommit modes return script JSON in `stdout`. Select args from the mode table below. The [bundled entrypoint](scripts/verify.js) owns ecosystem detection, command selection, execution and result recording.
 
 | Mode | Args | Behavior |
 | --- | --- | --- |

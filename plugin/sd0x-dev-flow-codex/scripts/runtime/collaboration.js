@@ -16,7 +16,7 @@ const { reviewProvider } = require('./config');
 const { findRepoRoot, snapshot } = require('./worktree');
 const { inspectSessionContext, locateTranscript } = require('./session-context');
 
-const ADAPTER = 'codex-collaboration-jsonl-v2';
+const ADAPTER = 'codex-collaboration-jsonl-v3';
 const MARKER_SCHEMA_VERSION = 4;
 const MARKER_LOCK_OWNER_GRACE_MS = 1_000;
 const MARKER_LOCK_WAIT_MS = 5_000;
@@ -293,6 +293,23 @@ function parseCollaborationEvents(
   const pending = new Map();
   const interrupted = new Set();
   const overlapping = new Set();
+  // Codex 0.159.2 records collaboration dispatch as a namespaced function call
+  // and its host receipt instead of sub_agent_activity. Both must occur after
+  // the round boundary; an agent_message alone never establishes authority.
+  const dispatches = new Map();
+  const received = new Set();
+  const dispatchedPaths = new Map();
+  const reviewerAt = (agentPath) => dispatchedPaths.get(agentPath) ||
+    reviewers.find((candidate) => agentPath === `${parentPath}/${candidate}`);
+  const hostRow = (row) => row.type === 'response_item' &&
+    row.metadata?.client_authored === false &&
+    typeof row.timestamp === 'string' && Number.isFinite(Date.parse(row.timestamp));
+  const startReview = (entry) => {
+    if ([...pending.values()].some((item) => item.agent_type === entry.agent_type)) {
+      overlapping.add(entry.agent_type);
+    }
+    pending.set(entry.agent_path, entry);
+  };
   const results = [];
   const lines = text.split('\n').filter((line) => line.trim());
   for (let index = 0; index < lines.length; index += 1) {
@@ -303,15 +320,80 @@ function parseCollaborationEvents(
       throw new Error('Collaboration transcript contains malformed JSONL');
     }
     const payload = row?.payload;
+    if (payload?.type === 'function_call' && payload.namespace === 'collaboration' &&
+        ['spawn_agent', 'followup_task', 'interrupt_agent'].includes(payload.name)) {
+      let args;
+      try {
+        args = JSON.parse(payload.arguments);
+      } catch {
+        throw new Error('Malformed collaboration dispatch arguments');
+      }
+      if (!args || typeof args !== 'object' || Array.isArray(args)) {
+        throw new Error('Malformed collaboration dispatch arguments');
+      }
+      if (payload.name !== 'spawn_agent') {
+        const target = typeof args.target === 'string' && args.target.startsWith('/')
+          ? args.target : `${parentPath}/${args.target}`;
+        const agentType = reviewerAt(target);
+        if (!agentType) continue;
+        if (!hostRow(row)) throw new Error('Untrusted collaboration dispatch');
+        if (payload.name === 'interrupt_agent') {
+          interrupted.add(agentType);
+          pending.delete(target);
+        } else {
+          // A followup can refer to an agent created before the round boundary.
+          // This adapter deliberately requires a fresh, profile-bound spawn.
+          throw new Error('Collaboration review requires a fresh configured spawn, not followup_task');
+        }
+        continue;
+      }
+      if (!reviewerSet.has(args.agent_type) && !reviewerSet.has(args.task_name)) continue;
+      if (!hostRow(row) || typeof payload.call_id !== 'string' || !payload.call_id ||
+          !reviewerSet.has(args.agent_type) ||
+          typeof args.task_name !== 'string' || !/^[a-z0-9_]+$/.test(args.task_name)) {
+        throw new Error('Malformed or untrusted configured reviewer dispatch');
+      }
+      if (dispatches.has(payload.call_id) || received.has(payload.call_id)) {
+        throw new Error('Duplicate collaboration dispatch call');
+      }
+      dispatches.set(payload.call_id, {
+        agent_type: args.agent_type,
+        agent_path: `${parentPath}/${args.task_name}`,
+        parent_path: parentPath,
+        agent_id: `dispatch:${payload.call_id}`,
+        started_at: row.timestamp
+      });
+      continue;
+    }
+    if (payload?.type === 'function_call_output' &&
+        (dispatches.has(payload.call_id) || received.has(payload.call_id))) {
+      if (!hostRow(row) || received.has(payload.call_id)) {
+        throw new Error('Untrusted or duplicate collaboration dispatch receipt');
+      }
+      const start = dispatches.get(payload.call_id);
+      let receipt;
+      try {
+        receipt = JSON.parse(payload.output);
+      } catch {
+        throw new Error('Malformed collaboration dispatch receipt');
+      }
+      if (!receipt || Object.keys(receipt).length !== 1 ||
+          receipt.task_name !== start.agent_path || dispatchedPaths.has(start.agent_path)) {
+        throw new Error('Collaboration dispatch receipt does not confirm a fresh configured reviewer');
+      }
+      dispatches.delete(payload.call_id);
+      received.add(payload.call_id);
+      dispatchedPaths.set(start.agent_path, start.agent_type);
+      startReview(start);
+      continue;
+    }
     const canonicalActivity = reviewers.find((candidate) =>
       payload?.agent_path === `${parentPath}/${candidate}`
     );
     if (canonicalActivity && payload?.type !== 'sub_agent_activity') {
       throw new Error(`Malformed collaboration activity for ${canonicalActivity}`);
     }
-    const canonicalAuthor = reviewers.find((candidate) =>
-      payload?.author === `${parentPath}/${candidate}`
-    );
+    const canonicalAuthor = reviewerAt(payload?.author);
     if (canonicalAuthor && payload?.type !== 'agent_message') {
       throw new Error(`Malformed collaboration terminal message for ${canonicalAuthor}`);
     }
@@ -329,8 +411,7 @@ function parseCollaborationEvents(
         throw new Error(`Malformed collaboration activity for ${agentType}`);
       }
       if (payload.kind === 'interacted') {
-        if (pending.has(agentPath)) overlapping.add(agentType);
-        pending.set(agentPath, {
+        startReview({
           agent_type: agentType,
           agent_path: agentPath,
           parent_path: parentPath,
@@ -345,9 +426,8 @@ function parseCollaborationEvents(
     }
     if (payload?.type !== 'agent_message' || typeof payload.author !== 'string') continue;
     const start = pending.get(payload.author);
-    if (reviewers.some((candidate) =>
-      payload.author === `${parentPath}/${candidate}`
-    ) && (row?.type !== 'response_item' || payload.recipient !== parentPath)) {
+    if (canonicalAuthor && (row?.type !== 'response_item' || payload.recipient !== parentPath ||
+        (dispatchedPaths.has(payload.author) && !hostRow(row)))) {
       throw new Error('Malformed collaboration terminal message');
     }
     if (!start || payload.recipient !== start.parent_path) continue;
@@ -371,6 +451,7 @@ function parseCollaborationEvents(
     });
     pending.delete(payload.author);
   }
+  if (dispatches.size) throw new Error('Collaboration dispatch has no successful host receipt');
   for (const reviewer of reviewers) {
     if (interrupted.has(reviewer)) {
       throw new Error(`Collaboration reviewer was interrupted: ${reviewer}`);
@@ -378,7 +459,7 @@ function parseCollaborationEvents(
     if (overlapping.has(reviewer)) {
       throw new Error(`Collaboration reviewer has overlapping starts: ${reviewer}`);
     }
-    if (pending.has(`${parentPath}/${reviewer}`)) {
+    if ([...pending.values()].some((entry) => entry.agent_type === reviewer)) {
       throw new Error(`Collaboration reviewer has no terminal result: ${reviewer}`);
     }
     if (!results.some((entry) => entry.agent_type === reviewer)) {

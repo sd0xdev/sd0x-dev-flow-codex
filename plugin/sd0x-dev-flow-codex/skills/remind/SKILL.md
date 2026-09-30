@@ -9,7 +9,9 @@ The allowlisted bundled entrypoint below performs the read-only status inspectio
 
 ## Bounded runtime
 
-`mcp__sd0x_skill_runtime__run_skill_script '{"entrypoint":"remind/status.js","cwd":"<repository-root>","args":[]}'`
+Resolve `<plugin-root>` as two directories above this skill's installed directory, from the current `SKILL.md` location. The runner inherits `CODEX_HOME` and `CODEX_THREAD_ID` from the current Codex shell. The runner returns JSON with `exit_code`, `stdout`, and `stderr`; parse the script's JSON from `stdout` and respect failures.
+
+`node "<plugin-root>/scripts/runtime/runner.js" '{"entrypoint":"remind/status.js","cwd":"<repository-root>","args":[]}'`
 
 - `reviewer-unavailable`: preserve failure evidence; use the reset skill under existing user authorization within its scope, or ask before reset if none applies.
 - `review-in-progress`: wait for the configured primary terminal result.

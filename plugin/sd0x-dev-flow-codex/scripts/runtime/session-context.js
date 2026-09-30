@@ -5,7 +5,7 @@ const path = require('node:path');
 const { findRepoRoot } = require('./worktree');
 
 const THREAD_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const RECOVERY = 'Read CODEX_HOME and CODEX_THREAD_ID from the current Codex shell tool, then pass context: { codex_home, thread_id } on each run_skill_script call. Do not guess a home, select the newest transcript, or reuse another task. Alternatively run the installed script directly in that same shell. Reset does not repair missing task context.';
+const RECOVERY = 'Run the installed runner from the current Codex shell with its CODEX_HOME and CODEX_THREAD_ID. Explicit callers may pass context: { codex_home, thread_id } from that same shell. Do not guess a home, select the newest transcript, or reuse another task. Alternatively run the installed script directly in that same shell. Reset does not repair missing task context.';
 
 function findTranscriptFiles(directory, suffix, depth = 0) {
   if (depth > 5) return [];
@@ -78,7 +78,7 @@ function sessionEnvironment(context, environment, cwd) {
       typeof context.thread_id !== 'string' || !THREAD_ID.test(context.thread_id)) {
     throw new Error('context requires only an absolute codex_home and UUID thread_id from the current Codex shell');
   }
-  // A long-lived MCP process may serve several threads. Never mutate its environment.
+  // Explicit callers may supply task identity. Never mutate the caller environment.
   const env = { ...environment, CODEX_HOME: context.codex_home, CODEX_THREAD_ID: context.thread_id };
   const inspected = inspectSessionContext(cwd, env);
   if (!inspected.available) throw new Error(`${inspected.reason}: ${inspected.recovery}`);

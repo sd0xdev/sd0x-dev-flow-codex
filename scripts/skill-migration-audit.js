@@ -47,7 +47,7 @@ const {
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/request-metadata');
 const {
   RUNTIME_ENTRYPOINTS
-} = require('../plugin/sd0x-dev-flow-codex/scripts/mcp/server');
+} = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/runner');
 
 const ROOT = path.resolve(__dirname, '..');
 const CANDIDATE_COMPLETE_EVIDENCE = Symbol('candidate-complete-evidence');
@@ -111,6 +111,14 @@ const ALIAS_CAPABILITY_CANONICAL_OWNER_HISTORY = Object.freeze([
   Object.freeze({
     path: 'docs/features/skill-toolkit-migration/requests/2026-09-05-alias-capability-codex-0-153-4-refresh.md',
     sha256: 'b3ab64ee2d9d3a8d8cc4e9b5305d08b628a07c1c41974c4bbecb2efcf4afb47e'
+  }),
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-09-14-alias-capability-codex-0-154-0-refresh.md',
+    sha256: 'a5289c15a4af89b215532004ec1d8ac29a602aca4490a46f5d230fdd618e61eb'
+  }),
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-09-30-alias-capability-codex-0-159-2-refresh.md',
+    sha256: '6e747a05009cac3f12d19e6865109666219985827610d307ab52e03b32949abb'
   })
 ]);
 const WAVE1_READINESS_PATH = 'migration/evidence/wave1-delivery-readiness.json';
@@ -145,7 +153,9 @@ const ACTIVE_CANDIDATE_FINAL_EVIDENCE_EXEMPTIONS = new Map([
   { unit: 'create-request/default', acceptance: 'Complete' }
 ]));
 const BOUNDARY_MARKER = '<!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->';
+// Retained only to audit immutable historical migration payloads.
 const TRUSTED_RUNTIME_TOOL = 'mcp__sd0x_skill_runtime__run_skill_script';
+const TRUSTED_RUNTIME_RUNNER = '<plugin-root>/scripts/runtime/runner.js';
 const READ_ONLY_RUNTIME_ENTRYPOINTS = new Set([
   'doctor/doctor.js',
   'remind/status.js'
@@ -5716,9 +5726,13 @@ function trustedRuntimeToolEntrypoint(
   if (!(trustedFiles instanceof Set) || executableIndex !== 0 ||
       typeof trustedSkill !== 'string' || !trustedSkill) return false;
   const executable = records[executableIndex];
-  if (executable?.value !== TRUSTED_RUNTIME_TOOL ||
-      executable.raw !== TRUSTED_RUNTIME_TOOL) return false;
-  const args = records.slice(executableIndex + 1);
+  const legacy = executable?.value === TRUSTED_RUNTIME_TOOL &&
+    executable.raw === TRUSTED_RUNTIME_TOOL;
+  const local = executable?.value === 'node' && executable.raw === 'node' &&
+    records[1]?.value === TRUSTED_RUNTIME_RUNNER &&
+    records[1]?.raw === `"${TRUSTED_RUNTIME_RUNNER}"`;
+  if (!legacy && !local) return false;
+  const args = records.slice(executableIndex + (local ? 2 : 1));
   if (args.length !== 1 ||
       args.some((token) => token.dynamic || token.executes || token.expansion)) {
     return false;

@@ -3,11 +3,7 @@
   "files": [
     {
       "path": ".codex-plugin/plugin.json",
-      "sha256": "030920736c05b2ae3904505beaa9604e739c9f0dbae58ae49a3047867785b8e9"
-    },
-    {
-      "path": ".mcp.json",
-      "sha256": "478805a26032ba44c69776d614d0833b228b264521393d5c617576897725c4be"
+      "sha256": "bcd8dba40a4774253127168eed92554760a10dca821a9004457d6e154315d8de"
     },
     {
       "path": "LICENSE",
@@ -18,16 +14,12 @@
       "sha256": "524ac78c841ad5d043701844c73b0d300f887025a8810dd50280c9c02221aecf"
     },
     {
-      "path": "scripts/mcp/server.js",
-      "sha256": "66016b90ba1fcae981b594168677ec1a66f3b31d9983ed6855c32cd9b804370f"
-    },
-    {
       "path": "scripts/runtime/cli.js",
-      "sha256": "1c093c4ce7e7f45e2f9ea700cdd05e33d94c50c52eb43319c3455164341c7670"
+      "sha256": "5411b7a0a26c8eb1f00a5855abc19a3131588265d904766eb1c07f3820ed4eed"
     },
     {
       "path": "scripts/runtime/collaboration.js",
-      "sha256": "77b22360a587d12c8e41eb1b4d35500d1da819b20774017b7fd80d70c3750f6f"
+      "sha256": "39c1eccf18c4cfc9f1e067e582b752211c65e019da30b9eb1b2f5b151222ccc5"
     },
     {
       "path": "scripts/runtime/config.js",
@@ -42,8 +34,12 @@
       "sha256": "8c75a3a2e3d753abbcbbb96f2f1c5336639376e825c1639c73927fe1354e5e2f"
     },
     {
+      "path": "scripts/runtime/runner.js",
+      "sha256": "6488d49cb0bd26b72dddbd9aa54ef7857798c641ade94a77821b9835f3ffee48"
+    },
+    {
       "path": "scripts/runtime/session-context.js",
-      "sha256": "c493b519faf2b43c2439500ed2302078bec4d1228cb51fb5e5df8552ac034d71"
+      "sha256": "43ee64967650bbfc857ca77521ac4f354713b0129b67df8ab708d480a795b6bb"
     },
     {
       "path": "scripts/runtime/setup.js",
@@ -307,7 +303,7 @@
     },
     {
       "path": "skills/doctor/SKILL.md",
-      "sha256": "8942aedf90a7e250dee0d6157d96c9413ca9565813d9a86430095e337fd7d524"
+      "sha256": "92f7d667d254a170d5f7a6621a297a80e4e0ea4e26eb38978139dbcf71021d4b"
     },
     {
       "path": "skills/doctor/migration-contract.json",
@@ -727,7 +723,7 @@
     },
     {
       "path": "skills/remind/SKILL.md",
-      "sha256": "2b08da78efb2aa43cd2b8697d21a5b1cae5f065e29d16a1b02715a377e7f5020"
+      "sha256": "5730aa22c255ece12227adcd97cb744e0dd278e17db4a57649c1d89d222af71a"
     },
     {
       "path": "skills/remind/migration-contract.json",
@@ -807,7 +803,7 @@
     },
     {
       "path": "skills/review/SKILL.md",
-      "sha256": "ee019449eab7d10e184df0d479285dbb9ca5221d99f25b218fdc467d8f67006d"
+      "sha256": "8a7d97e365c2b54bb96517780780e9ed40bf89fbbf12b5338a92db0080f06d6f"
     },
     {
       "path": "skills/review/migration-contract.json",
@@ -815,7 +811,7 @@
     },
     {
       "path": "skills/review/references/default.md",
-      "sha256": "76fe172f2aa7988e345238a5695dbe15cc05fadeed7fe5b8a36c179c96dd0f4d"
+      "sha256": "45bf3dd5578cf6164e7afad65092b092905f9a6a3379763cd9918cd1549f9a0a"
     },
     {
       "path": "skills/review/references/review-theory.md",
@@ -883,7 +879,7 @@
     },
     {
       "path": "skills/setup/SKILL.md",
-      "sha256": "5557ee0446f2b1c09966c7ec04e69438c0398bfc50ac47065030c3fbab6e2878"
+      "sha256": "24653201b84b42c50235e7cdea1e0b45ea5aaf808ef425e7bc5286c189d55fe5"
     },
     {
       "path": "skills/setup/migration-contract.json",
@@ -1023,7 +1019,7 @@
     },
     {
       "path": "skills/verify/SKILL.md",
-      "sha256": "15ff16c357476f11d688e1542a4a73e4395983443373b8913d885c92bb546259"
+      "sha256": "4e0a74fdd8f38f5b2f59236564cf2ef4d406126f2d40cbd4496c842749aca7e2"
     },
     {
       "path": "skills/verify/migration-contract.json",

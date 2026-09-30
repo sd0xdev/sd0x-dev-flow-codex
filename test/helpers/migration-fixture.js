@@ -36,6 +36,9 @@ function rewindEvidenceFixtureToStableClosureBoundary(root) {
   const runGit = (args) => execFileSync('git', args, {
     cwd: root,
     encoding: 'utf8',
+    // The append-only closure ledger can exceed Node's default 1 MiB buffer.
+    // Keep the same finite bound as the migration auditor's Git reads.
+    maxBuffer: 32 * 1024 * 1024,
     env: gitEnv
   }).trim();
   let output;
@@ -291,4 +294,4 @@ function fixtureRoot(options = {}) {
   return { workspace, root };
 }
 
-module.exports = { copy, fixtureRoot };
+module.exports = { copy, fixtureRoot, rewindEvidenceFixtureToStableClosureBoundary };

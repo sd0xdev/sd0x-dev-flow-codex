@@ -3,8 +3,8 @@
 <!-- sd0x-skill-migration-boundary:v2 live=plugin/sd0x-dev-flow-codex/skills legacy-packs=migration/packs staging=migration/staging candidates=migration/candidates -->
 
 > 最後校準日期：2026-09-05
-> 來源盤點：`sd0x-harness` `4.6.2` / `04e8a5e`；`78443ce` 前次快照與歷史 inventory 保留，增量見 migration/upstream-evolution-2026-09-05.md
-> Codex 版本：`sd0x-dev-flow-codex` `0.5.3`
+> 最新來源盤點：2026-09-30，`sd0x-harness` `5.0.0` / `7805e98`；[差異與跟進順序](../migration/upstream-evolution-2026-09-30.md)僅為盤點，未全數移植。`4.6.2` / `04e8a5e` 與更早的快照、歷史 inventory 保留。
+> Codex 版本：`sd0x-dev-flow-codex` `0.5.4`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -104,7 +104,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 正式 Codex plugin 目前包含：
 
 - 86 個 skills：`architecture`、`architecture-advice`、`ask`、`best-practices`、`brainstorm`、`bug-fix`、`bump-version`、`check-coverage`、`code-explore`、`code-investigate`、`contract-decode`、`create-pr`、`create-request`、`de-ai-flavor`、`debug`、`deep-explore`、`deep-research`、`dep-audit`、`dev-security-audit`、`doc-refactor`、`doc-review`、`doctor`、`epic-merge`、`explain`、`feasibility-study`、`feature-dev`、`feature-verify`、`fp-brief`、`generate-runner`、`git-investigate`、`git-profile`、`issue-analyze`、`jira`、`load-pr-review`、`merge-prep`、`necessity-audit`、`next-step`、`obsidian-cli`、`op-session`、`orchestrate`、`plan-review`、`portfolio`、`post-dev-recap`、`post-dev-test`、`pr-comment`、`pr-review`、`pr-summary`、`pre-pr-audit`、`project-audit`、`project-brief`、`push-ci`、`readme-i18n-sync`、`recap-ask`、`recap-doc`、`refactor`、`remind`、`repo-intake`、`req-analyze`、`request-tracking`、`reset`、`review`、`review-spec`、`risk-assess`、`runbook`、`safe-remove`、`security-review`、`seek-verdict`、`setup`、`sharingan`、`simplify`、`skill-health-check`、`smart-commit`、`smart-rebase`、`statusline-config`、`tech-brief`、`tech-spec`、`test-deep`、`test-gen`、`test-health`、`test-review`、`ui-first-principles`、`update-docs`、`update-readme`、`verify`、`watch-ci`、`zh-tw`。
-- 1 個 bundled MCP server：`sd0x_skill_runtime`。舊 Claude MCP connection 已移除；只提供 allowlisted `run_skill_script`，server identity 為 `sd0x-skill-runtime`，沒有 LLM review tool。
+- 0 個 bundled MCP server。本機 `scripts/runtime/runner.js` 執行 10 個 allowlisted scripts；Codex shell 提供當前 session context，原生 configured primary 負責 review。
 - 1 個 project-scoped reviewer profile：Codex primary，預設繼承 parent model／reasoning effort。
 - Session、prompt、edit、subagent 與 Stop lifecycle hooks。
 - Fingerprint state machine、deterministic verification、project setup、doctor 與 dev-link tooling。
@@ -118,7 +118,8 @@ Skill toolkit 的正式 migration registry 仍固定為 100/100 source rows。Cu
 - Wave 1 的 10 個 units 均已有 durable closure 與 delivery evidence；`create-request/default` 的 recovery re-promotion 綁定最新 replacement owner、payload 與 single-primary gate fingerprint，promotion revision 為 `e1dd44ef4bd1278022ce1f2746dec2e2399d9c158095820987e40f56adddf1ae`。
 - Wave 2 的 12 個 research units 全部完成 durable delivery；`deep-research/default` 的 origin-identity replacement owner 已完成 closure 與 re-promotion。歷史 accepted bytes 位於 `migration/packs/research-pack/`。
 - Wave 3 的 8 個 development units 已完成 8/8 durable closure 與 delivery；`feature-dev/default` 的 single-primary payload re-promotion 已綁定最新 evidence。
-- Wave 4 的 15 個 quality/review units 已完成 15/15 durable closure 與 delivery；5 個 `review` modes 與獨立 non-gating 的 `test-review/default` 已完成 core re-promotion，其餘 quality-pack delivery 保持不變。
+- Wave 4 的 15 個 quality units 全部完成 durable delivery；5 個 `review` modes 的 local runner 修訂已完成 closure 與 re-promotion。
+- 2026-09-30 local runner 修訂涵蓋 `doctor`、`remind`、`review`、`setup`、`verify` 的 14 個 modes；後續 owner 全數為 `Completed`，已完成獨立 AC 驗證、durable closure 與 re-promotion，並綁定正式 live payload。
 - `release:check` 會從 `migration/source-disposition.json` 重算上方可見 checkpoint 與 machine marker，防止只更新版本卻發布過期進度。
 - `migration/packs/` 僅保留已完成 handoff 的歷史 bytes 與 durable evidence；active routing 以正式 plugin payload 優先，release artifact 不包含 migration workspace。
 
@@ -136,9 +137,7 @@ sd0x-dev-flow-codex/
 ├── scripts/skill-migration-audit.js   # migration validation 唯一 owner
 ├── plugin/sd0x-dev-flow-codex/        # 唯一可發布 payload
 │   ├── .codex-plugin/plugin.json
-│   ├── .mcp.json
 │   ├── hooks/hooks.json
-│   ├── scripts/mcp/                  # trusted deterministic skill runtime
 │   ├── scripts/runtime/
 │   ├── skills/
 │   └── templates/agents/
@@ -210,7 +209,7 @@ $(git rev-parse --git-path sd0x-dev-flow-codex/runtime-state.json)
 - Review pass 必須和目前 fingerprint 相同。
 - Verify 只能在目前 review pass 後由 deterministic runner 記錄，且 runner 前後 fingerprint 必須相同。
 - Fingerprint 改變會清除兩個 gates 與 reviewer observations。
-- Review pass 必須實際觀察到同 fingerprint 的 configured primary。原生 custom-agent surface 使用 matching `SubagentStart` 與帶 terminal `last_assistant_message` 的 `SubagentStop`。只提供 persistent collaboration agents 的 Codex surface 則由 `codex-collaboration-jsonl-v2` adapter 在 dispatch 前綁定 immutable round ID、runtime epoch、optional commit subject hash、exact direct agent path、transcript file identity、byte offset 與 prefix hash，只接受 offset 後 canonical `sub_agent_activity: interacted` 與相符 `FINAL_ANSWER` agent message；interrupt、overlap、未終局、缺結果、格式漂移、prefix/file identity、runtime epoch、round ID 或 fingerprint 改變都 fail closed。Runtime state 明確保存目前 collaboration round ID，所有 failure write 與 finalizer 都必須匹配它，不能用 completed array 順序推導 ownership，因此延遲的舊 round 結果無法覆寫同 fingerprint 的 successor；但同 fingerprint/epoch 的 authenticated late finding 仍會依 sticky-finding 規則撤銷 gates，而不轉移 ownership，superseded clean evidence 則忽略。Primary result 會在同一 state lock 內重新 snapshot 後原子寫入，`gate.js pass` 再從原始 offset 掃到 gate boundary，且只由相同 round ID 的 finalizer 移除 marker；concurrent identical finalizer 以該 round 的 clean primary state result 做 idempotent completion。Review evidence 同時必須包含目前 provider、`reviewers: 1`、精確 primary identity 與 `findings: 0`；runtime state schema v10 會使 v9 以前的 current gates 失效。唯一 primary 是 `sd0x_codex_primary_reviewer`。`sd0x_test_reviewer` 不再是 authoritative agent type，不能寫入 gate ledger。
+- Review pass 必須實際觀察到同 fingerprint 的 configured primary。原生 custom-agent surface 使用 matching `SubagentStart` 與帶 terminal `last_assistant_message` 的 `SubagentStop`。只提供 persistent collaboration agents 的 Codex surface 則由 `codex-collaboration-jsonl-v3` adapter 在 dispatch 前綁定 immutable round ID、runtime epoch、optional commit subject hash、exact direct agent path、transcript file identity、byte offset 與 prefix hash，接受 offset 後 canonical `sub_agent_activity: interacted`，或 Codex 0.159.2 的 host-authored `collaboration` namespace `spawn_agent` function call 與相同 call ID 的成功 receipt，再要求相符 `FINAL_ANSWER` agent message。新格式以明確的 `agent_type` 綁定 configured primary、以 receipt 綁定實際 direct task path；task 名稱本身不授權 reviewer。缺 receipt、非 host-authored 記錄、錯誤 profile／path、未確認的後續 dispatch 都拒絕；新格式每輪使用 fresh spawn，不能用 boundary 之前的 agent 或 `followup_task` 建立本輪證據；interrupt、overlap、未終局、缺結果、格式漂移、prefix/file identity、runtime epoch、round ID 或 fingerprint 改變都 fail closed。Runtime state 明確保存目前 collaboration round ID，所有 failure write 與 finalizer 都必須匹配它，不能用 completed array 順序推導 ownership，因此延遲的舊 round 結果無法覆寫同 fingerprint 的 successor；但同 fingerprint/epoch 的 authenticated late finding 仍會依 sticky-finding 規則撤銷 gates，而不轉移 ownership，superseded clean evidence 則忽略。Primary result 會在同一 state lock 內重新 snapshot 後原子寫入，`gate.js pass` 再從原始 offset 掃到 gate boundary，且只由相同 round ID 的 finalizer 移除 marker；concurrent identical finalizer 以該 round 的 clean primary state result 做 idempotent completion。Review evidence 同時必須包含目前 provider、`reviewers: 1`、精確 primary identity 與 `findings: 0`；runtime state schema v10 會使 v9 以前的 current gates 失效。唯一 primary 是 `sd0x_codex_primary_reviewer`。`sd0x_test_reviewer` 不再是 authoritative agent type，不能寫入 gate ledger。
 - Legacy Claude config 必須經 setup 轉為 Codex；v10 更換 epoch 並清除舊 current evidence，不能沿用 external results。
 - 任一 reviewer 對目前 fingerprint 記過 findings 後會保持 blocking；後續同 fingerprint 的 clean result 不得覆蓋。只有 worktree edit 產生新 fingerprint，或使用者明確執行 `$sd0x-dev-flow-codex:reset`，才能清除。
 - Review pass 要求目前 fingerprint 的 Codex start ledger 都已終局；pass 或 verify pass 後才到達的同 fingerprint finding 會原子撤銷 review、清除 verify，讓 workflow 回到 review-findings-remain。
@@ -321,11 +320,11 @@ Hook interception 只是 workflow guardrail。Shell 或其他等價路徑可能�
 
 `test-review` 是獨立 non-gating assessment。Review 停滯時先根據具體 finding 診斷、採取 bounded adjustment 並記錄結果；不能用 round cap 或 deferred P2 取得 pass。
 
-Claude CLI adapter、`review_worktree` 與 managed Claude wrapper 已退休。MCP connection 使用 `sd0x_skill_runtime`，不再註冊舊 Claude connection key。Historical Claude evidence 仍可唯讀稽核，不能滿足 current gate。
+Claude CLI adapter、`review_worktree` 與 managed Claude wrapper 已退休。插件不註冊 MCP connection；skills 改由 Codex shell 呼叫本機 runner。Historical Claude evidence 仍可唯讀稽核，不能滿足 current gate。
 
 模型繼承與 native config precedence 依 [官方 subagent 文件](https://learn.chatgpt.com/docs/agent-configuration/subagents) 校準。`sandbox_mode = "read-only"` 是 profile default；parent live permissions（包括 `--yolo`）可能優先，reviewer 行為仍必須唯讀。
 
-Transcript adapter unavailable 時，每輪使用 fresh configured native subagent；對已完成 agent 發 follow-up 不會建立新的 native start。MCP 觀察逾時不代表程序失敗：先觀察原本仍存活的 reviewer/verifier，不重啟工作。實測 runner 在 1860 秒回報等待逾時後，原 verifier 仍完成並寫入有效 evidence。
+Transcript adapter unavailable 時，每輪使用 fresh configured native subagent；對已完成 agent 發 follow-up 不會建立新的 native start。工具觀察逾時不代表程序失敗：先觀察原本仍存活的 reviewer/verifier，不重啟工作。實測 runner 在 1860 秒回報等待逾時後，原 verifier 仍完成並寫入有效 evidence。
 
 ## 8. 開發安裝模式
 
@@ -390,16 +389,17 @@ npm run dev:unlink        # user home
 | 新增 skill/resource file | 否 | 是 | 是 | 否 | 視情況 |
 | `hooks/hooks.json` | 否 | 否 | 是 | 是 | 否 |
 | 新增 hook/runtime/review script file | 否 | 是 | 是 | 若 hook definition 改變則是 | 否 |
-| `.mcp.json` | 否 | 新增或路徑變更時是 | 是 | 否 | 否 |
-| 既有 MCP server `.js` | 下一個 MCP process | 否 | 是 | 否 | 否 |
-| 新增 MCP server file | 否 | 是 | 是 | 否 | 否 |
+| 移除舊 MCP 註冊與 server files | 否 | 是 | 是 | 否 | 否 |
+| 既有 local runner `.js` | 下一次 runner 執行 | 否 | 否 | 否 | 否 |
 | `.codex-plugin/plugin.json` | 否 | 是 | 是 | 視 hooks 是否改變 | 否 |
 | 既有 Agent template | 否 | 否 | 是 | 否 | 是 |
 | 新增 Agent template file | 否 | 是 | 是 | 否 | 是 |
 | `.codex/sd0x-dev-flow.json` | 下一次 hook read | 否 | 啟用或 provider change 需要 | 否 | 否 |
 | `migration/alias-capability.json` 或 registry evidence | audit 下一次執行 | 否 | 重新做 capability probe 時是 | 否 | 否 |
 
-原因：overlay 只處理建立當下已存在的檔案，而且 `SKILL.md` 與 manifest 必須是 regular files；新檔與後續 entrypoint 變更不會自動出現在 cache。MCP process 與 tool registry 也綁 task lifecycle，所以 adapter 或 `.mcp.json` 更新後要開新 task。
+原因：overlay 只處理建立當下已存在的檔案，而且 `SKILL.md` 與 manifest 必須是 regular files；新增／移除 payload 路徑及 entrypoint 變更需要重建 cache。移除 MCP 註冊後仍須關閉舊 Codex process 並開新 task，才能清除舊 server 與 tool registry；目前執行中的 task 不能宣稱 registry 已更新。
+
+本機 runner 每次由 shell 啟動，Node 從 runner 的實際路徑解析 installed payload，子程序入口仍受同一 allowlist 與 containment check 約束。已處於 `linked` 的環境修改既有 runtime JS，下一次 script/hook 執行生效。
 
 Repository-only overlay 的正確重建命令是：
 
@@ -411,13 +411,13 @@ npm run dev:local:status
 
 User-level 模式則使用同名的 `dev:unlink`、`dev:link`、`dev:status`。不要只重跑 `link`。
 
-重新評估 alias registry capability 時，先關閉舊 Codex process，依上方三個命令刷新 repository-only overlay，再以 `CODEX_HOME="$PWD/.codex-dev-home" codex` 開新 task。於同一 isolated home 執行：
+重新評估 alias registry capability 時，若同時修改 skill entrypoint、plugin manifest 或新增 payload path，先依上述流程關閉舊程序、重建 overlay 並開新 task。僅重跑 registry probe 時，probe 本身會啟動新版 CLI 的獨立程序與 ephemeral task，不需中止目前工作階段。於同一 isolated home 執行：
 
 ```bash
 CODEX_HOME="$PWD/.codex-dev-home" npm run migration:alias:probe
 ```
 
-Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向的測試 skill 暫放到 ignored `.codex-dev-home/skills/`，拒絕 symlinked skills/tmp ancestors，擷取 versioned app-server schema與 explicit/neutral model-visible catalogs，並在 isolated ephemeral read-only turn 實際驗證 exact marker。它會 byte-for-byte 比對 freshly generated normalized dump與 committed evidence，綁定執行前後 directory manifest、hash與 file/directory inode，再把整個 owned directory原子搬入 lock-owned exclusive nonce container；搬後 identity正確才刪本次 inode，否則原位還原或保留完整 quarantine並非零退出。既有同名 skill、並行 probe、same-byte replacement、quarantine collision或途中出現的外來 path都不會被覆寫/刪除，也不接觸 user-level `CODEX_HOME`。只有輸出出現可檢查的 automatic-candidate exclusion field/API、neutral catalog實際排除 alias，且 explicit invocation仍成功時，才可另開 request 重新考慮 `manual-only`。目前 Codex `0.154.0` 的 exclusion fields 為空，所以所有 compatibility aliases永久維持 `mapping-only`。
+Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向的測試 skill 暫放到 ignored `.codex-dev-home/skills/`，拒絕 symlinked skills/tmp ancestors，擷取 versioned app-server schema與 explicit/neutral model-visible catalogs，並在 isolated ephemeral read-only turn 實際驗證 exact marker。它會 byte-for-byte 比對 freshly generated normalized dump與 committed evidence，綁定執行前後 directory manifest、hash與 file/directory inode，再把整個 owned directory原子搬入 lock-owned exclusive nonce container；搬後 identity正確才刪本次 inode，否則原位還原或保留完整 quarantine並非零退出。既有同名 skill、並行 probe、same-byte replacement、quarantine collision或途中出現的外來 path都不會被覆寫/刪除，也不接觸 user-level `CODEX_HOME`。只有輸出出現可檢查的 automatic-candidate exclusion field/API、neutral catalog實際排除 alias，且 explicit invocation仍成功時，才可另開 request 重新考慮 `manual-only`。本次重新實測 Codex `0.159.2` 的 exclusion fields 仍為空，所以所有 compatibility aliases 目前維持 `mapping-only`；當前 owner 為 `2026-09-30-alias-capability-codex-0-159-2-refresh.md`，完整保留前任 owner bytes。
 
 `.codex-plugin/plugin.json` 是刻意保留的 snapshot regular file。若要改 manifest version，應在修改前先 `unlink` 舊版本，再修改 source manifest 並 `link` 新版本；否則舊版本 overlay 可能留在舊 cache path，需先確認 marker ownership 再清理。
 
@@ -504,7 +504,7 @@ custom refs；CI、release、clone import 與離線 bundle 都必須明確搬移
 目前 suite 會先遞迴 syntax-check 所有 shipped JavaScript entrypoints，再執行下列測試群組；案例數以 `npm run check` 的即時輸出為準，不在文件寫死：
 
 - `dev-plugin.test.js`：loader-safe overlay、regular-file skill entrypoint、idempotency、foreign owner、missing／mismatched cache path、isolated home 的 link/unlink。
-- `skill-runtime-mcp.test.js`：runtime allowlist/hostile PATH binding、MCP wire format、cancellation、Doctor capability discovery、retired review tool rejection。
+- `skill-runtime-runner.test.js`：runtime allowlist/hostile PATH binding、CLI JSON 與退出狀態、cancellation／output limit、Doctor runner discovery、舊 MCP 註冊拒絕。
 - `hook.test.js`：opt-in、SessionStart boundary、multi-session enforcement、protected patch、retired Claude tool denial、Stop、terminal subagent lifecycle。
 - `setup.test.js`：idempotency、AGENTS preservation、unowned agents、invalid config preflight。
 - `state.test.js`：configured Codex primary clean outcomes、legacy multi-reviewer schema migration、fingerprint binding、session retention、no-ceiling loop、explicit reset 與 obsolete-counter migration。
@@ -535,7 +535,7 @@ CODEX_HOME="$PLUGIN_REPO/.codex-dev-home" codex
 在第一個 task 依序執行：
 
 1. 確認 `/hooks` 已 trust。
-2. 呼叫 `$sd0x-dev-flow-codex:setup`，確認產生預設 `review.provider: "codex"`、單一 `.codex/agents/*.toml` 與 `AGENTS.md` managed block；舊 setup-managed `sd0x-reviewer.toml`、`sd0x-test-reviewer.toml`、`sd0x-claude-primary-reviewer.toml` 必須退休，自訂同名檔則保留。所有 provider 都要確認 bundled MCP registry 含 `run_skill_script`；不應出現 retired `review_worktree`。
+2. 呼叫 `$sd0x-dev-flow-codex:setup`，確認產生預設 `review.provider: "codex"`、單一 `.codex/agents/*.toml` 與 `AGENTS.md` managed block；舊 setup-managed `sd0x-reviewer.toml`、`sd0x-test-reviewer.toml`、`sd0x-claude-primary-reviewer.toml` 必須退休，自訂同名檔則保留。確認 doctor 的 `runtime.ready` 為 true、`runtime.transport` 為 `cli`；插件不應註冊 `run_skill_script` 或 `review_worktree`。
 3. 確認 setup 所在 task 不會因尚未觀察到該 task 的 SessionStart opt-in 而被 Stop gate 卡住。
 4. 開新 task，建立一個可測試的小變更，分別驗證 code/config 需要 review + verify，docs-only 只需要 review。
 5. 讓 Codex primary 完成後記錄 review pass，再執行 verify；確認兩個 gates fingerprint 相同且 final Stop 放行。另獨立呼叫 `test-review` 時，確認它維持 read-only 且不改 gate state。
@@ -580,47 +580,17 @@ npm run dev:local:status
 
 ### Legacy Claude provider 或舊 MCP process
 
-`review.provider: "claude"` 不會自動降級或沿用舊 gates；執行 setup 遷移至 Codex。Setup 只刪除 managed Claude agent，保留 user-owned 檔案與 custom config。開新 task 後確認 doctor 的 MCP identity 是 `sd0x-skill-runtime`、tool list 只有 `run_skill_script`。
+`review.provider: "claude"` 不會自動降級或沿用舊 gates；執行 setup 遷移至 Codex。Setup 只刪除 managed Claude agent，保留 user-owned 檔案與 custom config。開新 task 後確認 doctor 的 `runtime.ready` 為 true、`runtime.transport` 為 `cli`。
 
-如果舊 task 的 registry 仍列 `review_worktree`，不要呼叫它；那是舊 process，不代表更新後仍有此能力。完成下方 reload 與 `/hooks` re-trust 後再確認。
+如果舊 task 的 registry 仍列 `run_skill_script` 或 `review_worktree`，不要呼叫它；依第 9 節關閉舊 process、重建 repository-only overlay，再開新 task。僅在 hook definition 改變時才需要 `/hooks` re-trust。
 
-### MCP 腳本服務缺少當前 task context
+### 本機 runner 缺少當前 task context
 
-`sd0x_skill_runtime` 只執行確定性腳本，原生 Codex configured primary 才負責審查。
-Codex shell tool 的 `CODEX_HOME`、`CODEX_THREAD_ID` 不一定存在於長駐 MCP
-process；上游也有[相同回報](https://github.com/openai/codex/issues/19937)。
-僅設定 MCP startup `env_vars` 不能保證取得當前 thread，reset 也不會補上資訊。
+從目前 Codex shell 呼叫已安裝的 `scripts/runtime/runner.js`。Runner 接受一個 JSON request（`entrypoint`、absolute `cwd`、`args`），繼承該 shell 的 `CODEX_HOME` 與 `CODEX_THREAD_ID`；結果 JSON 包含 `exit_code`、`stdout`、`stderr`，程序退出狀態也反映 script 成敗。入口以 installed payload 為基準，不能使用目標 repository 裡的同名腳本替代。
 
-在**目前 Codex shell tool** 讀取這兩個值，逐次透過工具的 `context` 傳遞：
+Explicit caller 仍可傳入 `context: { codex_home, thread_id }`，但只可取自當前 shell。Runtime 不修改 caller environment，並拒絕缺欄位、額外 environment 欄位、重複 transcript、thread metadata 或 repository 不匹配。不得猜測全域 home、挑選最新 transcript，或複用另一個 task 的 ID。
 
-```json
-{
-  "entrypoint": "doctor/doctor.js",
-  "cwd": "<absolute-repository-root>",
-  "args": [],
-  "context": {
-    "codex_home": "<current-shell-CODEX_HOME>",
-    "thread_id": "<current-shell-CODEX_THREAD_ID>"
-  }
-}
-```
-
-同一輪 `review/round.js` begin/import 與 `review/gate.js` 必須帶入相同的
-context。服務僅替該次 child process 設定兩個變數，避免並行 thread 互相污染；
-拒絕缺欄位、額外 environment 欄位、重複 transcript、thread metadata 或 repository
-不匹配。不得猜測全域 home、挑選最新 transcript，或複用另一個 task 的 ID。
-也可在同一個 Codex shell 直接執行已安裝的 bundled script，沿用真實環境。
-
-`doctor` 的 `review-session-context` 檢查與 `review_context` 結果會直接指出缺失；
-MCP 的 doctor/review/verify/remind 回應也會帶出診斷，**不依賴 hook 才顯示**。
-context 可定位 transcript，不代表審查已通過：adapter 仍需本輪 configured primary
-的真實 start/terminal 事件與完整 fingerprint/epoch 檢查。停用 hook 時無法使用
-native hook fallback；若 host transcript 未提供必要事件，應直接回報能力不足，
-不能把補齊環境變數、重新啟動或重設當成 gate evidence。
-
-更新 MCP tool schema、新增 runtime 檔案與升版後，依第 9 節完成 repository-only
-unlink/link/status 與新 task，才能載入新的 `context` 欄位；只修改 live JS 不會
-更新已啟動服務記憶體中的 tool schema。
+`doctor` 的 `review-session-context` 與 `review_context` 直接指出缺失；runner 的 doctor/review/verify/remind 結果也會帶出診斷，不依賴 hook 才顯示。Context 只能定位 transcript：review adapter 仍需要本輪 configured primary 的真實 start/terminal 事件與 fingerprint/epoch 檢查。停用 hook 且 transcript 缺少必要事件時應回報能力不足；reset 不會補上 context 或 gate evidence。
 
 ### Verify 後又要求 review
 
@@ -671,7 +641,7 @@ Reset 會保留可信 state 的 active sessions 與目前 worktree snapshot、ro
 - PreToolUse 無法攔截所有等價 shell 寫入方式。
 - Verify detector 目前只涵蓋 Node、Python、Go、Rust 的基本策略。
 - 正式 plugin 已提供 86 個 discovered canonical skills（85 個遷移 targets 加上 `reset`）；legacy packs 只保留 immutable migration evidence，不再是 runtime routing surface。
-- Codex `0.154.0` 的 skill registry 沒有可檢查的 manual-only/implicit-route exclusion flag；compatibility aliases 因此只保留 mapping，不建立 live alias skill。任何 Codex/plugin registry 變更都必須重跑 repository-only R4 probe與 version-bound audit，不能用 prompt sampling 直接升級。Current decision 另以從原始 R4 request 起算、不可截斷的 canonical ordered `owner_history` path/hash與逐票 `Depends On` 鎖住所有 prior R4 owner bytes；缺少首筆或中間 owner 都 fail closed，版本 refresh 不得悄悄改寫歷史證據。
+- Codex `0.159.2` 的 skill registry 沒有可檢查的 manual-only/implicit-route exclusion flag；compatibility aliases 因此只保留 mapping，不建立 live alias skill。任何 Codex/plugin registry 變更都必須重跑 repository-only R4 probe與 version-bound audit，不能用 prompt sampling 直接升級。Current decision 另以從原始 R4 request 起算、不可截斷的 canonical ordered `owner_history` path/hash與逐票 `Depends On` 鎖住所有 prior R4 owner bytes；缺少首筆或中間 owner 都 fail closed，版本 refresh 不得悄悄改寫歷史證據。
 - `create-request` 已可安全建立、更新與掃描 tickets；`Completed` 只能透過 bundled runtime 的 durable `closure prepare` → runtime-owned descriptor-bound `closure apply` → docs review → `closure finalize` transaction。Pending record持久化 exact prior/proposed bytes、request 的 immutable canonical Implementation Base SHA與每個 AC location的 reconstructable content identity；base 必須是 subject HEAD ancestor，commit subject的 `base_sha` 另須完全相等。Candidate delivery 的 gate owner 只有在 exact durable request closure 與目前 request path 相符時才可保持 `Completed`；缺少 evidence ref、closure 或 path binding 一律 fail closed，不能靠把 delivered overlay 降回 candidate 取得 authority。Apply 以 inode-bound durable journal與 write-all loop工作：prepare後既有或 write-boundary 使用者編輯原樣 fail closed；mutation開始後任一失敗都保留 journal，不做無法原子 CAS 的自動 rollback。Unknown bytes即使有 journal也不會自動覆寫；明確 operator 必須連同 inspected `expected_current_sha256`使用 `closure recover action=restore-prior`恢復 persisted prior後重播，或用 `action=abandon`保留 request bytes並移除 recovery ownership。Restore通常要求 journaled inode；唯一的 exact-success exception 是成功 apply 已移除原 journal、但 current bytes 與 operator-inspected hash 仍同時等於 pending proposal，此時 explicit `restore-prior`可合成 runtime-owned journal。Prior、unknown 或 replacement bytes仍 fail closed；合成 journal與 prepared recovery journal可在 restart後續跑。Restore先把當下 file原子移到回傳的 `.sd0x/closure-recovery/` displaced backup，再以 no-overwrite link安裝 prior，因此最後瞬間的 edit不會被銷毀；post-rename identity驗證失敗時也會以 no-overwrite方式把 displaced bytes恢復到 live path並保留 operator recovery，rollback link後的 crash會在 restart辨識同 inode並只完成 metadata cleanup。Finalized pending對 recovery是 terminal（含既有 journal），不得把 durable closure/promotion倒退，後續修正必須建立 superseding closure revision。每個已閉環 owner request 的 bytes 永久保持不變；replacement ticket 必須 `Depends On` 該 unit 最新 completion record 的 owner，closure/promotion 再各自以 `supersedes_record_sha256` 接續 ledger，因此非 Wave 1 與多次 re-promotion 都不會回指過時 checkpoint。Abandon可處理 editor atomic-save replacement inode；runtime不得自行選擇。Apply/recover/finalize/promotion與 low-level append只接受 unit目前最新 commit-order pending/closure revision，而且 latest closure必須消費 latest pending；mutation與 journal removal前都在 state lock內重驗。Finalize、selected audit request讀取、source/promotion payload traversal均綁 no-follow descriptor、ancestor/file identity及完整目錄 entry manifest，source audit在 ledger audit後再 hash並重驗 ledger OID。Evidence Git root discovery、metadata path、ref/history/tree reads清除 ambient repository/index selectors並綁單一 captured OID。任何 gate、subject、AC/check、path containment、ref 或 restart evidence 不符都停在 `Candidate Complete`。
 
 ### 2026-09-05 Auto Loop 更新與 reload 邊界

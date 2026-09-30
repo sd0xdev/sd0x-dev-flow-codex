@@ -155,7 +155,6 @@ function fixture() {
     homepage: REPOSITORY_URL,
     repository: REPOSITORY_URL,
     skills: './skills/',
-    mcpServers: './.mcp.json',
     interface: {
       websiteURL: REPOSITORY_URL,
       longDescription: 'A native GPT primary inheriting the parent model and reasoning effort, with deterministic verification.'
@@ -188,7 +187,8 @@ function fixture() {
       registry_mechanism: null,
       tested_at: '2026-07-24T00:00:00Z'
     })} -->\n`);
-  writeJson(path.join(pluginRoot, '.mcp.json'), {});
+  fs.mkdirSync(path.join(pluginRoot, 'scripts/runtime'), { recursive: true });
+  fs.writeFileSync(path.join(pluginRoot, 'scripts/runtime/runner.js'), 'module.exports = {};\n');
   writeJson(path.join(pluginRoot, 'hooks', 'hooks.json'), {});
   fs.mkdirSync(path.join(pluginRoot, 'skills'), { recursive: true });
   fs.writeFileSync(path.join(pluginRoot, 'LICENSE'), 'MIT\n');

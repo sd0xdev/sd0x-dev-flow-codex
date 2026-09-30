@@ -48,13 +48,13 @@ Preserve the original engineering invariants, not the original command inventory
 
 - Claude-only tool names, frontmatter, prompt routing, and `.claude/` filesystem assumptions.
 - One-to-one copies of low-use or overlapping skills.
-- General nested model calls through MCP. The bundled MCP server exposes only the allowlisted deterministic skill runner; Claude review is retired.
+- General nested model calls through MCP. The plugin ships no MCP server. Skills invoke the allowlisted local CLI runner through the current Codex shell; Claude review is retired.
 - Claims that hooks are a security boundary. Codex hooks are workflow guardrails and do not intercept every equivalent shell operation.
 - Automatic activation in every repository where the plugin is installed.
 
 ## Why the Codex Version Is Stronger
 
-The original flow could conceptually pass a gate and then modify the worktree. This implementation binds each gate to a content fingerprint that includes separate HEAD-to-index and index-to-worktree changes, deletions, modes, symlinks, dirty nested repositories, and non-ignored untracked file bodies. It also binds evidence to the selected review provider and observes reviewer lifecycle hooks and terminal output rather than trusting only model-supplied reviewer counts. Claude mode additionally requires the structured nested MCP PostToolUse result.
+The original flow could conceptually pass a gate and then modify the worktree. This implementation binds each gate to a content fingerprint that includes separate HEAD-to-index and index-to-worktree changes, deletions, modes, symlinks, dirty nested repositories, and non-ignored untracked file bodies. It also binds evidence to the selected review provider and observes reviewer lifecycle hooks and terminal output rather than trusting only model-supplied reviewer counts. Retired Claude evidence cannot satisfy current gates.
 
 The distributable plugin payload is isolated under `plugin/sd0x-dev-flow-codex/`, so local marketplace installation does not copy repository Git metadata or tests into the Codex cache.
 

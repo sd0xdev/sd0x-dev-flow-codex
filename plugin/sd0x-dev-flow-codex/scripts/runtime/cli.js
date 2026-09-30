@@ -59,86 +59,35 @@ function parseInput(args) {
   throw new Error('Provide --input JSON or --input-file PATH');
 }
 
-function mcpServerStatus(pluginRoot, execute = spawnSync) {
-  const configPath = path.join(pluginRoot, '.mcp.json');
-  let server;
+function runnerStatus(pluginRoot, execute = spawnSync) {
   try {
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-    if (Object.hasOwn(config.mcpServers || {}, 'sd0x_claude_review')) {
-      return { ready: false, reason: 'retired-review-connection-present' };
+    const manifest = JSON.parse(fs.readFileSync(
+      path.join(pluginRoot, '.codex-plugin/plugin.json'), 'utf8'
+    ));
+    if (Object.hasOwn(manifest, 'mcpServers') ||
+        fs.existsSync(path.join(pluginRoot, '.mcp.json'))) {
+      return { ready: false, reason: 'mcp-configuration-present' };
     }
-    server = config.mcpServers?.sd0x_skill_runtime;
+    const { RUNTIME_ENTRYPOINTS, runtimeChildEnvironment } = require('./runner');
+    const result = execute(process.execPath, [
+      path.join(pluginRoot, 'scripts/runtime/runner.js'), '--describe'
+    ], {
+      env: runtimeChildEnvironment(),
+      encoding: 'utf8', maxBuffer: 1024 * 1024, timeout: 10_000,
+      windowsHide: true
+    });
+    if (result.error || result.status !== 0) {
+      return { ready: false, reason: result.error?.code === 'ETIMEDOUT'
+        ? 'runner-timeout' : 'runner-start-failed' };
+    }
+    const description = JSON.parse(result.stdout);
+    const ready = description.schema_version === 1 && description.transport === 'cli' &&
+      JSON.stringify(description.entrypoints) === JSON.stringify(Object.keys(RUNTIME_ENTRYPOINTS));
+    return { ready, transport: 'cli', entrypoints: description.entrypoints,
+      reason: ready ? null : 'unexpected-runner-description' };
   } catch (error) {
-    return { ready: false, reason: `invalid-config:${error.message}` };
+    return { ready: false, reason: `invalid-runner:${error.message}` };
   }
-  if (!server || server.command !== 'node' ||
-      !Array.isArray(server.args) || server.args.length !== 1 ||
-      server.args[0] !== 'server.js' || typeof server.cwd !== 'string') {
-    return { ready: false, reason: 'unexpected-server-config' };
-  }
-  const input = [
-    JSON.stringify({
-      jsonrpc: '2.0',
-      id: 1,
-      method: 'initialize',
-      params: {
-        protocolVersion: '2025-11-25',
-        capabilities: {},
-        clientInfo: { name: 'sd0x-doctor', version: '1.0.0' }
-      }
-    }),
-    JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }),
-    JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }),
-    ''
-  ].join('\n');
-  const result = execute(process.execPath, server.args, {
-    cwd: path.resolve(pluginRoot, server.cwd),
-    input,
-    encoding: 'utf8',
-    maxBuffer: 1024 * 1024,
-    timeout: 10_000,
-    windowsHide: true
-  });
-  if (result.error || result.status !== 0) {
-    return {
-      ready: false,
-      reason: result.error?.code === 'ETIMEDOUT'
-        ? 'handshake-timeout'
-        : 'server-start-failed'
-    };
-  }
-  let responses;
-  try {
-    responses = String(result.stdout || '').trim().split(/\r?\n/)
-      .filter(Boolean)
-      .map((line) => JSON.parse(line));
-  } catch {
-    return { ready: false, reason: 'invalid-json-rpc-output' };
-  }
-  const initialized = responses.find((item) => item.id === 1)?.result;
-  const tools = responses.find((item) => item.id === 2)?.result?.tools;
-  const reviewTool = Array.isArray(tools)
-    ? tools.find((item) => item.name === 'review_worktree')
-    : null;
-  const runtimeTool = Array.isArray(tools)
-    ? tools.find((item) => item.name === 'run_skill_script')
-    : null;
-  const serverReady = initialized?.serverInfo?.name === 'sd0x-skill-runtime';
-  const reviewAbsent = !reviewTool;
-  const runtimeReady = serverReady && Boolean(runtimeTool);
-  return {
-    ready: reviewAbsent && runtimeReady,
-    runtime_ready: runtimeReady,
-    server_name: initialized?.serverInfo?.name || null,
-    protocol_version: initialized?.protocolVersion || null,
-    tool: reviewTool?.name || null,
-    runtime_tool: runtimeTool?.name || null,
-    reason: !serverReady
-      ? 'unexpected-server-identity'
-      : !runtimeTool
-        ? 'runtime-tool-missing'
-        : reviewTool ? 'retired-review-tool-present' : null
-  };
 }
 
 function payloadInventoryChecks(pluginRoot) {
@@ -242,10 +191,10 @@ function doctor(cwd, options = {}) {
   if (projectConfig.enabled) {
     checks.push({ check: 'managed-guidance-current', ok: guidance.status === 'current' });
   }
-  const mcp = (options.mcpStatus || mcpServerStatus)(pluginRoot);
+  const runtime = (options.runnerStatus || runnerStatus)(pluginRoot);
   checks.push({
-    check: 'skill-runtime-mcp-handshake',
-    ok: mcp.ready === true && mcp.runtime_ready === true
+    check: 'skill-runtime-cli',
+    ok: runtime.ready === true
   });
   const reviewContext = inspectSessionContext(cwd, options.env || process.env);
   checks.push({ check: 'review-session-context', ok: reviewContext.available });
@@ -266,7 +215,7 @@ function doctor(cwd, options = {}) {
     state_path: resolveStatePath(cwd),
     workflow_contract_version: CONTRACT_SCHEMA_VERSION,
     managed_guidance: guidance,
-    mcp,
+    runtime,
     review_context: reviewContext,
     checks,
     state_error: stateError,
@@ -407,7 +356,7 @@ if (require.main === module) {
 module.exports = {
   doctor,
   main,
-  mcpServerStatus,
+  runnerStatus,
   payloadInventoryChecks,
   parseInput,
   parseEvidence

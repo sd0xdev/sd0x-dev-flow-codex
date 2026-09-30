@@ -1,6 +1,6 @@
 {
   "name": "sd0x-dev-flow-codex",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Codex-native engineering loop with primary review, deterministic verification, and fingerprinted completion gates.",
   "author": {
     "name": "sd0xdev"
@@ -17,7 +17,6 @@
     "security"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "sd0x Dev Flow for Codex",
     "shortDescription": "Fingerprint-gated review and verification loop",

@@ -682,7 +682,7 @@ test('current repository passes the source, distribution, and request-DAG audit'
   assert.equal(result.external_dependencies, 36);
   assert.equal(result.requests, requestDocumentCount(ROOT));
   assert.equal(result.alias_policy, 'mapping-only');
-  assert.equal(result.alias_codex_version, 'codex-cli 0.154.0');
+  assert.equal(result.alias_codex_version, 'codex-cli 0.159.2');
   assert.equal(result.readiness_units, 9);
 });
 
@@ -2249,7 +2249,7 @@ test('alias capability evidence locks every compatibility alias to mapping-only'
   const result = validateAliasCapability(ROOT, disposition);
   assert.deepEqual(result, {
     decision: 'mapping-only',
-    codex_version: 'codex-cli 0.154.0'
+    codex_version: 'codex-cli 0.159.2'
   });
   const aliases = disposition.skills.filter((row) => row.alias_candidate);
   assert.equal(aliases.length, disposition.compatibility_alias_candidates.length);
@@ -2793,9 +2793,9 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   candidateRejects(/owner history must match the complete canonical R4 owner chain/);
   restore();
   fs.writeFileSync(ownerRequestPath, fs.readFileSync(ownerRequestPath, 'utf8')
-    .replace('"codex_version":"codex-cli 0.154.0"',
+    .replace('"codex_version":"codex-cli 0.159.2"',
       '"codex_version":"codex-cli 0.145.1"') +
-    '\nCodex version: `codex-cli 0.154.0`; Tested at: `2026-07-23T17:08:50+08:00`\n');
+    '\nCodex version: `codex-cli 0.159.2`; Tested at: `2026-07-23T17:08:50+08:00`\n');
   assert.throws(() => auditSource({ root: values.root }),
     /owner evidence does not match the decision artifact/);
   candidateRejects(/owner evidence does not match the decision artifact/);
@@ -2827,7 +2827,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   candidateRejects(/owner request must have complete acceptance criteria/);
   restore();
   const ownerMutationOptions = () => ({
-    codexVersion: 'codex-cli 0.154.0',
+    codexVersion: 'codex-cli 0.159.2',
     afterOwnerRequestRead({ ownerRequestPath: capturedPath }) {
       fs.writeFileSync(capturedPath, fs.readFileSync(capturedPath, 'utf8')
         .replace(/^<!-- sd0x-alias-capability-owner:v1 [^\r\n]+ -->\n?/m, ''));
@@ -2851,7 +2851,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   }), /owner request changed while validating capability/);
   restore();
   const splitDecisionOptions = () => ({
-    codexVersion: 'codex-cli 0.154.0',
+    codexVersion: 'codex-cli 0.159.2',
     afterDecisionRead() {
       const mutated = readJson(values.root, 'migration/alias-capability.json');
       mutated.reproduce_argv[0] = 'CODEX_HOME=~/.codex codex --version';
@@ -2889,7 +2889,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   };
   assert.throws(() => auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.154.0' },
+    aliasCapability: { codexVersion: 'codex-cli 0.159.2' },
     requestDag: lateOwnerMutationOptions()
   }), /request differs from its prior source snapshot/);
   restore();
@@ -2897,7 +2897,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.154.0' },
+    aliasCapability: { codexVersion: 'codex-cli 0.159.2' },
     requestDag: lateOwnerMutationOptions()
   }), /request differs from its prior source snapshot/);
   restore();
@@ -2923,13 +2923,13 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   syncAliasOwnerRequest(values.root, invalidMappingDecision);
   assert.throws(() => auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
+    aliasCapability: { codexVersion: 'codex-cli 0.159.2' }
   }), /mapping-only decision cannot claim a registry exclusion mechanism/);
   assert.throws(() => auditCandidate({
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
+    aliasCapability: { codexVersion: 'codex-cli 0.159.2' }
   }), /mapping-only decision cannot claim a registry exclusion mechanism/);
   restore();
 
@@ -2954,7 +2954,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   writeJson(values.root, 'migration/source-disposition.json', disposition);
   syncAliasOwnerRequest(values.root, decision);
   assert.throws(() => validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.154.0'
+    codexVersion: 'codex-cli 0.159.2'
   }), /manual-only registry evidence is missing or ambiguous/);
   dump.observations.repository_probe.neutral_catalog_has_alias = false;
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', dump);
@@ -2963,10 +2963,10 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
   writeJson(values.root, 'migration/alias-capability.json', decision);
   syncAliasOwnerRequest(values.root, decision);
   assert.deepEqual(validateAliasCapability(values.root, disposition, {
-    codexVersion: 'codex-cli 0.154.0'
+    codexVersion: 'codex-cli 0.159.2'
   }), {
     decision: 'manual-only',
-    codex_version: 'codex-cli 0.154.0'
+    codex_version: 'codex-cli 0.159.2'
   });
   prepareRow(values.root, 'architecture', { capabilities: ['core'] });
   const manualCandidate = writeCandidate(values.root, {
@@ -2979,11 +2979,11 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: manualCandidate,
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
+    aliasCapability: { codexVersion: 'codex-cli 0.159.2' }
   }).ok, true);
   assert.equal(auditSource({
     root: values.root,
-    aliasCapability: { codexVersion: 'codex-cli 0.154.0' },
+    aliasCapability: { codexVersion: 'codex-cli 0.159.2' },
     skipDeliveredEvidence: true
   }).ok, true);
 
@@ -3018,13 +3018,13 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     writeJson(values.root, 'migration/alias-capability.json', candidateDecision);
     syncAliasOwnerRequest(values.root, candidateDecision);
     assert.throws(() => validateAliasCapability(values.root, disposition, {
-      codexVersion: 'codex-cli 0.154.0'
+      codexVersion: 'codex-cli 0.159.2'
     }), pattern, name);
     assert.throws(() => auditCandidate({
       root: values.root,
       candidate: manualCandidate,
       target: 'architecture',
-      aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
+      aliasCapability: { codexVersion: 'codex-cli 0.159.2' }
     }), pattern, `${name}-candidate`);
   }
   writeJson(values.root, 'migration/evidence/alias-registry-dump.json', consistentDump);
@@ -3049,7 +3049,7 @@ test('alias capability audit rejects missing, tampered, and version-stale eviden
     root: values.root,
     candidate: 'migration/candidates/architecture',
     target: 'architecture',
-    aliasCapability: { codexVersion: 'codex-cli 0.154.0' }
+    aliasCapability: { codexVersion: 'codex-cli 0.159.2' }
   }), /stale for Codex version/);
 });
 
@@ -5311,7 +5311,7 @@ test('Wave 4 review payload retains the executable strict gate contract', () => 
     'review/snapshot.js',
     'review/round.js',
     'review/gate.js',
-    'mcp__sd0x_skill_runtime__run_skill_script',
+    'node "<plugin-root>/scripts/runtime/runner.js"',
     'sd0x_codex_primary_reviewer',
     'No actionable findings remain.'
   ]) {
@@ -5370,7 +5370,7 @@ test('Wave 4 non-default review modes have explicit no-gate execution contracts'
   }
   assert.match(review, /Non-default modes[\s\S]*`round\.js` and `gate\.js`\s+wrappers are excluded/i);
   assert.match(review,
-    /run\s+`mcp__sd0x_skill_runtime__run_skill_script[\s\S]*review\/snapshot\.js[\s\S]*Discard the reviewer output/i);
+    /run\s+`node "<plugin-root>\/scripts\/runtime\/runner\.js"[\s\S]*review\/snapshot\.js[\s\S]*Discard the reviewer output/i);
 });
 
 test('wave promotion prevalidates every target and safely recognizes an interrupted move', (t) => {
