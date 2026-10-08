@@ -395,10 +395,16 @@ function copyPreservedLiveFiles(target, candidateDirectory, preserved, hooks = {
           const captured = preserved.detachedFiles.get(entry.relative);
           if (!captured) fail(`detached resource is missing: ${entry.relative}`);
           destinationParent.run((child) => {
-            fs.writeFileSync(child(name), captured.bytes, {
-              flag: 'wx',
-              mode: captured.mode
-            });
+            const descriptor = fs.openSync(child(name),
+              fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL |
+                (fs.constants.O_NOFOLLOW || 0), captured.mode);
+            try {
+              fs.writeFileSync(descriptor, captured.bytes);
+              // Creation applies umask; restore the captured mode on this exact file.
+              fs.fchmodSync(descriptor, captured.mode);
+            } finally {
+              fs.closeSync(descriptor);
+            }
           });
         }
       }

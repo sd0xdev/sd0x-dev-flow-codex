@@ -6494,6 +6494,7 @@ test('detached preserved resources recreate nested files through bound parents',
   fs.writeFileSync(path.join(liveRoot, 'migration-contract.json'), '{}\n');
   fs.writeFileSync(path.join(liveRoot, 'scripts', 'nested', 'run.js'),
     'module.exports = true;\n', { mode: 0o744 });
+  fs.chmodSync(path.join(liveRoot, 'scripts', 'nested', 'run.js'), 0o744);
   const target = {
     target: 'fixture',
     preserve_live_body: true,
@@ -6504,9 +6505,11 @@ test('detached preserved resources recreate nested files through bound parents',
   const preserved = capturePreservedLive(target);
   fs.rmSync(liveRoot, { recursive: true });
   const candidateDirectory = openBoundDirectory(candidate);
+  const priorUmask = process.umask(0o077);
   try {
     copyPreservedLiveFiles(target, candidateDirectory, preserved);
   } finally {
+    process.umask(priorUmask);
     candidateDirectory.close();
   }
   const copied = path.join(candidate, 'scripts', 'nested', 'run.js');
