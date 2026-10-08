@@ -27,7 +27,8 @@ const {
 } = require('../scripts/contained-file');
 const {
   canonicalEvidenceBlob,
-  canonicalJson
+  canonicalJson,
+  withEvidenceBatch
 } = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/state');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -271,7 +272,7 @@ function candidateMarkdown(markdown) {
   return candidate;
 }
 
-test('every formal delivery dirty AC source is byte-preserving under evidence redaction', () => {
+test('every formal delivery dirty AC source is byte-preserving under evidence redaction', () => withEvidenceBatch(ROOT, () => {
   const evidenceFiles = new Set();
   for (const record of formalRecords()) {
     const markdown = candidateMarkdown(
@@ -298,7 +299,7 @@ test('every formal delivery dirty AC source is byte-preserving under evidence re
     const redacted = JSON.parse(canonicalEvidenceBlob(ROOT, text)).value;
     assert.equal(redacted, text, relative);
   }
-});
+}));
 
 function auditedIdentity(record, markdown) {
   const hashes = [...markdown.matchAll(/`([a-f0-9]{64})`/g)]
@@ -387,7 +388,7 @@ test('formal request fixtures cover candidate and finalized or overlaid registry
   }
 });
 
-test('formal delivery binds legacy criteria to audited and durable identities', () => {
+test('formal delivery binds legacy criteria to audited and durable identities', () => withEvidenceBatch(ROOT, () => {
   const record = formalRecord('ask/default');
   assert.ok(record);
   const markdown = candidateMarkdown(
@@ -429,9 +430,9 @@ test('formal delivery binds legacy criteria to audited and durable identities', 
     /2026-07-15-wave2-ask-pack-ready\.md/);
   assert.match(verdicts[2].evidence.join('\n'),
     /migration\/packs\/research-pack\/ask\/migration-contract\.json/);
-});
+}));
 
-test('formal delivery binds direct criteria to alias and exact audit identities', () => {
+test('formal delivery binds direct criteria to alias and exact audit identities', () => withEvidenceBatch(ROOT, () => {
   const record = formalRecord('create-pr/default');
   const markdown = candidateMarkdown(
     fs.readFileSync(path.join(ROOT, record.request_path), 'utf8')
@@ -451,7 +452,7 @@ test('formal delivery binds direct criteria to alias and exact audit identities'
     ...audit,
     payload_tree_sha256: '0'.repeat(64)
   }), /criterion evidence anchor is missing/);
-});
+}));
 
 test('distributed core skill resources contain no stale pack-only boundary claims', () => {
   const root = path.join(

@@ -103,7 +103,7 @@ function fixtureRoot(options = {}) {
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-migration-audit-'));
   const root = path.join(workspace, 'repo');
   isolateGitEnvironment();
-  execFileSync('git', ['clone', '--no-local', '--quiet', ROOT, root], {
+  execFileSync('git', ['clone', '--no-local', '--no-checkout', '--quiet', ROOT, root], {
     env: process.env
   });
   configureRepository(root);

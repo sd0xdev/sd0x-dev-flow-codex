@@ -784,7 +784,7 @@ test('first-release workflow creates the tag before release asset upload', () =>
   );
   assert.match(
     workflow,
-    /if \[ "\$ACTION" = 'create' \]; then\s+git tag "\$TAG" "\$GITHUB_SHA"\s+git push origin "refs\/tags\/\$\{TAG\}"\s+fi/
+    /if \[ "\$ACTION" = 'create' \]; then\s+git tag "\$TAG" "\$RELEASE_SHA"\s+git push origin "refs\/tags\/\$\{TAG\}"\s+fi/
   );
   assert.match(workflow, /FLAGS=\(--title "\$TAG" --generate-notes --verify-tag\)/);
 
@@ -805,8 +805,14 @@ test('release workflow cannot publish from a non-main manual dispatch', () => {
   );
   assert.match(
     workflow,
-    /jobs:\s+release:\s+if: github\.ref == 'refs\/heads\/main'/
+    /jobs:\s+release:\s+if: >-\s+github\.ref == 'refs\/heads\/main'/
   );
+  assert.match(workflow, /github\.event\.workflow_run\.event == 'push'/);
+  assert.match(workflow, /github\.event\.workflow_run\.head_repository\.full_name == github\.repository/);
+  assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'success'/);
+  assert.match(workflow, /ref: \$\{\{ env\.RELEASE_SHA \}\}/);
+  assert.match(workflow, /Verify successful CI for the exact release commit\s+if: github\.event_name == 'workflow_run'/);
+  assert.match(workflow, /Check manually dispatched release\s+if: github\.event_name == 'workflow_dispatch'\s+run: npm run check/);
 });
 
 test('release workflow verifies every complete existing release', () => {

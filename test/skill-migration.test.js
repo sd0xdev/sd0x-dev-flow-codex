@@ -670,7 +670,14 @@ function writeCandidate(root, options) {
 }
 
 test('current repository passes the source, distribution, and request-DAG audit', () => {
-  const result = auditSource({ root: ROOT });
+  // Exercise CLI serialization and the full repository audit in one invocation.
+  // Fixture tests below retain direct API coverage for source mutations.
+  const success = spawnSync(process.execPath, [
+    path.join(ROOT, 'scripts', 'skill-migration-audit.js'),
+    'audit-source'
+  ], { cwd: ROOT, encoding: 'utf8' });
+  assert.equal(success.status, 0, success.stderr);
+  const result = JSON.parse(success.stdout);
   assert.equal(result.ok, true);
   assert.deepEqual(result.totals, {
     skills: 100,
@@ -11866,13 +11873,7 @@ test('candidate transaction retains source external state and tree manifests', (
   }), /candidate tree manifest changed while auditing/);
 });
 
-test('audit CLI returns structured success and fails unknown modes', () => {
-  const success = spawnSync(process.execPath, [
-    path.join(ROOT, 'scripts', 'skill-migration-audit.js'),
-    'audit-source'
-  ], { cwd: ROOT, encoding: 'utf8' });
-  assert.equal(success.status, 0, success.stderr);
-  assert.equal(JSON.parse(success.stdout).ok, true);
+test('audit CLI fails unknown modes', () => {
   const failure = spawnSync(process.execPath, [
     path.join(ROOT, 'scripts', 'skill-migration-audit.js'),
     'unknown'

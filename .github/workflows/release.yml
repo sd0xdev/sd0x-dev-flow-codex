@@ -1,18 +1,15 @@
 name: Auto Release
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - package.json
-      - .agents/plugins/marketplace.json
-      - plugin/sd0x-dev-flow-codex/**
-      - scripts/release.js
-      - .github/workflows/release.yml
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -20,15 +17,24 @@ concurrency:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     runs-on: ubuntu-latest
     timeout-minutes: 130
+    env:
+      RELEASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
     steps:
       - name: Check out repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Fetch migration evidence
         run: >-
@@ -41,10 +47,18 @@ jobs:
         with:
           node-version-file: .nvmrc
 
-      - name: Check code and release contract
-        run: |
-          npm run check
-          npm run release:check
+      - name: Verify successful CI for the exact release commit
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-ci.js
+
+      - name: Check manually dispatched release
+        if: github.event_name == 'workflow_dispatch'
+        run: npm run check
+
+      - name: Check release contract
+        run: npm run release:check
 
       - name: Resolve release version
         id: release
@@ -62,7 +76,7 @@ jobs:
           RELEASE_EXISTS=false
           RELEASE_DRAFT=false
           ASSETS_JSON='[]'
-          BUILD_REVISION="$GITHUB_SHA"
+          BUILD_REVISION="$RELEASE_SHA"
           if git rev-parse --verify --quiet "refs/tags/${TAG}" >/dev/null; then
             TAG_EXISTS=true
             BUILD_REVISION="$TAG"
@@ -144,7 +158,7 @@ jobs:
           PRERELEASE: ${{ steps.release.outputs.prerelease }}
         run: |
           if [ "$ACTION" = 'create' ]; then
-            git tag "$TAG" "$GITHUB_SHA"
+            git tag "$TAG" "$RELEASE_SHA"
             git push origin "refs/tags/${TAG}"
           fi
           FLAGS=(--title "$TAG" --generate-notes --verify-tag)

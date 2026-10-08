@@ -485,6 +485,20 @@ Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向�
 
 ## 11. 測試與 release preflight
 
+自動發布由 `CI` 完成事件觸發，沿用同一 repository、`main` push、exact commit
+與 exact run attempt 的成功結果。`scripts/release-ci.js` 重新查詢 GitHub API，
+要求 Node 24 LTS、Exhaustive migration replay 與 Native Windows bound-tree
+三個 jobs 均唯一且成功，並在讀取 jobs 後重新確認 run 未被 rerun；失敗、缺漏、
+錯 commit 或 API 不可用時停止發布。Checkout、首次 build 與 tag 都綁定該
+`RELEASE_SHA`，不使用事件當下可能已前進的 default branch SHA。手動發布仍執行
+完整 `npm run check`；兩條路徑都執行 `release:check` 與既有 artifact 驗證。
+
+測試加速保留既有斷言：formal delivery 的唯讀 evidence 掃描使用同步 scoped
+batch，只重用 exact Git object 的讀取，不快取 mutable refs、request bytes 或 gate
+結果。Migration fixture 保留獨立 clone 與歷史 checkout，省去隨即被取代的初始
+checkout。全庫 source audit 的 CLI 成功序列化與 totals assertions 合併為同一次
+呼叫；fixture 的直接 API 邊界測試及 preflight audit 仍各自執行。
+
 主要命令：
 
 ```bash
