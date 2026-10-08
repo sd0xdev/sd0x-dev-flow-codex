@@ -1,17 +1,17 @@
 {
   "schema_version": 2,
   "decision": "mapping-only",
-  "codex_version": "codex-cli 0.159.2",
+  "codex_version": "codex-cli 0.160.0",
   "registry_mechanism": null,
   "alias": "r4-alias-probe",
   "manual_invocation": true,
   "auto_route_excluded": false,
   "registry_dump_path": "migration/evidence/alias-registry-dump.json",
-  "registry_dump_hash": "bbc7a1cf08a68059c4ec1b9f937bdc317f0f8d491ce1f31f5f78390bd5f48744",
+  "registry_dump_hash": "4b4215a83e303d82b20559cdf6e1bcc3ff2cae818b2c3e8455098a304a375664",
   "fixture_manifest_path": "test/fixtures/alias-capability/plugin/.codex-plugin/plugin.json",
   "fixture_manifest_hash": "7834bc05d6cb26d033604afe7c1b9b7ff2448bca48d939946b2b9474107c3ad2",
   "plugin_fingerprint": "bcd8dba40a4774253127168eed92554760a10dca821a9004457d6e154315d8de",
-  "owner_request_path": "docs/features/skill-toolkit-migration/requests/2026-09-30-alias-capability-local-runner-refresh.md",
+  "owner_request_path": "docs/features/skill-toolkit-migration/requests/2026-10-03-alias-capability-codex-0-160-0-refresh.md",
   "owner_history": [
     {
       "path": "docs/features/skill-toolkit-migration/requests/2026-07-10-skill-alias-capability-r4.md",
@@ -40,6 +40,10 @@
     {
       "path": "docs/features/skill-toolkit-migration/requests/2026-09-30-alias-capability-codex-0-159-2-refresh.md",
       "sha256": "6e747a05009cac3f12d19e6865109666219985827610d307ab52e03b32949abb"
+    },
+    {
+      "path": "docs/features/skill-toolkit-migration/requests/2026-09-30-alias-capability-local-runner-refresh.md",
+      "sha256": "c13df4e221cdc9693a6360e6611aeaa9492d2fb78720d45c2d394e8d77f8daa9"
     }
   ],
   "reproduce_argv": [
@@ -47,6 +51,6 @@
     "CODEX_HOME=$PWD/.codex-dev-home codex app-server generate-json-schema --experimental --out <temporary-directory>",
     "CODEX_HOME=$PWD/.codex-dev-home npm run migration:alias:probe"
   ],
-  "tested_at": "2026-09-30T08:49:36.743Z",
+  "tested_at": "2026-10-03T00:59:33.561Z",
   "rationale": "Codex supports explicit and implicit skill invocation, but its versioned registry schema exposes no flag or API that preserves explicit invocation while excluding a skill from implicit routing. Prompt sampling cannot close that proof gap."
 }

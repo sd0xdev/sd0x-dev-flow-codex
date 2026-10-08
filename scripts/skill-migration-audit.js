@@ -119,6 +119,10 @@ const ALIAS_CAPABILITY_CANONICAL_OWNER_HISTORY = Object.freeze([
   Object.freeze({
     path: 'docs/features/skill-toolkit-migration/requests/2026-09-30-alias-capability-codex-0-159-2-refresh.md',
     sha256: '6e747a05009cac3f12d19e6865109666219985827610d307ab52e03b32949abb'
+  }),
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-09-30-alias-capability-local-runner-refresh.md',
+    sha256: 'c13df4e221cdc9693a6360e6611aeaa9492d2fb78720d45c2d394e8d77f8daa9'
   })
 ]);
 const WAVE1_READINESS_PATH = 'migration/evidence/wave1-delivery-readiness.json';
