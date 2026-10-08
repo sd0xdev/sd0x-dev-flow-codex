@@ -13,7 +13,7 @@ Stay within feasibility. Do not decide whether the feature is necessary, invent 
 
 Establish the requested outcome, observable success signals, known constraints, and the decision the study must support. Separate user statements, repository observations, current external facts, and inferences. Record assumptions that could reverse the conclusion.
 
-If the question is actually whether the outcome is worth pursuing, hand it to necessity analysis. If requirements are materially ambiguous, stop at explicit questions. If a technical design is already selected and only its details remain, continue in technical specification or deep design analysis.
+If the question is actually whether the outcome is worth pursuing, continue with necessity analysis. Recover requirements from the task, established conversation context, and repository evidence. Where uncertainty remains, assess supported interpretations conditionally and state which assumptions could change the conclusion. Ask only when unresolved user intent materially changes the outcome, while continuing independent evidence collection and delivering the assessable study. Missing formal requirements or approval alone does not block a draft assessment. If a technical design is already selected and only its details remain, continue in technical specification or deep design analysis.
 
 ## 2. Collect bounded evidence
 
@@ -72,3 +72,8 @@ The [historical planning-pack handoff](references/pack-handoff.md) is provenance
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Apply the same role-aware selection to requirements in design_records: one entry or one unique canonical main; otherwise explicitly preserve ambiguity while continuing supported investigation.

@@ -35,3 +35,8 @@ Report framework inventory, layer balance, artifact metrics, reliability and mai
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Assess current test behavior using code and current_authority. Design/work/history documents can explain intent but do not prove current coverage.

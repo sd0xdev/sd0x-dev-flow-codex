@@ -40,3 +40,6 @@ This canonical skill is distributed from the core plugin. Its legacy development
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+An explicit --mode reference-stability selects a bounded pointer conversion: 1–5 enumerated files and no --auto. Measure eligible prose/comment pointers per file before editing; the native advisory planner identifies candidates, while embedded code regions require explicit inspection. Convert only bare numeric pointers to a heading, symbol, named test or configuration key in the same referenced subject. Retain a numeric hint only beside a semantic anchor. Exclude executable strings, directives, assertions, fixtures, snapshots, generated report formats, request/ADR/review history and acceptance evidence. Do not combine this pass with restructuring or unrelated prose cleanup. Report per-file before/after counts and unresolved pointers; edits reopen the outer configured review and deterministic verification gates. This mode performs no Git mutation or automatic checkpoint.

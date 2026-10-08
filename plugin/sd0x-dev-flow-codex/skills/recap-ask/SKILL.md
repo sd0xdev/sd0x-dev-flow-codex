@@ -11,7 +11,7 @@ This workflow answers one question using one existing recap as the primary bound
 
 Resolve one contained regular recap file under the repository or the operating-system temporary root. Reject traversal, symbolic-link escape, oversized input, unsupported encoding, a missing recap structure, and path or byte drift. Record repository identity when available, recap path, byte length, SHA-256, scope metadata, and evidence index.
 
-Classify the question as recap-scoped, ambiguous, or outside scope from explicit terms and the recap's headings, paths, decisions, and anticipated questions. Answer a clear recap-scoped portion with material assumptions stated. Clarify only when unresolved ambiguity would materially change the answer or evidence boundary. An outside-scope question returns the exact boundary and a handoff to the general ask, code-explore, or deep-research workflow without dispatching it.
+Classify the question as recap-scoped, ambiguous, or outside scope from explicit terms and the recap's headings, paths, decisions, and anticipated questions. Answer a clear recap-scoped portion with material assumptions stated. Resolve ordinary references through the conversation and recap before asking. Clarify only when unresolved ambiguity would materially change the answer or evidence boundary. For an outside-scope portion the user already requested, explain the boundary and continue under the relevant read-only ask, code-explore, or deep-research workflow when the user's scope permits that evidence; distinguish its new sources from recap claims. Do not require the user to repeat the question, widen an explicit recap-only request, or grant mutation authority through this handoff.
 
 ## Evidence use
 
@@ -40,3 +40,8 @@ Return question classification, answer, verified sources, recap and current-evid
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Answer historical questions from dated records; check current code before projecting a past result into the present.

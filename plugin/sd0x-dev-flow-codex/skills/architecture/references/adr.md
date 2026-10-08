@@ -1,0 +1,9 @@
+# Numbered architecture decisions
+
+Resolve the feature through the existing create-request resolver; explicit conflicts or unsafe paths remain errors. Recover ordinary missing context and choose a descriptive kebab-case title. Read the active documentation contract through the installed runtime reader before numbering or superseding records.
+
+The installed native workflow runner accepts one JSON request: action adr-plan, options containing feature, kebab-case title, status (Proposed by default, Accepted only with actual decision evidence), and optional numeric supersedes. The planner uses the canonical feature path and scans both its root and archived/ for case-insensitive ADR filenames. It selects max existing numeric ID + 1, padded to at least three digits. Duplicate IDs, malformed corpus, symlinked paths and missing superseded records fail closed. Planning never writes.
+
+Revalidate the corpus and complete destination before writing, and create the file exclusively so a concurrent ADR is not overwritten. Write the returned destination with title, date, status, context/problem, credible options, decision, rationale, consequences and evidence. Keep sections concise and proportionate to the decision. A draft records uncertainty without inventing acceptance. Preserve canonical lifecycle documents and existing ADR rationale.
+
+For supersession, record the new-to-old relative link from the plan. Re-read the old record against its pre-write digest, change only its status to Superseded and add the returned old-to-new link. Preserve all prior decision text. If the old record changed or its status format is ambiguous, leave it intact, report incomplete supersession and reconcile against actual contents before retrying; do not claim both links exist until readback confirms them. Never renumber or delete past decisions. Report the new path, status and both links, then complete required document review.

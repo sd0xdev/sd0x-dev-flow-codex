@@ -76,3 +76,6 @@ Fetch the epic branch and confirm the ordered squash commit object IDs, pull-req
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before a Git mutation, load the installed Git action and git-policy topics from the installed native contract reader and read the user-owned policy. Apply additive protected branches, naming and commit-message conventions without weakening explicit action/target/payload authority. Validate attribution before commit or publication, redact removed automation markers in reports, and preserve human authorship. Eligibility, a policy declaration, an offer or a computed digest never grants authority. Goal commits require an actual user-set active goal explicitly authorizing commit for this repository/branch, within expiry and with explicit protected-branch scope when needed; they do not imply staging or pushing. Repeated invocations refresh target OIDs and observations. Declines suppress the same-fingerprint offer; successful gates only enable an eligible suggestion.

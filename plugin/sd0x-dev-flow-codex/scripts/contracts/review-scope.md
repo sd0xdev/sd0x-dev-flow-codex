@@ -1,0 +1,7 @@
+# Review scope and fix obligation
+
+Before expanding review scope, deferring a finding, or claiming an issue predates the change, establish the comparison baseline, current fingerprint, affected paths, callers and behavior. A default review covers the complete dirty worktree, including pre-existing user edits without reverting them. A branch/commit review binds its exact base and head and must not silently include unrelated dirty content.
+
+For each finding record priority, concrete triggering input, affected behavior, evidence, and causal relationship to this change. A historical defect is not a reason to dismiss a regression caused or exposed by the change. Trace dependency boundaries when needed; avoid unrelated cleanup. If a genuine independent issue falls outside the user scope, record the evidence and owner, explain the residual risk, and continue independent work. Do not manufacture a scope exception from context pressure or test inconvenience.
+
+All actionable P0, P1 and P2 findings block this repository's required review. Source severity tiers, deferral caps and accepted-risk prose do not create a pass. Fix supported findings, retest the behavior, then obtain a fresh configured primary review for the new fingerprint. Only that primary may resolve a disputed finding. Preserve user changes while correcting the specific defect. An unreadable contract leaves the dependent classification or deferral unresolved; it never relaxes the gate.

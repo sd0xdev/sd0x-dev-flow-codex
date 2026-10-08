@@ -8,6 +8,9 @@ const { inspectSessionContext, sessionEnvironment } = require('./session-context
 
 const MAX_RUNTIME_OUTPUT_BYTES = 4 * 1024 * 1024;
 const RUNTIME_ENTRYPOINTS = Object.freeze({
+  'orchestrate/run-verify.js': 'skills/orchestrate/scripts/run-verify.js',
+  'workflow/manifest-map.js': 'scripts/runtime/manifest-map.js',
+  'workflow/native.js': 'scripts/runtime/native-workflows.js',
   'create-request/request-tool.js': 'skills/create-request/scripts/request-tool.js',
   'doctor/doctor.js': 'skills/doctor/scripts/doctor.js',
   'remind/status.js': 'skills/remind/scripts/status.js',

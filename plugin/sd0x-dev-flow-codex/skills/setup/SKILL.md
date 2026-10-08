@@ -91,3 +91,12 @@ Do not install external model CLIs or begin authentication as part of setup. Nev
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Load the git-policy and git-authorization contract topics through the installed native reader with the exact installed version before dependent work. Missing, unreadable, changed-manifest or wrong-version contracts leave the dependent action unresolved; recover the installation or context instead of inferring the omitted rules. Contract delivery is not proof of model understanding or gate acceptance. The optional Git policy scaffold is absent-only and preserves user settings byte-for-byte; detect existing custom flow before suggesting typed deployment declarations. Setup never executes the declared flow.
+
+For Git integration, init/sync also invokes the native git-hooks-install action: commit-msg is the default noninteractive attribution guard, and with_push_gate explicitly opts in to pre-push. The latter requires exact terminal confirmation for protected/history-changing ref updates and refuses noninteractive use for those updates; it has no environment bypass. This is separate from Codex event hooks. Discovery selects Husky, repository-contained core.hooksPath, direct Git hooks, or an explicitly selected fallback directory. Foreign files, modified managed blocks, malformed markers and unbounded legacy wiring remain pending without overwrites. Existing installed/pending opt-in survives sync; a declined push guard stays declined unless explicitly selected. External hooksPath ownership remains a reported dependent action.
+
+After wiring, the native git-hooks-doctor action reports Git-resolved identity, ownership, executability and recognized Husky routing separately from current bytes. Written fallback files remain pending until Git actually resolves them; setup does not change core.hooksPath. Static routing is not an observed hook execution. Validate actual message rejection and preservation of downstream Husky commands/ref stdin in a disposable repository before asserting those behaviors. Native installation records live only in Git metadata.
+
+An explicitly requested push-gate removal uses git-hooks-remove-push. It removes only the intact owned Husky block or exact owned dedicated file, preserves all user bytes and records declined so later sync does not silently reinstall it. Edited or ambiguous ownership remains unresolved; removal is never implied by omitting an opt-in flag.

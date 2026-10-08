@@ -1,19 +1,26 @@
 ---
 name: architecture
-description: "Create or update a feature architecture document grounded in its approved technical specification and repository boundaries. Use for component design and consequential decisions, not implementation or feature requirements."
+description: "Create or update feature architecture, or record a numbered ADR with explicit decision status and supersession links."
 ---
+
+## ADR mode
+
+For an explicit ADR request, follow [ADR records](references/adr.md) instead of rewriting the lifecycle architecture document. Default architecture mode remains the workflow below.
+
 
 # Architecture Documentation
 
-Create or incrementally refine one feature-level `docs/features/{slug}/3-architecture.md`. Turn an accepted technical specification and verified repository boundaries into a durable component model, data flow, integration map, and architecture-decision record.
+Create or incrementally refine one feature-level `docs/features/{slug}/3-architecture.md`. Turn an established design scope and verified repository boundaries into a durable component model, data flow, integration map, and architecture-decision record. Preserve the distinction between accepted decisions and a draft design.
 
 Stay at architecture-document scope. Do not invent product requirements, rewrite the parent technical specification, implement code, create execution tickets, update progress state, or perform Git mutations. Architecture advice that does not need a lifecycle artifact belongs to an answer-only consulting workflow.
 
 ## 1. Resolve the feature and inputs
 
-Accept an explicit feature key, a contained feature-directory path, a canonical `2-tech-spec.md` or `3-architecture.md` path, or repository context. Resolve in this order: explicit path/key, current branch prefix, exactly one changed feature, then exactly one non-archived feature directory. Reject conflicts, traversal, absolute paths, symlink components, ambiguous changed features, and every other lifecycle-document form. Ask one concise question when no unique feature remains.
+Accept an explicit feature key, a contained feature-directory path, a canonical `2-tech-spec.md` or `3-architecture.md` path, or repository context. Use the query-only helper at `../create-request/scripts/request-tool.js` for feature resolution and containment. Its CLI accepts feature-directory and `2-tech-spec.md` paths directly. For `3-architecture.md`, first validate the complete repository-relative path with the helper's exported `containedPath(root, path)`, require the exact `docs/features/{slug}/3-architecture.md` form, and resolve its feature directory. Pass any explicit key with that directory so conflicts fail closed. Validate the complete architecture output path with the same containment function before writing; an existing leaf must be a regular file. Do not bypass or reproduce containment logic. Reject conflicts, traversal, absolute paths, symlink components, and every other lifecycle-document form.
 
-Inspect the approved technical specification and enough existing architecture, requirements and active request context to establish the design constraints. A missing technical specification is Need Human unless the user supplied an equally concrete approved design. For a small change contained to one component and one flow, recommend keeping the architecture section in the technical specification and continue only when a separate lifecycle document is wanted.
+The helper tries explicit input, the current branch, changed features, then a single feature directory. If no unique feature resolves, research the current task, earlier user scope, related code and existing feature documents; choose the relevant feature or derive a descriptive key for a new coherent concern. Re-run the helper with the inferred key and selected path, accept only its canonical result, and disclose material naming or ownership assumptions. Inspect an existing architecture document's subject before updating it. Multiple changed features or a missing directory alone do not require a user decision; never drop rejected explicit input to obtain a different result.
+
+Inspect the technical specification when present and enough existing architecture, requirements and active request context to establish the design constraints. If the specification is absent, use concrete design scope from the conversation and repository evidence to produce a clearly labeled draft. Identify source provenance, established constraints and unresolved design choices; never invent approval. Ask only for an unresolved choice that materially changes the intended outcome, and continue the supported portions meanwhile. For a small change contained to one component and one flow, keep the requested architecture document proportionate rather than requiring a separate format confirmation.
 
 ## 2. Establish repository evidence
 
@@ -35,7 +42,7 @@ Architecture decisions describe stable boundaries, not line-level implementation
 
 ## 4. Write or update the lifecycle document
 
-Create `docs/features/{slug}/3-architecture.md` from the template when absent. In update mode, preserve useful user-authored decisions and apply focused changes only where repository or parent-design evidence changed. Render real relative Markdown links to the canonical technical specification and existing active requests; do not copy placeholder text and do not edit the linked documents.
+Create `docs/features/{slug}/3-architecture.md` from the template when absent. In update mode, preserve useful user-authored decisions and apply focused changes only where repository or parent-design evidence changed. Render real relative Markdown links to the canonical technical specification when it exists and to existing active requests; otherwise identify the conversational or repository design source and draft status. Do not copy placeholder text or edit the linked documents.
 
 Before reporting completion:
 
@@ -64,3 +71,8 @@ The [historical planning-pack handoff](references/pack-handoff.md) is migration 
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Select tech-spec entries within design_records first: zero means a labeled code-grounded draft; one selects that file; multiple require a unique canonical main within that set. Do not rejoin role-blind aliases or pick a lexicographic winner. Recover ambiguity from accepted context and preserve unsupported portions as drafts.

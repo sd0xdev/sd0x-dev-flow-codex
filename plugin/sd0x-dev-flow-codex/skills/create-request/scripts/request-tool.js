@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const featureDocs = require('../../../scripts/runtime/feature-docs');
 const os = require('node:os');
 const path = require('node:path');
 const nodeProcess = require('node:process');
@@ -125,8 +126,9 @@ function parseExplicitPath(root, explicitPath) {
   const checked = containedPath(root, candidate);
   const featureMatch = checked.relative.match(FEATURE_PATH_RE);
   const lifecycleMatch = checked.relative.match(LIFECYCLE_PATH_RE);
+  const splitMatch = checked.relative.match(/^docs\/features\/([^/]+)\/(1-requirements|2-tech-spec)\/\2\.md$/);
   const requestMatch = checked.relative.match(REQUEST_PATH_RE);
-  const match = featureMatch || lifecycleMatch || requestMatch;
+  const match = featureMatch || lifecycleMatch || splitMatch || requestMatch;
   if (!match || !SLUG_RE.test(match.at(1))) {
     throw new Error(
       'path must be a feature directory, one canonical lifecycle Markdown file, or one request Markdown file'
@@ -397,10 +399,7 @@ function inspectFeature(root, key, source, confidence, targetExists) {
     confidence,
     docs_path: relativeDir,
     exists: targetExists === undefined ? checked.exists : targetExists,
-    canonical_docs: {
-      requirements: chooseCanonical(checked.absolute, '1-requirements', '1-requirements.md', root),
-      tech_spec: chooseCanonical(checked.absolute, '2-tech-spec', '2-tech-spec.md', root)
-    },
+    ...featureDocs.scan(root, key),
     active_requests: requests.filter((request) =>
       request.parse_errors.length > 0 || !DONE.has(request.status.toLowerCase()))
   };
@@ -408,6 +407,7 @@ function inspectFeature(root, key, source, confidence, targetExists) {
 
 function nullResolution() {
   return {
+    ...featureDocs.emptyDocs(),
     key: null,
     source: 'none',
     confidence: null,
@@ -424,12 +424,16 @@ function changedFeatureKeys(root) {
   try {
     tracked = execFileSync('git', ['diff', '--name-only', 'HEAD', '--'], { cwd: root, encoding: 'utf8', env: CLEAN_GIT_ENV, stdio: ['ignore', 'pipe', 'pipe'] });
     outputs.push(...tracked.split(LINE_SPLIT_RE).filter(Boolean));
-  } catch { /* An unborn branch may not have HEAD. */ }
+  } catch (error) {
+    // Only a confirmed empty history is absence; all other discovery failures remain unknown.
+    const heads = execFileSync('git', ['rev-list', '--all', '--max-count=1'], { cwd: root, encoding: 'utf8', env: CLEAN_GIT_ENV, stdio: ['ignore', 'pipe', 'pipe'] });
+    if (heads.trim()) throw error;
+  }
   let untracked = '';
   try {
     untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { cwd: root, encoding: 'utf8', env: CLEAN_GIT_ENV, stdio: ['ignore', 'pipe', 'pipe'] });
     outputs.push(...untracked.split(LINE_SPLIT_RE).filter(Boolean));
-  } catch { /* Resolution remains conservative when Git cannot enumerate files. */ }
+  } catch (error) { throw new Error('Feature enumeration failed', { cause: error }); }
   return Array.from(new Set(outputs.map((file) => file.match(CHANGED_FEATURE_RE)?.at(1))
     .filter((key) => key && SLUG_RE.test(key))));
 }
@@ -465,7 +469,7 @@ function resolveFeature(root, options = {}) {
   try {
     branch = execFileSync('git', ['branch', '--show-current'], { cwd: root, encoding: 'utf8', env: CLEAN_GIT_ENV, stdio: ['ignore', 'pipe', 'pipe'] });
     branch = branch.trim();
-  } catch { /* no branch */ }
+  } catch (error) { throw new Error('Feature branch discovery failed', { cause: error }); }
   const branchMatch = branch.match(BRANCH_FEATURE_RE);
   if (branchMatch && SLUG_RE.test(branchMatch.at(1)) &&
       featureDirectories(root).includes(branchMatch.at(1))) {
@@ -567,5 +571,6 @@ module.exports = {
   parseRequest,
   parseRequestContent,
   resolveFeature,
+  isContextShape: featureDocs.isContextShape,
   scanRequests
 };

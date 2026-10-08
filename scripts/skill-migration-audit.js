@@ -123,6 +123,10 @@ const ALIAS_CAPABILITY_CANONICAL_OWNER_HISTORY = Object.freeze([
   Object.freeze({
     path: 'docs/features/skill-toolkit-migration/requests/2026-09-30-alias-capability-local-runner-refresh.md',
     sha256: 'c13df4e221cdc9693a6360e6611aeaa9492d2fb78720d45c2d394e8d77f8daa9'
+  }),
+  Object.freeze({
+    path: 'docs/features/skill-toolkit-migration/requests/2026-10-03-alias-capability-codex-0-160-0-refresh.md',
+    sha256: '321fe61e5d4d545764cd351f13e3e3df0f28a179e5a00fb18be4bac14952475f'
   })
 ]);
 const WAVE1_READINESS_PATH = 'migration/evidence/wave1-delivery-readiness.json';
@@ -3316,7 +3320,19 @@ function operationForGitCommand(tokens) {
   if (command === 'commit') return commitOperations(args);
   if (command === 'push') return pushOperations(args);
   if (['rebase', 'merge'].includes(command)) return ['history-rewrite'];
-  if (['add', 'reset', 'restore'].includes(command)) {
+  if (command === 'add') {
+    // Explicit file staging is a local write. Broad/interactive/force staging
+    // remains unsupported; the owning workflow binds these paths to its plan.
+    const paths = args.slice(1);
+    assert(args[0] === '--' && paths.length > 0 && paths.every((file) =>
+      typeof file === 'string' && file.length > 0 &&
+      !file.startsWith('/') && !file.startsWith(':') && !file.includes('\\') &&
+      !/[\x00-\x1f*?\[\]]/.test(file) && !/^[A-Za-z]:/.test(file) &&
+      file.split('/').every((part) => part && part !== '.' && part !== '..')),
+    'candidate contains unsupported index mutation');
+    return ['local-write'];
+  }
+  if (['reset', 'restore'].includes(command)) {
     throw new Error('candidate contains unsupported index mutation');
   }
   throw new Error(`candidate contains unsupported git subcommand: ${command}`);
@@ -6040,11 +6056,13 @@ function observedOperations(records, options = {}) {
       trustedFiles,
       trustedSkill
     );
-    // A prose-only connector workflow can declare its mutation without a
+    // A prose-only workflow can declare its sensitive mutation without a
     // fabricated executable example. This adds sensitivity; it never exempts
     // commands or replaces the separate user-authorization contract.
-    if (isInstructionText && /\bconnector-write operation\b/.test(text)) {
-      operations.add('connector-write');
+    if (isInstructionText) {
+      for (const operation of SENSITIVE_OPERATIONS) {
+        if (new RegExp(`\\b${operation} operation\\b`).test(text)) operations.add(operation);
+      }
     }
     const javascriptCommentFreeText = ['.js', '.cjs', '.mjs'].includes(extension)
       ? stripJavaScriptComments(text, record.path)

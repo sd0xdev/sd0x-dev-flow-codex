@@ -5,7 +5,9 @@
   "authorization": {
     "policy": "scoped-explicit-user-authorization-v2",
     "sensitive_operations": [
-      "pr-write"
+      "history-rewrite",
+      "pr-write",
+      "push"
     ]
   },
   "units": [

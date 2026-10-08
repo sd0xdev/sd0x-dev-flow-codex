@@ -35,3 +35,8 @@ Report the threat model, inspected surface, findings by severity, positive contr
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Apply the OWASP Top 10:2025 reference to applicable web surfaces, recording each category as inspected, not applicable with reason, or unverified. Include A03 software supply-chain failures across dependencies/build/distribution, A10 exceptional-condition handling including fail-open and sensitive errors, and SSRF under A01 access control. Categories guide threat tracing; absence of a pattern match is not a security pass. The OWASP reference links primary sources and the observed edition; fetch current advisories when the concrete dependency risk requires it.
+
+Details: [owasp-2025](references/owasp-2025.md).

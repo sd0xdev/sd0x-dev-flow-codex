@@ -40,3 +40,8 @@ Return changed documents, material drift corrected, verification performed, and 
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Only current_authority owes present code alignment. Preserve Design record, Work record and History record historical text; a dated update may explain later change. Never append to or rewrite a feature intent artifact in this workflow.

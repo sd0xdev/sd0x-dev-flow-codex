@@ -11,7 +11,7 @@ Stay within necessity. Do not score implementation feasibility, select architect
 
 ## 1. Bound the audit
 
-Require one contained repository-relative lifecycle document or a concrete proposal supplied by the user. Reject absolute paths, traversal, symlink components, generated/vendor targets, and ambiguous documents. Cover every proposed element. Inspect parent context, cited evidence, and applicable repository guidance to the depth needed to assess material necessity claims.
+Resolve one contained repository-relative lifecycle document or concrete proposal from the user and established conversation context. Reject absolute paths, traversal, symlink components, and generated/vendor targets. Consult repository evidence to disambiguate documents without guessing among conflicting proposals. Cover every identified proposed element and state any unavailable scope. Inspect parent context, cited evidence, and applicable repository guidance to the depth needed to assess material necessity claims. Missing formal documentation does not block analysis of a concrete proposal already in context.
 
 List the auditable elements with stable identifiers. Elements may be functional or non-functional requirements, components, abstractions, extension points, configuration, compatibility layers, rollout mechanisms, or operational commitments. Preserve the author's wording; do not silently split or merge claims in a way that changes their meaning.
 
@@ -49,7 +49,7 @@ Give every element one verdict:
 
 For `Narrow`, `Defer`, or `Remove`, state the cheaper alternative, impact, and stop or revisit criterion. For `Keep`, state the evidence that would falsify the verdict. Do not convert these findings into technical feasibility scores or implementation tasks.
 
-Return the report in the response. Include an overall recommendation of `Proceed`, `Simplify`, `Do Not Proceed`, or `Need Human`, with the decisive evidence, confidence, dissent, and next decision owner. The recommendation is advisory and does not edit the audited artifact.
+Return the report in the response. Include an overall recommendation of `Proceed`, `Simplify`, `Do Not Proceed`, or `Need Evidence`, with the decisive evidence, confidence, dissent, and next validation step. `Need Evidence` identifies consequential evidence gaps while retaining verdicts on all assessable elements; it does not require human approval or suspend independent investigation. Recover available context and ask only when unresolved user intent materially changes the outcome. Do not invent a decision owner or turn missing evidence into a questions-only response. The recommendation is advisory and does not edit the audited artifact.
 
 Completion requires the following outcomes; choose the inspection and checking sequence that establishes them:
 

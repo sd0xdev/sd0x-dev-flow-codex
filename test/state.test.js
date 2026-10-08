@@ -47,6 +47,9 @@ function createChangedRepo(provider = 'codex') {
   initRepository(root);
   setReviewProvider(root, provider);
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 1;\n');
+  fs.writeFileSync(path.join(root, 'package.json'), JSON.stringify({
+    scripts: { check: 'node --check app.js' }
+  }));
   git(root, ['add', '.']);
   commit(root, 'baseline');
   fs.writeFileSync(path.join(root, 'app.js'), 'module.exports = 2;\n');

@@ -11,9 +11,9 @@ This is analysis-only. Do not rewrite the plan, modify repository files, impleme
 
 ## 1. Capture the candidate plan
 
-Require the complete plan text or one contained repository-relative plan document. Preserve step identifiers and wording so findings can cite stable locations. Read referenced requirements, technical specifications, architecture decisions, request tickets, repository guidance, and relevant modules only as needed to validate plan claims.
+Recover the candidate from the user's supplied plan, established conversation context, or one contained repository-relative plan document. Consult repository evidence to resolve discovery gaps; do not select an unrelated plan merely because it is the only file found. Preserve step identifiers and wording so findings can cite stable locations. Read referenced requirements, technical specifications, architecture decisions, request tickets, repository guidance, and relevant modules only as needed to validate plan claims.
 
-State the plan's intended outcome, scope, non-goals, assumptions, constraints, and success signals. If the plan is incomplete, stale, or ambiguous enough that independent review would guess its intent, return `Need Human` with the minimum missing context.
+State the plan's intended outcome, scope, non-goals, assumptions, constraints, and success signals. Review incomplete or stale plans as supplied, identifying unsupported intent and unreviewable sections separately from concrete findings. Recover available context before asking. Ask only when unresolved user intent materially changes the assessment; continue all independent inspection and deliver the supported critique with explicit limits instead of ending with questions alone. Do not invent missing plan steps or claim to have reviewed an unavailable plan.
 
 ## 2. Research independently
 
@@ -48,7 +48,7 @@ Report only discrete findings with severity:
 
 Each finding includes the plan step or section, repository evidence when applicable, root cause, consequence, recommended plan change, and validation that would close it. Separate facts from inferences and mark uncertainty.
 
-End with `Ready`, `Revise`, or `Need Human`. `Ready` means no Blocker or Major findings remain; it is not implementation approval and does not satisfy the core review gate. Return the critique in the response and leave the candidate plan unchanged.
+End with `Ready`, `Revise`, or `Limited`. The `Revise` verdict applies when evidence supports actionable plan changes; `Limited` applies when consequential missing context prevents an overall readiness judgment; name the assessed portions, unassessed portions, and next evidence needed. `Ready` requires adequate coverage of the material scope and no Blocker or Major findings; it is not implementation approval and does not satisfy the core review gate. Missing context is not itself a request for human approval. Return the critique in the response and leave the candidate plan unchanged.
 
 Completion requires the following outcomes; choose the inspection and checking sequence that establishes them:
 

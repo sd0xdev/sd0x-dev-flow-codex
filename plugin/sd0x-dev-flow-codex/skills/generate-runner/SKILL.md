@@ -9,7 +9,7 @@ Generate a user-owned Node.js 24 CommonJS runner for the detected repository eco
 
 ## Detection
 
-Inspect only repository-root manifests and lockfiles. Detection precedence is an explicit valid ecosystem choice, then Node.js, Python, Rust, and Go. Conflicting lockfiles or multiple non-nested ecosystems require a user choice rather than silent precedence.
+Inspect repository-root manifests and lockfiles, using repository CI configuration as read-only evidence when choices conflict. Detection precedence is an explicit valid ecosystem choice, then the ecosystem used by the relevant existing check workflow, then Node.js, Python, Rust, and Go. For multiple Node lockfiles, prefer a supported manifest packageManager declaration, then the manager used by that check workflow, then pnpm, Yarn, and npm. Choose among supported templates without a naming or ecosystem confirmation checkpoint; record the evidence, assumption, and ecosystems the generated runner does not cover. Unsupported or contradictory explicit user selections require clarification only for that selection; prepare the supported plan without executing it.
 
 | Evidence | Ecosystem | Template |
 |---|---|---|

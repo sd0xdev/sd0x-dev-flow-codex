@@ -49,7 +49,7 @@ function nodeModePlan(root, mode) {
 
 function ecosystemPlan(root, mode) {
   const node = nodeModePlan(root, mode);
-  if (node) return { ecosystem: 'node', commands: node };
+  if (node?.some(command => !command.skip)) return { ecosystem: 'node', commands: node };
   const definitions = [
     ['pyproject.toml', 'python', {
       'lint:fix': ['ruff', ['check', '--fix', '.']],
@@ -64,6 +64,11 @@ function ecosystemPlan(root, mode) {
       'lint:fix': ['golangci-lint', ['run', '--fix']],
       build: ['go', ['build', './...']],
       test: ['go', ['test', './...']]
+    }],
+    ['build.gradle.kts', 'gradle', {
+      'lint:fix': ['./gradlew', ['spotlessApply']],
+      build: ['./gradlew', ['build']],
+      test: ['./gradlew', ['test']]
     }],
     ['build.gradle', 'gradle', {
       'lint:fix': ['./gradlew', ['spotlessApply']],
@@ -259,21 +264,21 @@ function detectCommands(cwd = process.cwd()) {
     const scripts = packageJson.scripts || {};
     const runner = packageRunner(root);
     let selectedProjectCommand = false;
-    if (scripts.check) {
+    if (typeof scripts.check === 'string' && scripts.check.trim()) {
       commands.push(scriptCommand(runner, 'check'));
       selectedProjectCommand = true;
     } else {
       for (const name of ['typecheck', 'lint', 'test']) {
-        if (scripts[name]) {
+        if (typeof scripts[name] === 'string' && scripts[name].trim()) {
           commands.push(scriptCommand(runner, name));
           selectedProjectCommand = true;
         }
       }
-      if (!selectedProjectCommand && scripts.build) {
+      if (!selectedProjectCommand && typeof scripts.build === 'string' && scripts.build.trim()) {
         commands.push(scriptCommand(runner, 'build'));
       }
     }
-    return { root, commands };
+    if (commands.length > 2) return { root, commands };
   }
 
   if (fs.existsSync(path.join(root, 'pyproject.toml')) ||
@@ -283,6 +288,12 @@ function detectCommands(cwd = process.cwd()) {
     commands.push(commandSpec('go', ['test', './...']));
   } else if (fs.existsSync(path.join(root, 'Cargo.toml'))) {
     commands.push(commandSpec('cargo', ['test']));
+  } else if (['build.gradle', 'build.gradle.kts'].some(file => fs.existsSync(path.join(root, file)))) {
+    commands.push(commandSpec(fs.existsSync(path.join(root, 'gradlew')) ? './gradlew' : 'gradle', ['test']));
+  } else if (fs.existsSync(path.join(root, 'pom.xml'))) {
+    commands.push(commandSpec(fs.existsSync(path.join(root, 'mvnw')) ? './mvnw' : 'mvn', ['test']));
+  } else if (fs.existsSync(path.join(root, 'Gemfile'))) {
+    commands.push(commandSpec('bundle', ['exec', 'rspec']));
   }
 
   return { root, commands };
@@ -363,7 +374,10 @@ function runVerification(cwd = process.cwd(), options = {}) {
   const results = [];
   const divergentFiles = stagedWorktreeDivergence(root);
 
-  if (divergentFiles.length > 0) {
+  if (fullCommands.length <= 2) {
+    results.push({ command: 'sd0x project validation detection', exit_code: 1, duration_ms: 0,
+      output: 'NO CHECKS RUN: Git policy checks alone cannot satisfy deterministic verification' });
+  } else if (divergentFiles.length > 0) {
     results.push({
       command: 'sd0x staged/worktree divergence check',
       exit_code: 1,

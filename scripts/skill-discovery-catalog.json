@@ -2,7 +2,7 @@
   "schema_version": 1,
   "skills": {
     "architecture": {
-      "description": "Create or update a feature architecture document grounded in its approved technical specification and repository boundaries. Use for component design and consequential decisions, not implementation or feature requirements.",
+      "description": "Create or update feature architecture, or record a numbered ADR with explicit decision status and supersession links.",
       "units": [
         "architecture/default"
       ]
@@ -68,7 +68,7 @@
       ]
     },
     "create-pr": {
-      "description": "Prepare, create or update one GitHub pull request using the branch diff and repository conventions. Validates the target and exact payload before publication.",
+      "description": "Prepare, create or update a GitHub pull request, or manage an explicitly selected stacked-PR chain with exact publication scope and readback.",
       "units": [
         "create-pr/default"
       ]
@@ -296,7 +296,7 @@
       ]
     },
     "project-brief": {
-      "description": "Convert an approved technical specification into a PM- and CTO-facing brief while preserving scope, commitments, provenance, and unresolved decisions. Does not approve or modify the source specification.",
+      "description": "Convert a technical specification or bounded project evidence into a PM- and CTO-facing brief, preserving scope, provenance, and unresolved decisions. Missing approval yields a draft, not a stop.",
       "units": [
         "project-brief/default"
       ]
@@ -382,7 +382,7 @@
       ]
     },
     "runbook": {
-      "description": "Create, refresh, or check a release runbook against current repository and operational evidence. Does not deploy, roll back, or claim production readiness.",
+      "description": "Create, refresh or check a release runbook. Explicit deploy mode executes an authorized declared flow with bound steps and failure reconciliation.",
       "units": [
         "runbook/default"
       ]
@@ -433,7 +433,7 @@
       ]
     },
     "smart-commit": {
-      "description": "Create one authorized commit from the existing index with hooks, signing, exact-tree validation, and readback intact. Does not stage, unstage, or push.",
+      "description": "Group all uncommitted work into coherent commits; inspect staged, unstaged and untracked changes, then stage and commit each group when execution is authorized. Does not push.",
       "units": [
         "smart-commit/default"
       ]
@@ -451,7 +451,7 @@
       ]
     },
     "tech-brief": {
-      "description": "Write a developer-facing brief from approved specifications, implementation, tests, and decision evidence. Preserve provenance, limitations, and unresolved interpretations.",
+      "description": "Write a developer-facing brief from specifications, implementation, tests, and decision evidence. Missing formal approval yields a draft with explicit provenance and limitations.",
       "units": [
         "tech-brief/default"
       ]

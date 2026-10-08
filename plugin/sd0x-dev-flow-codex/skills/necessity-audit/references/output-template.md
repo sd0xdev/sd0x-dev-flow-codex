@@ -22,11 +22,12 @@
 
 ## 5. Overall Recommendation
 
-- Recommendation: `Proceed`, `Simplify`, `Do Not Proceed`, or `Need Human`
+- Recommendation: `Proceed`, `Simplify`, `Do Not Proceed`, or `Need Evidence`
 - Decisive evidence:
 - Confidence:
 - Exit or revisit criteria:
-- Next decision owner:
+- Assessed elements and remaining evidence gaps:
+- Next validation step; decision owner if known:
 
 ## 6. Open Questions
 

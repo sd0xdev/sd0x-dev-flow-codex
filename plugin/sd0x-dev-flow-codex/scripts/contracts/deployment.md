@@ -1,0 +1,9 @@
+# Native deployment flow
+
+Deployment is a distinct runbook deploy mode; default runbook mode remains documentation-only. Read the user-owned Git policy, declaration and referenced executable before preparing a step. Preserve declaration order. Unsupported syntax, dirty worktree, existing Git operation, unsafe path, ambiguous branch binding or missing executable stops preparation.
+
+Use the native deployment planner to bind repository, current HEAD/branch, declaration hash, step index, concrete source/target OIDs, literal argv, fixed merge message and executable bytes. Present material effects, including credentials available to scripts and their possible commit/push/publish/deploy actions. Execute only under real user authority for that exact step and its consequences; a matching hash is a scope binding, not permission. run_steps defaults to print. execute is a preference and never an authority grant.
+
+Keep the loaded helper process fixed across branch switches. Revalidate before each step and after switching target; declaration or subject drift stops the flow. Merge supports no-ff and ff-only. Verify resulting OID or exact merge parents/message. A failed merge attempts only merge --abort for that initiated merge; never reset unknown work. Script failure, signal, timeout, policy drift or readback mismatch stops later steps.
+
+Record the exact plan hash, resulting OIDs, executed/printed outcome and failure/reconciliation state without leaking stdout secrets. On interruption, first inspect actual repository and external effects. A success exit does not prove external deployment health. Never automatically resume or re-run a possibly executed step; prepare a fresh plan for the remaining action only after evidence establishes its current state and the user's scope still covers it. This workflow cannot make worktree review or verification pass.

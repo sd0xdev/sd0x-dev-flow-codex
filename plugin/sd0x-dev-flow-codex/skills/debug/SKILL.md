@@ -26,6 +26,10 @@ The bundled [probe runner](scripts/probe-runner.js) is the exclusive execution b
 - Output is sanitized before retention or display. Bearer credentials, keys, tokens, passwords, secrets, and private-key blocks are replaced with redaction markers.
 - A timeout, output-limit termination, or sanitizer failure is inconclusive evidence, never a passing observation.
 
+## Independent confirmation
+
+Before reporting the diagnosis as independently confirmed, obtain a fresh read-only Codex subagent opinion on the failing input, observed trace, affected paths and neutral invariant question. Inherit parent settings and exclude the parent conclusion. The verifier must independently trace evidence, state alternatives and provide file/line support. Missing capability, identity drift or disagreement remains inconclusive. A diagnosis without this observation is explicitly unconfirmed; the opinion never closes a worktree gate.
+
 ## Result
 
 Return reproduction evidence, probe classification and limits, sanitized execution trace, hypothesis table, root cause, impact, suggested correction, regression case, and unresolved questions.

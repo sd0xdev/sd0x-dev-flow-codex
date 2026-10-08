@@ -30,3 +30,6 @@ Return the classification, supported impact and likely cause, evidence, confiden
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+If independent assessment could not execute, report UNAVAILABLE with the observed failure reason; omit confidence and mark policy mapping unavailable. Do not fabricate zero confidence or a NEED_HUMAN mapping as though a verdict ran. Continue supported diagnosis and explicitly bound what remains unknown.

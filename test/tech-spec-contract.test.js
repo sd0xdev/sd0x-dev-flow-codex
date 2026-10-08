@@ -51,6 +51,61 @@ test('tech-spec normalizes its exact lifecycle-document trigger through the shar
   assert.throws(() => resolveFeature(root, { path: triggerPath }), /symlink/);
 });
 
+test('tech-spec retries unresolved context without requiring existing lifecycle documents', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-tech-spec-draft-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  fs.writeFileSync(path.join(root, 'seed.txt'), 'seed\n');
+  git(root, ['add', 'seed.txt']);
+  commit(root, 'initial');
+  assert.equal(resolveFeature(root).key, null);
+  const beforeStatus = git(root, ['status', '--porcelain=v1', '--untracked-files=all']);
+
+  // The task supplies the design subject; validation does not infer product scope.
+  const selected = resolveFeature(root, {
+    feature: 'delivery-workflow', path: 'docs/features/delivery-workflow/2-tech-spec.md'
+  });
+  assert.equal(selected.key, 'delivery-workflow');
+  assert.equal(selected.docs_path, 'docs/features/delivery-workflow');
+  assert.equal(selected.exists, false);
+  assert.deepEqual(selected.canonical_docs, { requirements: null, tech_spec: null });
+  assert.deepEqual(selected.active_requests, []);
+  assert.equal(fs.existsSync(path.join(root, 'docs')), false);
+  assert.deepEqual(git(root, ['status', '--porcelain=v1', '--untracked-files=all']), beforeStatus);
+});
+
+test('tech-spec retries a selected feature amid unrelated changes while preserving conflict checks', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-tech-spec-context-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  initRepository(root);
+  fs.writeFileSync(path.join(root, 'seed.txt'), 'seed\n');
+  git(root, ['add', 'seed.txt']);
+  commit(root, 'initial');
+  fs.mkdirSync(path.join(root, 'docs/features/auth'), { recursive: true });
+  fs.mkdirSync(path.join(root, 'docs/features/billing'), { recursive: true });
+  const designPath = 'docs/features/billing/2-tech-spec.md';
+  const unrelatedPath = 'docs/features/auth/1-requirements.md';
+  const designContent = '# Billing design\n\nAn existing user-authored draft.\n';
+  const unrelatedContent = '# Authentication requirements\n\nUnrelated user edits.\n';
+  fs.writeFileSync(path.join(root, designPath), designContent);
+  fs.writeFileSync(path.join(root, unrelatedPath), unrelatedContent);
+  const beforeStatus = git(root, ['status', '--porcelain=v1', '--untracked-files=all']);
+  assert.equal(resolveFeature(root).key, null);
+
+  const selected = resolveFeature(root, { feature: 'billing', path: designPath });
+  assert.equal(selected.key, 'billing');
+  assert.equal(selected.docs_path, 'docs/features/billing');
+  assert.equal(selected.canonical_docs.tech_spec, designPath);
+  assert.equal(selected.canonical_docs.requirements, null);
+  assert.throws(() => resolveFeature(root, {
+    feature: 'auth', path: designPath
+  }), /does not match/);
+  assert.equal(fs.readFileSync(path.join(root, designPath), 'utf8'), designContent);
+  assert.equal(fs.readFileSync(path.join(root, unrelatedPath), 'utf8'), unrelatedContent);
+  assert.deepEqual(git(root, ['status', '--porcelain=v1', '--untracked-files=all']), beforeStatus);
+  assert.equal(fs.existsSync(path.join(root, 'docs/features/billing/1-requirements.md')), false);
+});
+
 test('tech-spec keeps design, lifecycle, and deep-mode boundaries explicit', () => {
   const skill = fs.readFileSync(SKILL, 'utf8');
   assert.match(skill, /Do not invent missing product requirements, implement code, create date-prefixed execution tickets, or update per-task progress/);

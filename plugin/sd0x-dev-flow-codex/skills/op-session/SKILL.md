@@ -10,7 +10,7 @@ Diagnose whether the existing 1Password CLI installation can serve a later, sepa
 ## Readiness checks
 
 1. Resolve the existing 1Password executable through a fixed capability lookup and report its version without modifying PATH or installing software.
-2. With fixed literal arguments and a bounded timeout, query account inventory metadata and current identity status. An explicitly supplied account selector must match one exact non-secret account identifier; ambiguous or absent selectors stop the check.
+2. With fixed literal arguments and a bounded timeout, query account inventory metadata and current identity status. An explicitly supplied account selector must match one exact non-secret account identifier. Without a selector, use the CLI's existing active account or the sole configured account, without switching accounts. If selection remains ambiguous, complete account-independent diagnostics and report the selection gap; ask only if choosing an account is necessary to answer the user's remaining question. Do not guess a different account when an explicit selector fails.
 3. Distinguish unavailable CLI, no configured account, signed-out state, locked desktop integration, expired session, IPC failure, and version incompatibility. Do not infer readiness from process status alone when the bounded response reports an error.
 4. Redact account emails, user identifiers, vault names, item references, tokens, environment values, and response bodies. Record only capability state, selected account fingerprint, authentication mode when the CLI reports it, duration, and bounded diagnostic category.
 

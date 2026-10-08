@@ -297,3 +297,22 @@ test('generic CLI cannot fabricate a passing verification gate', (t) => {
   assert.equal(result.status, 1);
   assert.match(result.stderr, /deterministic verify command/);
 });
+
+test('policy-only checks cannot certify a code worktree', t => {
+  const root = createRepo({ checkScript: null, testScript: null });
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  passReview(root);
+  const result = runVerification(root);
+  assert.equal(result.status, 'fail');
+  assert.match(result.evidence.commands[0].output, /NO CHECKS RUN/);
+});
+
+test('empty or whitespace Node scripts do not shadow another ecosystem', t => {
+  const root = createRepo({ checkScript: '   ', testScript: null });
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'build.gradle.kts'), '');
+  assert.deepEqual(detectCommands(root).commands.at(-1), { command: 'gradle', args: ['test'] });
+  fs.rmSync(path.join(root, 'build.gradle.kts'));
+  fs.writeFileSync(path.join(root, 'Gemfile'), '');
+  assert.deepEqual(detectCommands(root).commands.at(-1), { command: 'bundle', args: ['exec', 'rspec'] });
+});

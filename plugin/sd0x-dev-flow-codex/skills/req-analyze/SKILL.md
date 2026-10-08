@@ -25,7 +25,9 @@ An explicit mode wins. Otherwise prefer `quick` for a clear single-area need, `s
 
 Delegate context selection to the query-only resolver at the sibling path ../create-request/scripts/request-tool.js using its `resolve` operation. Pass an explicit feature as `--feature` and an explicit docs path as `--path`; when both are present, pass both so the resolver rejects a slug conflict. Do not reproduce or bypass its containment logic.
 
-The resolver owns this deterministic cascade: explicit path and key, current branch, changed paths, then exactly one non-archived feature directory. Accept only its canonical JSON result. A null result or multiple changed features means Need Human; ask one concise question instead of guessing. The resolver may propose a contained path for a valid missing explicit key, but it never creates the directory.
+The resolver owns this deterministic cascade: explicit path and key, current branch, changed paths, then exactly one non-archived feature directory. Accept only its canonical JSON result. A null result or multiple changed features calls for context research, not an automatic human handoff. Use the current task, earlier user scope, related code and existing feature documents to select the relevant feature; for a new coherent concern, derive a descriptive feature key. Pass that inferred key and any selected path back through the resolver before writing. Record material naming or ownership assumptions, and check an existing document's subject before choosing update mode. Never resolve an explicit key/path conflict or containment rejection by silently dropping the rejected input or choosing another destination.
+
+The resolver may propose a contained path for a valid missing explicit key, but it never creates the directory. Choose reversible names, document destinations, and analysis depth without requesting confirmation. If research leaves materially different intended outcomes that cannot be reconciled from the user scope, complete the supported analysis and ask only for that decision; do not block research or a clearly labeled draft on a missing feature directory or formal approval.
 
 Treat an existing requirements document in `canonical_docs.requirements` as update mode; otherwise prepare a new 1-requirements.md under the returned `docs_path`. Inspect `canonical_docs.tech_spec` and `active_requests` for existing lifecycle context.
 
@@ -109,3 +111,8 @@ Completion requires the following outcomes; choose the inspection and checking s
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Read the exact intent artifact when present. For an absent artifact, derive at most 60 lines from accepted planning: North star, Non-goals, 3–7 INV-nnn invariants and Acceptance sketch. The native intent-create action exclusively creates the resolved path; existing bytes remain read-only. Wrong-key intent files are strays, never silently adopted.

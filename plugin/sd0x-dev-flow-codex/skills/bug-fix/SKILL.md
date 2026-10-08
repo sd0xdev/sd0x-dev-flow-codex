@@ -28,3 +28,8 @@ Report the root cause, changed behavior, regression evidence, executed checks an
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Read exact feature intent when known and cite conflicting invariants before changing behavior. Preserve user intent. Established user instructions determine scope; the intent artifact must not be silently rewritten.

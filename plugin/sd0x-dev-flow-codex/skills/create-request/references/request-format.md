@@ -4,6 +4,8 @@ Use this reference for create and update modes.
 
 ## Template
 
+A ticket with consequential unresolved requirements starts in `Proposed` instead of `Pending`.
+
 ```markdown
 # {Title}
 
@@ -15,8 +17,9 @@ Use this reference for create and update modes.
 > **Depends On**: rendered relative Markdown link to the dependency request <!-- omit when none -->
 > **Superseded By**: rendered relative Markdown link to the replacement request <!-- required only on Superseded tickets -->
 > **Supersedes**: rendered relative Markdown link to the previous request <!-- required on the replacement ticket -->
-> **Tech Spec**: rendered relative Markdown link to the canonical tech spec
+> **Tech Spec**: rendered relative Markdown link to the canonical tech spec <!-- omit when absent -->
 > **Requirements**: rendered relative Markdown link to `1-requirements.md` <!-- omit when absent -->
+> **Scope source**: concrete user task and repository evidence <!-- use when no parent specification exists; never imply approval -->
 
 ## Background
 
@@ -54,7 +57,7 @@ Use this reference for create and update modes.
 
 ## References
 
-- Tech Spec: rendered relative Markdown link to the canonical tech spec
+- Tech Spec: rendered relative Markdown link to the canonical tech spec when present
 ```
 
 ## Invariants
@@ -74,8 +77,10 @@ Use this reference for create and update modes.
 
 ## Cross-links
 
-- A request links to the canonical tech spec and to requirements when present.
-- The tech spec links to every active request. Add or repair that link during create.
+- A request links to the canonical tech spec and to requirements when present. When
+  neither exists, record the concrete task scope and evidence in Background; a
+  missing document is not an approval requirement for a requested local ticket.
+- An existing tech spec links to every active request. Add or repair that link during create.
 - Sibling dependencies use relative links and must remain acyclic.
 - Never add a link to a document that does not exist.
 

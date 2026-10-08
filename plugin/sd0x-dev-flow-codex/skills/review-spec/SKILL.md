@@ -11,7 +11,7 @@ This is read-only analysis. Do not create or rewrite lifecycle documents, review
 
 ## 1. Resolve the review set
 
-Require one contained repository-relative lifecycle document. Accept canonical requirements, technical-specification, or architecture document forms. Reject absolute paths, traversal, symlink components, generated/vendor targets, request tickets as the primary artifact, and ambiguous matches.
+Resolve the lifecycle document from explicit user scope, established conversation context, backlinks, and repository evidence. Accept canonical requirements, technical-specification, or architecture document forms, including drafts without formal approval. Reject absolute paths, traversal, symlink components, generated/vendor targets, and request tickets as the primary artifact. Do not guess among conflicting matches; inspect their shared context and review independently assessable claims while identifying the unresolved target. If no document exists, report the available evidence and precise coverage limits rather than claiming a completed specification review.
 
 Cover the complete target; inspect sibling lifecycle documents where they affect scope, traceability, or consequential claims. Follow real relative links to requirements, design, architecture, and active requests only for context. Read repository guidance and the code, tests, configuration, interfaces, or operational docs needed to validate consequential claims. Never treat the document's own assertion as independent evidence.
 
@@ -50,7 +50,7 @@ Distinguish a true defect from a reasonable omission for an inapplicable dimensi
 
 Report `Blocker`, `Major`, and `Minor` findings. Each finding includes document location, repository or sibling-document evidence, violated lifecycle invariant, consequence, recommended document change, and closure check. Separate facts from inferences and mark uncertainty.
 
-End with `Ready`, `Revise`, or `Need Human`. `Ready` means no Blocker or Major findings remain; it does not authorize implementation and does not satisfy the core worktree review gate. Return the report in the response and leave all artifacts unchanged.
+End with `Ready`, `Revise`, or `Limited`. The `Revise` verdict applies when evidence supports actionable changes and `Limited` when consequential missing evidence prevents an overall readiness judgment; include assessed portions, unassessed portions, and next evidence needed. `Ready` requires adequate coverage of the material scope and no Blocker or Major findings; it does not authorize implementation and does not satisfy the core worktree review gate. Recover context autonomously and ask only when unresolved user intent materially changes the result, while continuing independent review. Missing formal approval alone does not block this read-only assessment or confer approval on the source. Return the report in the response and leave all artifacts unchanged.
 
 Completion requires the following outcomes; choose the inspection and checking sequence that establishes them:
 

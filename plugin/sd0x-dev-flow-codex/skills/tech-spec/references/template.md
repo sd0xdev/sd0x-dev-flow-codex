@@ -3,6 +3,7 @@
 # [Feature Name] Technical Specification
 
 > **Requirements**: relative requirements link when present
+> **Scope source and status**: requirement provenance; label unaccepted or incomplete design Draft
 
 ## 1. Overview
 

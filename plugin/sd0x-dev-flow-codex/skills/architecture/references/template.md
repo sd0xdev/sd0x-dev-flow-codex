@@ -4,7 +4,8 @@ Use this as a content guide. Adapt headings, tables and diagrams to the task; pr
 
 # {Feature Name} Architecture
 
-> **Technical specification**: rendered relative Markdown link to the canonical technical specification
+> **Technical specification**: rendered relative Markdown link when present
+> **Design source and status**: established scope and its provenance; label unaccepted design Draft
 
 ## 1. Scope and Evidence
 
@@ -64,7 +65,7 @@ sequenceDiagram
 
 ## 9. Cross-References
 
-- Technical specification: rendered relative Markdown link
+- Technical specification: rendered relative Markdown link when present
 - Active request: rendered relative Markdown link when present
 
 Omit inapplicable optional subsections explicitly rather than inventing detail. Keep implementation tasks and progress state in their owning documents.

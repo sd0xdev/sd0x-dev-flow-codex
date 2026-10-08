@@ -44,3 +44,8 @@ The completed map is checked against the current path inventory and every cited 
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+The native manifest-map runner adds a bounded declared-dependency graph for Node, PHP, Go, Rust and Python. Select overview, direct reverse dependents or cycles; preserve explicit selectors, output format and include-candidates choice. Confirmed workspaces and standalone roots form the default architecture set; candidates do not become architecture by proximity. Edges mean declares_dependency, not imports or runtime impact. Report malformed, unreadable, unsupported and budget-skipped coverage; never infer missing edges. JSON remains complete under the bounded manifest budget even when Markdown top-N is requested. The installed runner allowlists workflow/manifest-map.js; arguments are literal argv and never project executable code. See the manifest-map reference for invocation and output semantics.
+
+Details: [manifest-map](references/manifest-map.md).

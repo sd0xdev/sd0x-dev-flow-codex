@@ -1,15 +1,17 @@
 ---
 name: project-brief
-description: "Convert an approved technical specification into a PM- and CTO-facing brief while preserving scope, commitments, provenance, and unresolved decisions. Does not approve or modify the source specification."
+description: "Convert a technical specification or bounded project evidence into a PM- and CTO-facing brief, preserving scope, provenance, and unresolved decisions. Missing approval yields a draft, not a stop."
 ---
 
 # Project Brief
 
-This workflow converts one approved technical specification into a concise PM- and CTO-facing brief without changing facts, scope, commitments, or technical evidence.
+This workflow converts a technical specification or bounded project evidence into a concise PM- and CTO-facing brief without changing facts, scope, commitments, or technical evidence. Recover the intended project from the user, established conversation context, and repository evidence; a missing formal specification or approval does not block a useful draft.
 
 ## Source and destination
 
-Resolve one contained regular specification file, its repository identity, byte digest, approval or status evidence, and an explicit or deterministic destination. The default destination is a sibling filename with a brief suffix. Reject symbolic links, path escape, an unapproved or ambiguous source, a destination collision with unrelated content, and source drift before writing.
+Resolve the contained regular specification file when present, its repository identity, byte digest, and actual approval or status evidence. Otherwise bound the available project sources and record the sections each supports. Label the brief `Draft` when approval is absent, status is unknown, or source evidence is incomplete; never infer approval from the request to create a brief. Unresolved source conflicts remain explicit decisions, while supported portions can be drafted independently.
+
+Use the explicit destination or an existing repository convention. By default choose a sibling filename with a brief suffix; without a specification, use a contained `docs/briefs/<project>-project-brief.md` derived from the established scope. For an inferred destination that collides with unrelated content, select an unused draft sibling and report it. Reject symbolic links, path escape, and overwriting unrelated content. If an explicitly required destination conflicts, deliver the draft in the response while leaving that path untouched. Ask only when unresolved user intent materially changes the project outcome; continue independent drafting.
 
 ## Conversion
 
@@ -19,9 +21,9 @@ Every schedule, resource estimate, risk level, and recommendation must trace to 
 
 ## Write and verify
 
-Preview the destination, source and output digests, section map, omitted technical detail classes, and unresolved facts. Apply one contained atomic write while preserving unrelated files, then re-read the brief and reject source or destination drift.
+Record the destination, source and output digests, section map, omitted technical detail classes, and unresolved facts before one contained atomic write; this preview does not require another approval for the requested local brief. Re-read source and destination before writing; if either drifted, refresh the evidence and draft instead of overwriting conflicting changes. Preserve unrelated files and re-read the resulting brief.
 
-The result contains project overview, current-versus-target table, option comparison, architecture overview, milestones and dependencies, risk table, resource requirements, success measures, and explicit PM or CTO decisions. File references link back to the approved specification.
+The result contains project overview, current-versus-target table, option comparison, architecture overview, milestones and dependencies, risk table, resource requirements, success measures, and explicit PM or CTO decisions. Link to the actual specification or bounded sources and mark unsupported sections as unknown; a draft is a deliverable, not approval or a commitment.
 
 ## Boundaries
 

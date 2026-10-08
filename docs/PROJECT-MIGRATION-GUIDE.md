@@ -4,7 +4,7 @@
 
 > 最後校準日期：2026-09-05
 > 最新來源盤點：2026-09-30，`sd0x-harness` `5.0.0` / `7805e98`；[差異與跟進順序](../migration/upstream-evolution-2026-09-30.md)僅為盤點，未全數移植。`4.6.2` / `04e8a5e` 與更早的快照、歷史 inventory 保留。
-> Codex 版本：`sd0x-dev-flow-codex` `0.5.4`
+> Codex 版本：`sd0x-dev-flow-codex` `0.5.5`
 
 本文件是後續開發的主要上下文入口。目標不是重述所有程式碼，而是保存最容易在跨 task、換開發者或 context compaction 後遺失的設計決策、執行邊界與驗證方式。
 
@@ -104,7 +104,7 @@ CODEX_HOME="$PWD/.codex-dev-home" codex
 正式 Codex plugin 目前包含：
 
 - 86 個 skills：`architecture`、`architecture-advice`、`ask`、`best-practices`、`brainstorm`、`bug-fix`、`bump-version`、`check-coverage`、`code-explore`、`code-investigate`、`contract-decode`、`create-pr`、`create-request`、`de-ai-flavor`、`debug`、`deep-explore`、`deep-research`、`dep-audit`、`dev-security-audit`、`doc-refactor`、`doc-review`、`doctor`、`epic-merge`、`explain`、`feasibility-study`、`feature-dev`、`feature-verify`、`fp-brief`、`generate-runner`、`git-investigate`、`git-profile`、`issue-analyze`、`jira`、`load-pr-review`、`merge-prep`、`necessity-audit`、`next-step`、`obsidian-cli`、`op-session`、`orchestrate`、`plan-review`、`portfolio`、`post-dev-recap`、`post-dev-test`、`pr-comment`、`pr-review`、`pr-summary`、`pre-pr-audit`、`project-audit`、`project-brief`、`push-ci`、`readme-i18n-sync`、`recap-ask`、`recap-doc`、`refactor`、`remind`、`repo-intake`、`req-analyze`、`request-tracking`、`reset`、`review`、`review-spec`、`risk-assess`、`runbook`、`safe-remove`、`security-review`、`seek-verdict`、`setup`、`sharingan`、`simplify`、`skill-health-check`、`smart-commit`、`smart-rebase`、`statusline-config`、`tech-brief`、`tech-spec`、`test-deep`、`test-gen`、`test-health`、`test-review`、`ui-first-principles`、`update-docs`、`update-readme`、`verify`、`watch-ci`、`zh-tw`。
-- 0 個 bundled MCP server。本機 `scripts/runtime/runner.js` 執行 10 個 allowlisted scripts；Codex shell 提供當前 session context，原生 configured primary 負責 review。
+- 0 個 bundled MCP server。本機 `scripts/runtime/runner.js` 執行 13 個 allowlisted scripts；Codex shell 提供當前 session context，原生 configured primary 負責 review。
 - 1 個 project-scoped reviewer profile：Codex primary，預設繼承 parent model／reasoning effort。
 - Session、prompt、edit、subagent 與 Stop lifecycle hooks。
 - Fingerprint state machine、deterministic verification、project setup、doctor 與 dev-link tooling。
@@ -171,6 +171,10 @@ sd0x-dev-flow-codex/
 `scripts/runtime/workflow-contract.js` 是 instruction contract 的單一 owner。它定義 versioned closed Anchor register、Defaults、Guidance、managed `AGENTS.md` renderer、drift inspection，以及 `[SD0X_STATE]` factual envelope。Setup、doctor 與 hooks 都消費這份 contract，不各自維護規則副本。
 
 Anchors 鎖定 exact fingerprint、修改後 freshness、Declaring/Summary/Fixing 與 evidence 的差異、configured-primary-only authority、deterministic verification、runtime integrity 與 gate supremacy。Defaults 把 reversible path、batching、timing、investigation depth 與 focused checks 交由模型依 repository facts 判斷；一般不確定性不要求停下來問人。偏離 Default 只有在影響結果、風險或使用者預期時才簡述依據，不要求固定格式；說明不是 evidence，也不能降低 Anchor。使用者自訂的 `AGENTS.md` 內容保留在 managed markers 外，可 refine managed Defaults/Guidance；這是 managed workflow 內部的優先關係，不改變平台指令層級。
+
+上下文恢復也是 Default：feature resolver 回傳 null、多個相關文件、缺少正式 requirements／tech spec，先從當前任務、既有對話與 repository 證據研究。模型可選可逆的名稱、文件位置、mode 與合理預設，再將推定 key／path 交回 canonical resolver 驗證；不能略過 explicit conflict、containment rejection 或覆寫不相關內容。已能支持的分析、草稿與獨立工作持續交付，未知與未核准狀態明列；只在剩餘歧義會實質改變目標或缺少必要操作授權時詢問，並只暫停依賴該決定的步驟。文件缺失本身不再是 `Need Human` checkpoint。
+
+這項行為同時適用 lifecycle 文件、planning reviews、briefs、runbook、唯讀 orchestration 及 routine target discovery。`Limited`／`Need Evidence` 是附有已評估範圍與缺口的結果，不代表 Ready 或放行 gate。Runner／vault／account 選擇沿用明確任務與現有證據；缺外部授權、runtime integrity failure、未知外部 mutation 結果與真正需要使用者操作的登入／trust，不因自主推進而消失。修改技能後仍遵守第 9 節 reload matrix；source 已驗證與新 session registry 已生效是不同的交付狀態。
 
 ### 5.2 Worktree fingerprint
 
@@ -417,7 +421,7 @@ User-level 模式則使用同名的 `dev:unlink`、`dev:link`、`dev:status`。�
 CODEX_HOME="$PWD/.codex-dev-home" npm run migration:alias:probe
 ```
 
-Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向的測試 skill 暫放到 ignored `.codex-dev-home/skills/`，拒絕 symlinked skills/tmp ancestors，擷取 versioned app-server schema與 explicit/neutral model-visible catalogs，並在 isolated ephemeral read-only turn 實際驗證 exact marker。它會 byte-for-byte 比對 freshly generated normalized dump與 committed evidence，綁定執行前後 directory manifest、hash與 file/directory inode，再把整個 owned directory原子搬入 lock-owned exclusive nonce container；搬後 identity正確才刪本次 inode，否則原位還原或保留完整 quarantine並非零退出。既有同名 skill、並行 probe、same-byte replacement、quarantine collision或途中出現的外來 path都不會被覆寫/刪除，也不接觸 user-level `CODEX_HOME`。只有輸出出現可檢查的 automatic-candidate exclusion field/API、neutral catalog實際排除 alias，且 explicit invocation仍成功時，才可另開 request 重新考慮 `manual-only`。2026-09-30 的 Codex `0.159.2` 與後續 `0.160.0` 實測 exclusion fields 仍為空，所以所有 compatibility aliases 目前維持 `mapping-only`；當前 owner 為 `2026-10-03-alias-capability-codex-0-160-0-refresh.md`，完整保留前任 owner bytes。
+Probe 以 ownership lock 把 `test/fixtures/alias-capability/` manifest 指向的測試 skill 暫放到 ignored `.codex-dev-home/skills/`，拒絕 symlinked skills/tmp ancestors，擷取 versioned app-server schema與 explicit/neutral model-visible catalogs，並在 isolated ephemeral read-only turn 實際驗證 exact marker。它會 byte-for-byte 比對 freshly generated normalized dump與 committed evidence，綁定執行前後 directory manifest、hash與 file/directory inode，再把整個 owned directory原子搬入 lock-owned exclusive nonce container；搬後 identity正確才刪本次 inode，否則原位還原或保留完整 quarantine並非零退出。既有同名 skill、並行 probe、same-byte replacement、quarantine collision或途中出現的外來 path都不會被覆寫/刪除，也不接觸 user-level `CODEX_HOME`。只有輸出出現可檢查的 automatic-candidate exclusion field/API、neutral catalog實際排除 alias，且 explicit invocation仍成功時，才可另開 request 重新考慮 `manual-only`。2026-09-30 的 Codex `0.159.2` 與後續 `0.161.0` 實測 exclusion fields 仍為空，所以所有 compatibility aliases 目前維持 `mapping-only`；當前 owner 為 `2026-10-08-alias-capability-codex-0-161-0-refresh.md`，完整保留前任 owner bytes。
 
 `.codex-plugin/plugin.json` 是刻意保留的 snapshot regular file。若要改 manifest version，應在修改前先 `unlink` 舊版本，再修改 source manifest 並 `link` 新版本；否則舊版本 overlay 可能留在舊 cache path，需先確認 marker ownership 再清理。
 

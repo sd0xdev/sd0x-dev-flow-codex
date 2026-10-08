@@ -4,7 +4,13 @@
   "target_package": "core",
   "authorization": {
     "policy": "scoped-explicit-user-authorization-v2",
-    "sensitive_operations": []
+    "sensitive_operations": [
+      "commit",
+      "connector-write",
+      "history-rewrite",
+      "pr-write",
+      "push"
+    ]
   },
   "units": [
     {

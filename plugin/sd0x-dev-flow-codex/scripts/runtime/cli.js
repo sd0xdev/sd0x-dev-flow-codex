@@ -206,6 +206,13 @@ function doctor(cwd, options = {}) {
     stateError = error.message;
     checks.push({ check: 'runtime-state-readable', ok: false });
   }
+  let contractLocator = null, instructionAccounting = null;
+  try {
+    contractLocator = require('./contracts').locator(pluginRoot);
+    instructionAccounting = require('./instruction-budget').staticReport(findRepoRoot(cwd), pluginRoot);
+  } catch {
+    checks.push({ check: 'instruction-carriers-readable', ok: false });
+  }
   return {
     ok: checks.every((check) => check.ok),
     plugin_root: pluginRoot,
@@ -215,6 +222,8 @@ function doctor(cwd, options = {}) {
     state_path: resolveStatePath(cwd),
     workflow_contract_version: CONTRACT_SCHEMA_VERSION,
     managed_guidance: guidance,
+    contract_locator: contractLocator,
+    instruction_accounting: instructionAccounting,
     runtime,
     review_context: reviewContext,
     checks,

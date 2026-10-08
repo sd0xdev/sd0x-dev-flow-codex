@@ -34,9 +34,11 @@
 
 ## 5. Verdict
 
-- Verdict: `Ready`, `Revise`, or `Need Human`
+- Verdict: `Ready`, `Revise`, or `Limited`
 - Decisive reason:
 - Remaining uncertainty:
+- Assessed and unassessed portions:
+- Next evidence needed:
 
 The verdict does not authorize implementation and does not record a runtime review gate.
 

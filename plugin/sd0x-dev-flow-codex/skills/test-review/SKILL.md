@@ -48,3 +48,6 @@ assessment never participates in the fingerprint-bound repository review gate.
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Load the testing contract topics through the installed native reader with the exact installed version before dependent work. Missing, unreadable, changed-manifest or wrong-version contracts leave the dependent action unresolved; recover the installation or context instead of inferring the omitted rules. Contract delivery is not proof of model understanding or gate acceptance.

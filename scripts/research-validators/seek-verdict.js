@@ -153,7 +153,8 @@ function validateState(state) {
 }
 
 function validateEvaluationInput(input, trustedEvidenceRegistry) {
-  return exactKeys(input, EVALUATION_KEYS) && nonempty(input.finding_key) &&
+  return exactKeys(input, Object.hasOwn(input || {}, 'impact_assessment') ? EVALUATION_KEYS.concat('impact_assessment').sort() : EVALUATION_KEYS) &&
+    (!Object.hasOwn(input, 'impact_assessment') || ['HIGH_IMPACT', 'LOW_IMPACT', 'UNCERTAIN', 'NOT_ASSESSED'].includes(input.impact_assessment)) && nonempty(input.finding_key) &&
     nonempty(input.session) && nonempty(input.branch) && HASH.test(input.fingerprint) &&
     ['confirm', 'dismiss', 'clarify'].includes(input.intent) &&
     ['P0', 'P1', 'P2', 'Nit'].includes(input.severity) &&
@@ -240,7 +241,12 @@ function evaluate(current, input, trustedEvidenceRegistry) {
   } else {
     state.dismiss_streak = 0;
   }
-  return { state, transition, verifier: oppositeVerifier(input.origin) };
+  const impact = input.intent !== 'clarify' ? 'NOT_ASSESSED' :
+    input.confidence >= 0.70 && ['HIGH_IMPACT', 'LOW_IMPACT'].includes(input.impact_assessment)
+      ? input.impact_assessment : 'UNCERTAIN';
+  return { state, transition, verifier: oppositeVerifier(input.origin),
+    impact_assessment: impact, impact_intent_mismatch: input.intent === 'clarify' &&
+      (!input.impact_assessment || input.impact_assessment === 'NOT_ASSESSED') };
 }
 
 function confirmCandidate(current, input, trustedEvidenceRegistry) {

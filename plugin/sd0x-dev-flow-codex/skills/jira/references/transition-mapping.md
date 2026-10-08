@@ -12,7 +12,7 @@
 
 Fetch the exact issue and its available transitions read-only. Compare normalized target-status names with only the registered event pattern. One match produces a preview. Zero matches reports every available target status. More than one match requires an exact transition choice. If the current status already satisfies the event, return a read-only no-op.
 
-The preview records the site, issue key, current status, event, exact transition identifier, target status, retrieval time, and response digest. A later execution task re-fetches both issue and transitions and rejects any drift before one connector transition call.
+The preview records the site, issue key, current status, event, exact transition identifier, target status, retrieval time, and response digest. When the user's existing request authorizes the transition, continue in the same task; preview-only requests remain read-only. Execution re-fetches both issue and transitions and rejects any drift before one connector transition call.
 
 ## Comment
 

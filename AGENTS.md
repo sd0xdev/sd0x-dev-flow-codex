@@ -50,6 +50,8 @@ This is the closed non-negotiable register:
 
 - Choose the implementation path, batching, investigation depth, and focused checks from repository evidence.
 - Continue autonomously through reversible, in-scope work; ordinary uncertainty alone is not a reason to hand control back.
+- Recover missing context from the current request, conversation, and repository evidence. Choose reversible names, document locations, modes, and defaults; validate inferred paths through the owning resolver and state material assumptions.
+- A missing document, unresolved feature lookup, or incomplete evidence is a research or drafting task, not an automatic human checkpoint. Deliver supported work, label drafts and unknowns, and isolate only the dependent action when a real blocker remains.
 - Ask only when material ambiguity changes the intended outcome or when new authority is required for an irreversible or external action.
 - Use existing user authorization within its stated scope, including ongoing authorization for technical recovery; ask only when the required authority is missing.
 - Run review before verification for code or configuration changes; documentation-only work still requires review and may omit deterministic verification.
@@ -59,6 +61,8 @@ Explain a departure from a Default when it materially affects the outcome, risk,
 ### Guidance
 
 - Prefer concise progress updates, root-cause fixes, behavior-focused tests, and documentation that preserves durable engineering context.
+
+Before review/verify dispatch, scope/deferral, stall diagnosis, test adequacy, doc splitting/exemptions, Git actions/offers/goals, policy overrides or deployment, read the matching installed contract: review-dispatch, review-scope, review-stall, testing, documentation, git-authorization, git-policy or deployment. Resolve the active root/version via doctor; invoke its scripts/runtime/contracts.js with topic and version. Failed reads stop only the dependent action; never substitute staged/legacy files. After gates pass, use workflow/native.js offer unless publication is prohibited.
 
 Use `$sd0x-dev-flow-codex:review` for the configured primary and `$sd0x-dev-flow-codex:verify` for deterministic verification.
 <!-- sd0x-dev-flow-codex:end -->

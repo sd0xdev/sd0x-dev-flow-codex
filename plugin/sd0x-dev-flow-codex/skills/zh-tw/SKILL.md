@@ -9,7 +9,7 @@ Rewrite the immediately preceding answer, or one explicitly identified conversat
 
 ## Target selection
 
-Without a selector, the target is the complete immediately preceding assistant answer. An explicit selector must identify one unambiguous passage already present in the conversation. Missing, ambiguous, private, or inaccessible content produces a clarification rather than a guessed target.
+Without a selector, the target is the complete immediately preceding assistant answer. Resolve an explicit selector from the available conversation, including the named topic or quotation; use the most recent matching passage when repeated candidates contain the same content. Do not require confirmation for an evident reference such as "the explanation above." Ask only when different plausible passages would materially change the rewrite or the requested source is absent. Never invent, retrieve private, or reconstruct inaccessible content.
 
 ## Rewrite rules
 

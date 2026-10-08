@@ -57,3 +57,10 @@ Return repository and fingerprint identity, work classification, current gate st
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Treat missing intent for a feature with planning documents as an advisory follow-up. Preserve the current objective and required gates; this advisory is not another completion gate.
+
+Use the owning resolver for the selected feature and request-tracking for portfolio-wide backlog. Candidate Complete, unknown status, malformed and unreadable requests remain open or unknown. Any open request prevents a feature-complete inference; displayed top-N does not reduce the actual totals. Inspect exact intent identity before suggesting the missing-intent follow-up.

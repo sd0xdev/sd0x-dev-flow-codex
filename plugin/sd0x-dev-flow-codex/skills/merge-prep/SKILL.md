@@ -9,7 +9,7 @@ Analyze one or more source branches against one target branch for ancestry, comm
 
 ## Input Resolution
 
-Resolve the repository root and validate each requested branch with direct fixed read-only argv calls to the version-control executable. Fully resolve source, target, and merge-base object IDs and reject ambiguous revision syntax, missing objects, unrelated histories, duplicate sources, or a source equal to the target. The default target comes from an unambiguous configured remote default branch; otherwise require an explicit target.
+Resolve the repository root and validate each requested branch with direct fixed read-only argv calls to the version-control executable. Fully resolve source, target, and merge-base object IDs and reject ambiguous revision syntax, missing objects, unrelated histories, duplicate sources, or a source equal to the target. Resolve the target from an explicit user selection or earlier task context, then an unambiguous configured remote default branch. If no intended target can be established, complete source inventory and independent risk analysis, and ask only for the target needed by the remaining comparison. Do not invent a target or treat an incomplete comparison as merge readiness.
 
 Record worktree and index status as risk evidence without requiring a clean state for analysis. Never read paths outside the repository or follow a path supplied by commit content.
 
@@ -60,3 +60,6 @@ Return repository identity, exact object IDs, ancestry and commit tables, file s
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before a Git mutation, load the git-authorization and git-policy topics from the installed native contract reader and read the user-owned policy. Apply additive protected branches, naming and commit-message conventions without weakening explicit action/target/payload authority. Validate attribution before commit or publication, redact removed automation markers in reports, and preserve human authorship. Eligibility, a policy declaration, an offer or a computed digest never grants authority. Goal commits require an actual user-set active goal explicitly authorizing commit for this repository/branch, within expiry and with explicit protected-branch permission when needed; they do not imply staging or pushing. Repeated invocations refresh target OIDs and observations. Declines suppress the same-fingerprint offer; successful gates only enable an eligible suggestion.

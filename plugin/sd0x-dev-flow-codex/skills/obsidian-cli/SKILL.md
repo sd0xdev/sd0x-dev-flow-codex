@@ -18,7 +18,7 @@ Use this workflow for vault discovery, note search or read, creating or appendin
 ## Read-only preflight
 
 1. Resolve the official Obsidian executable by an exact installed capability lookup. Never download, install, enable, or reconfigure it.
-2. Query version, desktop IPC readiness, and the closed vault inventory with fixed literal arguments. Reject unsupported CLI versions and ambiguous or unavailable vaults.
+2. Query version, desktop IPC readiness, and the closed vault inventory with fixed literal arguments. Resolve the vault from an explicit selector, the user's existing task context, or the sole available vault. Resolve routine selector omissions from that evidence. Reject unsupported CLI versions and unavailable vaults; if multiple materially different vaults remain plausible, finish independent capability diagnostics and ask only for the vault needed by the requested operation. Never replace an invalid explicit selector or execute a mutation against a guessed vault.
 3. Select the vault by an explicit name or exact discovered identifier. Environment variables and home-directory configuration do not silently select or persist a vault.
 4. Normalize a requested note path as a vault-relative Unicode string. Reject absolute paths, traversal, empty components, control characters, reserved names, unexpected extensions, and any path whose resolved parent or existing target escapes through a symbolic link.
 

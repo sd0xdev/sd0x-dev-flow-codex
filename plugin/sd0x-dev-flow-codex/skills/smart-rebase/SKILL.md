@@ -44,3 +44,10 @@ After success, the new topic tip is checked for ancestry from the exact target, 
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before a Git mutation, load the installed Git action and git-policy topics from the installed native contract reader and read the user-owned policy. Apply additive protected branches, naming and commit-message conventions without weakening explicit action/target/payload authority. Validate attribution before commit or publication, redact removed automation markers in reports, and preserve human authorship. Eligibility, a policy declaration, an offer or a computed digest never grants authority. Goal commits require an actual user-set active goal explicitly authorizing commit for this repository/branch, within expiry and with explicit protected-branch scope when needed; they do not imply staging or pushing. Repeated invocations refresh target OIDs and observations. Declines suppress the same-fingerprint offer; successful gates only enable an eligible suggestion.
+
+Reject option-shaped bases, ambiguous short refs, malformed or truncated history and failed producers. Resolve a full ref and exact OID; preserve an explicit base on repeat analysis. Do not guess remote destinations from non-invertible, negative or multiply owned fetch mappings. Native analysis does not fetch implicitly.
+
+The native resolve-ref action rejects ambiguous short names and resolves a full ref to one commit OID; remote-mapping requires exactly one invertible owner and rejects negative exclusions. These read-only helpers do not refresh remotes or mutate history.

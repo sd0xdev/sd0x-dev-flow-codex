@@ -98,6 +98,7 @@ function fingerprint(cwd = process.cwd()) {
     hash.update('\0path:' + relative + '\0');
     hashPath(hash, repository, relative);
   }
+  hash.update(require('../../../scripts/runtime/readonly-proof').proof(repository));
   return hash.digest('hex');
 }
 

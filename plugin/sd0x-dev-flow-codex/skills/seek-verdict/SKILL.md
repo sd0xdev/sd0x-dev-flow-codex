@@ -58,3 +58,6 @@ This canonical skill is distributed from the core plugin. Its legacy research-pa
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Clarify has an independent impact_assessment axis: HIGH_IMPACT or LOW_IMPACT requires confidence at least 0.70; lower confidence or UNCERTAIN maps to UNCERTAIN. NOT_ASSESSED or a missing impact field is an intent mismatch and remains UNCERTAIN. Actionability never substitutes for impact. The deterministic helper consumes the clarify attempt while preserving UNRESOLVED finding state and grants no dismissal or primary-review authority. An objective rebuttal is remapped from its new raw assessment, never awaited as a pre-mapped policy token.

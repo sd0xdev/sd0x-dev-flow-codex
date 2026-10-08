@@ -46,3 +46,8 @@ Return scope and evidence digests, destination, depth, included and omitted path
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Dated outcomes come from work_records and history_records; present behavior comes from current_authority and code. Do not rewrite earlier evidence.

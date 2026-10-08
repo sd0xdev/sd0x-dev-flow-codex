@@ -22,9 +22,9 @@ An explicit `deep` request selects deep mode. Otherwise choose deep mode only wh
 
 Delegate feature selection to the query-only resolver at `../create-request/scripts/request-tool.js` using its `resolve` operation. Pass an explicit feature as `--feature`. Pass a feature-directory, canonical lifecycle-document, or request path directly as `--path`; the shared resolver validates the complete leaf before returning a feature. Accept `docs/features/{slug}/2-tech-spec.md` as this skill's lifecycle-document form and reject every other lifecycle-document path. When both feature and path are present, pass both so conflicts fail closed. Do not reproduce or bypass the resolver's containment rules.
 
-Accept only the resolver's canonical JSON. A null result or multiple changed features is Need Human: ask one concise question instead of guessing. The resolver may return a contained path for a valid missing explicit key, but it does not create directories.
+Accept only the resolver's canonical JSON. If it returns null or several changed features need disambiguation, research the current task, earlier user scope, related code and existing feature documents. Select the relevant feature, or derive a descriptive key for a new coherent concern, then pass the inferred key and selected path back through the resolver before writing. Inspect an existing document's subject before selecting update mode, and disclose material naming or ownership assumptions. Explicit key/path conflicts and containment rejections still prevent the affected write; never evade them by dropping input. The resolver may return a contained path for a valid missing explicit key, but it does not create directories.
 
-Read `canonical_docs.requirements` when present. If no requirements document exists, require a concrete user-provided requirement set; material problem ambiguity belongs to `req-analyze`. Inspect the existing `canonical_docs.tech_spec` for update mode and read active requests only as design context, never as mutation targets.
+Read `canonical_docs.requirements` when present. Established requirements may also come from concrete user scope in the current conversation, an existing request, or documented repository behavior relevant to the task. A missing requirements document or approval label does not block design research: identify those sources, separate observed behavior from intended changes, and produce a draft with assumptions and unresolved requirements clearly marked. Do not call inferred requirements approved or decide consequential product behavior without evidence. Complete the design portions supported by the available scope; ask only when unresolved alternatives materially change the intended outcome, while continuing independent work. Inspect the existing `canonical_docs.tech_spec` for update mode and read active requests only as design context, never as mutation targets.
 
 ## 2. Research the current system
 
@@ -106,3 +106,8 @@ Completion requires the following outcomes; choose the inspection and checking s
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Read exact feature intent before design. Create an absent intent only from accepted planning using the same bounded invariant structure and exclusive native intent-create action; preserve an existing intent byte-for-byte. Cite any conflicting INV-nnn and resolve scope using actual user authority.

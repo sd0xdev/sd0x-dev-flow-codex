@@ -67,6 +67,8 @@ paths, checks performed, and scope limitations.
    drift. Return findings identified as a branch-range report, not a dirty-worktree
    gate.
 
+For an explicitly selected dual branch opinion, dispatch an additional fresh independent read-only Codex subagent on the same base/head and captured evidence, without the primary conclusion. Inherit parent settings. Compare findings after both terminal reports and repeat subject identity checks. Report disagreements and unavailable opinions separately; the secondary has no gate authority and cannot overrule the configured primary. This option does not start round/gate wrappers or change the default gate.
+
 ### `deep`
 
 1. Capture the current diff and complete changed-file set. The configured primary
@@ -162,3 +164,6 @@ fingerprint.
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Load the review-dispatch, review-scope and review-stall contract topics through the installed native reader with the exact installed version before dependent work. Missing, unreadable, changed-manifest or wrong-version contracts leave the dependent action unresolved; recover the installation or context instead of inferring the omitted rules. Contract delivery is not proof of model understanding or gate acceptance.

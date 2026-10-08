@@ -23,26 +23,47 @@ Resolve or scan before reading or writing request documents.
 
 Use [references/request-format.md](references/request-format.md) for create and update operations. It owns both the ticket format and the durable closure transaction.
 
-Use the helper's canonical paths and active-request list. Never guess after a null or
-ambiguous resolution. If both a feature key and path are supplied, they must resolve
-to the same slug. The helper is query-only and never creates directories or files.
+Use the helper's canonical paths and active-request list. After a null or ambiguous
+resolution, inspect the current task, earlier user scope, relevant code and existing
+feature documents. Select a supported feature or derive a descriptive key for a new
+coherent concern, then re-run the helper with that key and any selected path before
+writing. Inspect an existing target's subject before updating it and disclose
+material naming or ownership assumptions. If both a feature key and path are
+supplied, they must resolve to the same slug. Explicit conflicts and containment
+rejections still prevent the affected write; never silently drop rejected input.
+The helper is query-only and never creates directories or files. Routine mode,
+naming and destination choices do not require confirmation. Ask only when a
+remaining ambiguity materially changes the intended outcome or requires authority
+not already present, and continue independent preparation while it is unresolved.
 
 ## Create
 
 1. Resolution precedence is explicit input, a feature matching a supported branch
    prefix, one uniquely changed feature, and finally one available feature directory.
-2. Read the parent tech spec and, when present, requirements document. Read
+2. Read the parent tech spec and requirements document when present. If they are
+   absent, use the user's concrete task scope and relevant repository evidence;
+   record that provenance without claiming a specification was approved. Missing
+   formal documents alone do not block a local ticket. Keep a ticket with unresolved
+   consequential requirements `Proposed` and state the open decisions. Read
    [references/request-format.md](references/request-format.md) before rendering.
 3. Derive a single-task scope, related files, dependencies, and evidence-oriented ACs.
    If the task spans independent concerns, propose focused sibling tickets when that makes execution and verification clearer. Respect any actual limits reported by the request helper.
 4. Record the current HEAD commit identifier as `Implementation Base SHA`. Name the
-   file `YYYY-MM-DD-kebab-case-title.md` and refuse collisions instead of overwriting.
+   file `YYYY-MM-DD-kebab-case-title.md`. On a name collision, preserve the existing
+   ticket and choose a descriptive unused suffix; validate the complete
+   new request path through the helper before writing. Do not interpret a collision as update
+   authority.
 5. Create only after clear user intent to create a local ticket. Preserve bidirectional
    links with the parent tech spec and requirements document when they exist.
 
 ## Update one
 
-1. Resolve exactly one request. Multiple active requests require the user to choose.
+1. Resolve exactly one request from the explicit path, current task, prior user
+   selection, and its subject or related files. Multiple active requests alone do
+   not require a question. Revalidate the selected complete path through the helper
+   before writing. If equally plausible targets would change unrelated user work,
+   prepare the evidence and proposed update without mutating either, then ask for
+   the missing target decision; never infer update-all authority.
 2. Read the entire request, its implementation base, related files, and relevant
    repository guidance. Snapshot the current non-request worktree state before
    evaluating progress.
@@ -112,3 +133,8 @@ an implied part of request management.
   ]
 }
 ```
+
+<!-- sd0x-v5-native-guidance -->
+Before using feature documents, load the documentation topic through the installed native contract reader with the expected plugin version. Resolve the feature through its owning resolver, validate the complete context shape, and distinguish scan failure from confirmed absence. Report Corpus scan: complete or unknown; recover unknown scans before making exhaustive claims. Repository-relative source-set paths already include the feature directory. The legacy canonical alias is role-blind and is not an authority selector.
+
+Read the resolved exact intent when the feature is known; map the request to applicable INV-nnn and identify conflicts before dependent work. Do not silently revise intent or adopt a wrong-key stray.

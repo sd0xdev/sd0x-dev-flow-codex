@@ -25,3 +25,23 @@ test('Obsidian prose mutation retains connector sensitivity without generic comm
   assert.throws(() => auditCandidateStatic({ root, target: 'obsidian-cli', candidate }),
     /undeclared operation: connector-write/);
 });
+
+test('native stack prose declares push and rewrite sensitivity without executable placeholders', t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-stack-declaration-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const repository = path.resolve(__dirname, '..');
+  const candidate = 'migration/candidates/create-pr';
+  const source = fs.existsSync(path.join(repository, candidate)) ? candidate : 'plugin/sd0x-dev-flow-codex/skills/create-pr';
+  fs.cpSync(path.join(repository, source), path.join(root, candidate), { recursive: true });
+  const disposition = JSON.parse(fs.readFileSync(path.join(repository, 'migration/source-disposition.json')));
+  const rows = disposition.skills.filter(row => row.target_skill === 'create-pr').map(row => ({ ...row, delivery_state: 'candidate' }));
+  const file = path.join(root, 'migration/source-disposition.json');
+  fs.writeFileSync(file, JSON.stringify({ skills: rows }));
+  const result = auditCandidateStatic({ root, target: 'create-pr', candidate });
+  assert.ok(result.observed_operations.includes('push'));
+  assert.ok(result.observed_operations.includes('history-rewrite'));
+  for (const operation of ['push', 'history-rewrite']) {
+    fs.writeFileSync(file, JSON.stringify({ skills: rows.map(row => ({ ...row, operations: row.operations.filter(item => item !== operation) })) }));
+    assert.throws(() => auditCandidateStatic({ root, target: 'create-pr', candidate }), new RegExp('undeclared operation: ' + operation));
+  }
+});
