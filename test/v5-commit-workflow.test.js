@@ -7,10 +7,18 @@ const path = require('node:path');
 const { initRepository, git, commit, isolateGitEnvironment } = require('./helpers/git');
 const workflow = require('../plugin/sd0x-dev-flow-codex/scripts/runtime/commit-workflow');
 isolateGitEnvironment();
+function initCommitRepository(root) {
+  initRepository(root);
+  // Commit observation intentionally ignores ambient GIT_CONFIG_* selectors.
+  // Own the unused LFS driver locally so runner-installed filters cannot enter
+  // these fixtures, without weakening the production configuration boundary.
+  for (const operation of ['clean', 'smudge', 'process']) git(root, ['config', '--local', 'filter.lfs.' + operation, '']);
+  git(root, ['config', '--local', 'filter.lfs.required', 'false']);
+}
 function repo(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'v5-commit-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  initRepository(root); git(root,['config','user.name','Fixture Author']); git(root,['config','user.email','fixture@example.invalid']);
+  initCommitRepository(root); git(root,['config','user.name','Fixture Author']); git(root,['config','user.email','fixture@example.invalid']);
   git(root,['config','commit.gpgsign','false']);
   fs.writeFileSync(path.join(root,'file.txt'),'one');git(root,['add','.']);commit(root,'baseline');
   fs.writeFileSync(path.join(root,'file.txt'),'two');fs.mkdirSync(path.join(root,'sub'));fs.writeFileSync(path.join(root,'sub/nested.txt'),'nested');git(root,['add','.']);
@@ -72,7 +80,7 @@ test('valueless configuration is valid and secret messages are refused before pr
 test('unborn repository supports exactly one first commit with no parents', t => {
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'v5-first-commit-'));
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
-  initRepository(root);git(root,['config','user.name','Fixture']);git(root,['config','user.email','fixture@example.invalid']);git(root,['config','commit.gpgsign','false']);
+  initCommitRepository(root);git(root,['config','user.name','Fixture']);git(root,['config','user.email','fixture@example.invalid']);git(root,['config','commit.gpgsign','false']);
   fs.writeFileSync(path.join(root,'first.txt'),'first');git(root,['add','.']);
   const prepared=workflow.plan(root,'Initial fixture');assert.equal(prepared.head,null);
   const result=workflow.execute(root,prepared,{action:'commit',plan_sha256:workflow.planHash(prepared),protected_branch:true});
