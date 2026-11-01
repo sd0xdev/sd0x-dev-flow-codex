@@ -499,6 +499,30 @@ batch，只重用 exact Git object 的讀取，不快取 mutable refs、request 
 checkout。全庫 source audit 的 CLI 成功序列化與 totals assertions 合併為同一次
 呼叫；fixture 的直接 API 邊界測試及 preflight audit 仍各自執行。
 
+Migration 測試以 `scripts/run-tests.js` 分派：一般 `test`／`check` 同時列入
+頂層測試與 `test/migration/*.test.js`，排除相容入口
+`test/skill-migration.test.js`，避免重跑。每個測試檔使用獨立 Node 程序；預設
+並行數為可用 CPU 數與 4 的較小值，可用 `SD0X_TEST_CONCURRENCY=1` 重現序列
+排程，或以 1–32 的整數調整。Git fixture 仍各自建立 clone，沒有共用可寫
+repository、runtime state 或 gate evidence。空測試目錄、無效選項或任一失敗
+檔案都會讓命令失敗；啟動新 runner 時會移除 Node 的內部 `NODE_TEST_CONTEXT`，
+避免巢狀測試繼承該標記後漏跑卻回傳成功。
+
+`npm run test:migration` 執行 147 個日常 migration 案例；
+`npm run check:migration-replay` 直接執行 `test/migration/replay/*.test.js`
+內的 5 個歷史交易案例，不再透過名稱 regex 選取。Wave 3／4 的現況 owner／
+completion 檢查只在日常組執行，歷史組保留 premature overlay、completion
+寫入與 post-overlay gates。Research completion、三種 phase hash 與 successor
+owner 的日常／歷史分支具有不同邊界，兩側均保留，不能因名稱相同而刪除。
+歷史 replay 仍是獨立 CI 必要 job；Windows CI 保留相容入口及原有四項完成
+斷言。直接使用相容入口搭配 `SD0X_EXHAUSTIVE_MIGRATION_REPLAY=1` 會執行
+日常與歷史兩組；日常開發及 CI 請使用上述分組命令。
+
+耗時比較應固定 Node、Codex CLI 與 evidence refs，保持相同測試範圍，分別
+記錄 wall time、通過／失敗／略過數與並行數。工具版本不符造成的提前失敗
+不能當作速度基準。斷言數或測試清單對照僅是結構證據，不能取代實際執行。
+此拆分未修改 plugin payload，依 reload matrix 不需重建 skill overlay。
+
 主要命令：
 
 ```bash

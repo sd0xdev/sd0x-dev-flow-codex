@@ -9,8 +9,8 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "test": "node --test test/*.test.js",
-    "check": "node scripts/check-syntax.js && node scripts/generate-plugin-payload-manifest.js --check && node scripts/skill-migration-audit.js audit-source && node scripts/skill-migration-audit.js audit-active-candidates && node --test test/*.test.js",
+    "test": "node scripts/run-tests.js",
+    "check": "node scripts/check-syntax.js && node scripts/generate-plugin-payload-manifest.js --check && node scripts/skill-migration-audit.js audit-source && node scripts/skill-migration-audit.js audit-active-candidates && node scripts/run-tests.js",
     "check:closure": "node scripts/check-syntax.js && node scripts/generate-plugin-payload-manifest.js --check && node scripts/skill-migration-audit.js audit-source && node scripts/skill-migration-audit.js audit-active-candidates",
     "check:migration-replay": "node scripts/run-exhaustive-migration-replay.js",
     "release:check": "node scripts/release.js check",
@@ -30,6 +30,7 @@
     "payload:manifest": "node scripts/generate-plugin-payload-manifest.js",
     "payload:manifest:check": "node scripts/generate-plugin-payload-manifest.js --check",
     "doctor": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js doctor",
-    "snapshot": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js snapshot"
+    "snapshot": "node plugin/sd0x-dev-flow-codex/scripts/runtime/cli.js snapshot",
+    "test:migration": "node scripts/run-tests.js --suite migration"
   }
 }
