@@ -85,6 +85,22 @@ explicitly overrides them. Host permission overrides do not authorize reviewer
 writes. Historical Claude evidence is immutable provenance only and has no
 current gate authority.
 
+On hosts without role selection, the explicit plugin-bound profile transport
+loads the unchanged configured managed primary profile and this theory before
+dispatch. It binds their hashes and the exact full-history spawn message to the
+round and fingerprint, then validates fresh direct child identity, receipt and
+terminal output. This is an alternative profile-loading mechanism, not authority
+from a task name or an arbitrary parent-authored prompt. It preserves one primary,
+with read-only instructions and inherited settings. It cannot retroactively adopt an
+untyped review or silently translate a custom profile. The host permission mode
+is still reported honestly: instructions do not prove OS-level write isolation.
+The child must execute the owning profile-load helper before assessment, read its
+configured instructions, and append its returned ack suffix to the verdict. The
+helper alone records a bounded child/round/profile receipt; it cannot set gates.
+On encrypted hosts, matching delivery ciphertext binds the child dispatch only;
+the separate profile-load receipt and terminal ack establish configured loading.
+The adapter strips this transport suffix before interpreting the clean verdict.
+
 The review skill owns the evidence-sensitive wrapper order and host lifecycle
 requirements. A transport observation timeout does not prove that a running
 reviewer failed. Observe the same live work until terminal evidence or confirmed

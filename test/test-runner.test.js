@@ -7,6 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { spawnSync } = require('node:child_process');
 const { discoverTests, parseOptions, runTests } = require('../scripts/run-tests');
+const { validateRootTestCommand } = require('../scripts/skill-migration-audit');
 
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sd0x-test-dispatch-'));
@@ -46,6 +47,25 @@ test('test dispatch rejects invalid concurrency and incomplete or unknown option
   for (const args of [['--suite'], ['--concurrency'], ['--unknown']]) {
     assert.throws(() => parseOptions(args, {}), /Unknown or incomplete/);
   }
+});
+
+test('candidate audit accepts the trusted all-suite dispatcher and refuses omitted root tests or replaced code', t => {
+  const root = fixture(t);
+  fs.mkdirSync(path.join(root, 'scripts'));
+  const runner = path.join(root, 'scripts/run-tests.js');
+  fs.copyFileSync(path.resolve(__dirname, '../scripts/run-tests.js'), runner);
+  write(root, 'test/candidate-routing.test.js');
+  write(root, 'test/migration/ordinary.test.js');
+  const check = command => validateRootTestCommand(root, { scripts: { check: command } });
+  assert(check('node scripts/check-syntax.js && node scripts/run-tests.js').has('test/candidate-routing.test.js'));
+  assert.equal(check('node --test test/*.test.js'), null);
+  for (const command of ['node scripts/run-tests.js --suite migration',
+    'node scripts/run-tests.js --suite replay', 'node scripts/run-tests.js --list',
+    'echo node scripts/run-tests.js', 'node scripts/run-tests.js || true']) {
+    assert.throws(() => check(command), /must execute root/);
+  }
+  fs.writeFileSync(runner, "process.exit(0);\n");
+  assert.throws(() => check('node scripts/run-tests.js'), /differs from the trusted/);
 });
 
 test('test dispatch executes passing and failing shards and propagates failure', (t) => {

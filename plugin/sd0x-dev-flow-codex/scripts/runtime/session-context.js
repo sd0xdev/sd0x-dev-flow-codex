@@ -33,6 +33,41 @@ function locateTranscript(env = process.env) {
   return matches.length === 1 ? matches[0] : null;
 }
 
+// These are top-level host records, never environment snippets in messages or
+// tool output. Bind a project change to its task-start event in this transcript.
+function currentProjectContext(rows, threadId) {
+  const boundary = rows.findLastIndex(row => row.type === 'event_msg' && row.payload?.type === 'task_started');
+  if (boundary < 0) {
+    if (rows.some(row => row.type === 'turn_context')) throw new Error('Current turn boundary is unavailable');
+    return null;
+  }
+  const start = rows[boundary];
+  const started = start.payload.turn_id;
+  if (start.metadata?.client_authored === true || !THREAD_ID.test(started || '') ||
+      !Number.isFinite(Date.parse(start.timestamp)) ||
+      (start.payload.thread_id !== undefined && start.payload.thread_id !== threadId)) {
+    throw new Error('Invalid task context');
+  }
+  let context = null;
+  // A full-history fork can begin with inherited, unpaired turn_context rows.
+  // Only the latest task boundary supplies this thread's current project.
+  for (const row of rows.slice(boundary + 1)) {
+    if (row.type !== 'turn_context') continue;
+    const value = row.payload;
+    if (row.metadata?.client_authored === true ||
+        !Number.isFinite(Date.parse(row.timestamp)) ||
+        !value || !THREAD_ID.test(value.turn_id || '') || value.turn_id !== started ||
+        (value.thread_id !== undefined && value.thread_id !== threadId) ||
+        typeof value.cwd !== 'string' || !path.isAbsolute(value.cwd) ||
+        !['read-only', 'workspace-write', 'danger-full-access'].includes(value.sandbox_policy?.type)) {
+      throw new Error('Invalid current project context');
+    }
+    context = value;
+  }
+  if (context?.turn_id !== started) throw new Error('Current turn context is unavailable');
+  return context;
+}
+
 function inspectSessionContext(cwd, env = process.env) {
   const missing = ['CODEX_HOME', 'CODEX_THREAD_ID'].filter((key) => !env[key]);
   const unavailable = (reason) => ({
@@ -45,25 +80,29 @@ function inspectSessionContext(cwd, env = process.env) {
   try {
     const transcript = locateTranscript(env);
     if (!transcript) return unavailable('session-transcript-unavailable');
-    const fd = fs.openSync(transcript, 'r');
-    let header;
-    try {
-      const buffer = Buffer.alloc(64 * 1024);
-      const size = fs.readSync(fd, buffer, 0, buffer.length, 0);
-      const lineEnd = buffer.subarray(0, size).indexOf(10);
-      if (lineEnd < 0) return unavailable('session-metadata-invalid');
-      header = JSON.parse(buffer.subarray(0, lineEnd).toString('utf8'));
-    } finally {
-      fs.closeSync(fd);
-    }
+    const bytes = fs.readFileSync(transcript);
+    const lineEnd = bytes.indexOf(10);
+    if (lineEnd < 0 || lineEnd >= 64 * 1024) return unavailable('session-metadata-invalid');
+    const header = JSON.parse(bytes.subarray(0, lineEnd).toString('utf8'));
     if (header.type !== 'session_meta' || header.payload?.id !== env.CODEX_THREAD_ID ||
         typeof header.payload?.cwd !== 'string' || !path.isAbsolute(header.payload.cwd)) {
       return unavailable('session-metadata-mismatch');
     }
-    if (fs.realpathSync(findRepoRoot(header.payload.cwd)) !== fs.realpathSync(findRepoRoot(cwd))) {
+    let current;
+    try {
+      const rows = bytes.subarray(lineEnd + 1).toString('utf8').split('\n')
+        .filter(line => line.trim()).map(line => JSON.parse(line));
+      current = currentProjectContext(rows, env.CODEX_THREAD_ID);
+    } catch {
+      return unavailable('session-turn-context-invalid');
+    }
+    const effectiveCwd = current?.cwd || header.payload.cwd;
+    if (fs.realpathSync(findRepoRoot(effectiveCwd)) !== fs.realpathSync(findRepoRoot(cwd))) {
       return unavailable('session-repository-mismatch');
     }
-    return { available: true, reason: null, missing: [], transcript_path: transcript };
+    return { available: true, reason: null, missing: [], transcript_path: transcript,
+      context_source: current ? 'host-turn-context' : 'session-meta',
+      turn_id: current?.turn_id || null };
   } catch {
     return unavailable('session-transcript-unreadable');
   }
@@ -79,10 +118,14 @@ function sessionEnvironment(context, environment, cwd) {
     throw new Error('context requires only an absolute codex_home and UUID thread_id from the current Codex shell');
   }
   // Explicit callers may supply task identity. Never mutate the caller environment.
+  if ((environment.CODEX_THREAD_ID && environment.CODEX_THREAD_ID !== context.thread_id) ||
+      (environment.CODEX_HOME && path.resolve(environment.CODEX_HOME) !== path.resolve(context.codex_home))) {
+    throw new Error('Explicit context conflicts with the active Codex shell context');
+  }
   const env = { ...environment, CODEX_HOME: context.codex_home, CODEX_THREAD_ID: context.thread_id };
   const inspected = inspectSessionContext(cwd, env);
   if (!inspected.available) throw new Error(`${inspected.reason}: ${inspected.recovery}`);
   return env;
 }
 
-module.exports = { inspectSessionContext, locateTranscript, sessionEnvironment };
+module.exports = { inspectSessionContext, locateTranscript, sessionEnvironment, findTranscriptFiles };

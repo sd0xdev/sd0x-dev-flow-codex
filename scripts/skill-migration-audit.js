@@ -7239,6 +7239,23 @@ function validateSupplementalModuleGraph(root, entryPath, entryBytes, options = 
   });
 }
 
+function validateRootTestCommand(root, packageJson, options = {}) {
+  const command = (packageJson.scripts?.check || '').split('&&').at(-1).trim();
+  if (command === 'node --test test/*.test.js') return null;
+  assert(command === 'node scripts/run-tests.js',
+    'repository check must execute root candidate behavior tests');
+  const relative = 'scripts/run-tests.js';
+  const bytes = captureContainedRegularFile(root, relative, 'repository test dispatcher').bytes;
+  const trusted = fs.readFileSync(path.join(__dirname, 'run-tests.js'));
+  assert(bytes.equals(trusted), 'repository test dispatcher differs from the trusted all-suite runner');
+  const prior = options.trustBytes?.get(relative);
+  assert(!prior || prior.equals(bytes), 'repository test dispatcher changed after capture');
+  if (options.trustBytes instanceof Map) options.trustBytes.set(relative, bytes);
+  // Enumerate with the auditor's trusted implementation, never execute a
+  // candidate-controlled runner merely to ask which files it would include.
+  return new Set(require('./run-tests').discoverTests(root, 'all'));
+}
+
 function validateBehaviorTests(root, target, targetPackageName, units, skillText, options = {}) {
   const packageBytes = options.trustBytes?.get('package.json') ||
     captureContainedRegularFile(root, 'package.json', 'repository package').bytes;
@@ -7248,8 +7265,7 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
   } catch (error) {
     throw new Error(`repository package is not valid JSON: ${error.message}`);
   }
-  assert(/node --test test\/\*\.test\.js/.test(packageJson.scripts?.check || ''),
-    'repository check must execute root candidate behavior tests');
+  const dispatchedTests = validateRootTestCommand(root, packageJson, options);
   containedPath(root, 'scripts/skill-routing-test.js', {
     label: 'routing test harness',
     type: 'file'
@@ -7321,6 +7337,8 @@ function validateBehaviorTests(root, target, targetPackageName, units, skillText
       });
     }
     for (const testPath of unit.behavior_tests) {
+      assert(!dispatchedTests || dispatchedTests.has(testPath),
+        `${testPath}: repository check does not discover this candidate behavior test`);
       assert(!testOwners.has(testPath),
         `candidate behavior test cannot own multiple units: ${testPath}`);
       testOwners.set(testPath, unit.promotion_unit_id);
@@ -8287,6 +8305,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  validateRootTestCommand,
   BOUNDARY_MARKER,
   assertExistingLiveTargetUnmodified,
   auditActiveCandidates,

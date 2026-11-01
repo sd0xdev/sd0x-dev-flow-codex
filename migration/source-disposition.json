@@ -350,7 +350,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/deep",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-10-03-review-deep-v5-native-delivery.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-11-01-review-deep-desktop-compatibility.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -375,7 +375,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/default",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-10-03-review-default-v5-native-delivery.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-11-01-review-default-desktop-compatibility.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -447,7 +447,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/full",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-10-03-review-full-v5-native-delivery.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-11-01-review-full-desktop-compatibility.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -472,7 +472,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/branch",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-10-03-review-branch-v5-native-delivery.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-11-01-review-branch-desktop-compatibility.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },
@@ -520,7 +520,7 @@
       "wave": 4,
       "routing_owner": "review",
       "promotion_unit_id": "review/fast",
-      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-10-03-review-fast-v5-native-delivery.md",
+      "promotion_request": "docs/features/skill-toolkit-migration/requests/2026-11-01-review-fast-desktop-compatibility.md",
       "license_status": "approved",
       "rationale": "Merge the source behavior into the named canonical routing owner and mode."
     },

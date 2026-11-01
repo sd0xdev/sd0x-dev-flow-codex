@@ -3,7 +3,7 @@
   "files": [
     {
       "path": ".codex-plugin/plugin.json",
-      "sha256": "1b48e5970d053be0ff05eb07c95861d7c7b13431a724dd63aaa1c0e23c4ffcbc"
+      "sha256": "93021518d0e7ff27ee757bb925d2a0dc058da325dbb0376e1b29ed29acdaf077"
     },
     {
       "path": "LICENSE",
@@ -63,7 +63,7 @@
     },
     {
       "path": "scripts/runtime/collaboration.js",
-      "sha256": "39c1eccf18c4cfc9f1e067e582b752211c65e019da30b9eb1b2f5b151222ccc5"
+      "sha256": "de1d9843bb39ba64956b079577c694d864a4be99a7a3bd0079b5ffcc0a1b4d09"
     },
     {
       "path": "scripts/runtime/comment-blocks.js",
@@ -151,7 +151,7 @@
     },
     {
       "path": "scripts/runtime/session-context.js",
-      "sha256": "43ee64967650bbfc857ca77521ac4f354713b0129b67df8ab708d480a795b6bb"
+      "sha256": "5ce0ca7d27b238f4a06e369dff6ac70790823e5307078b4249e92fb74b74503e"
     },
     {
       "path": "scripts/runtime/setup.js",
@@ -943,11 +943,11 @@
     },
     {
       "path": "skills/review/references/default.md",
-      "sha256": "45bf3dd5578cf6164e7afad65092b092905f9a6a3379763cd9918cd1549f9a0a"
+      "sha256": "8768786644fc6bf708bc61c6a7d26082d2e22d769a046e9605cb59f586cee722"
     },
     {
       "path": "skills/review/references/review-theory.md",
-      "sha256": "70911ec78300be12b85bcd7efaf82288b4ea750bba91b238a596f881a4e69f0b"
+      "sha256": "7f4a66d46cb15ea783d57ff0bf8c355b758642af14510460b032a67ca04fd705"
     },
     {
       "path": "skills/review/scripts/gate.js",
@@ -959,7 +959,7 @@
     },
     {
       "path": "skills/review/scripts/round.js",
-      "sha256": "f839dae46b0b62c8cf3ef6c6618bde4d913f71c90cf4936c32ecb815fc243ccd"
+      "sha256": "9ccf53a9148458437ae023869cd72ebd82e140f223fc1d129c8d3a35c441924e"
     },
     {
       "path": "skills/review/scripts/snapshot.js",
